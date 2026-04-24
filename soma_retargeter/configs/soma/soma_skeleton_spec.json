@@ -1,0 +1,2100 @@
+{
+  "format": "soma_retargeter_source_skeleton_v1",
+  "source_reference_bvh": "soma_retargeter/configs/soma/soma_zero_frame0.bvh",
+  "neutral_pose_bvh": "soma_retargeter/configs/soma/soma_zero_frame0.bvh",
+  "purpose": "Reference skeleton for BVH input captured outside this repository.",
+  "coordinate_convention": {
+    "bvh_translation_unit": "centimeter",
+    "runtime_translation_unit": "meter",
+    "runtime_translation_scale": 0.01,
+    "up_axis": "+Z",
+    "forward_axis": "-Y"
+  },
+  "channel_convention": {
+    "channels_per_joint": 6,
+    "channels": [
+      "Xposition",
+      "Yposition",
+      "Zposition",
+      "Zrotation",
+      "Yrotation",
+      "Xrotation"
+    ],
+    "rotation_order": "zyx",
+    "rotation_unit": "degree",
+    "position_channels_are_local_when_present": true
+  },
+  "motion_info_in_template": {
+    "frames": 1,
+    "frame_time": 0.008333,
+    "fps": 120.0048
+  },
+  "joint_count": 78,
+  "required_joints_for_default_retarget_ik_map": [
+    "Hips",
+    "Chest",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "LeftLeg",
+    "LeftShin",
+    "LeftFoot",
+    "RightLeg",
+    "RightShin",
+    "RightFoot"
+  ],
+  "recommended_joints_for_scaler_learning": [
+    "Hips",
+    "Chest",
+    "Neck1",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "LeftLeg",
+    "LeftShin",
+    "LeftFoot",
+    "LeftToe",
+    "LeftToeBase",
+    "RightLeg",
+    "RightShin",
+    "RightFoot",
+    "RightToe",
+    "RightToeBase"
+  ],
+  "joints": [
+    {
+      "index": 0,
+      "name": "Root",
+      "parent": null,
+      "path": "/Root",
+      "offset_cm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 2
+    },
+    {
+      "index": 1,
+      "name": "Hips",
+      "parent": "Root",
+      "path": "/Root/Hips",
+      "offset_cm": [
+        0.0,
+        101.0,
+        0.0
+      ],
+      "offset_extra_values_from_legacy_file": [
+        89.99999999993892,
+        0.19044625881393973,
+        89.99999998162323
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 6
+    },
+    {
+      "index": 2,
+      "name": "Spine1",
+      "parent": "Hips",
+      "path": "/Root/Hips/Spine1",
+      "offset_cm": [
+        5.131454388654504,
+        0.006208930950656999,
+        -1.238118989508993e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -2.982308449496705e-06,
+        1.5002618553680613e-06,
+        -0.04936742122988856
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 10
+    },
+    {
+      "index": 3,
+      "name": "Spine2",
+      "parent": "Spine1",
+      "path": "/Root/Hips/Spine1/Spine2",
+      "offset_cm": [
+        7.206050202879041,
+        -2.5604192210870735e-08,
+        -8.810468983808533e-13
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.251154065942558e-07,
+        3.1555039843789835e-06,
+        -5.928474719736757
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 14
+    },
+    {
+      "index": 4,
+      "name": "Chest",
+      "parent": "Spine2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest",
+      "offset_cm": [
+        7.262576912601318,
+        -2.310222502188708e-08,
+        3.986046127263554e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        5.274483670721353e-06,
+        5.965615128701837
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 18
+    },
+    {
+      "index": 5,
+      "name": "Neck1",
+      "parent": "Chest",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/Neck1",
+      "offset_cm": [
+        26.35076837994953,
+        5.2235993308613615e-14,
+        3.862781205785131e-06
+      ],
+      "offset_extra_values_from_legacy_file": [
+        3.2818172912336106e-06,
+        1.0276856880306261e-05,
+        16.832089337123804
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 22
+    },
+    {
+      "index": 6,
+      "name": "Neck2",
+      "parent": "Neck1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/Neck1/Neck2",
+      "offset_cm": [
+        7.872135137452062,
+        -3.586206531736025e-08,
+        2.488528768226183e-06
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.1846702381923234e-06,
+        2.1245441518851154e-05,
+        1.0512578058219775
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 26
+    },
+    {
+      "index": 7,
+      "name": "Head",
+      "parent": "Neck2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/Neck1/Neck2/Head",
+      "offset_cm": [
+        6.659259263032169,
+        -3.0586257082632073e-08,
+        4.578207803389883e-06
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -2.0105873732028665e-05,
+        4.011279145913156e-05,
+        -24.426708677700685
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 30
+    },
+    {
+      "index": 8,
+      "name": "HeadEnd",
+      "parent": "Head",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/Neck1/Neck2/Head/HeadEnd",
+      "offset_cm": [
+        16.169475501178482,
+        -5.102758038333377e-08,
+        2.1588997577879885e-05
+      ],
+      "offset_extra_values_from_legacy_file": [
+        2.939722553340178e-05,
+        -7.652579888066052e-05,
+        -2.5961343894221953e-11
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 34
+    },
+    {
+      "index": 9,
+      "name": "Jaw",
+      "parent": "Head",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/Neck1/Neck2/Head/Jaw",
+      "offset_cm": [
+        0.1523553134378517,
+        3.0207948493119545,
+        1.6666871398950537e-06
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.8119422576471333e-16,
+        8.146159540059806e-05,
+        -2.6252298340933193e-11
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 43
+    },
+    {
+      "index": 10,
+      "name": "LeftEye",
+      "parent": "Head",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/Neck1/Neck2/Head/LeftEye",
+      "offset_cm": [
+        4.38785611228144,
+        8.181552921168674,
+        3.1058436939203142
+      ],
+      "offset_extra_values_from_legacy_file": [
+        3.7864580906868017,
+        -0.2548110070374046,
+        10.591609256309418
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 52
+    },
+    {
+      "index": 11,
+      "name": "RightEye",
+      "parent": "Head",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/Neck1/Neck2/Head/RightEye",
+      "offset_cm": [
+        4.387864296626731,
+        8.181557054680734,
+        -3.105814545437612
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -3.786427593670273,
+        0.2549740968794142,
+        10.591609391981692
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 61
+    },
+    {
+      "index": 12,
+      "name": "LeftShoulder",
+      "parent": "Chest",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder",
+      "offset_cm": [
+        23.39903176845357,
+        5.037394870537515,
+        1.6136157367869592
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -77.45936631286393,
+        -110.76091126266175,
+        76.82156520239187
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 73
+    },
+    {
+      "index": 13,
+      "name": "LeftArm",
+      "parent": "LeftShoulder",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm",
+      "offset_cm": [
+        15.743000146833353,
+        2.2493069540274746e-07,
+        -1.0680687978492642e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.2516303284011172,
+        -76.0827449140749,
+        25.28995643684174
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 77
+    },
+    {
+      "index": 14,
+      "name": "LeftForeArm",
+      "parent": "LeftArm",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm",
+      "offset_cm": [
+        28.91599970875984,
+        3.845507783317714e-07,
+        -5.823143709449141e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        87.05677827227474
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 81
+    },
+    {
+      "index": 15,
+      "name": "LeftHand",
+      "parent": "LeftForeArm",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand",
+      "offset_cm": [
+        27.026201113584552,
+        2.0799288336093014e-07,
+        -5.678656478380617e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -7.433615718822911,
+        -2.7380326702634936,
+        -0.5432710531552406
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 85
+    },
+    {
+      "index": 16,
+      "name": "LeftHandThumb1",
+      "parent": "LeftHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandThumb1",
+      "offset_cm": [
+        2.085216590212596,
+        3.3172884358565966,
+        0.8376638662783513
+      ],
+      "offset_extra_values_from_legacy_file": [
+        54.18934456624118,
+        -18.913744175297076,
+        25.639814443811655
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 89
+    },
+    {
+      "index": 17,
+      "name": "LeftHandThumb2",
+      "parent": "LeftHandThumb1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandThumb1/LeftHandThumb2",
+      "offset_cm": [
+        4.704506558392296,
+        -5.982500645984601e-07,
+        2.997431352014246e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        24.53096788899846,
+        -10.37193289073386,
+        -29.888290151369315
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 93
+    },
+    {
+      "index": 18,
+      "name": "LeftHandThumb3",
+      "parent": "LeftHandThumb2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandThumb1/LeftHandThumb2/LeftHandThumb3",
+      "offset_cm": [
+        2.856377335916708,
+        -2.296615431163218e-08,
+        7.645157040769845e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 97
+    },
+    {
+      "index": 19,
+      "name": "LeftHandThumbEnd",
+      "parent": "LeftHandThumb3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandThumb1/LeftHandThumb2/LeftHandThumb3/LeftHandThumbEnd",
+      "offset_cm": [
+        3.180597599312982,
+        -8.161308073795226e-09,
+        8.949328389462607e-09
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 101
+    },
+    {
+      "index": 20,
+      "name": "LeftHandIndex1",
+      "parent": "LeftHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandIndex1",
+      "offset_cm": [
+        3.1710954344810354,
+        2.283197023202561,
+        0.11920330546420388
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.4047843457636997,
+        0.3750954018019461,
+        1.5602404976017248
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 113
+    },
+    {
+      "index": 21,
+      "name": "LeftHandIndex2",
+      "parent": "LeftHandIndex1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandIndex1/LeftHandIndex2",
+      "offset_cm": [
+        6.320892900549861,
+        8.482953717248165e-08,
+        -2.1220385093556615e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -8.297388713943095,
+        -0.33944701991727094,
+        -1.574871232364352
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 117
+    },
+    {
+      "index": 22,
+      "name": "LeftHandIndex3",
+      "parent": "LeftHandIndex2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandIndex1/LeftHandIndex2/LeftHandIndex3",
+      "offset_cm": [
+        3.6355331420896384,
+        -1.0838216724096128e-07,
+        -3.2565684549012985e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 121
+    },
+    {
+      "index": 23,
+      "name": "LeftHandIndex4",
+      "parent": "LeftHandIndex3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandIndex1/LeftHandIndex2/LeftHandIndex3/LeftHandIndex4",
+      "offset_cm": [
+        2.320821354074205,
+        1.878721889170265e-08,
+        -5.863252994231516e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -2.2522714253893055,
+        -3.7399020644411642,
+        -2.3453443415361823
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 125
+    },
+    {
+      "index": 24,
+      "name": "LeftHandIndexEnd",
+      "parent": "LeftHandIndex4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandIndex1/LeftHandIndex2/LeftHandIndex3/LeftHandIndex4/LeftHandIndexEnd",
+      "offset_cm": [
+        2.761220512362307,
+        1.697209484063933e-08,
+        -2.875076443586977e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 129
+    },
+    {
+      "index": 25,
+      "name": "LeftHandMiddle1",
+      "parent": "LeftHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandMiddle1",
+      "offset_cm": [
+        3.1009739431477925,
+        0.9116084326471565,
+        -0.40995996895761877
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -3.14124515929816,
+        -3.8825504784025027,
+        -8.679807357736895
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 142
+    },
+    {
+      "index": 26,
+      "name": "LeftHandMiddle2",
+      "parent": "LeftHandMiddle1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandMiddle1/LeftHandMiddle2",
+      "offset_cm": [
+        6.05453653372451,
+        2.2346340244894236e-07,
+        -3.934670900207493e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -6.015057640728882,
+        3.354877427242513,
+        8.888705074703315
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 146
+    },
+    {
+      "index": 27,
+      "name": "LeftHandMiddle3",
+      "parent": "LeftHandMiddle2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandMiddle1/LeftHandMiddle2/LeftHandMiddle3",
+      "offset_cm": [
+        4.574078859155286,
+        -6.80268072983381e-08,
+        -3.22200264690764e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 150
+    },
+    {
+      "index": 28,
+      "name": "LeftHandMiddle4",
+      "parent": "LeftHandMiddle3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandMiddle1/LeftHandMiddle2/LeftHandMiddle3/LeftHandMiddle4",
+      "offset_cm": [
+        2.9248653105458544,
+        3.4548236271803034e-08,
+        -1.5536452124820244e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -3.3855978377481115,
+        -7.2843183551749515,
+        -0.7892485092941746
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 154
+    },
+    {
+      "index": 29,
+      "name": "LeftHandMiddleEnd",
+      "parent": "LeftHandMiddle4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandMiddle1/LeftHandMiddle2/LeftHandMiddle3/LeftHandMiddle4/LeftHandMiddleEnd",
+      "offset_cm": [
+        2.341437898763793,
+        2.6707468236963905e-08,
+        3.4928711478698915e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 158
+    },
+    {
+      "index": 30,
+      "name": "LeftHandRing1",
+      "parent": "LeftHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandRing1",
+      "offset_cm": [
+        2.904163014573161,
+        -0.3569497881606196,
+        0.07782288855785069
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -3.830506140335198,
+        -6.770745311295843,
+        -12.265100193437323
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 171
+    },
+    {
+      "index": 31,
+      "name": "LeftHandRing2",
+      "parent": "LeftHandRing1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandRing1/LeftHandRing2",
+      "offset_cm": [
+        5.884491149946289,
+        2.755777899210443e-07,
+        -4.4402657550790536e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -4.506841595541319,
+        5.780299532989315,
+        12.748797946397781
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 175
+    },
+    {
+      "index": 32,
+      "name": "LeftHandRing3",
+      "parent": "LeftHandRing2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandRing1/LeftHandRing2/LeftHandRing3",
+      "offset_cm": [
+        4.368547442438572,
+        -1.0147560658424482e-07,
+        -4.2250951270972337e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 179
+    },
+    {
+      "index": 33,
+      "name": "LeftHandRing4",
+      "parent": "LeftHandRing3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandRing1/LeftHandRing2/LeftHandRing3/LeftHandRing4",
+      "offset_cm": [
+        2.675149043204293,
+        1.9046595411964518e-08,
+        1.2712936481307224e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        1.0770488719133733,
+        2.297660944556067,
+        -0.0021265101828717627
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 183
+    },
+    {
+      "index": 34,
+      "name": "LeftHandRingEnd",
+      "parent": "LeftHandRing4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandRing1/LeftHandRing2/LeftHandRing3/LeftHandRing4/LeftHandRingEnd",
+      "offset_cm": [
+        1.9415617414445592,
+        1.5974450207068003e-08,
+        1.444825770136049e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 187
+    },
+    {
+      "index": 35,
+      "name": "LeftHandPinky1",
+      "parent": "LeftHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandPinky1",
+      "offset_cm": [
+        2.861763635898061,
+        -1.625746662674345,
+        0.5627045448162775
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -5.817376575947503,
+        -16.877589921474083,
+        -16.652968640463822
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 200
+    },
+    {
+      "index": 36,
+      "name": "LeftHandPinky2",
+      "parent": "LeftHandPinky1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandPinky1/LeftHandPinky2",
+      "offset_cm": [
+        5.487653641045259,
+        4.211457991232237e-07,
+        -6.084894632607529e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.9862890941291058,
+        14.33792852618512,
+        18.860146933679466
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 204
+    },
+    {
+      "index": 37,
+      "name": "LeftHandPinky3",
+      "parent": "LeftHandPinky2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandPinky1/LeftHandPinky2/LeftHandPinky3",
+      "offset_cm": [
+        3.0998781879358894,
+        -1.121771049383824e-07,
+        6.73515527793711e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 208
+    },
+    {
+      "index": 38,
+      "name": "LeftHandPinky4",
+      "parent": "LeftHandPinky3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandPinky1/LeftHandPinky2/LeftHandPinky3/LeftHandPinky4",
+      "offset_cm": [
+        1.5849696682021062,
+        1.8069741258841532e-08,
+        -1.3390038411387195e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.805029228542772,
+        -4.636629244804821,
+        1.6851440863045533
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 212
+    },
+    {
+      "index": 39,
+      "name": "LeftHandPinkyEnd",
+      "parent": "LeftHandPinky4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/LeftShoulder/LeftArm/LeftForeArm/LeftHand/LeftHandPinky1/LeftHandPinky2/LeftHandPinky3/LeftHandPinky4/LeftHandPinkyEnd",
+      "offset_cm": [
+        1.8838479816425462,
+        1.861000953340408e-08,
+        5.3562212443125645e-09
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 216
+    },
+    {
+      "index": 40,
+      "name": "RightShoulder",
+      "parent": "Chest",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder",
+      "offset_cm": [
+        23.39908755304569,
+        5.0373948403650814,
+        -1.6166759198804335
+      ],
+      "offset_extra_values_from_legacy_file": [
+        102.5405827311557,
+        -69.23909841692031,
+        76.82161284968589
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 233
+    },
+    {
+      "index": 41,
+      "name": "RightArm",
+      "parent": "RightShoulder",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm",
+      "offset_cm": [
+        -15.743067369358524,
+        -2.249414272625927e-07,
+        1.0670018468772469e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.2516336929906609,
+        -76.08274879986996,
+        25.290036562549556
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 237
+    },
+    {
+      "index": 42,
+      "name": "RightForeArm",
+      "parent": "RightArm",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm",
+      "offset_cm": [
+        -28.91510908001797,
+        -7.90671197403725e-07,
+        5.211632156942869e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        87.05677560136586
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 241
+    },
+    {
+      "index": 43,
+      "name": "RightHand",
+      "parent": "RightForeArm",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand",
+      "offset_cm": [
+        -27.02619043401241,
+        -1.4565684978151694e-06,
+        4.160902804528632e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -7.4336172043187,
+        -2.7380305502468394,
+        -0.5433475123208475
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 245
+    },
+    {
+      "index": 44,
+      "name": "RightHandThumb1",
+      "parent": "RightHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandThumb1",
+      "offset_cm": [
+        -2.0851238453291217,
+        -3.3172971529385222,
+        -0.8375999446319646
+      ],
+      "offset_extra_values_from_legacy_file": [
+        54.191148470602734,
+        -18.914099847983977,
+        25.63786184372028
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 249
+    },
+    {
+      "index": 45,
+      "name": "RightHandThumb2",
+      "parent": "RightHandThumb1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandThumb1/RightHandThumb2",
+      "offset_cm": [
+        -4.704705056418277,
+        -1.2433850216098108e-07,
+        7.019269219199487e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        24.52907172691439,
+        -10.371039727503502,
+        -29.88715758538388
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 253
+    },
+    {
+      "index": 46,
+      "name": "RightHandThumb3",
+      "parent": "RightHandThumb2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandThumb1/RightHandThumb2/RightHandThumb3",
+      "offset_cm": [
+        -2.8564011807988123,
+        4.281714716114493e-08,
+        1.6054086415806523e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 257
+    },
+    {
+      "index": 47,
+      "name": "RightHandThumbEnd",
+      "parent": "RightHandThumb3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandThumb1/RightHandThumb2/RightHandThumb3/RightHandThumbEnd",
+      "offset_cm": [
+        -3.1805997467106906,
+        5.107538125770361e-08,
+        1.4535886805333575e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 261
+    },
+    {
+      "index": 48,
+      "name": "RightHandIndex1",
+      "parent": "RightHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandIndex1",
+      "offset_cm": [
+        -3.1714873351114434,
+        -2.282939676945503,
+        -0.11967279466158232
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.4021915662038653,
+        0.3795961756269013,
+        1.5622494125694675
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 273
+    },
+    {
+      "index": 49,
+      "name": "RightHandIndex2",
+      "parent": "RightHandIndex1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandIndex1/RightHandIndex2",
+      "offset_cm": [
+        -6.3206757671743325,
+        -1.834149685464581e-07,
+        -4.1894349323001734e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -8.299844928136734,
+        -0.34396685817806794,
+        -1.5769775551497254
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 277
+    },
+    {
+      "index": 50,
+      "name": "RightHandIndex3",
+      "parent": "RightHandIndex2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandIndex1/RightHandIndex2/RightHandIndex3",
+      "offset_cm": [
+        -3.635466841188382,
+        -2.6237769645831577e-07,
+        3.006725286525125e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 281
+    },
+    {
+      "index": 51,
+      "name": "RightHandIndex4",
+      "parent": "RightHandIndex3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandIndex1/RightHandIndex2/RightHandIndex3/RightHandIndex4",
+      "offset_cm": [
+        -2.32084359547553,
+        -1.029351039960602e-07,
+        4.6183937563171185e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -2.252148826678165,
+        -3.7395695961024567,
+        -2.3445189499106274
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 285
+    },
+    {
+      "index": 52,
+      "name": "RightHandIndexEnd",
+      "parent": "RightHandIndex4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandIndex1/RightHandIndex2/RightHandIndex3/RightHandIndex4/RightHandIndexEnd",
+      "offset_cm": [
+        -2.761216015213087,
+        -1.2308335328725661e-07,
+        6.241078676083589e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 289
+    },
+    {
+      "index": 53,
+      "name": "RightHandMiddle1",
+      "parent": "RightHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandMiddle1",
+      "offset_cm": [
+        -3.101083461589159,
+        -0.9115785410910888,
+        0.40993002625188524
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -3.141385730284173,
+        -3.882221195615986,
+        -8.679459953876146
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 302
+    },
+    {
+      "index": 54,
+      "name": "RightHandMiddle2",
+      "parent": "RightHandMiddle1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandMiddle1/RightHandMiddle2",
+      "offset_cm": [
+        -6.054585202429034,
+        -2.5065041597827076e-07,
+        9.637232523118655e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -6.014989906846671,
+        3.354552982893129,
+        8.888342209454468
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 306
+    },
+    {
+      "index": 55,
+      "name": "RightHandMiddle3",
+      "parent": "RightHandMiddle2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandMiddle1/RightHandMiddle2/RightHandMiddle3",
+      "offset_cm": [
+        -4.574062267952836,
+        -2.689341442874138e-07,
+        1.9750235580318076e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 310
+    },
+    {
+      "index": 56,
+      "name": "RightHandMiddle4",
+      "parent": "RightHandMiddle3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandMiddle1/RightHandMiddle2/RightHandMiddle3/RightHandMiddle4",
+      "offset_cm": [
+        -2.924817619823912,
+        -1.2335488008829998e-07,
+        1.885951661506624e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -3.3859664948795887,
+        -7.284783217444074,
+        -0.7890306731378235
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 314
+    },
+    {
+      "index": 57,
+      "name": "RightHandMiddleEnd",
+      "parent": "RightHandMiddle4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandMiddle1/RightHandMiddle2/RightHandMiddle3/RightHandMiddle4/RightHandMiddleEnd",
+      "offset_cm": [
+        -2.341476537938682,
+        -8.916644844703114e-08,
+        1.6487931908670816e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 318
+    },
+    {
+      "index": 58,
+      "name": "RightHandRing1",
+      "parent": "RightHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandRing1",
+      "offset_cm": [
+        -2.904189429490337,
+        0.3569300872439243,
+        -0.07779735399245524
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -3.8305819486926955,
+        -6.770297900579379,
+        -12.264905944401931
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 331
+    },
+    {
+      "index": 59,
+      "name": "RightHandRing2",
+      "parent": "RightHandRing1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandRing1/RightHandRing2",
+      "offset_cm": [
+        -5.88465885015081,
+        -2.4105010254515946e-07,
+        9.778565868145961e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -4.506886162518341,
+        5.779864804546083,
+        12.748568380922714
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 335
+    },
+    {
+      "index": 60,
+      "name": "RightHandRing3",
+      "parent": "RightHandRing2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandRing1/RightHandRing2/RightHandRing3",
+      "offset_cm": [
+        -4.3685143141813505,
+        -2.946503201428641e-07,
+        1.3090210160271454e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 339
+    },
+    {
+      "index": 61,
+      "name": "RightHandRing4",
+      "parent": "RightHandRing3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandRing1/RightHandRing2/RightHandRing3/RightHandRing4",
+      "offset_cm": [
+        -2.675207906998388,
+        -8.486573221944127e-08,
+        -7.36057179651084e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        1.0762449406287768,
+        2.2959263162234094,
+        -0.0015540528817826111
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 343
+    },
+    {
+      "index": 62,
+      "name": "RightHandRingEnd",
+      "parent": "RightHandRing4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandRing1/RightHandRing2/RightHandRing3/RightHandRing4/RightHandRingEnd",
+      "offset_cm": [
+        -1.9415548842007126,
+        -6.444277289574529e-08,
+        -3.5383767027497015e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 347
+    },
+    {
+      "index": 63,
+      "name": "RightHandPinky1",
+      "parent": "RightHand",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandPinky1",
+      "offset_cm": [
+        -2.8619560943505142,
+        1.6258117778100996,
+        -0.562739986440743
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -5.817606600011875,
+        -16.87737796630334,
+        -16.652266271329704
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 360
+    },
+    {
+      "index": 64,
+      "name": "RightHandPinky2",
+      "parent": "RightHandPinky1",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandPinky1/RightHandPinky2",
+      "offset_cm": [
+        -5.487682777561709,
+        -1.987728097674335e-07,
+        5.91660800353111e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.9862662717006472,
+        14.33778505922061,
+        18.85944849327459
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 364
+    },
+    {
+      "index": 65,
+      "name": "RightHandPinky3",
+      "parent": "RightHandPinky2",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandPinky1/RightHandPinky2/RightHandPinky3",
+      "offset_cm": [
+        -3.0998227927022164,
+        -7.020879877472908e-08,
+        -4.156501276497693e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 368
+    },
+    {
+      "index": 66,
+      "name": "RightHandPinky4",
+      "parent": "RightHandPinky3",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandPinky1/RightHandPinky2/RightHandPinky3/RightHandPinky4",
+      "offset_cm": [
+        -1.584991142238401,
+        -7.028594950497791e-08,
+        4.87757390033039e-09
+      ],
+      "offset_extra_values_from_legacy_file": [
+        -1.803768943493192,
+        -4.6335122093409185,
+        1.6847335439646232
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 372
+    },
+    {
+      "index": 67,
+      "name": "RightHandPinkyEnd",
+      "parent": "RightHandPinky4",
+      "path": "/Root/Hips/Spine1/Spine2/Chest/RightShoulder/RightArm/RightForeArm/RightHand/RightHandPinky1/RightHandPinky2/RightHandPinky3/RightHandPinky4/RightHandPinkyEnd",
+      "offset_cm": [
+        -1.8838838328497545,
+        -8.522194150373252e-08,
+        5.354652721223374e-09
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 376
+    },
+    {
+      "index": 68,
+      "name": "LeftLeg",
+      "parent": "Hips",
+      "path": "/Root/Hips/LeftLeg",
+      "offset_cm": [
+        -8.285526105531588,
+        2.211637086625136,
+        10.006872913307523
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        -179.81019946005935
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 396
+    },
+    {
+      "index": 69,
+      "name": "LeftShin",
+      "parent": "LeftLeg",
+      "path": "/Root/Hips/LeftLeg/LeftShin",
+      "offset_cm": [
+        43.300300063065414,
+        -1.4143252347054158e-08,
+        -1.0805188210838423e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.0013047747275694917
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 400
+    },
+    {
+      "index": 70,
+      "name": "LeftFoot",
+      "parent": "LeftShin",
+      "path": "/Root/Hips/LeftLeg/LeftShin/LeftFoot",
+      "offset_cm": [
+        42.424053733876605,
+        3.5448568569407257e-07,
+        -1.1295243318443227e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        -69.07528910266622
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 404
+    },
+    {
+      "index": 71,
+      "name": "LeftToeBase",
+      "parent": "LeftFoot",
+      "path": "/Root/Hips/LeftLeg/LeftShin/LeftFoot/LeftToeBase",
+      "offset_cm": [
+        14.132831709560406,
+        -1.77670614220915e-07,
+        1.0452554022322147e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.02357180335872239,
+        0.081156355491968,
+        -4.7293879966293835
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 408
+    },
+    {
+      "index": 72,
+      "name": "LeftToeEnd",
+      "parent": "LeftToeBase",
+      "path": "/Root/Hips/LeftLeg/LeftShin/LeftFoot/LeftToeBase/LeftToeEnd",
+      "offset_cm": [
+        6.774320967444975,
+        -0.11824629155668376,
+        6.176293432247348e-08
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        -0.9999999999999779
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 412
+    },
+    {
+      "index": 73,
+      "name": "RightLeg",
+      "parent": "Hips",
+      "path": "/Root/Hips/RightLeg",
+      "offset_cm": [
+        -8.28549662012199,
+        2.211642697886121,
+        -10.001499716565155
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.18980036482474893
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 425
+    },
+    {
+      "index": 74,
+      "name": "RightShin",
+      "parent": "RightLeg",
+      "path": "/Root/Hips/RightLeg/RightShin",
+      "offset_cm": [
+        -43.30036702081844,
+        5.304173544828927e-09,
+        -5.522563935045355e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        0.001305130044497714
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 429
+    },
+    {
+      "index": 75,
+      "name": "RightFoot",
+      "parent": "RightShin",
+      "path": "/Root/Hips/RightLeg/RightShin/RightFoot",
+      "offset_cm": [
+        -42.42402483016039,
+        -3.8044999595143736e-07,
+        -5.278554358056908e-07
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        3.3959342180690986e-06,
+        -69.07528928285473
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 433
+    },
+    {
+      "index": 76,
+      "name": "RightToeBase",
+      "parent": "RightFoot",
+      "path": "/Root/Hips/RightLeg/RightShin/RightFoot/RightToeBase",
+      "offset_cm": [
+        -14.13282310402465,
+        1.7448030931177527e-07,
+        -2.6444784140267075e-09
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.023582812009249145,
+        0.08119100555298414,
+        -4.729201167471502
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 437
+    },
+    {
+      "index": 77,
+      "name": "RightToeEnd",
+      "parent": "RightToeBase",
+      "path": "/Root/Hips/RightLeg/RightShin/RightFoot/RightToeBase/RightToeEnd",
+      "offset_cm": [
+        -6.774322130482094,
+        0.1182462688166952,
+        1.4651213575689326e-10
+      ],
+      "offset_extra_values_from_legacy_file": [
+        0.0,
+        0.0,
+        -1.0000000000000016
+      ],
+      "channels": [
+        "Xposition",
+        "Yposition",
+        "Zposition",
+        "Zrotation",
+        "Yrotation",
+        "Xrotation"
+      ],
+      "rotation_order": "zyx",
+      "line": 441
+    }
+  ]
+}
