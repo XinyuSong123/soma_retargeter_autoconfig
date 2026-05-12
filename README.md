@@ -13,11 +13,9 @@ SOMA Retargeter is part of the [SOMA body model](https://github.com/NVlabs/SOMA-
 
 ## Demo
 
-<video src="https://media.githubusercontent.com/media/XinyuSong123/soma_retargeter_autoconfig/main/assets/docs/roboparty-rpo-retargeted-dance-demo.mp4" controls muted loop playsinline width="100%">
-  RoboParty RPO retargeted dance demo.
-</video>
+![RoboParty RPO retargeted dance demo](assets/docs/roboparty-rpo-retargeted-dance-demo.gif)
 
-[Watch the RoboParty RPO retargeted dance demo](assets/docs/roboparty-rpo-retargeted-dance-demo.mp4)
+[Full MP4 demo](assets/docs/roboparty-rpo-retargeted-dance-demo.mp4)
 
 ## Requirements
 
