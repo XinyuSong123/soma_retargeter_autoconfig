@@ -16,6 +16,7 @@ import pathlib
 HERE = pathlib.Path(__file__).parent
 CONFIG_ROOT = HERE / "soma_retargeter" / "configs"
 ROBOT_ROOT = HERE / "assets" / "robots"
+RPO_POSE_PAIR_ROOT = CONFIG_ROOT / "roboparty_rpo" / "pose_pairs"
 
 # xml路径
 ROBOT_XML_DICT = {
@@ -48,7 +49,13 @@ POSE_PAIR_JSON_DICT["my_robot"] = {
 POSE_PAIR_JSON_DICT = {
     "unitree_g1": {},
     "roboparty_rpo": {
-        "t_pose": CONFIG_ROOT / "roboparty_rpo" / "pose_pairs" / "roboparty_rpo_t_pose.json",
+        "t_pose": RPO_POSE_PAIR_ROOT / "roboparty_rpo_t_pose.json",
+        "natural_down": RPO_POSE_PAIR_ROOT / "roboparty_rpo_natural_down.json",
+        "both_arms_forward": RPO_POSE_PAIR_ROOT / "roboparty_rpo_both_arms_forward.json",
+        "both_elbows_forward_90": RPO_POSE_PAIR_ROOT / "roboparty_rpo_both_elbows_forward_90.json",
+        "arms_forward_squat_hip_yaw_out_45": (
+            RPO_POSE_PAIR_ROOT / "roboparty_rpo_arms_forward_squat_hip_yaw_out_45.json"
+        ),
     },
 }
 
