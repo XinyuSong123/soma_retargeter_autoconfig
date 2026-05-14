@@ -2,7 +2,13 @@ import unittest
 import numpy as np
 from unittest.mock import patch
 
-from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
+try:
+    from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
+except ModuleNotFoundError as exc:  # pragma: no cover - local env may omit Newton/Warp
+    NewtonPipeline = None
+    _IMPORT_ERROR = exc
+else:
+    _IMPORT_ERROR = None
 
 
 class _DummyObjective:
@@ -35,6 +41,7 @@ def _make_contact_pipe(anchor_offsets):
     return pipe
 
 
+@unittest.skipIf(NewtonPipeline is None, f"Newton/Warp unavailable: {_IMPORT_ERROR}")
 class TestNewtonContactModes(unittest.TestCase):
     def test_missing_left_right_foot_skips_objectives(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)

@@ -701,7 +701,60 @@ def _extract_user_ik_map(raw_config: dict[str, Any]) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-def _build_contact_aware_foot_ik_from_virtual_anchors(raw_config: dict[str, Any]) -> dict[str, Any] | None:
+def _ik_t_weight(ik_map: dict[str, Any], joint_name: str) -> float | None:
+    entry = ik_map.get(joint_name)
+    if not isinstance(entry, dict):
+        return None
+    try:
+        return float(entry.get("t_weight"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _contact_weight_scale_from_capability(robot_name: str | None) -> float:
+    if not robot_name:
+        return 1.0
+    try:
+        from soma_retargeter.foot_anchors import load_capability_profile, resolve_capability_profile
+
+        profile, _ = load_capability_profile(robot_name)
+        resolution = resolve_capability_profile(robot_name, profile=profile)
+        payload = resolution.payload
+    except Exception:
+        return 1.0
+    scale = 1.0
+    if payload.get("ankle_type") != "pitch_roll":
+        scale *= 0.6
+    if payload.get("dof_class") == "low_dof":
+        scale *= 0.75
+    return scale
+
+
+def _derive_contact_aware_weights(ik_map: dict[str, Any], robot_name: str | None) -> dict[str, float]:
+    foot_weights = [
+        value
+        for value in (_ik_t_weight(ik_map, "LeftFoot"), _ik_t_weight(ik_map, "RightFoot"))
+        if value is not None and value > 0.0
+    ]
+    base_weight = sum(foot_weights) / len(foot_weights) if foot_weights else 2.0
+    stance = max(0.2, min(base_weight * 0.4, 2.0))
+    edge_stance = max(0.05, stance * 0.5 * _contact_weight_scale_from_capability(robot_name))
+    return {
+        "toe_weight_stance": stance,
+        "toe_weight_swing": max(0.01, stance * 0.125),
+        "heel_weight_stance": stance,
+        "heel_weight_swing": max(0.01, stance * 0.125),
+        "edge_weight_stance": edge_stance,
+        "edge_weight_swing": max(0.005, edge_stance * 0.1),
+    }
+
+
+def _build_contact_aware_foot_ik_from_virtual_anchors(
+    raw_config: dict[str, Any],
+    *,
+    ik_map: dict[str, Any] | None = None,
+    robot_name: str | None = None,
+) -> dict[str, Any] | None:
     anchors = raw_config.get("virtual_sole_anchors", {})
     if not isinstance(anchors, dict) or not anchors.get("enabled"):
         return None
@@ -718,12 +771,12 @@ def _build_contact_aware_foot_ik_from_virtual_anchors(raw_config: dict[str, Any]
             anchor_offsets["left"][edge_name] = left[edge_name]
         if edge_name in right:
             anchor_offsets["right"][edge_name] = right[edge_name]
+    derived_weights = _derive_contact_aware_weights(ik_map or {}, robot_name)
     return {
         "enabled": True,
         "contact_source": "auto",
         "anchor_offsets": anchor_offsets,
-        "edge_weight_stance": 0.5,
-        "edge_weight_swing": 0.05,
+        **derived_weights,
     }
 
 
@@ -808,12 +861,21 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         if virtual_sole_anchors is not None:
             runtime_config["virtual_sole_anchors"] = virtual_sole_anchors
 
-    if "contact_aware_foot_ik" not in runtime_config:
-        auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(
-            {"virtual_sole_anchors": virtual_sole_anchors}
-        )
-        if auto_contact_cfg is not None:
-            runtime_config["contact_aware_foot_ik"] = auto_contact_cfg
+    auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(
+        {"virtual_sole_anchors": virtual_sole_anchors},
+        ik_map=ik_map,
+        robot_name=robot_name,
+    )
+    if "contact_aware_foot_ik" in runtime_config:
+        raw_contact_cfg = runtime_config["contact_aware_foot_ik"]
+        if isinstance(raw_contact_cfg, dict) and auto_contact_cfg is not None:
+            merged_contact_cfg = dict(auto_contact_cfg)
+            merged_contact_cfg.update(raw_contact_cfg)
+            if "anchor_offsets" not in raw_contact_cfg:
+                merged_contact_cfg["anchor_offsets"] = auto_contact_cfg["anchor_offsets"]
+            runtime_config["contact_aware_foot_ik"] = merged_contact_cfg
+    elif auto_contact_cfg is not None:
+        runtime_config["contact_aware_foot_ik"] = auto_contact_cfg
 
     if "model_height" in raw_config:
         runtime_config["model_height"] = raw_config["model_height"]

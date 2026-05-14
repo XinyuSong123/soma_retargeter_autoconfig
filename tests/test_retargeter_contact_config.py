@@ -35,7 +35,7 @@ class TestContactConfig(unittest.TestCase):
 
     def test_virtual_sole_anchors_generate_contact_aware_config(self):
         raw = {
-            "ik_map": {},
+            "ik_map": {"LeftFoot": {"t_body": "left_foot", "t_weight": 4.0}, "RightFoot": {"t_body": "right_foot", "t_weight": 4.0}},
             "virtual_sole_anchors": {
                 "enabled": True,
                 "left": {"toe": [0.1, 0.0, 0.0], "heel": [-0.1, 0.0, 0.0], "inner_edge": [0.0, 0.05, 0.0]},
@@ -46,6 +46,7 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["contact_aware_foot_ik"]["contact_source"], "auto")
         self.assertIn("inner_edge", cfg["contact_aware_foot_ik"]["anchor_offsets"]["left"])
         self.assertIn("outer_edge", cfg["contact_aware_foot_ik"]["anchor_offsets"]["right"])
+        self.assertGreater(cfg["contact_aware_foot_ik"]["toe_weight_stance"], 0.8)
 
     def test_teacher_metadata_not_forwarded(self):
         cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}, "teacher_refinement": {}, "g1_teacher_refined": True})
@@ -58,6 +59,39 @@ class TestContactConfig(unittest.TestCase):
             {"ik_map": {}, "virtual_sole_anchors": {"enabled": False, "source": "disabled"}},
         )
         self.assertEqual(cfg["virtual_sole_anchors"]["source"], "disabled")
+        self.assertNotIn("contact_aware_foot_ik", cfg)
+
+    def test_explicit_contact_weights_override_derived_weights(self):
+        raw = {
+            "ik_map": {"LeftFoot": {"t_body": "left_foot", "t_weight": 4.0}, "RightFoot": {"t_body": "right_foot", "t_weight": 4.0}},
+            "virtual_sole_anchors": {
+                "enabled": True,
+                "left": {"toe": [0.1, 0.0, 0.0], "heel": [-0.1, 0.0, 0.0]},
+                "right": {"toe": [0.1, 0.0, 0.0], "heel": [-0.1, 0.0, 0.0]},
+            },
+            "contact_aware_foot_ik": {"enabled": True, "toe_weight_stance": 9.0},
+        }
+        cfg = build_runtime_retargeter_config("roboparty_rpo", raw)
+        self.assertEqual(cfg["contact_aware_foot_ik"]["toe_weight_stance"], 9.0)
+        self.assertIn("anchor_offsets", cfg["contact_aware_foot_ik"])
+
+    def test_contact_aware_ik_still_uses_manual_anchors_when_provided(self):
+        raw = {
+            "ik_map": {},
+            "virtual_sole_anchors": {
+                "enabled": True,
+                "source": "manual_anchors",
+                "left": {"toe": [1, 2, 3], "heel": [4, 5, 6]},
+                "right": {"toe": [7, 8, 9], "heel": [10, 11, 12]},
+            },
+        }
+        cfg = build_runtime_retargeter_config("roboparty_rpo", raw)
+        self.assertEqual(cfg["contact_aware_foot_ik"]["anchor_offsets"]["left"]["toe"], [1, 2, 3])
+        self.assertEqual(cfg["contact_aware_foot_ik"]["anchor_offsets"]["right"]["heel"], [10, 11, 12])
+
+    def test_contact_aware_ik_skips_safely_when_anchors_cannot_be_generated(self):
+        with patch("soma_retargeter.robot_registry_parser._generate_virtual_sole_anchors_for_runtime", return_value=None):
+            cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}})
         self.assertNotIn("contact_aware_foot_ik", cfg)
 
 

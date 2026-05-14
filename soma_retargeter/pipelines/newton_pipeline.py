@@ -31,6 +31,25 @@ _DEFAULT_NUM_INITIALIZATION_FRAMES = 10
 _DEFAULT_NUM_STABILIZATION_FRAMES = 5
 
 
+def _anchor_offsets_from_virtual_sole_anchors(anchors):
+    if not isinstance(anchors, dict) or not anchors.get("enabled"):
+        return None
+    left = anchors.get("left", {}) if isinstance(anchors.get("left"), dict) else {}
+    right = anchors.get("right", {}) if isinstance(anchors.get("right"), dict) else {}
+    if not all(name in left for name in ("toe", "heel")) or not all(name in right for name in ("toe", "heel")):
+        return None
+    offsets = {
+        "left": {"toe": left["toe"], "heel": left["heel"]},
+        "right": {"toe": right["toe"], "heel": right["heel"]},
+    }
+    for edge_name in ("inner_edge", "outer_edge"):
+        if edge_name in left:
+            offsets["left"][edge_name] = left[edge_name]
+        if edge_name in right:
+            offsets["right"][edge_name] = right[edge_name]
+    return offsets
+
+
 class NewtonPipeline:
     """
     Newton-based motion retargeting pipeline.
@@ -77,11 +96,16 @@ class NewtonPipeline:
             int(retargeter_config.get('virtual_foot_grounding_smooth_window', 5)),
         )
         self.enable_self_penetration = False
-        self.contact_aware_foot_ik = retargeter_config.get("contact_aware_foot_ik", {})
+        raw_contact_aware_foot_ik = retargeter_config.get("contact_aware_foot_ik", {})
+        self.contact_aware_foot_ik = dict(raw_contact_aware_foot_ik) if isinstance(raw_contact_aware_foot_ik, dict) else {}
+        if "anchor_offsets" not in self.contact_aware_foot_ik:
+            anchor_offsets = _anchor_offsets_from_virtual_sole_anchors(retargeter_config.get("virtual_sole_anchors"))
+            if anchor_offsets is not None:
+                self.contact_aware_foot_ik["anchor_offsets"] = anchor_offsets
         self.contact_source = str(self.contact_aware_foot_ik.get("contact_source", "auto")).lower()
         self.contact_aware_foot_ik_enabled = (
             bool(self.contact_aware_foot_ik.get("enabled", False))
-            and self.contact_source != "none"
+            and self.contact_source not in {"none", "disabled", "false", "null"}
         )
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
@@ -204,9 +228,21 @@ class NewtonPipeline:
                         if foot_contacts is None:
                             foot_contacts = getattr(buffer, "contacts", None)
                         if foot_contacts is not None:
-                            scores = contacts_from_npz_foot_contacts(np.asarray(foot_contacts), window)
+                            scores = contacts_from_npz_foot_contacts(
+                                np.asarray(foot_contacts),
+                                window,
+                                contact_order=self.contact_aware_foot_ik.get("contact_order"),
+                            )
                     if scores is None and self.contact_source in ("auto", "soma_heuristic"):
-                        scores = infer_contacts_from_animation_buffer(buffer, offsets[i], window)
+                        scores = infer_contacts_from_animation_buffer(
+                            buffer,
+                            offsets[i],
+                            window,
+                            source_foot_joint_aliases=self.contact_aware_foot_ik.get("source_foot_joint_aliases"),
+                            contact_height_scale=self.contact_aware_foot_ik.get("contact_height_scale"),
+                            contact_velocity_scale=self.contact_aware_foot_ik.get("contact_velocity_scale"),
+                            ground_height_m=self.contact_aware_foot_ik.get("ground_height_m"),
+                        )
                     self.input_contact_scores.append(scores)
                 except Exception as exc:
                     print(f"[WARN] Contact inference failed, disabling lock for this clip: {exc}")
@@ -493,7 +529,7 @@ class NewtonPipeline:
 
 
     def _create_contact_aware_objectives(self, num_envs, pos_target_arrays):
-        if not self.contact_aware_foot_ik_enabled or getattr(self, "contact_source", "auto") == "none":
+        if not self.contact_aware_foot_ik_enabled or getattr(self, "contact_source", "auto") in {"none", "disabled", "false", "null"}:
             self.contact_objective_map = {}
             return []
         anchors = self.contact_aware_foot_ik.get("anchor_offsets", {})

@@ -99,7 +99,7 @@ def apply_virtual_foot_grounding_to_frames(
     model,
     robot_builder,
     robot_name: str,
-    ground_height_m: float = 0.0,
+    ground_height_m: float | None = None,
     smooth_window: int = 5,
 ) -> tuple[np.ndarray, MotionGroundingStats]:
     """Lift retargeted root frames so virtual foot support anchors do not penetrate the ground."""
@@ -134,6 +134,9 @@ def apply_virtual_foot_grounding_to_frames(
         if len(heights) == 0:
             return frames, MotionGroundingStats(applied=False, reason="no support anchors resolved")
         min_heights[frame_idx] = float(np.min(heights))
+
+    if ground_height_m is None:
+        ground_height_m = max(0.0, float(np.percentile(min_heights, 5.0)))
 
     required_lifts = np.maximum(0.0, ground_height_m - min_heights)
     smoothed_lifts = _moving_average(required_lifts, smooth_window)
