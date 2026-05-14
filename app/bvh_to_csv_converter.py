@@ -21,6 +21,7 @@ import soma_retargeter.assets.bvh as bvh_utils
 import soma_retargeter.assets.csv as csv_utils
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
+from soma_retargeter.pipelines.batch_config import resolve_retarget_batch_size
 from soma_retargeter.utils.warp_compat import install_cpu_pinned_memory_fallback
 
 from soma_retargeter.renderers.skeleton_renderer import SkeletonRenderer
@@ -557,7 +558,16 @@ class Viewer:
             print(f"[WARNING]: Export folder does not exist! Creating new folder at {str(export_path)}!")
             export_path.mkdir(parents=True, exist_ok=True)
 
-        batch_size = self.config['batch_size']
+        retarget_source = self.config['retarget_source']
+        retarget_solver = self.config['retargeter']
+        retarget_target = self.config["retarget_target"]
+        retarget_config = None
+        if retarget_solver == 'Newton':
+            source_type = pipeline_utils.get_source_type_from_str(retarget_source)
+            target_type = pipeline_utils.get_target_type_from_str(retarget_target)
+            retarget_config = pipeline_utils.get_retargeter_config(source_type, target_type)
+
+        batch_size = resolve_retarget_batch_size(self.config['batch_size'], retarget_config)
         bvh_files = list(import_path.rglob("*.bvh"))
         if (len(bvh_files) == 0):
             print(f"[ERROR]: Import folder {str(import_path)}, does not contain any BVH files.")
@@ -574,13 +584,15 @@ class Viewer:
         bvh_tx_converter = self.converter.transform(wp.transform_identity())
         expected_num_joints = bvh_skeleton.num_joints
 
-        retarget_source = self.config['retarget_source']
-        retarget_solver = self.config['retargeter']
-        retarget_target = self.config["retarget_target"]
         retarget_pipeline = None
         if (retarget_solver == 'Newton'):
             import soma_retargeter.pipelines.newton_pipeline as newton_pipeline
-            retarget_pipeline = newton_pipeline.NewtonPipeline(bvh_skeleton, retarget_source, retarget_target)
+            retarget_pipeline = newton_pipeline.NewtonPipeline(
+                bvh_skeleton,
+                retarget_source,
+                retarget_target,
+                retarget_config=retarget_config,
+            )
         if retarget_pipeline is None:
             print(f"[ERROR]: Invalid retarget solver selected [{retarget_solver}]. Use 'Newton'.")
             exit(-1)

@@ -280,12 +280,12 @@ class NewtonPipeline:
         print(f"[INFO]\t  IK Solver Iterations: {self.ik_iterations}")
         print(f"[INFO]\t  Joint Limit Objective Weight: {self.joint_limit_weight}")
         print(f"[INFO]\t  Smooth Joint Filter Objective Weight: {self.smooth_joint_filter_weight}")
-        restore_contact_aware = self.contact_aware_foot_ik_enabled
         if self.contact_aware_foot_ik_enabled and num_envs > 1:
-            # IKObjectivePosition weight can be shared globally in multi-env mode.
-            # Disable contact-aware weights in that case to avoid cross-env interference.
-            print("[WARN] contact_aware_foot_ik with batch size > 1 is disabled to avoid global objective weight conflicts.")
-            self.contact_aware_foot_ik_enabled = False
+            raise ValueError(
+                "contact_aware_foot_ik currently requires batch_size=1 because IK "
+                "objective weights are global, not per-env. Run with batch_size=1 "
+                "or disable contact_aware_foot_ik."
+            )
 
         model = self._build_model(num_envs)
         state = model.state()
@@ -408,7 +408,6 @@ class NewtonPipeline:
                 elif grounding_stats.reason != "ok":
                     print(f"[INFO] Virtual foot grounding skipped: {grounding_stats.reason}")
             output_buffers.append(CSVAnimationBuffer.create_from_raw_data(raw_data, self.input_sample_rates[i]))
-        self.contact_aware_foot_ik_enabled = restore_contact_aware
         return output_buffers
 
     def _apply_output_default_pose_blend(self, joint_q_frames: np.ndarray) -> np.ndarray:
@@ -547,17 +546,73 @@ class NewtonPipeline:
         edge_stance = self.contact_aware_foot_ik.get("edge_weight_stance", 0.5)
         edge_swing = self.contact_aware_foot_ik.get("edge_weight_swing", 0.05)
         mapping = {
-            "left_toe": ("LeftFoot", left.get("toe"), ("left_toe_contact_score",), self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
-            "left_heel": ("LeftFoot", left.get("heel"), ("left_heel_contact_score",), self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
-            "left_inner_edge": ("LeftFoot", left.get("inner_edge"), ("left_toe_contact_score", "left_heel_contact_score"), edge_stance, edge_swing),
-            "left_outer_edge": ("LeftFoot", left.get("outer_edge"), ("left_toe_contact_score", "left_heel_contact_score"), edge_stance, edge_swing),
-            "right_toe": ("RightFoot", right.get("toe"), ("right_toe_contact_score",), self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
-            "right_heel": ("RightFoot", right.get("heel"), ("right_heel_contact_score",), self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
-            "right_inner_edge": ("RightFoot", right.get("inner_edge"), ("right_toe_contact_score", "right_heel_contact_score"), edge_stance, edge_swing),
-            "right_outer_edge": ("RightFoot", right.get("outer_edge"), ("right_toe_contact_score", "right_heel_contact_score"), edge_stance, edge_swing),
+            "left_toe": (
+                "LeftFoot",
+                left.get("toe"),
+                ("left_toe_contact_score",),
+                "single",
+                self.contact_aware_foot_ik.get("toe_weight_stance", 0.8),
+                self.contact_aware_foot_ik.get("toe_weight_swing", 0.1),
+            ),
+            "left_heel": (
+                "LeftFoot",
+                left.get("heel"),
+                ("left_heel_contact_score",),
+                "single",
+                self.contact_aware_foot_ik.get("heel_weight_stance", 0.8),
+                self.contact_aware_foot_ik.get("heel_weight_swing", 0.1),
+            ),
+            "left_inner_edge": (
+                "LeftFoot",
+                left.get("inner_edge"),
+                ("left_toe_contact_score", "left_heel_contact_score"),
+                "flat_foot_min",
+                edge_stance,
+                edge_swing,
+            ),
+            "left_outer_edge": (
+                "LeftFoot",
+                left.get("outer_edge"),
+                ("left_toe_contact_score", "left_heel_contact_score"),
+                "flat_foot_min",
+                edge_stance,
+                edge_swing,
+            ),
+            "right_toe": (
+                "RightFoot",
+                right.get("toe"),
+                ("right_toe_contact_score",),
+                "single",
+                self.contact_aware_foot_ik.get("toe_weight_stance", 0.8),
+                self.contact_aware_foot_ik.get("toe_weight_swing", 0.1),
+            ),
+            "right_heel": (
+                "RightFoot",
+                right.get("heel"),
+                ("right_heel_contact_score",),
+                "single",
+                self.contact_aware_foot_ik.get("heel_weight_stance", 0.8),
+                self.contact_aware_foot_ik.get("heel_weight_swing", 0.1),
+            ),
+            "right_inner_edge": (
+                "RightFoot",
+                right.get("inner_edge"),
+                ("right_toe_contact_score", "right_heel_contact_score"),
+                "flat_foot_min",
+                edge_stance,
+                edge_swing,
+            ),
+            "right_outer_edge": (
+                "RightFoot",
+                right.get("outer_edge"),
+                ("right_toe_contact_score", "right_heel_contact_score"),
+                "flat_foot_min",
+                edge_stance,
+                edge_swing,
+            ),
         }
         out=[]; self.contact_objective_map={}
-        for key, (joint, offset, score_keys, w_stance, w_swing) in mapping.items():
+        for key, (joint, offset, score_keys, score_mode, w_stance, w_swing) in mapping.items():
             if offset is None or joint not in link_lookup:
                 continue
             targets = wp.array(np.zeros((num_envs,3), dtype=np.float32), dtype=wp.vec3)
@@ -567,12 +622,32 @@ class NewtonPipeline:
                 "objective": obj,
                 "score_key": score_keys[0],
                 "score_keys": score_keys,
+                "score_mode": score_mode,
                 "stance": float(w_stance),
                 "swing": float(w_swing),
                 "active": [False]*num_envs,
                 "locked": [None]*num_envs,
             }
         return out
+
+    def _contact_objective_score(self, cfg, scores, frame):
+        if scores is None:
+            return 0.0
+
+        score_keys = tuple(cfg.get("score_keys", (cfg["score_key"],)))
+        values = []
+        for score_key in score_keys:
+            if score_key not in scores or frame >= len(scores[score_key]):
+                if cfg.get("score_mode") == "flat_foot_min":
+                    return 0.0
+                continue
+            values.append(float(scores[score_key][frame]))
+
+        if not values:
+            return 0.0
+        if cfg.get("score_mode") == "flat_foot_min":
+            return min(values) if len(values) == len(score_keys) else 0.0
+        return values[0]
 
     def _update_contact_objectives_for_frame(self, env, frame, frame_targets, contact_objectives):
         if not hasattr(self, "contact_objective_map"):
@@ -587,11 +662,7 @@ class NewtonPipeline:
             foot = frame_targets[joint_idx[side_joint]]
             pos=np.array(foot[0:3],dtype=np.float32); q=wp.quat(*foot[3:7]); off=cfg["objective"].link_offset
             world = pos + np.array(wp.quat_rotate(q, off), dtype=np.float32)
-            score_values = []
-            for score_key in cfg.get("score_keys", (cfg["score_key"],)):
-                if scores is not None and score_key in scores and frame < len(scores[score_key]):
-                    score_values.append(float(scores[score_key][frame]))
-            score = max(score_values) if score_values else 0.0
+            score = self._contact_objective_score(cfg, scores, frame)
             active = cfg["active"][env]
             if (not active) and score >= on_t:
                 cfg["active"][env]=True; cfg["locked"][env]=world.copy()
