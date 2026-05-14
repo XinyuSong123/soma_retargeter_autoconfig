@@ -722,7 +722,21 @@ def _build_contact_aware_foot_ik_from_virtual_anchors(raw_config: dict[str, Any]
         "enabled": True,
         "contact_source": "auto",
         "anchor_offsets": anchor_offsets,
+        "edge_weight_stance": 0.5,
+        "edge_weight_swing": 0.05,
     }
+
+
+def _generate_virtual_sole_anchors_for_runtime(robot_name: str) -> dict[str, Any] | None:
+    try:
+        from soma_retargeter.foot_anchors import generate_virtual_sole_anchors_for_robot
+
+        anchors = generate_virtual_sole_anchors_for_robot(robot_name)
+    except Exception:
+        return None
+    if not isinstance(anchors, dict) or not anchors.get("enabled"):
+        return None
+    return anchors
 
 
 def infer_robot_name_from_retargeter_config_path(path: str | Path) -> str | None:
@@ -785,8 +799,19 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
             runtime_config[key] = raw_config[key]
     runtime_config.pop("teacher_refinement", None)
     runtime_config.pop("g1_teacher_refined", None)
+
+    if "virtual_sole_anchors" in raw_config:
+        virtual_sole_anchors = raw_config["virtual_sole_anchors"]
+        runtime_config["virtual_sole_anchors"] = virtual_sole_anchors
+    else:
+        virtual_sole_anchors = _generate_virtual_sole_anchors_for_runtime(robot_name)
+        if virtual_sole_anchors is not None:
+            runtime_config["virtual_sole_anchors"] = virtual_sole_anchors
+
     if "contact_aware_foot_ik" not in runtime_config:
-        auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(raw_config)
+        auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(
+            {"virtual_sole_anchors": virtual_sole_anchors}
+        )
         if auto_contact_cfg is not None:
             runtime_config["contact_aware_foot_ik"] = auto_contact_cfg
 

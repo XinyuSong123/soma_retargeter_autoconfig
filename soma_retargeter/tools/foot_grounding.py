@@ -13,9 +13,11 @@ import warp as wp
 
 import soma_retargeter.utils.newton_utils as newton_utils
 from soma_retargeter.pipelines import utils as pipeline_utils
-from soma_retargeter.teacher_refinement.capability_loader import load_capability_profile
-from soma_retargeter.teacher_refinement.capability_resolver import resolve_capability_profile
-from soma_retargeter.teacher_refinement.sole_anchor_generator import generate_virtual_sole_anchors
+from soma_retargeter.foot_anchors import (
+    generate_virtual_sole_anchors,
+    load_capability_profile,
+    resolve_capability_profile,
+)
 from soma_retargeter.tools.pose_io import apply_robot_pose_to_model, create_joint_name_to_q_index_map
 
 

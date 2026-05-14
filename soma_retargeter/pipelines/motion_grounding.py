@@ -12,9 +12,11 @@ import warp as wp
 
 import soma_retargeter.robot_registry_parser as robot_registry_parser
 import soma_retargeter.utils.newton_utils as newton_utils
-from soma_retargeter.teacher_refinement.capability_loader import load_capability_profile
-from soma_retargeter.teacher_refinement.capability_resolver import resolve_capability_profile
-from soma_retargeter.teacher_refinement.sole_anchor_generator import generate_virtual_sole_anchors
+from soma_retargeter.foot_anchors import (
+    generate_virtual_sole_anchors,
+    load_capability_profile,
+    resolve_capability_profile,
+)
 
 
 SUPPORT_CONTACT_ANCHORS = ("toe", "heel", "inner_edge", "outer_edge")

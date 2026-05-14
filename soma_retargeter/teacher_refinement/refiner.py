@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import Any
 
 import soma_retargeter.robot_registry_parser as robot_registry_parser
+from soma_retargeter.foot_anchors import generate_virtual_sole_anchors
 from soma_retargeter.teacher_refinement.accept_reject import decide_acceptance
 from soma_retargeter.teacher_refinement.capability_loader import load_capability_profile
 from soma_retargeter.teacher_refinement.capability_resolver import resolve_capability_profile
 from soma_retargeter.teacher_refinement.evaluator import evaluate_base_and_refined
 from soma_retargeter.teacher_refinement.report import build_refine_report, save_debug_json
-from soma_retargeter.teacher_refinement.sole_anchor_generator import generate_virtual_sole_anchors
 from soma_retargeter.teacher_refinement.tracking_templates import apply_tracking_template
 from soma_retargeter.utils import io_utils
 
@@ -36,7 +36,7 @@ def refine_registered_robot_config(
     force_accept: bool = False,
     write: bool = True,
 ) -> dict[str, Any]:
-    """Run the MVP teacher-guided refinement flow for a registered robot."""
+    """Run the deprecated teacher-guided refinement flow for a registered robot."""
 
     robot_name = robot_registry_parser.resolve_robot_name(robot_name)
     teacher = robot_registry_parser.resolve_robot_name(teacher)

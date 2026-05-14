@@ -23,9 +23,12 @@ from soma_retargeter.animation.skeleton import SkeletonInstance
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.utils.newton_utils as newton_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
-from soma_retargeter.teacher_refinement.capability_loader import find_capability_profile_path, load_capability_profile
-from soma_retargeter.teacher_refinement.capability_resolver import resolve_capability_profile
-from soma_retargeter.teacher_refinement.sole_anchor_generator import generate_virtual_sole_anchors
+from soma_retargeter.foot_anchors import (
+    find_capability_profile_path,
+    generate_virtual_sole_anchors,
+    load_capability_profile,
+    resolve_capability_profile,
+)
 from soma_retargeter.tools.foot_grounding import FootGroundingOptions, ground_robot_pose_payload
 from soma_retargeter.utils.warp_compat import install_cpu_pinned_memory_fallback
 from app.optimize_scaler_config import optimize_scaler_from_pose_pairs
@@ -723,9 +726,9 @@ class PoseOptimizerUI:
     def _draw_virtual_foot_overlay(self):
         world_points = self._compute_virtual_anchor_world_points()
         if not world_points or not (self.show_virtual_sole_overlay or self.show_feet_contact_overlay):
-            self.viewer.log_points("/teacher_refinement/virtual_sole_anchors", None)
-            self.viewer.log_lines("/teacher_refinement/virtual_links", None, None, None)
-            self.viewer.log_lines("/teacher_refinement/feet_contact_support", None, None, None)
+            self.viewer.log_points("/contact_aware_foot_ik/virtual_sole_anchors", None)
+            self.viewer.log_lines("/contact_aware_foot_ik/virtual_links", None, None, None)
+            self.viewer.log_lines("/contact_aware_foot_ik/feet_contact_support", None, None, None)
             return
 
         point_positions = []
@@ -779,33 +782,33 @@ class PoseOptimizerUI:
         if self.show_virtual_sole_overlay and point_positions:
             anchor_points = wp.array(np.asarray(point_positions, dtype=np.float32), dtype=wp.vec3)
             self.viewer.log_points(
-                "/teacher_refinement/virtual_sole_anchors",
+                "/contact_aware_foot_ik/virtual_sole_anchors",
                 anchor_points,
                 radii=wp.full(len(point_positions), 0.018, dtype=wp.float32, device=anchor_points.device),
                 colors=wp.array(np.asarray(point_colors, dtype=np.float32), dtype=wp.vec3),
             )
             if virtual_link_starts:
                 self.viewer.log_lines(
-                    "/teacher_refinement/virtual_links",
+                    "/contact_aware_foot_ik/virtual_links",
                     wp.array(np.asarray(virtual_link_starts, dtype=np.float32), dtype=wp.vec3),
                     wp.array(np.asarray(virtual_link_ends, dtype=np.float32), dtype=wp.vec3),
                     _VIRTUAL_LINK_COLOR,
                     width=0.006,
                 )
         else:
-            self.viewer.log_points("/teacher_refinement/virtual_sole_anchors", None)
-            self.viewer.log_lines("/teacher_refinement/virtual_links", None, None, None)
+            self.viewer.log_points("/contact_aware_foot_ik/virtual_sole_anchors", None)
+            self.viewer.log_lines("/contact_aware_foot_ik/virtual_links", None, None, None)
 
         if self.show_feet_contact_overlay and support_starts:
             self.viewer.log_lines(
-                "/teacher_refinement/feet_contact_support",
+                "/contact_aware_foot_ik/feet_contact_support",
                 wp.array(np.asarray(support_starts, dtype=np.float32), dtype=wp.vec3),
                 wp.array(np.asarray(support_ends, dtype=np.float32), dtype=wp.vec3),
                 wp.array(np.asarray(support_colors, dtype=np.float32), dtype=wp.vec3),
                 width=0.012,
             )
         else:
-            self.viewer.log_lines("/teacher_refinement/feet_contact_support", None, None, None)
+            self.viewer.log_lines("/contact_aware_foot_ik/feet_contact_support", None, None, None)
 
     def step(self):
         self.time += self.frame_dt
@@ -1220,7 +1223,7 @@ def parse_args():
     parser.add_argument(
         "--auto-refine",
         action="store_true",
-        help="Run capability-aware G1 teacher refinement before opening the optimizer UI.",
+        help="Deprecated: run the legacy teacher-guided refinement flow before opening the optimizer UI.",
     )
     viewer, args = newton.examples.init(parser)
     return viewer, _resolve_startup_paths(args)

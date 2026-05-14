@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+"""Deprecated CLI for the legacy teacher-guided refinement path."""
+
 from __future__ import annotations
 
 import argparse
@@ -16,7 +18,12 @@ from soma_retargeter.teacher_refinement import refine_registered_robot_config
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run teacher-guided retargeter config refinement.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Deprecated legacy teacher-guided retargeter config refinement. "
+            "Normal configs now generate contact-aware virtual sole anchors automatically."
+        )
+    )
     parser.add_argument(
         "--robot",
         type=str,
@@ -27,7 +34,7 @@ def parse_args() -> argparse.Namespace:
         "--teacher",
         type=str,
         default="unitree_g1",
-        help="Teacher robot name. The MVP uses this as semantic metadata, not joint-angle transfer.",
+        help="Deprecated metadata-only teacher robot name.",
     )
     parser.add_argument(
         "--retargeter-config",

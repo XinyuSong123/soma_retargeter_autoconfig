@@ -78,8 +78,11 @@ class NewtonPipeline:
         )
         self.enable_self_penetration = False
         self.contact_aware_foot_ik = retargeter_config.get("contact_aware_foot_ik", {})
-        self.contact_aware_foot_ik_enabled = bool(self.contact_aware_foot_ik.get("enabled", False))
         self.contact_source = str(self.contact_aware_foot_ik.get("contact_source", "auto")).lower()
+        self.contact_aware_foot_ik_enabled = (
+            bool(self.contact_aware_foot_ik.get("enabled", False))
+            and self.contact_source != "none"
+        )
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
 
@@ -490,7 +493,7 @@ class NewtonPipeline:
 
 
     def _create_contact_aware_objectives(self, num_envs, pos_target_arrays):
-        if not self.contact_aware_foot_ik_enabled:
+        if not self.contact_aware_foot_ik_enabled or getattr(self, "contact_source", "auto") == "none":
             self.contact_objective_map = {}
             return []
         anchors = self.contact_aware_foot_ik.get("anchor_offsets", {})
@@ -505,20 +508,34 @@ class NewtonPipeline:
             print("[WARN] contact_aware_foot_ik enabled but LeftFoot/RightFoot are missing in ik_map; skipping.")
             self.contact_objective_map = {}
             return []
+        edge_stance = self.contact_aware_foot_ik.get("edge_weight_stance", 0.5)
+        edge_swing = self.contact_aware_foot_ik.get("edge_weight_swing", 0.05)
         mapping = {
-            "left_toe": ("LeftFoot", left.get("toe"), "left_toe_contact_score", self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
-            "left_heel": ("LeftFoot", left.get("heel"), "left_heel_contact_score", self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
-            "right_toe": ("RightFoot", right.get("toe"), "right_toe_contact_score", self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
-            "right_heel": ("RightFoot", right.get("heel"), "right_heel_contact_score", self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
+            "left_toe": ("LeftFoot", left.get("toe"), ("left_toe_contact_score",), self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
+            "left_heel": ("LeftFoot", left.get("heel"), ("left_heel_contact_score",), self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
+            "left_inner_edge": ("LeftFoot", left.get("inner_edge"), ("left_toe_contact_score", "left_heel_contact_score"), edge_stance, edge_swing),
+            "left_outer_edge": ("LeftFoot", left.get("outer_edge"), ("left_toe_contact_score", "left_heel_contact_score"), edge_stance, edge_swing),
+            "right_toe": ("RightFoot", right.get("toe"), ("right_toe_contact_score",), self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
+            "right_heel": ("RightFoot", right.get("heel"), ("right_heel_contact_score",), self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
+            "right_inner_edge": ("RightFoot", right.get("inner_edge"), ("right_toe_contact_score", "right_heel_contact_score"), edge_stance, edge_swing),
+            "right_outer_edge": ("RightFoot", right.get("outer_edge"), ("right_toe_contact_score", "right_heel_contact_score"), edge_stance, edge_swing),
         }
         out=[]; self.contact_objective_map={}
-        for key, (joint, offset, score_key, w_stance, w_swing) in mapping.items():
+        for key, (joint, offset, score_keys, w_stance, w_swing) in mapping.items():
             if offset is None or joint not in link_lookup:
                 continue
             targets = wp.array(np.zeros((num_envs,3), dtype=np.float32), dtype=wp.vec3)
             obj = ik.IKObjectivePosition(link_index=link_lookup[joint], link_offset=wp.vec3(*offset), target_positions=targets, weight=w_swing)
             out.append(obj)
-            self.contact_objective_map[key] = {"objective": obj, "score_key": score_key, "stance": float(w_stance), "swing": float(w_swing), "active": [False]*num_envs, "locked": [None]*num_envs}
+            self.contact_objective_map[key] = {
+                "objective": obj,
+                "score_key": score_keys[0],
+                "score_keys": score_keys,
+                "stance": float(w_stance),
+                "swing": float(w_swing),
+                "active": [False]*num_envs,
+                "locked": [None]*num_envs,
+            }
         return out
 
     def _update_contact_objectives_for_frame(self, env, frame, frame_targets, contact_objectives):
@@ -534,7 +551,11 @@ class NewtonPipeline:
             foot = frame_targets[joint_idx[side_joint]]
             pos=np.array(foot[0:3],dtype=np.float32); q=wp.quat(*foot[3:7]); off=cfg["objective"].link_offset
             world = pos + np.array(wp.quat_rotate(q, off), dtype=np.float32)
-            score = float(scores[cfg["score_key"]][frame]) if scores is not None and frame < len(scores[cfg["score_key"]]) else 0.0
+            score_values = []
+            for score_key in cfg.get("score_keys", (cfg["score_key"],)):
+                if scores is not None and score_key in scores and frame < len(scores[score_key]):
+                    score_values.append(float(scores[score_key][frame]))
+            score = max(score_values) if score_values else 0.0
             active = cfg["active"][env]
             if (not active) and score >= on_t:
                 cfg["active"][env]=True; cfg["locked"][env]=world.copy()
