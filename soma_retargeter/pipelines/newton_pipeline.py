@@ -19,6 +19,7 @@ from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
 from soma_retargeter.pipelines.feet_stabilizer import FeetStabilizer
 from soma_retargeter.pipelines.joint_limit_clamper import JointLimitClamper
 from soma_retargeter.pipelines.motion_grounding import apply_virtual_foot_grounding_to_frames
+from soma_retargeter.pipelines.foot_contact_inference import infer_contacts_from_animation_buffer
 
 _DEFAULT_IK_SOLVER_ITERATIONS = 24
 _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT = 10.0
@@ -56,6 +57,7 @@ class NewtonPipeline:
         self.input_targets = []
         self.input_sample_rates = []
         self.max_frames = -1
+        self.input_contact_scores = []
 
         if retarget_config is None:
             retargeter_config = pipeline_utils.get_retargeter_config(self.source_type, self.target_type)
@@ -72,6 +74,8 @@ class NewtonPipeline:
             int(retargeter_config.get('virtual_foot_grounding_smooth_window', 5)),
         )
         self.enable_self_penetration = False
+        self.contact_aware_foot_ik = retargeter_config.get("contact_aware_foot_ik", {})
+        self.contact_aware_foot_ik_enabled = bool(self.contact_aware_foot_ik.get("enabled", False))
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
 
@@ -157,6 +161,7 @@ class NewtonPipeline:
         self.input_targets = []
         self.input_sample_rates = []
         self.max_frames = -1
+        self.input_contact_scores = []
 
     def add_input_motions(self, buffers: list[AnimationBuffer], offsets: list[wp.transform], scale_animation: bool):
         """
@@ -183,6 +188,15 @@ class NewtonPipeline:
 
             self.input_targets.append(buffer_effectors[:, self.target_effector_indices, :])
             self.input_sample_rates.append(buffers[i].sample_rate)
+            if self.contact_aware_foot_ik_enabled:
+                try:
+                    window = int(self.contact_aware_foot_ik.get("contact_score_smoothing_window", 5))
+                    self.input_contact_scores.append(infer_contacts_from_animation_buffer(buffer, offsets[i], window))
+                except Exception as exc:
+                    print(f"[WARN] Contact inference failed, disabling lock for this clip: {exc}")
+                    self.input_contact_scores.append(None)
+            else:
+                self.input_contact_scores.append(None)
 
     def execute(self):
         """
@@ -226,11 +240,12 @@ class NewtonPipeline:
             position_objectives,
             rotation_objectives,
             joint_limit_objective,
-            smooth_joint_filter_objective
+            smooth_joint_filter_objective,
+            contact_objectives
         ) = self._create_ik_objectives(num_envs, model, state)
 
         # Add optional objectives
-        ik_solver_active_objectives = [*position_objectives, *rotation_objectives]
+        ik_solver_active_objectives = [*position_objectives, *rotation_objectives, *contact_objectives]
         if self.joint_limit_weight > 0.0:
             ik_solver_active_objectives.append(joint_limit_objective)
         if self.smooth_joint_filter_weight > 0.0:
@@ -279,6 +294,9 @@ class NewtonPipeline:
                 for i, target in enumerate(frame_targets):
                     position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
                     rotation_objectives[i].set_target_rotation(env, wp.quat(*target[3:7]))
+
+                if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
+                    self._update_contact_objectives_for_frame(env, frame, frame_targets, contact_objectives)
 
             if graph_capture is not None:
                 wp.capture_launch(graph_capture)
@@ -448,4 +466,57 @@ class NewtonPipeline:
             weight=0.0,
             coord_masks=self.smooth_joint_filter_coord_masks)
 
-        return position_objectives, rotation_objectives, joint_limit_objective, smooth_joint_limiter_objective
+        contact_objectives = self._create_contact_aware_objectives(num_envs, pos_target_arrays)
+        return position_objectives, rotation_objectives, joint_limit_objective, smooth_joint_limiter_objective, contact_objectives
+
+
+    def _create_contact_aware_objectives(self, num_envs, pos_target_arrays):
+        if not self.contact_aware_foot_ik_enabled:
+            self.contact_objective_map = {}
+            return []
+        anchors = self.contact_aware_foot_ik.get("anchor_offsets", {})
+        left = anchors.get("left", {})
+        right = anchors.get("right", {})
+        if not left or not right:
+            print("[WARN] contact_aware_foot_ik enabled but anchor_offsets not configured; skipping.")
+            self.contact_objective_map = {}
+            return []
+        link_lookup = {name: link for name, (link, _) in zip(self.mapped_joints, self.mapped_body_link_pos_data)}
+        mapping = {
+            "left_toe": ("LeftFoot", left.get("toe"), "left_toe_contact_score", self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
+            "left_heel": ("LeftFoot", left.get("heel"), "left_heel_contact_score", self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
+            "right_toe": ("RightFoot", right.get("toe"), "right_toe_contact_score", self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
+            "right_heel": ("RightFoot", right.get("heel"), "right_heel_contact_score", self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
+        }
+        out=[]; self.contact_objective_map={}
+        for key, (joint, offset, score_key, w_stance, w_swing) in mapping.items():
+            if offset is None or joint not in link_lookup:
+                continue
+            targets = wp.array(np.zeros((num_envs,3), dtype=np.float32), dtype=wp.vec3)
+            obj = ik.IKObjectivePosition(link_index=link_lookup[joint], link_offset=wp.vec3(*offset), target_positions=targets, weight=w_swing)
+            out.append(obj)
+            self.contact_objective_map[key] = {"objective": obj, "score_key": score_key, "stance": float(w_stance), "swing": float(w_swing), "active": [False]*num_envs, "locked": [None]*num_envs}
+        return out
+
+    def _update_contact_objectives_for_frame(self, env, frame, frame_targets, contact_objectives):
+        if not hasattr(self, "contact_objective_map"):
+            return
+        scores = self.input_contact_scores[env] if env < len(self.input_contact_scores) else None
+        on_t = float(self.contact_aware_foot_ik.get("contact_on_threshold", 0.6)); off_t = float(self.contact_aware_foot_ik.get("contact_off_threshold", 0.3))
+        joint_idx = {"LeftFoot": self.mapped_joints.index("LeftFoot"), "RightFoot": self.mapped_joints.index("RightFoot")}
+        for key, cfg in self.contact_objective_map.items():
+            side_joint = "LeftFoot" if key.startswith("left") else "RightFoot"
+            foot = frame_targets[joint_idx[side_joint]]
+            pos=np.array(foot[0:3],dtype=np.float32); q=wp.quat(*foot[3:7]); off=cfg["objective"].link_offset
+            world = pos + np.array(wp.quat_rotate(q, off), dtype=np.float32)
+            score = float(scores[cfg["score_key"]][frame]) if scores is not None and frame < len(scores[cfg["score_key"]]) else 0.0
+            active = cfg["active"][env]
+            if (not active) and score >= on_t:
+                cfg["active"][env]=True; cfg["locked"][env]=world.copy()
+            elif active and score <= off_t:
+                cfg["active"][env]=False; cfg["locked"][env]=None
+            target = cfg["locked"][env] if cfg["active"][env] and cfg["locked"][env] is not None else world
+            cfg["objective"].set_target_position(env, wp.vec3(*target))
+            weight = cfg["stance"] if cfg["active"][env] else cfg["swing"]
+            if hasattr(cfg["objective"], "set_weight"):
+                cfg["objective"].set_weight(weight)

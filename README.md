@@ -5,6 +5,8 @@
 
 Convert [SOMA](https://github.com/NVlabs/SOMA-X) human motion captures into humanoid robot joint animation. Takes BVH motion files as input and produces robot-playable CSV joint data as output using GPU-optimized inverse kinematics via [Newton](https://github.com/newton-physics/newton) and high-performance computation with [NVIDIA Warp](https://github.com/NVIDIA/warp).
 
+- Contact-aware foot IK extension (optional): uses virtual toe/heel anchors plus inferred or loaded contact scores to reduce foot sliding without requiring physical toe joints.
+
 The retargeting pipeline handles proportional human-to-robot scaling, multi-objective IK solving with joint limits, optional feet stabilization, and per-DOF joint limit clamping. SOMA is the input skeleton; target robots are registered in `params.py` and selected with `--robot`.
 
 SOMA Retargeter is part of the [SOMA body model](https://github.com/NVlabs/SOMA-X) ecosystem for humanoid motion data.
