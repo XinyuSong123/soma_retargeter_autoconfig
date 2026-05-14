@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import copy
+
 import warp as wp
 import numpy as np
 import newton
@@ -22,6 +24,13 @@ from soma_retargeter.pipelines.motion_grounding import apply_virtual_foot_ground
 from soma_retargeter.pipelines.foot_contact_inference import (
     infer_contacts_from_animation_buffer,
     contacts_from_npz_foot_contacts,
+)
+from soma_retargeter.pipelines.stance_width_diagnostics import (
+    DEBUG_CONFIG_KEY,
+    apply_debug_options_to_ik_map,
+    build_stance_width_report,
+    joint_stats_from_raw_data,
+    normalize_debug_config,
 )
 
 _DEFAULT_IK_SOLVER_ITERATIONS = 24
@@ -80,11 +89,23 @@ class NewtonPipeline:
         self.input_sample_rates = []
         self.max_frames = -1
         self.input_contact_scores = []
+        self.stance_width_report_inputs = []
+        self.stance_width_reports = []
 
         if retarget_config is None:
             retargeter_config = pipeline_utils.get_retargeter_config(self.source_type, self.target_type)
         else:
             retargeter_config = retarget_config
+        retargeter_config = copy.deepcopy(retargeter_config)
+        self.stance_width_debug_config = normalize_debug_config(retargeter_config.get(DEBUG_CONFIG_KEY, {}))
+        retargeter_config["ik_map"], self.stance_width_debug_summary = apply_debug_options_to_ik_map(
+            retargeter_config.get("ik_map", {}),
+            self.stance_width_debug_config,
+        )
+        self.stance_width_diagnostics_enabled = bool(self.stance_width_debug_config.get("enabled", False))
+        self.stance_width_report_inputs = []
+        self.stance_width_reports = []
+        self.retargeter_config = retargeter_config
 
         self.ik_iterations = retargeter_config.get('ik_iterations', _DEFAULT_IK_SOLVER_ITERATIONS)
         self.joint_limit_weight = retargeter_config.get('joint_limit_weight', _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT)
@@ -216,6 +237,19 @@ class NewtonPipeline:
 
             self.max_frames = max(self.max_frames, buffer.num_frames)
             buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
+            if getattr(self, "stance_width_diagnostics_enabled", False):
+                try:
+                    self.stance_width_report_inputs.append({
+                        "source_soma_transforms": self._compute_source_global_transforms_for_diagnostics(
+                            buffer,
+                            offsets[i],
+                        ),
+                        "source_soma_names": list(buffer.skeleton.joint_names),
+                        "scaled_target_transforms": np.asarray(buffer_effectors, dtype=np.float32),
+                        "scaled_target_names": list(self.human_robot_scaler.effector_names()),
+                    })
+                except Exception as exc:
+                    self.stance_width_report_inputs.append({"error": str(exc)})
 
             self.input_targets.append(buffer_effectors[:, self.target_effector_indices, :])
             self.input_sample_rates.append(buffers[i].sample_rate)
@@ -250,6 +284,12 @@ class NewtonPipeline:
             else:
                 self.input_contact_scores.append(None)
 
+    def _compute_source_global_transforms_for_diagnostics(self, buffer, offset):
+        transforms = np.zeros((buffer.num_frames, buffer.skeleton.num_joints, 7), dtype=np.float32)
+        for frame in range(buffer.num_frames):
+            transforms[frame] = np.asarray(buffer.compute_global_transforms(frame, offset), dtype=np.float32)
+        return transforms
+
     def execute(self):
         """
         Run the retargeting pipeline on all added input motions.
@@ -264,6 +304,7 @@ class NewtonPipeline:
         if num_envs == 0:
             self.retargeted_motions = []
             return
+        self.stance_width_reports = []
 
         # Clamp objective weights to valid values
         self.ik_iterations = max(1, self.ik_iterations)
@@ -387,7 +428,12 @@ class NewtonPipeline:
 
         output_buffers = []
         for i in range(num_envs):
-            raw_data = joint_q_data[i][num_frames_to_remove:].astype(np.float32)
+            raw_ik_data = joint_q_data[i][num_frames_to_remove:].astype(np.float32)
+            if getattr(self, "stance_width_diagnostics_enabled", False):
+                self.stance_width_reports.append(
+                    self._build_stance_width_report_for_output(i, raw_ik_data, num_frames_to_remove)
+                )
+            raw_data = np.array(raw_ik_data, copy=True)
             raw_data = self._apply_output_default_pose_blend(raw_data)
             if self.virtual_foot_grounding_enabled:
                 raw_data, grounding_stats = apply_virtual_foot_grounding_to_frames(
@@ -409,6 +455,100 @@ class NewtonPipeline:
                     print(f"[INFO] Virtual foot grounding skipped: {grounding_stats.reason}")
             output_buffers.append(CSVAnimationBuffer.create_from_raw_data(raw_data, self.input_sample_rates[i]))
         return output_buffers
+
+    def _build_stance_width_report_for_output(self, env, raw_ik_data, num_frames_to_remove):
+        record = (
+            self.stance_width_report_inputs[env]
+            if env < len(getattr(self, "stance_width_report_inputs", []))
+            else None
+        )
+        if not isinstance(record, dict):
+            return {"diagnostic": "stance_width", "error": "source/scaled diagnostic input was not recorded"}
+        if "error" in record:
+            return {"diagnostic": "stance_width", "error": record["error"]}
+
+        source_transforms = np.asarray(record["source_soma_transforms"], dtype=np.float32)[num_frames_to_remove:]
+        scaled_transforms = np.asarray(record["scaled_target_transforms"], dtype=np.float32)[num_frames_to_remove:]
+        n = min(len(source_transforms), len(scaled_transforms), len(raw_ik_data))
+        source_transforms = source_transforms[:n]
+        scaled_transforms = scaled_transforms[:n]
+        raw_ik_data = raw_ik_data[:n]
+
+        robot_fk_names = self._stance_width_robot_semantic_names()
+        robot_fk_transforms = self._compute_robot_semantic_fk_transforms(raw_ik_data, robot_fk_names)
+        return build_stance_width_report(
+            source_soma_transforms=source_transforms,
+            source_soma_names=record["source_soma_names"],
+            scaled_target_transforms=scaled_transforms,
+            scaled_target_names=record["scaled_target_names"],
+            robot_fk_transforms=robot_fk_transforms,
+            robot_fk_names=robot_fk_names,
+            ik_map=self.retargeter_config.get("ik_map", {}),
+            debug_summary=getattr(self, "stance_width_debug_summary", {"enabled": False}),
+            hip_thigh_joint_stats=joint_stats_from_raw_data(
+                raw_ik_data,
+                self._scalar_joint_q_index_map(),
+            ),
+        )
+
+    def _stance_width_robot_semantic_names(self):
+        ik_map = self.retargeter_config.get("ik_map", {})
+        body_lookup = set(getattr(self, "body_names", []))
+        semantic_names = []
+        for joint_name in ("Hips", "Pelvis", "LeftFoot", "RightFoot"):
+            entry = ik_map.get(joint_name)
+            if not isinstance(entry, dict):
+                continue
+            t_body = entry.get("t_body")
+            r_body = entry.get("r_body") or t_body
+            if t_body in body_lookup and r_body in body_lookup:
+                semantic_names.append(joint_name)
+        return semantic_names
+
+    def _compute_robot_semantic_fk_transforms(self, raw_ik_data, semantic_names):
+        raw_ik_data = np.asarray(raw_ik_data, dtype=np.float32)
+        out = np.zeros((len(raw_ik_data), len(semantic_names), 7), dtype=np.float32)
+        if len(raw_ik_data) == 0 or not semantic_names:
+            return out
+
+        body_lookup = {name: idx for idx, name in enumerate(getattr(self, "body_names", []))}
+        ik_map = self.retargeter_config.get("ik_map", {})
+        semantic_body_indices = []
+        for joint_name in semantic_names:
+            entry = ik_map.get(joint_name, {})
+            t_body = entry.get("t_body") if isinstance(entry, dict) else None
+            r_body = entry.get("r_body") if isinstance(entry, dict) else None
+            r_body = r_body or t_body
+            semantic_body_indices.append((body_lookup[t_body], body_lookup[r_body]))
+
+        model = self.ik_model
+        state = model.state()
+        original_q = np.array(model.joint_q.numpy(), copy=True)
+        try:
+            for frame, row in enumerate(raw_ik_data):
+                wp.copy(model.joint_q, wp.array(row, dtype=wp.float32))
+                newton.eval_fk(model, model.joint_q, model.joint_qd, state)
+                body_q = state.body_q.numpy()
+                for semantic_idx, (t_body_idx, r_body_idx) in enumerate(semantic_body_indices):
+                    out[frame, semantic_idx, :3] = body_q[t_body_idx, :3]
+                    out[frame, semantic_idx, 3:7] = body_q[r_body_idx, 3:7]
+        finally:
+            wp.copy(model.joint_q, wp.array(original_q, dtype=wp.float32))
+        return out
+
+    def _scalar_joint_q_index_map(self):
+        starts = self.ik_model.joint_q_start.numpy()
+        out = {}
+        for joint_index, label in enumerate(self.robot_builder.joint_label):
+            start = int(starts[joint_index])
+            end = (
+                int(starts[joint_index + 1])
+                if joint_index + 1 < len(starts)
+                else int(self.ik_model.joint_coord_count)
+            )
+            if end - start == 1:
+                out[newton_utils.get_name_from_label(label)] = start
+        return out
 
     def _apply_output_default_pose_blend(self, joint_q_frames: np.ndarray) -> np.ndarray:
         if self.output_default_pose_blend_frames <= 0 or len(joint_q_frames) == 0:
@@ -450,6 +590,7 @@ class NewtonPipeline:
         mapped_body_link_pos_data = []
         mapped_body_link_rot_data = []
         body_names = [newton_utils.get_name_from_label(label) for label in self.robot_builder.body_label]
+        self.body_names = body_names
         for joint, mapping_data in retargeter_config["ik_map"].items():
             mapped_joints.append(joint)
             mapped_joint_indices.append(skeleton.joint_index(joint))

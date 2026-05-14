@@ -628,6 +628,22 @@ class Viewer:
                     dst_path.parent.mkdir(parents=True, exist_ok=True)
                     # csv_utils.save_csv(dst_path, csv_buffer)
                     csv_utils.save_csv_npz_compatible(dst_path, csv_buffer, retarget_target)
+                    stance_reports = getattr(retarget_pipeline, "stance_width_reports", [])
+                    if i < len(stance_reports):
+                        report = stance_reports[i]
+                        if isinstance(report, dict):
+                            report["motion_name"] = pathlib.Path(batch[i]).stem
+                            report["source_bvh_path"] = str(batch[i])
+                            report["csv_path"] = str(dst_path)
+                            suffix = getattr(
+                                retarget_pipeline,
+                                "stance_width_debug_config",
+                                {},
+                            ).get("report_suffix", ".stance_width_report.json")
+                            suffix = suffix if str(suffix).startswith(".") else f".{suffix}"
+                            report_path = dst_path.with_suffix(str(suffix))
+                            io_utils.save_json(report_path, report, indent=2)
+                            print(f"[INFO]: Wrote stance width diagnostic report: {report_path}")
 
             nb_retargeted_motions += len(batch)
 

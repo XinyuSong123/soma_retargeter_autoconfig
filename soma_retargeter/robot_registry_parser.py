@@ -846,6 +846,7 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         "enable_virtual_foot_grounding",
         "virtual_foot_grounding_smooth_window",
         "contact_aware_foot_ik",
+        "stance_width_diagnostics",
     )
     for key in passthrough_keys:
         if key in raw_config:
