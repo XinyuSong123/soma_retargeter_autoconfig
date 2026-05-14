@@ -39,6 +39,8 @@ class RobotPoseRecord:
     pose_name: str
     path: str | None
     joint_positions_rad: dict[str, float]
+    root_translation_m: np.ndarray | None
+    root_rotation_xyzw: np.ndarray | None
     payload: dict
 
 
@@ -226,10 +228,24 @@ def load_robot_pose_payload(
     for joint_name, value in joint_positions_rad.items():
         if value is None:
             raise ValueError(f"Robot pose joint [{joint_name}] is null in [{path}]")
+    root_transform = payload.get("root_transform")
+    root_translation_m = None
+    root_rotation_xyzw = None
+    if isinstance(root_transform, dict):
+        if "translation_m" in root_transform:
+            root_translation_m = np.asarray(root_transform["translation_m"], dtype=np.float32)
+            if root_translation_m.shape != (3,):
+                raise ValueError(f"Robot pose root_transform.translation_m must have 3 values: {path}")
+        if "rotation_xyzw" in root_transform:
+            root_rotation_xyzw = normalize_quaternion_xyzw(root_transform["rotation_xyzw"])
+            if root_rotation_xyzw.shape != (4,):
+                raise ValueError(f"Robot pose root_transform.rotation_xyzw must have 4 values: {path}")
     return RobotPoseRecord(
         pose_name=payload.get("pose_name", Path(path).stem if path else "robot_pose"),
         path=str(path) if path else None,
         joint_positions_rad={key: float(value) for key, value in joint_positions_rad.items()},
+        root_translation_m=root_translation_m,
+        root_rotation_xyzw=root_rotation_xyzw,
         payload=payload,
     )
 
@@ -248,13 +264,31 @@ def apply_robot_pose_to_model(
 ) -> tuple[np.ndarray, list[str]]:
     if isinstance(robot_pose, RobotPoseRecord):
         joint_positions_rad = robot_pose.joint_positions_rad
+        root_translation_m = robot_pose.root_translation_m
+        root_rotation_xyzw = robot_pose.root_rotation_xyzw
     else:
-        joint_positions_rad = robot_pose
+        joint_positions_rad = robot_pose.get("joint_positions_rad", robot_pose)
+        root_transform = robot_pose.get("root_transform") if isinstance(robot_pose, dict) else None
+        root_translation_m = None
+        root_rotation_xyzw = None
+        if isinstance(root_transform, dict):
+            if "translation_m" in root_transform:
+                root_translation_m = np.asarray(root_transform["translation_m"], dtype=np.float32)
+            if "rotation_xyzw" in root_transform:
+                root_rotation_xyzw = normalize_quaternion_xyzw(root_transform["rotation_xyzw"])
 
     joint_name_to_index = create_joint_name_to_q_index_map(model, robot_builder)
     joint_q_start = model.joint_q_start.numpy()
     default_joint_q = np.array(model.joint_q.numpy(), copy=True)
     ignored_joints = []
+    if root_translation_m is not None:
+        # Pose files store the robot-local free-root translation.  Viewers may
+        # place the whole model at a scene x/y offset, so keep that placement
+        # while still using the saved ground-relative height.
+        default_joint_q[0:2] = default_joint_q[0:2] + root_translation_m[0:2]
+        default_joint_q[2] = root_translation_m[2]
+    if root_rotation_xyzw is not None:
+        default_joint_q[3:7] = root_rotation_xyzw
 
     for joint_name, joint_value in joint_positions_rad.items():
         if joint_name not in joint_name_to_index:

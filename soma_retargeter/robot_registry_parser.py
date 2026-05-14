@@ -638,12 +638,51 @@ def _default_ik_weights(joint_name: str) -> tuple[float, float]:
     return _DEFAULT_IK_WEIGHTS.get(joint_name, (1.0, 0.5))
 
 
+def _as_weight(value: Any, default: float, *, label: str) -> float:
+    if value is None:
+        return default
+    try:
+        weight = float(value)
+    except (TypeError, ValueError):
+        raise TypeError(f"Retargeter {label} must be numeric, got {value!r}.") from None
+    if weight < 0.0:
+        raise ValueError(f"Retargeter {label} must be non-negative, got {weight}.")
+    return weight
+
+
 def _normalize_ik_mapping_entry(joint_name: str, entry: Any) -> dict[str, Any] | None:
     t_weight, r_weight = _default_ik_weights(joint_name)
+
+    if isinstance(entry, dict):
+        t_body = entry.get("t_body") or entry.get("body") or entry.get("link")
+        r_body = entry.get("r_body") or t_body
+        if not isinstance(t_body, str) or not t_body.strip():
+            raise ValueError(
+                f"Retargeter ik_map[{joint_name!r}].t_body must be a non-empty robot link name."
+            )
+        if not isinstance(r_body, str) or not r_body.strip():
+            raise ValueError(
+                f"Retargeter ik_map[{joint_name!r}].r_body must be a non-empty robot link name."
+            )
+        return {
+            "t_body": t_body.strip(),
+            "r_body": r_body.strip(),
+            "t_weight": _as_weight(
+                entry.get("t_weight"),
+                t_weight,
+                label=f"ik_map[{joint_name!r}].t_weight",
+            ),
+            "r_weight": _as_weight(
+                entry.get("r_weight"),
+                r_weight,
+                label=f"ik_map[{joint_name!r}].r_weight",
+            ),
+        }
+
     if not isinstance(entry, str):
         raise TypeError(
             f"Retargeter ik_map[{joint_name!r}] must be a robot link name string, "
-            "for example \"LeftForeArm\": \"left_elbow_link\"."
+            "or an object with t_body/r_body/t_weight/r_weight."
         )
 
     body_name = entry.strip()
@@ -702,6 +741,28 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         if normalized_entry is not None:
             ik_map[str(joint_name)] = normalized_entry
     runtime_config["ik_map"] = ik_map
+
+    passthrough_keys = (
+        "ik_iterations",
+        "joint_limit_weight",
+        "smooth_joint_filter_weight",
+        "collision_weight",
+        "enable_post_processing",
+        "feet_stabilizer_config",
+        "smooth_joint_filter_objective_body_masks",
+        "output_default_pose_blend_frames",
+        "output_default_pose_blend_bodies",
+        "enable_virtual_foot_grounding",
+        "virtual_foot_grounding_smooth_window",
+    )
+    for key in passthrough_keys:
+        if key in raw_config:
+            runtime_config[key] = raw_config[key]
+
+    if "model_height" in raw_config:
+        runtime_config["model_height"] = raw_config["model_height"]
+    if "human_robot_scaler_config" in raw_config:
+        runtime_config["human_robot_scaler_config"] = raw_config["human_robot_scaler_config"]
     return runtime_config
 
 
@@ -894,7 +955,12 @@ def get_robot_setup_status(robot_name: str | None) -> list[str]:
         try:
             raw_config = io_utils.load_json(retargeter_path)
             ik_map = _extract_user_ik_map(raw_config)
-            valid_count = sum(1 for value in ik_map.values() if isinstance(value, str) and value.strip())
+            valid_count = 0
+            for value in ik_map.values():
+                if isinstance(value, str) and value.strip():
+                    valid_count += 1
+                elif isinstance(value, dict) and (value.get("t_body") or value.get("body") or value.get("link")):
+                    valid_count += 1
             invalid_count = len(ik_map) - valid_count
             suffix = f"，{invalid_count} 个格式错误" if invalid_count else ""
             lines.append(f"Human/link 映射: 已填写 {valid_count} 个部位{suffix}")

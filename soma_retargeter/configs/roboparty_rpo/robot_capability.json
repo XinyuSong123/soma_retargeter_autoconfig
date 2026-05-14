@@ -1,0 +1,104 @@
+{
+    "schema_version": 1,
+    "robot": "roboparty_rpo",
+    "capability_mode": "user_declared_with_auto_validation",
+    "waist": {
+        "yaw": "torso_joint",
+        "pitch": false,
+        "roll": false
+    },
+    "ankle": {
+        "left_pitch": "left_ankle_pitch_joint",
+        "left_roll": "left_ankle_roll_joint",
+        "right_pitch": "right_ankle_pitch_joint",
+        "right_roll": "right_ankle_roll_joint"
+    },
+    "toe": {
+        "left": false,
+        "right": false
+    },
+    "links": {
+        "pelvis": "base_link",
+        "chest": "torso_link",
+        "left_foot": "left_ankle_roll_link",
+        "right_foot": "right_ankle_roll_link",
+        "left_hand": "left_elbow_yaw_link",
+        "right_hand": "right_elbow_yaw_link"
+    },
+    "foot": {
+        "sole_anchor_mode": "manual_anchors",
+        "forward_axis": "auto",
+        "up_axis": "auto",
+        "manual_size": {
+            "left": {
+                "length": "auto",
+                "width": "auto",
+                "sole_z": "auto"
+            },
+            "right": {
+                "length": "auto",
+                "width": "auto",
+                "sole_z": "auto"
+            }
+        },
+        "manual_anchors": {
+            "left": {
+                "sole_center": [
+                    0.025,
+                    0.0094250012,
+                    -0.045000002
+                ],
+                "toe": [
+                    0.104,
+                    0.0094250012,
+                    -0.045000002
+                ],
+                "heel": [
+                    -0.054000001,
+                    0.0094250012,
+                    -0.045000002
+                ],
+                "inner_edge": [
+                    0.025,
+                    -0.028999999,
+                    -0.045000002
+                ],
+                "outer_edge": [
+                    0.02500000037252903,
+                    0.03790000081062317,
+                    -0.04500000178813934
+                ]
+            },
+            "right": {
+                "sole_center": [
+                    0.025,
+                    -0.0094250012,
+                    -0.045000002
+                ],
+                "toe": [
+                    0.104,
+                    -0.0094250012,
+                    -0.045000002
+                ],
+                "heel": [
+                    -0.054000001,
+                    -0.0094250012,
+                    -0.045000002
+                ],
+                "inner_edge": [
+                    0.025,
+                    0.028999999,
+                    -0.045000002
+                ],
+                "outer_edge": [
+                    0.02500000037252903,
+                    -0.03790000081062317,
+                    -0.04500000178813934
+                ]
+            }
+        }
+    },
+    "tracking_policy": {
+        "mode": "auto"
+    }
+}

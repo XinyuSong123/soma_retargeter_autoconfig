@@ -21,6 +21,7 @@ import soma_retargeter.assets.bvh as bvh_utils
 import soma_retargeter.assets.csv as csv_utils
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
+from soma_retargeter.utils.warp_compat import install_cpu_pinned_memory_fallback
 
 from soma_retargeter.renderers.skeleton_renderer import SkeletonRenderer
 from soma_retargeter.renderers.mesh_renderer import SkeletalMeshRenderer
@@ -640,9 +641,18 @@ def main():
         type=str,
         default=None,
         help="Registered robot name or alias from params.py, for example g1 or rpo.")
+    parser.add_argument(
+        "--auto-refine",
+        action="store_true",
+        help="Run capability-aware G1 teacher refinement before loading the retargeter config.")
 
     viewer, args = newton.examples.init(parser)
     robot_hint = robot_registry_parser.resolve_robot_name(args.robot) if args.robot else robot_registry_parser.get_active_robot_name()
+    if args.auto_refine:
+        from soma_retargeter.teacher_refinement import refine_registered_robot_config
+
+        result = refine_registered_robot_config(robot_hint)
+        print(f"[INFO]: Auto-refine decision for {robot_hint}: {result['decision']} ({result['reason']})")
     if args.config is None:
         config_path = robot_registry_parser.get_profile_path(robot_hint, "bvh_converter_config")
         if config_path is None:
@@ -660,6 +670,8 @@ def main():
             config.get('retarget_target', robot_hint)
         )
     config = robot_registry_parser.apply_profile_to_converter_config(config, config['retarget_target'])
+    if not isinstance(viewer, newton.viewer.ViewerNull) and install_cpu_pinned_memory_fallback(wp):
+        print("[INFO]: CUDA is unavailable; using regular CPU viewer buffers instead of pinned buffers.")
     with wp.ScopedDevice(args.device):
         app = Viewer(viewer, config)
         if not isinstance(viewer, newton.viewer.ViewerNull):

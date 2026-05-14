@@ -21,7 +21,13 @@ import warp as wp
 import soma_retargeter.robot_registry_parser as robot_registry_parser
 from soma_retargeter.animation.skeleton import SkeletonInstance
 import soma_retargeter.utils.io_utils as io_utils
+import soma_retargeter.utils.newton_utils as newton_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
+from soma_retargeter.teacher_refinement.capability_loader import find_capability_profile_path, load_capability_profile
+from soma_retargeter.teacher_refinement.capability_resolver import resolve_capability_profile
+from soma_retargeter.teacher_refinement.sole_anchor_generator import generate_virtual_sole_anchors
+from soma_retargeter.tools.foot_grounding import FootGroundingOptions, ground_robot_pose_payload
+from soma_retargeter.utils.warp_compat import install_cpu_pinned_memory_fallback
 from app.optimize_scaler_config import optimize_scaler_from_pose_pairs
 from soma_retargeter.renderers.skeleton_renderer import SkeletonRenderer
 from soma_retargeter.tools.pose_io import (
@@ -29,7 +35,6 @@ from soma_retargeter.tools.pose_io import (
     create_reference_soma_skeleton_instance,
     load_human_pose_json,
     load_human_pose_payload,
-    load_robot_pose_json,
     load_robot_pose_payload,
     save_human_pose_json,
 )
@@ -70,6 +75,26 @@ _HUMAN_SLOT_COLORS = {
 }
 _HUMAN_SELECTED_SCENE_OFFSET = wp.vec3(0.0, 0.0, 0.0)
 _ROBOT_SCENE_OFFSET = wp.vec3(2.4, 0.0, 0.0)
+_VIRTUAL_ANCHOR_ORDER = ("sole_center", "toe", "heel", "inner_edge", "outer_edge")
+_VIRTUAL_ANCHOR_LABELS = {
+    "sole_center": "sole_center",
+    "toe": "virtual toe",
+    "heel": "virtual heel",
+    "inner_edge": "inner_edge",
+    "outer_edge": "outer_edge",
+}
+_VIRTUAL_ANCHOR_COLORS = {
+    "sole_center": (1.00, 0.88, 0.15),
+    "toe": (1.00, 0.20, 0.85),
+    "heel": (0.10, 0.82, 1.00),
+    "inner_edge": (0.20, 1.00, 0.35),
+    "outer_edge": (1.00, 0.55, 0.12),
+}
+_CONTACT_ON_COLOR = (0.05, 1.00, 0.35)
+_CONTACT_OFF_COLOR = (0.72, 0.72, 0.72)
+_VIRTUAL_LINK_COLOR = (0.78, 0.60, 1.00)
+_CONTACT_HEIGHT_THRESHOLD_M = 0.025
+_SUPPORT_CONTACT_ANCHORS = ("toe", "heel", "inner_edge", "outer_edge")
 _POSE_SLOT_LABELS_ZH = {
     "t_pose": "T姿态",
     "natural_down": "自然下垂",
@@ -119,6 +144,27 @@ def _make_wp_transform(values) -> wp.transform:
         wp.vec3(*values[0:3].tolist()),
         wp.quat(*values[3:7].tolist()),
     )
+
+
+def _quat_rotate_xyzw(quat_xyzw, point) -> np.ndarray:
+    quat = normalize_np_quat_xyzw(quat_xyzw)
+    q_vec = quat[0:3]
+    point = np.asarray(point, dtype=np.float32)
+    t = 2.0 * np.cross(q_vec, point)
+    return point + quat[3] * t + np.cross(q_vec, t)
+
+
+def normalize_np_quat_xyzw(quat_xyzw) -> np.ndarray:
+    quat = np.asarray(quat_xyzw, dtype=np.float32)
+    norm = float(np.linalg.norm(quat))
+    if norm <= 1e-8:
+        return np.asarray([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+    return quat / norm
+
+
+def _transform_point_xyzw(transform_values, local_point) -> np.ndarray:
+    transform_values = np.asarray(transform_values, dtype=np.float32)
+    return transform_values[0:3] + _quat_rotate_xyzw(transform_values[3:7], local_point)
 
 
 def _clone_skeleton_instance(skeleton_instance: SkeletonInstance) -> SkeletonInstance:
@@ -174,6 +220,13 @@ class PoseOptimizerUI:
         self.time = 0.0
         self.frame_dt = 1.0 / 60.0
         self.logs: list[str] = []
+        self.show_virtual_sole_overlay = True
+        self.show_feet_contact_overlay = True
+        self.virtual_overlay_status: dict[str, bool] = {"left": False, "right": False}
+        self.virtual_overlay_messages: list[str] = []
+        self.virtual_anchor_edit_side = "left"
+        self.auto_ground_feet_preview = True
+        self.foot_grounding_summary = ""
 
         self.config_path = str(args.config)
         self.scaler_config_path = str(args.scaler_config)
@@ -222,6 +275,7 @@ class PoseOptimizerUI:
         self._install_chinese_ui_font()
         self.initialize_default_human_slots()
         self._build_robot_model()
+        self._initialize_virtual_foot_overlay()
         self.initialize_default_robot_slots()
         if self.scaler_config_path:
             self.append_log(f"已自动生成/使用 scaler 配置: {self.scaler_config_path}")
@@ -282,6 +336,145 @@ class PoseOptimizerUI:
         self.viewer.set_world_offsets([0, 0, 0])
         self.robot_default_joint_q = np.array(self.model.joint_q.numpy(), copy=True)
 
+    def _initialize_virtual_foot_overlay(self) -> None:
+        self.capability_profile = {}
+        self.resolved_capability = {}
+        self.virtual_sole_anchors = {"enabled": False}
+        self.virtual_foot_link_names = {"left": None, "right": None}
+        self.capability_profile_path = find_capability_profile_path(self.robot_type)
+        if self.capability_profile_path is None:
+            config_dir = robot_registry_parser.get_robot_config_dir(self.robot_type)
+            if config_dir is not None:
+                self.capability_profile_path = config_dir / "robot_capability.json"
+        self.robot_body_name_to_index = {
+            newton_utils.get_name_from_label(label): index
+            for index, label in enumerate(self.robot_builder.body_label)
+        }
+
+        try:
+            capability_profile, _ = load_capability_profile(self.robot_type)
+            self.capability_profile = capability_profile
+            resolution = resolve_capability_profile(self.robot_type, profile=capability_profile)
+            resolution.raise_for_errors()
+            self.resolved_capability = resolution.payload
+            self.virtual_sole_anchors = generate_virtual_sole_anchors(
+                self.robot_type,
+                self.resolved_capability,
+                profile=capability_profile,
+            )
+            links = self.resolved_capability.get("links", {})
+            self.virtual_foot_link_names = {
+                "left": links.get("left_foot"),
+                "right": links.get("right_foot"),
+            }
+            self.virtual_overlay_messages = [
+                *resolution.warnings,
+                *self.virtual_sole_anchors.get("warnings", []),
+            ]
+            if self.virtual_sole_anchors.get("enabled"):
+                self.append_log(
+                    "已生成可视化虚拟足底锚点: sole_center, virtual toe, virtual heel, inner_edge, outer_edge"
+                )
+            else:
+                self.append_log("[提示] 未生成虚拟足底锚点，可检查 robot_capability.json 的 foot 设置。")
+        except Exception as exc:
+            self.virtual_overlay_messages = [str(exc)]
+            self.append_log(f"[警告] 虚拟足底/接触可视化初始化失败: {exc}")
+
+    def _editable_anchor_payload(self) -> dict[str, dict[str, list[float]]]:
+        return {
+            side: {
+                anchor_name: [
+                    float(value)
+                    for value in self.virtual_sole_anchors.get(side, {}).get(anchor_name, [0.0, 0.0, 0.0])
+                ]
+                for anchor_name in _VIRTUAL_ANCHOR_ORDER
+            }
+            for side in ("left", "right")
+        }
+
+    def _save_virtual_anchor_edits(self) -> None:
+        if self.capability_profile_path is None:
+            self.append_log("[错误] 无法解析 robot_capability.json 保存路径。")
+            return
+
+        profile_path = pathlib.Path(self.capability_profile_path)
+        if profile_path.exists():
+            profile = io_utils.load_json(profile_path)
+        else:
+            profile = {
+                "schema_version": 1,
+                "robot": self.robot_type,
+                "capability_mode": "user_declared_with_auto_validation",
+            }
+        foot = profile.setdefault("foot", {})
+        foot["sole_anchor_mode"] = "manual_anchors"
+        foot["manual_anchors"] = self._editable_anchor_payload()
+        io_utils.save_json(profile_path, profile, indent=4, ensure_ascii=False)
+        self.append_log(f"已保存手动虚拟足底锚点: {profile_path}")
+        self._initialize_virtual_foot_overlay()
+        self._reground_loaded_robot_slots("manual virtual sole anchors")
+
+    def _reset_virtual_anchors_to_auto(self) -> None:
+        if self.capability_profile_path is None:
+            self.append_log("[错误] 无法解析 robot_capability.json 保存路径。")
+            return
+
+        profile_path = pathlib.Path(self.capability_profile_path)
+        if not profile_path.exists():
+            self.append_log("[提示] 当前没有已保存的手动虚拟锚点。")
+            self._initialize_virtual_foot_overlay()
+            return
+
+        profile = io_utils.load_json(profile_path)
+        foot = profile.setdefault("foot", {})
+        foot.pop("manual_anchors", None)
+        if foot.get("sole_anchor_mode") == "manual_anchors":
+            foot["sole_anchor_mode"] = "auto"
+        io_utils.save_json(profile_path, profile, indent=4, ensure_ascii=False)
+        self.append_log(f"已恢复自动虚拟足底锚点: {profile_path}")
+        self._initialize_virtual_foot_overlay()
+        self._reground_loaded_robot_slots("auto virtual sole anchors")
+
+    def _render_virtual_anchor_editor(self, ui) -> None:
+        if not self.virtual_sole_anchors.get("enabled"):
+            ui.text_wrapped("当前没有可编辑的虚拟足底锚点。")
+            return
+
+        changed_side, side_index = ui.combo(
+            "编辑脚",
+            0 if self.virtual_anchor_edit_side == "left" else 1,
+            ["left", "right"],
+        )
+        if changed_side:
+            self.virtual_anchor_edit_side = "left" if side_index == 0 else "right"
+
+        side = self.virtual_anchor_edit_side
+        side_anchors = self.virtual_sole_anchors.setdefault(side, {})
+        ui.text_wrapped("坐标是 foot link 局部坐标，单位 m。修改后场景里的点会立即移动。")
+        for anchor_name in _VIRTUAL_ANCHOR_ORDER:
+            color = _VIRTUAL_ANCHOR_COLORS[anchor_name]
+            ui.text_colored(
+                ui.ImVec4(color[0], color[1], color[2], 1.0),
+                _VIRTUAL_ANCHOR_LABELS[anchor_name],
+            )
+            current = side_anchors.get(anchor_name, [0.0, 0.0, 0.0])
+            current = [float(current[0]), float(current[1]), float(current[2])]
+            ui.set_next_item_width(260)
+            changed, updated = ui.input_float3(
+                f"xyz##{side}_{anchor_name}",
+                current,
+                format="%.4f",
+            )
+            if changed:
+                side_anchors[anchor_name] = [float(updated[0]), float(updated[1]), float(updated[2])]
+
+        if ui.button("保存虚拟足底点"):
+            self._save_virtual_anchor_edits()
+        ui.same_line()
+        if ui.button("恢复自动生成"):
+            self._reset_virtual_anchors_to_auto()
+
     def initialize_default_human_slots(self):
         if not self.default_human_pose_files:
             self.append_log("[提示] 当前未加载到硬编码标准 human pose JSON，窗口仍会打开。")
@@ -314,6 +507,77 @@ class PoseOptimizerUI:
             loaded_labels = ", ".join(_pose_slot_label_zh(slot_id) for slot_id in loaded_slot_ids)
             self.append_log(f"已初始化标准人体姿态: {loaded_labels}")
 
+    def _auto_ground_robot_pose_payload(
+        self,
+        slot_id: str,
+        payload: dict,
+        path: pathlib.Path | None,
+    ) -> dict:
+        if not self.auto_ground_feet_preview:
+            return payload
+
+        try:
+            result = ground_robot_pose_payload(
+                self.robot_type,
+                payload,
+                options=FootGroundingOptions(
+                    contact_threshold_m=_CONTACT_HEIGHT_THRESHOLD_M,
+                    max_joint_delta_rad=0.22,
+                ),
+                profile=self.capability_profile or None,
+            )
+        except Exception as exc:
+            self.append_log(f"[警告] 自动足底贴地失败 [{_pose_slot_label_zh(slot_id)}]: {exc}")
+            return payload
+
+        status = "contact" if result.contact_success else "not contact"
+        self.foot_grounding_summary = (
+            f"{_pose_slot_label_zh(slot_id)} auto-ground: {status}, "
+            f"max |z|={result.max_abs_support_anchor_z_m:.4f} m"
+        )
+        for message in result.messages:
+            self.append_log(f"[提示] {message}")
+
+        if not result.changed:
+            return payload
+
+        if path is not None:
+            io_utils.save_json(path, result.payload, indent=2, ensure_ascii=False)
+            self.append_log(
+                f"已自动贴地并更新机器人姿态 [{_pose_slot_label_zh(slot_id)}]: {path} "
+                f"(max |z|={result.max_abs_support_anchor_z_m:.4f} m, "
+                f"tuned={', '.join(result.tuned_joint_deltas_rad.keys()) or 'root only'})"
+            )
+        else:
+            self.append_log(
+                f"已自动贴地机器人姿态 [{_pose_slot_label_zh(slot_id)}] "
+                f"(max |z|={result.max_abs_support_anchor_z_m:.4f} m)"
+            )
+        return result.payload
+
+    def _reground_loaded_robot_slots(self, reason: str) -> None:
+        updated_slot_ids = []
+        for slot_id, slot in self.robot_slots.items():
+            if not slot.payload:
+                continue
+            path = pathlib.Path(slot.path) if slot.path else None
+            payload = self._auto_ground_robot_pose_payload(slot_id, slot.payload, path)
+            try:
+                record = load_robot_pose_payload(payload, path)
+            except Exception as exc:
+                self.append_log(f"[警告] 重新加载贴地姿态失败 [{_pose_slot_label_zh(slot_id)}]: {exc}")
+                continue
+            slot.payload = record.payload
+            slot.pose_name = record.pose_name
+            slot.summary = f"{record.pose_name} | 关节={len(record.joint_positions_rad)}"
+            updated_slot_ids.append(slot_id)
+
+        if updated_slot_ids:
+            labels = ", ".join(_pose_slot_label_zh(slot_id) for slot_id in updated_slot_ids)
+            self.append_log(f"已用 {reason} 重新贴地已加载姿态: {labels}")
+            if self.preview_robot_slot_id in updated_slot_ids:
+                self._update_robot_preview_state()
+
     def initialize_default_robot_slots(self):
         if not self.default_robot_pose_files:
             self.append_log("[提示] params.py 中未注册任何机器人 pose JSON，窗口仍会打开。")
@@ -334,6 +598,7 @@ class PoseOptimizerUI:
                 if _robot_pose_payload_has_unfilled_values(payload):
                     self._mark_robot_slot_as_template(slot_id, str(default_path), payload)
                     continue
+                payload = self._auto_ground_robot_pose_payload(slot_id, payload, default_path)
                 record = load_robot_pose_payload(payload, default_path)
                 slot = self.robot_slots[slot_id]
                 slot.status = "Default"
@@ -418,9 +683,7 @@ class PoseOptimizerUI:
         slot = self.robot_slots[slot_id]
         if not slot.payload:
             return None
-        if slot.path:
-            return load_robot_pose_json(slot.path)
-        return load_robot_pose_payload(slot.payload)
+        return load_robot_pose_payload(slot.payload, slot.path)
 
     def _update_robot_preview_state(self):
         wp.copy(self.model.joint_q, wp.array(self.robot_default_joint_q, dtype=wp.float32))
@@ -433,6 +696,116 @@ class PoseOptimizerUI:
                     self.append_log(f"[错误] 机器人姿态预览失败 [{self.preview_robot_slot_id}]: {exc}")
                     self.preview_robot_slot_id = None
         newton.eval_fk(self.model, self.model.joint_q, self.model.joint_qd, self.state)
+
+    def _compute_virtual_anchor_world_points(self) -> dict[str, dict[str, np.ndarray]]:
+        if not self.virtual_sole_anchors.get("enabled"):
+            return {}
+
+        body_q = self.state.body_q.numpy()
+        world_points: dict[str, dict[str, np.ndarray]] = {}
+        for side in ("left", "right"):
+            foot_link = self.virtual_foot_link_names.get(side)
+            if foot_link not in self.robot_body_name_to_index:
+                continue
+            body_idx = self.robot_body_name_to_index[foot_link]
+            foot_tx = body_q[body_idx]
+            side_anchors = self.virtual_sole_anchors.get(side, {})
+            points = {}
+            for anchor_name in _VIRTUAL_ANCHOR_ORDER:
+                local_point = side_anchors.get(anchor_name)
+                if local_point is None:
+                    continue
+                points[anchor_name] = _transform_point_xyzw(foot_tx, local_point)
+            if points:
+                world_points[side] = points
+        return world_points
+
+    def _draw_virtual_foot_overlay(self):
+        world_points = self._compute_virtual_anchor_world_points()
+        if not world_points or not (self.show_virtual_sole_overlay or self.show_feet_contact_overlay):
+            self.viewer.log_points("/teacher_refinement/virtual_sole_anchors", None)
+            self.viewer.log_lines("/teacher_refinement/virtual_links", None, None, None)
+            self.viewer.log_lines("/teacher_refinement/feet_contact_support", None, None, None)
+            return
+
+        point_positions = []
+        point_colors = []
+        virtual_link_starts = []
+        virtual_link_ends = []
+        support_starts = []
+        support_ends = []
+        support_colors = []
+        body_q = self.state.body_q.numpy()
+        self.virtual_overlay_status = {"left": False, "right": False}
+
+        for side, points in world_points.items():
+            foot_link = self.virtual_foot_link_names.get(side)
+            body_idx = self.robot_body_name_to_index.get(foot_link) if foot_link else None
+            foot_origin = body_q[body_idx][0:3] if body_idx is not None else None
+            support_anchor_z = [
+                abs(float(points[anchor_name][2]))
+                for anchor_name in _SUPPORT_CONTACT_ANCHORS
+                if anchor_name in points
+            ]
+            contact_on = bool(support_anchor_z) and max(support_anchor_z) <= _CONTACT_HEIGHT_THRESHOLD_M
+            self.virtual_overlay_status[side] = contact_on
+
+            if self.show_virtual_sole_overlay:
+                for anchor_name in _VIRTUAL_ANCHOR_ORDER:
+                    point = points.get(anchor_name)
+                    if point is None:
+                        continue
+                    point_positions.append(point)
+                    point_colors.append(_VIRTUAL_ANCHOR_COLORS[anchor_name])
+                    if foot_origin is not None:
+                        virtual_link_starts.append(foot_origin)
+                        virtual_link_ends.append(point)
+
+            if self.show_feet_contact_overlay:
+                contact_color = _CONTACT_ON_COLOR if contact_on else _CONTACT_OFF_COLOR
+                support_order = ("toe", "outer_edge", "heel", "inner_edge", "toe")
+                for start_name, end_name in zip(support_order[:-1], support_order[1:], strict=False):
+                    if start_name in points and end_name in points:
+                        support_starts.append(points[start_name])
+                        support_ends.append(points[end_name])
+                        support_colors.append(contact_color)
+                if "sole_center" in points:
+                    ground_point = np.array(points["sole_center"], copy=True)
+                    ground_point[2] = 0.0
+                    support_starts.append(points["sole_center"])
+                    support_ends.append(ground_point)
+                    support_colors.append(contact_color)
+
+        if self.show_virtual_sole_overlay and point_positions:
+            anchor_points = wp.array(np.asarray(point_positions, dtype=np.float32), dtype=wp.vec3)
+            self.viewer.log_points(
+                "/teacher_refinement/virtual_sole_anchors",
+                anchor_points,
+                radii=wp.full(len(point_positions), 0.018, dtype=wp.float32, device=anchor_points.device),
+                colors=wp.array(np.asarray(point_colors, dtype=np.float32), dtype=wp.vec3),
+            )
+            if virtual_link_starts:
+                self.viewer.log_lines(
+                    "/teacher_refinement/virtual_links",
+                    wp.array(np.asarray(virtual_link_starts, dtype=np.float32), dtype=wp.vec3),
+                    wp.array(np.asarray(virtual_link_ends, dtype=np.float32), dtype=wp.vec3),
+                    _VIRTUAL_LINK_COLOR,
+                    width=0.006,
+                )
+        else:
+            self.viewer.log_points("/teacher_refinement/virtual_sole_anchors", None)
+            self.viewer.log_lines("/teacher_refinement/virtual_links", None, None, None)
+
+        if self.show_feet_contact_overlay and support_starts:
+            self.viewer.log_lines(
+                "/teacher_refinement/feet_contact_support",
+                wp.array(np.asarray(support_starts, dtype=np.float32), dtype=wp.vec3),
+                wp.array(np.asarray(support_ends, dtype=np.float32), dtype=wp.vec3),
+                wp.array(np.asarray(support_colors, dtype=np.float32), dtype=wp.vec3),
+                width=0.012,
+            )
+        else:
+            self.viewer.log_lines("/teacher_refinement/feet_contact_support", None, None, None)
 
     def step(self):
         self.time += self.frame_dt
@@ -463,6 +836,7 @@ class PoseOptimizerUI:
         self.viewer.begin_frame(self.time)
         self._draw_human_scene()
         self.viewer.log_state(self.state)
+        self._draw_virtual_foot_overlay()
         self.viewer.end_frame()
 
     def _validate_slots_ready(self) -> tuple[bool, list[str]]:
@@ -688,6 +1062,40 @@ class PoseOptimizerUI:
         ui.text("自动配置")
         ui.text_wrapped("Scaler、报告和中间姿态文件会自动写到机器人配置目录。路径问题请直接检查 params.py。")
         ui.separator()
+        ui.text("足部接触 / 虚拟链接")
+        _, self.show_virtual_sole_overlay = ui.checkbox(
+            "显示 virtual sole anchors",
+            self.show_virtual_sole_overlay,
+        )
+        _, self.show_feet_contact_overlay = ui.checkbox(
+            "显示 feet contact 支撑线",
+            self.show_feet_contact_overlay,
+        )
+        anchor_terms = " | ".join(
+            f"{_VIRTUAL_ANCHOR_LABELS[name]}" for name in _VIRTUAL_ANCHOR_ORDER
+        )
+        ui.text_wrapped(f"锚点术语: {anchor_terms}")
+        for anchor_name in _VIRTUAL_ANCHOR_ORDER:
+            color = _VIRTUAL_ANCHOR_COLORS[anchor_name]
+            ui.text_colored(
+                ui.ImVec4(color[0], color[1], color[2], 1.0),
+                f"{_VIRTUAL_ANCHOR_LABELS[anchor_name]}",
+            )
+        ui.text_wrapped("紫色细线: foot link -> auto virtual link / soft anchor")
+        left_state = "contact" if self.virtual_overlay_status.get("left") else "not contact"
+        right_state = "contact" if self.virtual_overlay_status.get("right") else "not contact"
+        ui.text_wrapped(f"feet contact preview: left={left_state}, right={right_state}")
+        if self.foot_grounding_summary:
+            ui.text_wrapped(self.foot_grounding_summary)
+        ui.text_wrapped(
+            f"template: {self.resolved_capability.get('priority_template', 'unknown')} | "
+            f"anchors: {self.virtual_sole_anchors.get('source', 'disabled')}"
+        )
+        for message in self.virtual_overlay_messages[:3]:
+            ui.text_wrapped(f"[提示] {message}")
+        if ui.collapsing_header("手动调整 5 个虚拟足底点"):
+            self._render_virtual_anchor_editor(ui)
+        ui.separator()
         ui.text("注册状态")
         for line in robot_registry_parser.get_robot_setup_status(self.robot_type):
             ui.text_wrapped(line)
@@ -809,6 +1217,11 @@ def parse_args():
         default=None,
         help="Optional paired-pose artifact path.",
     )
+    parser.add_argument(
+        "--auto-refine",
+        action="store_true",
+        help="Run capability-aware G1 teacher refinement before opening the optimizer UI.",
+    )
     viewer, args = newton.examples.init(parser)
     return viewer, _resolve_startup_paths(args)
 
@@ -820,6 +1233,15 @@ def main():
 
     if not pathlib.Path(args.config).exists():
         raise FileNotFoundError(f"Viewer config file not found: {args.config}")
+
+    if args.auto_refine:
+        from soma_retargeter.teacher_refinement import refine_registered_robot_config
+
+        result = refine_registered_robot_config(args.robot, retargeter_config_path=args.retargeter_config)
+        print(f"[INFO] Auto-refine decision for {args.robot}: {result['decision']} ({result['reason']})")
+
+    if install_cpu_pinned_memory_fallback(wp):
+        print("[INFO] CUDA is unavailable; using regular CPU viewer buffers instead of pinned buffers.")
 
     with wp.ScopedDevice(args.device):
         app = PoseOptimizerUI(viewer, args)

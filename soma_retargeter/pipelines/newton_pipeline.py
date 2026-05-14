@@ -18,6 +18,7 @@ from soma_retargeter.robotics.human_to_robot_scaler import HumanToRobotScaler
 from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
 from soma_retargeter.pipelines.feet_stabilizer import FeetStabilizer
 from soma_retargeter.pipelines.joint_limit_clamper import JointLimitClamper
+from soma_retargeter.pipelines.motion_grounding import apply_virtual_foot_grounding_to_frames
 
 _DEFAULT_IK_SOLVER_ITERATIONS = 24
 _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT = 10.0
@@ -65,6 +66,11 @@ class NewtonPipeline:
         self.joint_limit_weight = retargeter_config.get('joint_limit_weight', _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT)
         self.smooth_joint_filter_weight = retargeter_config.get('smooth_joint_filter_weight', _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT)
         self.post_processing_enabled = retargeter_config.get('enable_post_processing', True)
+        self.virtual_foot_grounding_enabled = retargeter_config.get('enable_virtual_foot_grounding', True)
+        self.virtual_foot_grounding_smooth_window = max(
+            1,
+            int(retargeter_config.get('virtual_foot_grounding_smooth_window', 5)),
+        )
         self.enable_self_penetration = False
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
@@ -257,7 +263,10 @@ class NewtonPipeline:
 
         #import time
         num_frames_to_remove = self.num_initialization_frames + self.num_stabilization_frames
-        joint_q_data = [np.full((len(self.input_targets[i]),), None) for i in range(num_envs)]
+        joint_q_data = [
+            np.zeros((len(self.input_targets[i]), self.ik_model.joint_coord_count), dtype=np.float32)
+            for i in range(num_envs)
+        ]
         for frame in trange(self.max_frames, desc="[INFO] Retargeting Motions"):
             if num_frames_to_remove > 0 and frame <= num_frames_to_remove:
                 smooth_joint_filter_objective.set_weight(self.smooth_joint_filter_weight * (frame / float(num_frames_to_remove)))
@@ -295,15 +304,33 @@ class NewtonPipeline:
                 if frame > (len(self.input_targets[env])-1):
                     continue
 
-                joint_q_data[env][frame] = data[env]
+                joint_q_data[env][frame] = np.array(data[env], copy=True)
 
             #end_time = time.time()
             #print(f"Time taken for frame {frame}: {end_time - start_time} seconds")
 
         output_buffers = []
         for i in range(num_envs):
-            raw_data = np.stack(joint_q_data[i][num_frames_to_remove:]).astype(np.float32)
+            raw_data = joint_q_data[i][num_frames_to_remove:].astype(np.float32)
             raw_data = self._apply_output_default_pose_blend(raw_data)
+            if self.virtual_foot_grounding_enabled:
+                raw_data, grounding_stats = apply_virtual_foot_grounding_to_frames(
+                    raw_data,
+                    model=self.ik_model,
+                    robot_builder=self.robot_builder,
+                    robot_name=pipeline_utils.get_target_str_from_type(self.target_type),
+                    smooth_window=self.virtual_foot_grounding_smooth_window,
+                )
+                if grounding_stats.applied:
+                    print(
+                        "[INFO] Virtual foot grounding: "
+                        f"lifted {grounding_stats.lifted_frames}/{grounding_stats.frames} frames, "
+                        f"max lift {grounding_stats.max_lift_m:.4f} m, "
+                        f"min support z {grounding_stats.min_support_z_before_m:.4f} -> "
+                        f"{grounding_stats.min_support_z_after_m:.4f} m"
+                    )
+                elif grounding_stats.reason != "ok":
+                    print(f"[INFO] Virtual foot grounding skipped: {grounding_stats.reason}")
             output_buffers.append(CSVAnimationBuffer.create_from_raw_data(raw_data, self.input_sample_rates[i]))
 
         return output_buffers
