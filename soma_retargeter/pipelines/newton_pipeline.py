@@ -19,7 +19,10 @@ from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
 from soma_retargeter.pipelines.feet_stabilizer import FeetStabilizer
 from soma_retargeter.pipelines.joint_limit_clamper import JointLimitClamper
 from soma_retargeter.pipelines.motion_grounding import apply_virtual_foot_grounding_to_frames
-from soma_retargeter.pipelines.foot_contact_inference import infer_contacts_from_animation_buffer
+from soma_retargeter.pipelines.foot_contact_inference import (
+    infer_contacts_from_animation_buffer,
+    contacts_from_npz_foot_contacts,
+)
 
 _DEFAULT_IK_SOLVER_ITERATIONS = 24
 _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT = 10.0
@@ -76,6 +79,7 @@ class NewtonPipeline:
         self.enable_self_penetration = False
         self.contact_aware_foot_ik = retargeter_config.get("contact_aware_foot_ik", {})
         self.contact_aware_foot_ik_enabled = bool(self.contact_aware_foot_ik.get("enabled", False))
+        self.contact_source = str(self.contact_aware_foot_ik.get("contact_source", "auto")).lower()
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
 
@@ -191,7 +195,16 @@ class NewtonPipeline:
             if self.contact_aware_foot_ik_enabled:
                 try:
                     window = int(self.contact_aware_foot_ik.get("contact_score_smoothing_window", 5))
-                    self.input_contact_scores.append(infer_contacts_from_animation_buffer(buffer, offsets[i], window))
+                    scores = None
+                    if self.contact_source in ("auto", "npz_foot_contacts"):
+                        foot_contacts = getattr(buffer, "foot_contacts", None)
+                        if foot_contacts is None:
+                            foot_contacts = getattr(buffer, "contacts", None)
+                        if foot_contacts is not None:
+                            scores = contacts_from_npz_foot_contacts(np.asarray(foot_contacts), window)
+                    if scores is None and self.contact_source in ("auto", "soma_heuristic"):
+                        scores = infer_contacts_from_animation_buffer(buffer, offsets[i], window)
+                    self.input_contact_scores.append(scores)
                 except Exception as exc:
                     print(f"[WARN] Contact inference failed, disabling lock for this clip: {exc}")
                     self.input_contact_scores.append(None)
@@ -228,6 +241,12 @@ class NewtonPipeline:
         print(f"[INFO]\t  IK Solver Iterations: {self.ik_iterations}")
         print(f"[INFO]\t  Joint Limit Objective Weight: {self.joint_limit_weight}")
         print(f"[INFO]\t  Smooth Joint Filter Objective Weight: {self.smooth_joint_filter_weight}")
+        restore_contact_aware = self.contact_aware_foot_ik_enabled
+        if self.contact_aware_foot_ik_enabled and num_envs > 1:
+            # IKObjectivePosition weight can be shared globally in multi-env mode.
+            # Disable contact-aware weights in that case to avoid cross-env interference.
+            print("[WARN] contact_aware_foot_ik with batch size > 1 is disabled to avoid global objective weight conflicts.")
+            self.contact_aware_foot_ik_enabled = False
 
         model = self._build_model(num_envs)
         state = model.state()
@@ -350,7 +369,7 @@ class NewtonPipeline:
                 elif grounding_stats.reason != "ok":
                     print(f"[INFO] Virtual foot grounding skipped: {grounding_stats.reason}")
             output_buffers.append(CSVAnimationBuffer.create_from_raw_data(raw_data, self.input_sample_rates[i]))
-
+        self.contact_aware_foot_ik_enabled = restore_contact_aware
         return output_buffers
 
     def _apply_output_default_pose_blend(self, joint_q_frames: np.ndarray) -> np.ndarray:
@@ -482,6 +501,10 @@ class NewtonPipeline:
             self.contact_objective_map = {}
             return []
         link_lookup = {name: link for name, (link, _) in zip(self.mapped_joints, self.mapped_body_link_pos_data)}
+        if "LeftFoot" not in link_lookup or "RightFoot" not in link_lookup:
+            print("[WARN] contact_aware_foot_ik enabled but LeftFoot/RightFoot are missing in ik_map; skipping.")
+            self.contact_objective_map = {}
+            return []
         mapping = {
             "left_toe": ("LeftFoot", left.get("toe"), "left_toe_contact_score", self.contact_aware_foot_ik.get("toe_weight_stance", 0.8), self.contact_aware_foot_ik.get("toe_weight_swing", 0.1)),
             "left_heel": ("LeftFoot", left.get("heel"), "left_heel_contact_score", self.contact_aware_foot_ik.get("heel_weight_stance", 0.8), self.contact_aware_foot_ik.get("heel_weight_swing", 0.1)),
@@ -503,6 +526,8 @@ class NewtonPipeline:
             return
         scores = self.input_contact_scores[env] if env < len(self.input_contact_scores) else None
         on_t = float(self.contact_aware_foot_ik.get("contact_on_threshold", 0.6)); off_t = float(self.contact_aware_foot_ik.get("contact_off_threshold", 0.3))
+        if "LeftFoot" not in self.mapped_joints or "RightFoot" not in self.mapped_joints:
+            return
         joint_idx = {"LeftFoot": self.mapped_joints.index("LeftFoot"), "RightFoot": self.mapped_joints.index("RightFoot")}
         for key, cfg in self.contact_objective_map.items():
             side_joint = "LeftFoot" if key.startswith("left") else "RightFoot"
