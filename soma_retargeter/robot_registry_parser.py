@@ -701,6 +701,30 @@ def _extract_user_ik_map(raw_config: dict[str, Any]) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _build_contact_aware_foot_ik_from_virtual_anchors(raw_config: dict[str, Any]) -> dict[str, Any] | None:
+    anchors = raw_config.get("virtual_sole_anchors", {})
+    if not isinstance(anchors, dict) or not anchors.get("enabled"):
+        return None
+    left = anchors.get("left", {}) if isinstance(anchors.get("left", {}), dict) else {}
+    right = anchors.get("right", {}) if isinstance(anchors.get("right", {}), dict) else {}
+    if "toe" not in left or "heel" not in left or "toe" not in right or "heel" not in right:
+        return None
+    anchor_offsets = {
+        "left": {"toe": left["toe"], "heel": left["heel"]},
+        "right": {"toe": right["toe"], "heel": right["heel"]},
+    }
+    for edge_name in ("inner_edge", "outer_edge"):
+        if edge_name in left:
+            anchor_offsets["left"][edge_name] = left[edge_name]
+        if edge_name in right:
+            anchor_offsets["right"][edge_name] = right[edge_name]
+    return {
+        "enabled": True,
+        "contact_source": "auto",
+        "anchor_offsets": anchor_offsets,
+    }
+
+
 def infer_robot_name_from_retargeter_config_path(path: str | Path) -> str | None:
     path = io_utils.resolve_path(path).resolve()
     for robot_name, profile in get_robot_profiles().items():
@@ -759,6 +783,12 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
     for key in passthrough_keys:
         if key in raw_config:
             runtime_config[key] = raw_config[key]
+    runtime_config.pop("teacher_refinement", None)
+    runtime_config.pop("g1_teacher_refined", None)
+    if "contact_aware_foot_ik" not in runtime_config:
+        auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(raw_config)
+        if auto_contact_cfg is not None:
+            runtime_config["contact_aware_foot_ik"] = auto_contact_cfg
 
     if "model_height" in raw_config:
         runtime_config["model_height"] = raw_config["model_height"]

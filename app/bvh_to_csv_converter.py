@@ -641,18 +641,9 @@ def main():
         type=str,
         default=None,
         help="Registered robot name or alias from params.py, for example g1 or rpo.")
-    parser.add_argument(
-        "--auto-refine",
-        action="store_true",
-        help="Run capability-aware G1 teacher refinement before loading the retargeter config.")
 
     viewer, args = newton.examples.init(parser)
     robot_hint = robot_registry_parser.resolve_robot_name(args.robot) if args.robot else robot_registry_parser.get_active_robot_name()
-    if args.auto_refine:
-        from soma_retargeter.teacher_refinement import refine_registered_robot_config
-
-        result = refine_registered_robot_config(robot_hint)
-        print(f"[INFO]: Auto-refine decision for {robot_hint}: {result['decision']} ({result['reason']})")
     if args.config is None:
         config_path = robot_registry_parser.get_profile_path(robot_hint, "bvh_converter_config")
         if config_path is None:

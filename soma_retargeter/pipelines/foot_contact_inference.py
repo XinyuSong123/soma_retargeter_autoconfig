@@ -17,9 +17,9 @@ def _contact_score_from_positions(positions: np.ndarray, ground_height: float, v
     if len(positions) > 1:
         vel[1:] = np.linalg.norm((xy[1:] - xy[:-1]) / max(velocity_dt, 1e-6), axis=1)
         vel[0] = vel[1]
-    height_score = np.exp(-np.maximum(z - ground_height, 0.0) / 0.03)
-    vel_score = np.exp(-vel / 0.2)
-    return np.clip((height_score * 0.6 + vel_score * 0.4).astype(np.float32), 0.0, 1.0)
+    height_gate = np.exp(-np.maximum(z - ground_height, 0.0) / 0.03)
+    vel_gate = np.exp(-vel / 0.2)
+    return np.clip((height_gate * vel_gate).astype(np.float32), 0.0, 1.0)
 
 
 def infer_contacts_from_animation_buffer(buffer, root_tx=wp.transform_identity(), smoothing_window: int = 5) -> dict[str, np.ndarray]:
