@@ -1,0 +1,74 @@
+{
+  "mode": "paired_pose_optimization",
+  "config_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config.json",
+  "retargeter_config_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_retargeter_config.json",
+  "source_reference_bvh": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/soma/soma_zero_frame0.bvh",
+  "human_pose_files": [
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_t_pose.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_natural_down.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_both_arms_forward.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_both_elbows_forward_90.json"
+  ],
+  "robot_pose_files": [
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_t_pose.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_natural_down.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_both_arms_forward.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_both_elbows_forward_90.json"
+  ],
+  "output_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config.json",
+  "iterations": 100,
+  "learning_rate": 0.009999999776482582,
+  "optimize_offset_rotation": true,
+  "rotation_iterations": 100,
+  "rotation_learning_rate": 0.009999999776482582,
+  "rotation_position_weight": 1.0,
+  "rotation_loss_weight": 1.0,
+  "rotation_joint_scope": "all_mapped_joints",
+  "rotation_joints": [
+    "Hips",
+    "Chest",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "LeftLeg",
+    "LeftShin",
+    "LeftFoot",
+    "RightLeg",
+    "RightShin",
+    "RightFoot"
+  ],
+  "sample_count": 4,
+  "samples": [
+    {
+      "human_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_t_pose.json",
+      "human_pose_name": "human_t_pose",
+      "robot_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_t_pose.json",
+      "robot_pose_name": "roboparty_rpo_t_pose",
+      "ignored_robot_joints": []
+    },
+    {
+      "human_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_natural_down.json",
+      "human_pose_name": "human_natural_down",
+      "robot_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_natural_down.json",
+      "robot_pose_name": "roboparty_rpo_natural_down",
+      "ignored_robot_joints": []
+    },
+    {
+      "human_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_both_arms_forward.json",
+      "human_pose_name": "human_both_arms_forward",
+      "robot_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_both_arms_forward.json",
+      "robot_pose_name": "roboparty_rpo_both_arms_forward",
+      "ignored_robot_joints": []
+    },
+    {
+      "human_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/human_both_elbows_forward_90.json",
+      "human_pose_name": "human_t_pose_both_elbows_forward_90",
+      "robot_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/soma_to_rpo_scaler_config_pose_artifacts/robot_both_elbows_forward_90.json",
+      "robot_pose_name": "roboparty_rpo_both_elbows_forward_90",
+      "ignored_robot_joints": []
+    }
+  ]
+}

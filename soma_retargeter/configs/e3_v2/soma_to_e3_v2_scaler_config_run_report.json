@@ -1,0 +1,63 @@
+{
+  "mode": "paired_pose_optimization",
+  "config_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config.json",
+  "retargeter_config_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_retargeter_config.json",
+  "source_reference_bvh": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/soma/soma_zero_frame0.bvh",
+  "human_pose_files": [
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/human_t_pose.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/human_natural_down.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/human_both_elbows_forward_90.json"
+  ],
+  "robot_pose_files": [
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/robot_t_pose.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/robot_natural_down.json",
+    "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/robot_both_elbows_forward_90.json"
+  ],
+  "output_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config.json",
+  "iterations": 5000,
+  "learning_rate": 0.019999999552965164,
+  "optimize_offset_rotation": true,
+  "rotation_iterations": 5000,
+  "rotation_learning_rate": 0.019999999552965164,
+  "rotation_position_weight": 1.0,
+  "rotation_loss_weight": 1.0,
+  "rotation_joint_scope": "all_mapped_joints",
+  "rotation_joints": [
+    "Hips",
+    "Chest",
+    "LeftArm",
+    "LeftForeArm",
+    "RightArm",
+    "RightForeArm",
+    "LeftLeg",
+    "LeftShin",
+    "LeftFoot",
+    "RightLeg",
+    "RightShin",
+    "RightFoot"
+  ],
+  "sample_count": 3,
+  "samples": [
+    {
+      "human_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/human_t_pose.json",
+      "human_pose_name": "human_t_pose",
+      "robot_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/robot_t_pose.json",
+      "robot_pose_name": "e3_v2_t_pose",
+      "ignored_robot_joints": []
+    },
+    {
+      "human_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/human_natural_down.json",
+      "human_pose_name": "human_natural_down",
+      "robot_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/robot_natural_down.json",
+      "robot_pose_name": "e3_v2_natural_down",
+      "ignored_robot_joints": []
+    },
+    {
+      "human_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/human_both_elbows_forward_90.json",
+      "human_pose_name": "human_t_pose_both_elbows_forward_90",
+      "robot_pose_file": "/home/ybt/LZ_PROJECT/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_scaler_config_pose_artifacts/robot_both_elbows_forward_90.json",
+      "robot_pose_name": "e3_v2_both_elbows_forward_90",
+      "ignored_robot_joints": []
+    }
+  ]
+}
