@@ -133,6 +133,12 @@ python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --forc
 
 The compiler writes a schema v2 profile with deterministic JSON, explicit `xyzw` quaternion order, robot/source fingerprints, semantic sites, chain reachability placeholders, task specs, contact settings, confidence, and structured warnings. Low-confidence semantic mappings return exit code `2`; invalid model/config input returns exit code `3`.
 
+Compile-level benchmark artifacts can be generated with:
+
+```bash
+python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2
+```
+
 Generated runtime configs now include a `compiled_retarget_profile` reference. Advanced users can override its path with `COMPILED_RETARGET_PROFILE_DICT` in `params.py`; otherwise the registry uses `<robot>_compiled_retarget_profile_v2.json` beside the retargeter config.
 
 When a v2 profile is present, runtime mapping is task-driven: disabled or unreachable position/orientation tasks are not instantiated as legacy IK objectives.
