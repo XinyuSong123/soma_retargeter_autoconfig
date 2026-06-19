@@ -99,12 +99,12 @@ class TestContactConfig(unittest.TestCase):
         self.assertGreater(cfg["ik_map"]["Hips"]["t_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["Hips"]["t_weight"], 1000.0)
         self.assertEqual(cfg["ik_map"]["Hips"]["v2_position_priority"], 1)
-        self.assertEqual(cfg["ik_map"]["Hips"]["v2_position_weight_source"], "compiled priority band")
+        self.assertEqual(cfg["ik_map"]["Hips"]["v2_position_weight_source"], "compiled task normalized weight")
         self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["r_weight"], 100.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_priority"], 2)
-        self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_weight_source"], "compiled priority band")
+        self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_weight_source"], "compiled task normalized weight")
         self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_basis"], [[0.0], [0.0], [1.0]])
         self.assertEqual(cfg["ik_map"]["LeftArm"]["t_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["LeftArm"]["r_weight"], 0.0)
@@ -116,12 +116,25 @@ class TestContactConfig(unittest.TestCase):
             g1_cfg["ik_map"]["LeftHand"]["v2_position_link_offset"],
             [0.17635336870442034, -0.010919955391605394, 0.006463830307906945],
         )
+        g1_full_cfg = build_runtime_retargeter_config(
+            "unitree_g1",
+            {
+                "ik_map": {
+                    "Chest": "torso_link",
+                    "LeftFoot": "left_ankle_roll_link",
+                    "RightFoot": "right_ankle_roll_link",
+                }
+            },
+        )
+        self.assertEqual(g1_full_cfg["ik_map"]["Chest"]["r_weight"], 50.0)
+        self.assertEqual(g1_full_cfg["ik_map"]["LeftFoot"]["t_weight"], 1500.0)
+        self.assertEqual(g1_full_cfg["ik_map"]["RightFoot"]["t_weight"], 1500.0)
         left_arm_direction = next(task for task in cfg["direction_tasks"] if task["name"] == "LeftArm_direction")
         self.assertEqual(left_arm_direction["reference_site"], "Chest")
         self.assertEqual(left_arm_direction["target_site"], "LeftArm")
         self.assertEqual(left_arm_direction["weight"], 10.0)
         self.assertEqual(left_arm_direction["priority_weight_band"], 10.0)
-        self.assertEqual(left_arm_direction["weight_source"], "compiled priority band")
+        self.assertEqual(left_arm_direction["weight_source"], "compiled task normalized weight")
         self.assertGreater(left_arm_direction["characteristic_length"], 0.0)
         left_forearm_pole = next(task for task in cfg["pole_vector_tasks"] if task["name"] == "LeftForeArm_pole_vector")
         self.assertEqual(left_forearm_pole["reference_site"], "LeftArm")

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 from typing import Any
 
@@ -346,6 +347,7 @@ def _make_site(
 def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> TaskSpec:
     if site.semantic_name == "Chest":
         basis = chain.rotational_basis.tolist() if chain is not None and chain.rotational_rank > 0 else None
+        weight = 50.0 if chain is not None and chain.rotational_rank > 1 else 100.0
         return TaskSpec(
             name="torso_projected_relative_rotation",
             task_type="projected_relative_rotation",
@@ -355,11 +357,17 @@ def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> T
             priority=2,
             position_mask_or_basis=None,
             rotation_mask_or_basis=basis,
-            normalized_weight=100.0,
+            normalized_weight=weight,
             characteristic_length=chain.total_length if chain is not None else 1.0,
             robust_loss="huber",
             enabled=site.confidence >= 0.7 and chain is not None and chain.rotational_rank > 0,
-            reason="projected to reachable torso rotational basis" if chain is not None and chain.rotational_rank > 0 else "disabled: no reachable torso rotation basis",
+            reason=(
+                "projected to reachable torso rotational basis; softened for multi-axis torso"
+                if chain is not None and chain.rotational_rank > 1
+                else "projected to reachable torso rotational basis"
+                if chain is not None and chain.rotational_rank > 0
+                else "disabled: no reachable torso rotation basis"
+            ),
         )
     if site.semantic_name in _MIDDLE_LIMB_SEMANTICS:
         reference_site = _SEMANTIC_PARENTS.get(site.semantic_name)
@@ -378,6 +386,11 @@ def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> T
             enabled=site.confidence >= 0.7 and reference_site is not None,
             reason="middle semantic uses parent-to-child direction rather than absolute link position",
         )
+    position_weight = 100.0
+    if site.semantic_name == "Hips":
+        position_weight = 1000.0
+    elif site.semantic_name in {"LeftFoot", "RightFoot"}:
+        position_weight = 1000.0
     return TaskSpec(
         name=f"{site.semantic_name}_position",
         task_type="normalized_position",
@@ -387,12 +400,28 @@ def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> T
         priority=1 if site.semantic_name in {"Hips", "LeftFoot", "RightFoot"} else 2,
         position_mask_or_basis=[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
         rotation_mask_or_basis=None,
-        normalized_weight=1000.0 if site.semantic_name in {"Hips", "LeftFoot", "RightFoot"} else 100.0,
+        normalized_weight=position_weight,
         characteristic_length=chain.total_length if chain is not None else 1.0,
         robust_loss="none" if site.semantic_name in {"LeftFoot", "RightFoot"} else "huber",
         enabled=site.confidence >= 0.7 and site.semantic_name in _END_EFFECTOR_SEMANTICS,
         reason="end-effector position task" if site.semantic_name in _END_EFFECTOR_SEMANTICS else "non-endpoint absolute position disabled",
     )
+
+
+def _schedule_task_weights_for_morphology(
+    tasks: list[TaskSpec],
+    chains: dict[str, KinematicChainProfile],
+) -> list[TaskSpec]:
+    chest_chain = chains.get("Chest")
+    if chest_chain is None or chest_chain.rotational_rank <= 1:
+        return tasks
+    scheduled: list[TaskSpec] = []
+    for task in tasks:
+        if task.task_type == "normalized_position" and task.target_site in {"LeftFoot", "RightFoot"}:
+            scheduled.append(dataclasses.replace(task, normalized_weight=1500.0))
+        else:
+            scheduled.append(task)
+    return scheduled
 
 
 def _pole_task_for_site(
@@ -790,6 +819,7 @@ def compile_retarget_profile(
         pole_task = _pole_task_for_site(site, semantic_sites, chains.get(site.semantic_name))
         if pole_task is not None:
             tasks.append(pole_task)
+    tasks = _schedule_task_weights_for_morphology(tasks, chains)
     collision, collision_warnings = _compile_collision_config(semantic_sites, chains, morphology, raw_config)
     warnings.extend(collision_warnings)
     rest_frame_alignment, segment_ratios, root_warnings = _compile_root_ground_metadata(

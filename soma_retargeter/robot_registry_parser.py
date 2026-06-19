@@ -892,7 +892,7 @@ def _apply_compiled_profile_tasks_to_ik_map(
         else:
             updated["t_weight"] = position_weight_by_semantic[joint_name]
             updated["v2_position_priority"] = _semantic_task_priority(compiled_profile, joint_name, "position")
-            updated["v2_position_weight_source"] = "compiled priority band"
+            updated["v2_position_weight_source"] = "compiled task normalized weight"
             site = semantic_sites.get(joint_name) if isinstance(semantic_sites, dict) else None
             local_position = site.get("local_position") if isinstance(site, dict) else None
             offset_supported = bool(site.get("orientation_supported", False)) or "Foot" in joint_name
@@ -906,7 +906,7 @@ def _apply_compiled_profile_tasks_to_ik_map(
             updated["r_weight"] = _task_priority_weight(task, priority_bands)
             updated["v2_rotation_basis"] = task.get("rotation_mask_or_basis")
             updated["v2_rotation_priority"] = int(task.get("priority", 3))
-            updated["v2_rotation_weight_source"] = "compiled priority band"
+            updated["v2_rotation_weight_source"] = "compiled task normalized weight"
         out[joint_name] = updated
     return out
 
@@ -954,7 +954,7 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
                 "characteristic_length": characteristic_length,
                 "priority": priority,
                 "priority_weight_band": priority_bands.get(str(priority), normalized_weight),
-                "weight_source": "compiled priority band",
+                "weight_source": "compiled task normalized weight",
             }
         )
     return out
@@ -999,10 +999,12 @@ def _task_priority_weight(task: dict[str, Any], priority_bands: dict[str, float]
     except (TypeError, ValueError):
         priority = 3
     try:
-        fallback = float(task.get("normalized_weight", priority_bands.get("3", 10.0)))
+        normalized_weight = float(task.get("normalized_weight", 0.0))
     except (TypeError, ValueError):
-        fallback = priority_bands.get("3", 10.0)
-    return float(priority_bands.get(str(priority), fallback))
+        normalized_weight = 0.0
+    if normalized_weight > 0.0 and math.isfinite(normalized_weight):
+        return normalized_weight
+    return float(priority_bands.get(str(priority), priority_bands.get("3", 10.0)))
 
 
 def _semantic_task_priority(compiled_profile: dict[str, Any], semantic: str, task_kind: str) -> int | None:
