@@ -419,6 +419,21 @@ def _schedule_task_weights_for_morphology(
     chains: dict[str, KinematicChainProfile],
 ) -> list[TaskSpec]:
     chest_chain = chains.get("Chest")
+    scheduled: list[TaskSpec] = []
+    for task in tasks:
+        if task.task_type == "normalized_position" and task.target_site in {"LeftHand", "RightHand"}:
+            hand_chain = chains.get(task.target_site)
+            if hand_chain is not None and hand_chain.translational_rank <= 1 and hand_chain.rotational_rank == 0:
+                scheduled.append(
+                    dataclasses.replace(
+                        task,
+                        normalized_weight=50.0,
+                        reason=f"{task.reason}; softened for low-rank no-wrist hand",
+                    )
+                )
+                continue
+        scheduled.append(task)
+    tasks = scheduled
     if chest_chain is not None and chest_chain.rotational_rank <= 1:
         scheduled: list[TaskSpec] = []
         for task in tasks:
@@ -430,18 +445,6 @@ def _schedule_task_weights_for_morphology(
                         reason=f"{task.reason}; softened for single-axis torso profile",
                     )
                 )
-            elif task.task_type == "normalized_position" and task.target_site in {"LeftHand", "RightHand"}:
-                hand_chain = chains.get(task.target_site)
-                if hand_chain is not None and hand_chain.translational_rank <= 1 and hand_chain.rotational_rank == 0:
-                    scheduled.append(
-                        dataclasses.replace(
-                            task,
-                            normalized_weight=50.0,
-                            reason=f"{task.reason}; softened for low-rank no-wrist hand",
-                        )
-                    )
-                else:
-                    scheduled.append(task)
             else:
                 scheduled.append(task)
         return scheduled

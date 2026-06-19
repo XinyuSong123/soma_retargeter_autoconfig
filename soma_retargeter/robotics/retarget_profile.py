@@ -15,7 +15,7 @@ import numpy as np
 
 
 SCHEMA_VERSION = 2
-COMPILER_VERSION = "2.1.4"
+COMPILER_VERSION = "2.1.5"
 QUATERNION_ORDER = "xyzw"
 
 

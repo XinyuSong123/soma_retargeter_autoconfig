@@ -823,7 +823,7 @@
     "runtime_barrier": "sphere_pair_optional",
     "source": "geom_bounds_or_chain_length"
   },
-  "compiler_version": "2.1.4",
+  "compiler_version": "2.1.5",
   "confidence": 1.0,
   "contact": {
     "contact_off_threshold": 0.35,
@@ -1268,7 +1268,7 @@
       "characteristic_length": 0.3,
       "enabled": true,
       "name": "LeftHand_position",
-      "normalized_weight": 100.0,
+      "normalized_weight": 50.0,
       "position_mask_or_basis": [
         [
           1.0,
@@ -1287,7 +1287,7 @@
         ]
       ],
       "priority": 2,
-      "reason": "end-effector position task",
+      "reason": "end-effector position task; softened for low-rank no-wrist hand",
       "reference_site": null,
       "robust_loss": "huber",
       "rotation_mask_or_basis": null,
@@ -1390,7 +1390,7 @@
       "characteristic_length": 0.3,
       "enabled": true,
       "name": "RightHand_position",
-      "normalized_weight": 100.0,
+      "normalized_weight": 50.0,
       "position_mask_or_basis": [
         [
           1.0,
@@ -1409,7 +1409,7 @@
         ]
       ],
       "priority": 2,
-      "reason": "end-effector position task",
+      "reason": "end-effector position task; softened for low-rank no-wrist hand",
       "reference_site": null,
       "robust_loss": "huber",
       "rotation_mask_or_basis": null,

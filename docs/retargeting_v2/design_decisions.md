@@ -52,13 +52,13 @@ Verification: sparse-objective tests cover the analytic direction tuple wiring, 
 
 Problem: single-axis torso, no-wrist profiles over-constrain a reach-limited robot when endpoint tracking keeps the same hand/foot weights as higher-DoF morphology.
 
-Decision: for profiles whose torso rotational rank is at most one, soften foot position tasks and low-rank no-wrist hand position tasks at compile time. Multi-axis torso profiles keep the stronger foot weighting that preserves Unitree G1 tracking/root gates.
+Decision: soften low-rank no-wrist hand position tasks at compile time, independent of torso rank. For profiles whose torso rotational rank is at most one, also soften foot position tasks. Multi-axis torso profiles keep the stronger foot weighting that preserves Unitree G1 tracking/root gates.
 
 Reason: bounded RPO experiments showed that high foot weights improve foot RMSE only by sacrificing hand tracking, while direct hand virtual-site offsets are not reachable and substantially regress hand RMSE. A morphology schedule gives the single-axis profile more balanced tracking without a robot-name branch.
 
 Risk: RPO hand/foot gates still fail; this is an incremental improvement, not an acceptance pass.
 
-Verification: runtime config tests assert the single-axis hand weight and multi-axis G1 foot weights, compiled profile artifacts record compiler `2.1.4`, and bounded artifacts show RPO hand/foot RMSE improving from roughly `0.40/0.43` to `0.39/0.41` while retaining root/smoothness/penetration passes.
+Verification: runtime config tests assert the low-rank no-wrist hand weight, the single-axis foot weight, and multi-axis G1 foot weights. Compiled profile artifacts record compiler `2.1.5`; bounded artifacts keep RPO hand/foot RMSE at roughly `0.39/0.41`, keep Unitree G1 hand/foot/root gates passing, and keep synthetic E3 foot/root gates passing while hand tracking remains a blocker.
 
 ## Synthetic E3 Capability Fixture
 

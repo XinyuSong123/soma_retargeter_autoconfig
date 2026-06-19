@@ -158,6 +158,9 @@ class TestContactConfig(unittest.TestCase):
             g1_cfg["ik_map"]["LeftHand"]["v2_position_link_offset"],
             [0.17635336870442034, -0.010919955391605394, 0.006463830307906945],
         )
+        e3_cfg = build_runtime_retargeter_config("e3_v2", {"ik_map": {"LeftHand": "left_forearm_distal_link"}})
+        self.assertNotIn("v2_position_link_offset", e3_cfg["ik_map"]["LeftHand"])
+        self.assertEqual(e3_cfg["ik_map"]["LeftHand"]["t_weight"], 50.0)
         g1_full_cfg = build_runtime_retargeter_config(
             "unitree_g1",
             {
