@@ -11,6 +11,7 @@ from soma_retargeter.robotics.reachability import rotation_vector_to_quat_xyzw
 from soma_retargeter.tools.benchmark_retargeting import (
     _legacy_runtime_retargeter_config,
     _profile_runtime_residual_metrics,
+    build_benchmark_gate_report,
     build_registry_coverage_report,
     main,
 )
@@ -88,6 +89,37 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(by_name["e3_v2"]["status"], "missing_registration")
         self.assertEqual(by_name["oli"]["status"], "missing_registration")
 
+    def test_benchmark_gate_report_flags_threshold_failures(self):
+        result = {
+            "robot": "fixture_bot",
+            "compare_results": {
+                "legacy": {
+                    "metrics": {
+                        "penetration": {"status": "ok", "value": 0.01},
+                        "hand_position_rmse": {"status": "ok", "value": 1.0},
+                        "runtime_seconds": {"motion_runtime": 1.0},
+                    }
+                },
+                "v2": {
+                    "metrics": {
+                        "penetration": {"status": "ok", "value": 0.02},
+                        "hand_position_rmse": {"status": "ok", "value": 1.04},
+                        "runtime_seconds": {"motion_runtime": 1.4},
+                    }
+                },
+            },
+        }
+
+        report = build_benchmark_gate_report([result], strict=True)
+
+        self.assertEqual(report["status"], "failed")
+        self.assertTrue(report["strict"])
+        gates = {gate["metric"]: gate for gate in report["robots"][0]["gates"]}
+        self.assertEqual(gates["penetration"]["status"], "failed")
+        self.assertEqual(gates["hand_position_rmse"]["status"], "passed")
+        self.assertEqual(gates["runtime_seconds.motion_runtime"]["status"], "failed")
+        self.assertEqual(gates["root_tilt"]["status"], "unavailable")
+
     def test_benchmark_writes_required_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / "bench"
@@ -105,6 +137,7 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             for rel in (
                 "benchmark_summary.json",
                 "benchmark_frames.csv",
+                "benchmark_gates.json",
                 "environment.json",
                 "commands.txt",
                 "registry_coverage.json",
@@ -117,8 +150,11 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertIn("task_residual_by_type_priority", summary["metric_names"])
             self.assertEqual(summary["robots"], ["roboparty_rpo"])
             self.assertIn("registry_coverage", summary)
+            self.assertIn("benchmark_gates", summary)
             coverage = json.loads((out / "registry_coverage.json").read_text())
             self.assertEqual(summary["registry_coverage"]["status_counts"], coverage["status_counts"])
+            gates = json.loads((out / "benchmark_gates.json").read_text())
+            self.assertEqual(summary["benchmark_gates"]["status_counts"], gates["status_counts"])
 
             per_robot = json.loads((out / "per_robot" / "roboparty_rpo.json").read_text())
             self.assertEqual(per_robot["profile_schema_version"], 2)
@@ -212,6 +248,42 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             runtime_rows = [row for row in rows if row["motion"] == "/tmp/fixture_b.bvh" and row["metric"] == "velocity_p95"]
             self.assertEqual({row["compare_mode"] for row in runtime_rows}, {"legacy", "v2"})
             self.assertTrue(all(row["value"] == "3.5" for row in runtime_rows))
+
+    def test_strict_gates_return_code_four_on_gate_failure(self):
+        def fake_runtime(*args):
+            compare_mode = args[4]
+            value = 0.01 if compare_mode == "legacy" else 0.02
+            return {
+                "status": "ok",
+                "runtime_seconds": {"motion_runtime": 1.0, "motion_count": 1},
+                "motions": [],
+                "metrics": {
+                    "penetration": {"status": "ok", "value": value, "motion_count": 1},
+                    "runtime_seconds": {"motion_runtime": 1.0},
+                },
+            }
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            motion_dir = root / "motions"
+            motion_dir.mkdir()
+            (motion_dir / "fixture.bvh").write_text("HIERARCHY\n", encoding="utf-8")
+            out = root / "bench"
+
+            with mock.patch("soma_retargeter.tools.benchmark_retargeting._run_runtime_benchmark", side_effect=fake_runtime):
+                rc = main([
+                    "--robots",
+                    "roboparty_rpo",
+                    "--motions",
+                    str(motion_dir),
+                    "--strict-gates",
+                    "--output",
+                    str(out),
+                ])
+
+            self.assertEqual(rc, 4)
+            gates = json.loads((out / "benchmark_gates.json").read_text())
+            self.assertEqual(gates["status"], "failed")
 
     def test_benchmark_persists_failure_payload(self):
         with tempfile.TemporaryDirectory() as td:

@@ -81,6 +81,17 @@ _DEFAULT_COVERAGE_TARGETS = (
     "oli",
 )
 
+_BENCHMARK_GATE_SPECS = (
+    ("penetration", "not_increase", 0.0, "m"),
+    ("root_tilt", "not_increase", 0.0, "rad"),
+    ("torso_unreachable_residual", "not_increase", 0.0, "rad"),
+    ("hand_position_rmse", "relative_not_worse", 0.05, "m"),
+    ("foot_position_rmse", "relative_not_worse", 0.05, "m"),
+    ("velocity_p95", "not_increase", 0.0, "joint_coord_per_s"),
+    ("acceleration_p95", "not_increase", 0.0, "joint_coord_per_s2"),
+    ("runtime_seconds.motion_runtime", "relative_not_worse", 0.25, "s"),
+)
+
 
 def _json_default(value: Any) -> Any:
     if isinstance(value, Path):
@@ -909,6 +920,102 @@ def _aggregate_motion_metrics(motion_payloads: list[dict[str, Any]]) -> dict[str
     return aggregated
 
 
+def _metric_value(metrics: dict[str, Any], metric_name: str) -> float | None:
+    if metric_name == "runtime_seconds.motion_runtime":
+        value = metrics.get("runtime_seconds", {}).get("motion_runtime")
+    else:
+        payload = metrics.get(metric_name)
+        if not isinstance(payload, dict) or payload.get("status") != "ok":
+            return None
+        value = payload.get("value")
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    return value if np.isfinite(value) else None
+
+
+def _gate_entry(
+    metric_name: str,
+    rule: str,
+    tolerance: float,
+    unit: str,
+    legacy_metrics: dict[str, Any],
+    v2_metrics: dict[str, Any],
+) -> dict[str, Any]:
+    legacy_value = _metric_value(legacy_metrics, metric_name)
+    v2_value = _metric_value(v2_metrics, metric_name)
+    entry = {
+        "metric": metric_name,
+        "rule": rule,
+        "tolerance": tolerance,
+        "unit": unit,
+        "legacy_value": legacy_value,
+        "v2_value": v2_value,
+    }
+    if legacy_value is None or v2_value is None:
+        return {**entry, "status": "unavailable", "reason": "legacy or v2 metric is unavailable"}
+
+    if rule == "not_increase":
+        allowed = legacy_value + tolerance
+        passed = v2_value <= allowed
+    elif rule == "relative_not_worse":
+        allowed = legacy_value * (1.0 + tolerance)
+        passed = v2_value <= allowed
+    else:
+        return {**entry, "status": "unavailable", "reason": f"unsupported gate rule {rule!r}"}
+    return {
+        **entry,
+        "allowed_max": allowed,
+        "status": "passed" if passed else "failed",
+        "delta": v2_value - legacy_value,
+    }
+
+
+def build_benchmark_gate_report(results: list[dict[str, Any]], *, strict: bool = False) -> dict[str, Any]:
+    robot_reports = []
+    status_counts: dict[str, int] = {}
+    for result in results:
+        compare_results = result.get("compare_results", {})
+        if not isinstance(compare_results, dict) or "legacy" not in compare_results or "v2" not in compare_results:
+            robot_report = {
+                "robot": result.get("robot"),
+                "status": "unavailable",
+                "reason": "legacy and v2 compare results are required",
+                "gates": [],
+            }
+        else:
+            legacy_metrics = compare_results["legacy"].get("metrics", {})
+            v2_metrics = compare_results["v2"].get("metrics", {})
+            gates = [
+                _gate_entry(metric_name, rule, tolerance, unit, legacy_metrics, v2_metrics)
+                for metric_name, rule, tolerance, unit in _BENCHMARK_GATE_SPECS
+            ]
+            failed = sum(1 for gate in gates if gate["status"] == "failed")
+            unavailable = sum(1 for gate in gates if gate["status"] == "unavailable")
+            passed = sum(1 for gate in gates if gate["status"] == "passed")
+            robot_report = {
+                "robot": result.get("robot"),
+                "status": "failed" if failed else ("unavailable" if unavailable == len(gates) else "passed"),
+                "failed_count": failed,
+                "unavailable_count": unavailable,
+                "passed_count": passed,
+                "gates": gates,
+            }
+        status = str(robot_report["status"])
+        status_counts[status] = status_counts.get(status, 0) + 1
+        robot_reports.append(robot_report)
+
+    overall_status = "failed" if status_counts.get("failed", 0) else ("unavailable" if not status_counts.get("passed", 0) and status_counts.get("unavailable", 0) else "passed")
+    return {
+        "schema_version": 1,
+        "strict": bool(strict),
+        "status": overall_status,
+        "status_counts": status_counts,
+        "robots": robot_reports,
+    }
+
+
 def _run_runtime_benchmark(
     robot: str,
     profile_path: Path,
@@ -1074,6 +1181,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--strict-gates", action="store_true", help="Return exit code 4 when benchmark gates fail.")
     return parser
 
 
@@ -1093,20 +1201,26 @@ def main(argv: list[str] | None = None) -> int:
         result = run_robot(robot, output_dir, args.force, command, args)
         result["compare_modes"] = list(args.compare)
         results.append(result)
+    benchmark_gates = build_benchmark_gate_report(results, strict=args.strict_gates)
+    _write_json(output_dir / "benchmark_gates.json", benchmark_gates)
 
     summary = {
         "schema_version": 1,
         "status": "ok" if all(result.get("status") in {"ok", "diagnostics"} for result in results) else "failed",
+        "benchmark_gate_status": benchmark_gates["status"],
         "robots": [result.get("robot") for result in results],
         "compare_modes": list(args.compare),
         "motions": [str(Path(path)) for path in args.motions],
         "resolved_motions": [str(path) for path in resolved_motion_paths],
         "registry_coverage": registry_coverage,
+        "benchmark_gates": benchmark_gates,
         "metric_names": list(METRIC_NAMES),
         "results": results,
     }
     _write_json(output_dir / "benchmark_summary.json", summary)
     _write_frames_csv(output_dir / "benchmark_frames.csv", results)
+    if args.strict_gates and benchmark_gates["status"] == "failed":
+        return 4
     return 0 if summary["status"] == "ok" else 1
 
 
