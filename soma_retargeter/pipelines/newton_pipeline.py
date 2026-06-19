@@ -405,9 +405,11 @@ class NewtonPipeline:
 
             direction_analytic = sum(1 for *_, analytic in self.mapped_body_link_direction_data if analytic)
             pole_analytic = sum(1 for *_, analytic in self.mapped_body_link_pole_vector_data if analytic)
+            jacobian_mode = self._select_ik_jacobian_mode(ik_solver_active_objectives)
             self.ik_objective_summary = {
                 "batch_size": int(num_envs),
                 "ik_iterations": int(self.ik_iterations),
+                "jacobian_mode": str(jacobian_mode.value),
                 "position": int(len(position_objectives)),
                 "rotation": int(len(rotation_objectives)),
                 "direction": int(len(direction_objectives)),
@@ -445,7 +447,7 @@ class NewtonPipeline:
                 n_problems=num_envs,
                 objectives=ik_solver_active_objectives,
                 lambda_initial=0.1,
-                jacobian_mode=ik.IKJacobianType.MIXED if direction_objectives or pole_vector_objectives else ik.IKJacobianType.ANALYTIC,
+                jacobian_mode=jacobian_mode,
             )
 
             joint_q = wp.empty(shape=(num_envs, self.ik_model.joint_coord_count))
@@ -1114,6 +1116,12 @@ class NewtonPipeline:
         if basis is None:
             return quat_xyzw.astype(np.float32)
         return project_relative_rotation_quat_xyzw(quat_xyzw, basis).astype(np.float32)
+
+    @staticmethod
+    def _select_ik_jacobian_mode(objectives):
+        if any(not objective.supports_analytic() for objective in objectives):
+            return ik.IKJacobianType.MIXED
+        return ik.IKJacobianType.ANALYTIC
 
     @staticmethod
     def _direction_between_positions(reference_pos, target_pos):

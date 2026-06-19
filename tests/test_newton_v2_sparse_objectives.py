@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import newton.ik as ik
 import warp as wp
 
 from soma_retargeter.pipelines.ik_objectives import IKObjectivePoleVector, IKObjectiveSphereCollisionBarrier
@@ -9,6 +10,23 @@ from soma_retargeter.robotics.reachability import quat_xyzw_to_rotation_vector, 
 
 
 class TestNewtonV2SparseObjectives(unittest.TestCase):
+    def test_select_ik_jacobian_mode_uses_mixed_only_when_needed(self):
+        class Objective:
+            def __init__(self, analytic):
+                self.analytic = analytic
+
+            def supports_analytic(self):
+                return self.analytic
+
+        self.assertEqual(
+            NewtonPipeline._select_ik_jacobian_mode([Objective(True), Objective(True)]),
+            ik.IKJacobianType.ANALYTIC,
+        )
+        self.assertEqual(
+            NewtonPipeline._select_ik_jacobian_mode([Objective(True), Objective(False)]),
+            ik.IKJacobianType.MIXED,
+        )
+
     def test_build_target_mapping_keeps_all_effectors_but_skips_zero_weight_objectives(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)
         pipe.robot_builder = type("B", (), {"body_label": ["base", "hand", "torso"]})()
@@ -154,16 +172,13 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
         self.assertTrue(used_fallback)
         self.assertTrue(np.allclose(normal, fallback))
 
-    def test_pole_vector_analytic_jacobian_matches_finite_difference_for_simple_rotation(self):
-        objective = IKObjectivePoleVector(0, 1, 2, None, weight=2.0, analytic_jacobian=True)
-        objective.bind_device(wp.get_device())
-        objective.affects_parent_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
-        objective.affects_middle_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
-        objective.affects_child_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
-
-        parent = np.array([1.0, 0.0, 0.0])
-        middle = np.array([0.0, 1.0, 0.0])
-        child = np.array([0.0, 1.0, 1.0])
+    def test_pole_vector_analytic_jacobian_matches_finite_difference_for_body_masks(self):
+        parent = np.array([0.4, -0.2, 0.1], dtype=np.float64)
+        middle = np.array([1.1, 0.5, 0.4], dtype=np.float64)
+        child = np.array([0.7, 1.4, 1.2], dtype=np.float64)
+        linear_velocity = np.array([0.17, -0.11, 0.07], dtype=np.float64)
+        angular_velocity = np.array([0.13, -0.19, 0.23], dtype=np.float64)
+        weight = 2.0
         body_q = wp.array(
             [[
                 wp.transform(wp.vec3(*parent), wp.quat_identity()),
@@ -172,26 +187,71 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
             ]],
             dtype=wp.transform,
         )
-        joint_s = wp.array([[wp.spatial_vector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)]], dtype=wp.spatial_vector)
-        jacobian = wp.zeros((1, 3, 1), dtype=wp.float32)
+        joint_s = wp.array(
+            [[
+                wp.spatial_vector(
+                    float(linear_velocity[0]),
+                    float(linear_velocity[1]),
+                    float(linear_velocity[2]),
+                    float(angular_velocity[0]),
+                    float(angular_velocity[1]),
+                    float(angular_velocity[2]),
+                )
+            ]],
+            dtype=wp.spatial_vector,
+        )
         model = type("M", (), {"joint_dof_count": 1})()
 
-        objective.compute_jacobian_analytic(body_q, None, model, jacobian, joint_s, 0)
-        wp.synchronize()
+        def body_velocity(position, affected):
+            if not affected:
+                return np.zeros(3, dtype=np.float64)
+            return linear_velocity + np.cross(angular_velocity, position)
 
-        def residual(theta):
-            c, s = np.cos(theta), np.sin(theta)
-            rotation = np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
-            p = rotation @ parent
-            m = rotation @ middle
-            ch = rotation @ child
+        def residual(p, m, ch):
             current = np.cross(m - p, ch - m)
             current = current / np.linalg.norm(current)
-            return -2.0 * current
+            return -weight * current
 
+        cases = {
+            "parent_only": (1, 0, 0),
+            "middle_only": (0, 1, 0),
+            "child_only": (0, 0, 1),
+            "parent_middle": (1, 1, 0),
+            "middle_child": (0, 1, 1),
+            "all": (1, 1, 1),
+        }
         eps = 1.0e-5
-        finite_difference = (residual(eps) - residual(-eps)) / (2.0 * eps)
-        self.assertTrue(np.allclose(jacobian.numpy()[0, :, 0], finite_difference, atol=1.0e-5))
+        for name, masks in cases.items():
+            with self.subTest(name=name):
+                objective = IKObjectivePoleVector(0, 1, 2, None, weight=weight, analytic_jacobian=True)
+                objective.bind_device(wp.get_device())
+                objective.affects_parent_dof = wp.array(np.array([masks[0]], dtype=np.uint8), dtype=wp.uint8)
+                objective.affects_middle_dof = wp.array(np.array([masks[1]], dtype=np.uint8), dtype=wp.uint8)
+                objective.affects_child_dof = wp.array(np.array([masks[2]], dtype=np.uint8), dtype=wp.uint8)
+                jacobian = wp.zeros((1, 3, 1), dtype=wp.float32)
+
+                objective.compute_jacobian_analytic(body_q, None, model, jacobian, joint_s, 0)
+                wp.synchronize()
+
+                parent_delta = body_velocity(parent, masks[0])
+                middle_delta = body_velocity(middle, masks[1])
+                child_delta = body_velocity(child, masks[2])
+                residual_plus = residual(
+                    parent + eps * parent_delta,
+                    middle + eps * middle_delta,
+                    child + eps * child_delta,
+                )
+                residual_minus = residual(
+                    parent - eps * parent_delta,
+                    middle - eps * middle_delta,
+                    child - eps * child_delta,
+                )
+                finite_difference = (residual_plus - residual_minus) / (2.0 * eps)
+
+                self.assertTrue(
+                    np.allclose(jacobian.numpy()[0, :, 0], finite_difference, atol=5.0e-5),
+                    f"{jacobian.numpy()[0, :, 0]} != {finite_difference}",
+                )
 
     def test_collision_objectives_are_created_from_compiled_pairs_when_weighted(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)

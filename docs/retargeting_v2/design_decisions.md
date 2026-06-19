@@ -58,7 +58,7 @@ Reason: a bounded benchmark experiment showed direct analytic pole enablement lo
 
 Risk: runtime remains above the report-only acceptance gate while pole objectives use autodiff.
 
-Verification: sparse-objective tests cover the pole task flag wiring, a simple rotational finite-difference test validates the analytic kernel sign for one bend plane, registry tests assert the disabled reason, and bounded artifacts record pole tasks as disabled pending broader finite-difference validation.
+Verification: sparse-objective tests cover the pole task flag wiring, finite-difference tests validate the analytic kernel for parent-only, middle-only, child-only, partial-chain, and full-chain body masks with mixed linear/angular spatial velocity, registry tests assert the disabled reason, and bounded artifacts record pole tasks as disabled pending benchmark-safe activation. The runtime Jacobian scheduler now selects pure analytic mode whenever every active objective supports analytic Jacobians, so a later safe pole-vector activation does not remain on a mixed/autodiff tape path.
 
 ## Per-Environment Contact Weight
 
