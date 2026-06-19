@@ -30,6 +30,7 @@ from soma_retargeter.robot_registry_parser import (
     get_robot_profile,
     get_robot_model_height,
     get_profile_path,
+    get_registered_robot_names,
     make_config_reference,
     resolve_robot_name,
     validate_compiled_retarget_profile,
@@ -69,6 +70,15 @@ _RUNTIME_METRIC_NAMES = (
     "acceleration_p95",
     "runtime_seconds",
     "fallback_counts",
+)
+
+_DEFAULT_COVERAGE_TARGETS = (
+    "roboparty_rpo",
+    "unitree_g1",
+    "unitree_g1_23dof",
+    "unitree_g1_29dof",
+    "e3_v2",
+    "oli",
 )
 
 
@@ -124,6 +134,97 @@ def collect_environment(args: argparse.Namespace) -> dict[str, Any]:
         "asset_fingerprint": {
             "motions": [str(Path(path)) for path in args.motions],
         },
+    }
+
+
+def _path_payload(path: Path | None) -> dict[str, Any]:
+    return {
+        "path": str(path) if path is not None else None,
+        "exists": bool(path is not None and path.exists()),
+    }
+
+
+def _compiled_profile_payload(path: Path | None) -> dict[str, Any]:
+    payload = _path_payload(path)
+    payload.update(
+        {
+            "schema_version": None,
+            "compiler_version": None,
+            "robot_fingerprint": None,
+            "diagnostics": [],
+            "warnings": [],
+        }
+    )
+    if path is None or not path.exists():
+        return payload
+    try:
+        profile = io_utils.load_json(path)
+    except Exception as exc:
+        payload["diagnostics"] = [{"code": "compiled_profile_read_failed", "message": str(exc)}]
+        return payload
+    payload["schema_version"] = profile.get("schema_version")
+    payload["compiler_version"] = profile.get("compiler_version")
+    payload["robot_fingerprint"] = profile.get("robot_fingerprint")
+    payload["diagnostics"] = validate_compiled_retarget_profile(profile)
+    warnings = profile.get("warnings", [])
+    payload["warnings"] = warnings if isinstance(warnings, list) else []
+    return payload
+
+
+def _coverage_entry(robot_name: str) -> dict[str, Any]:
+    resolved = resolve_robot_name(robot_name)
+    profile = get_robot_profile(resolved)
+    registered = profile is not None
+    mjcf_path = get_profile_path(resolved, "mjcf_path") if registered else None
+    urdf_path = get_profile_path(resolved, "urdf_path") if registered else None
+    retargeter_path = get_profile_path(resolved, "retargeter_config") if registered else None
+    compiled_path = get_profile_path(resolved, "compiled_retarget_profile") if registered else None
+    compiled_payload = _compiled_profile_payload(compiled_path)
+
+    blockers: list[str] = []
+    if not registered:
+        blockers.append("missing_registration")
+    else:
+        if not (mjcf_path and mjcf_path.exists()):
+            blockers.append("missing_mjcf_path")
+        if not (retargeter_path and retargeter_path.exists()):
+            blockers.append("missing_retargeter_config")
+        if not compiled_payload["exists"]:
+            blockers.append("missing_compiled_profile")
+        if compiled_payload["diagnostics"]:
+            blockers.append("invalid_compiled_profile")
+        warning_codes = {str(item.get("code")) for item in compiled_payload["warnings"] if isinstance(item, dict)}
+        if compiled_payload["robot_fingerprint"] == "missing-mjcf" or "missing_mjcf_path" in warning_codes:
+            blockers.append("incomplete_morphology")
+
+    status = "ready" if not blockers else ("missing_registration" if not registered else "registered_incomplete")
+    return {
+        "requested_name": robot_name,
+        "resolved_name": resolved,
+        "status": status,
+        "blockers": sorted(set(blockers)),
+        "registered": registered,
+        "paths": {
+            "mjcf_path": _path_payload(mjcf_path),
+            "urdf_path": _path_payload(urdf_path),
+            "retargeter_config": _path_payload(retargeter_path),
+        },
+        "compiled_profile": compiled_payload,
+    }
+
+
+def build_registry_coverage_report(targets: tuple[str, ...] = _DEFAULT_COVERAGE_TARGETS) -> dict[str, Any]:
+    entries = [_coverage_entry(target) for target in targets]
+    status_counts: dict[str, int] = {}
+    for entry in entries:
+        status = str(entry["status"])
+        status_counts[status] = status_counts.get(status, 0) + 1
+    return {
+        "schema_version": 1,
+        "targets": list(targets),
+        "registered_robots": get_registered_robot_names(),
+        "status_counts": status_counts,
+        "robots": entries,
     }
 
 
@@ -984,6 +1085,8 @@ def main(argv: list[str] | None = None) -> int:
     (output_dir / "commands.txt").write_text(command + "\n", encoding="utf-8")
     _write_json(output_dir / "environment.json", collect_environment(args))
     resolved_motion_paths = _resolve_motion_paths(args.motions, args.max_motions)
+    registry_coverage = build_registry_coverage_report()
+    _write_json(output_dir / "registry_coverage.json", registry_coverage)
 
     results = []
     for robot in args.robots:
@@ -998,6 +1101,7 @@ def main(argv: list[str] | None = None) -> int:
         "compare_modes": list(args.compare),
         "motions": [str(Path(path)) for path in args.motions],
         "resolved_motions": [str(path) for path in resolved_motion_paths],
+        "registry_coverage": registry_coverage,
         "metric_names": list(METRIC_NAMES),
         "results": results,
     }

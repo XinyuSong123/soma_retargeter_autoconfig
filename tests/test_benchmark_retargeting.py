@@ -8,7 +8,12 @@ from unittest import mock
 import numpy as np
 
 from soma_retargeter.robotics.reachability import rotation_vector_to_quat_xyzw
-from soma_retargeter.tools.benchmark_retargeting import _legacy_runtime_retargeter_config, _profile_runtime_residual_metrics, main
+from soma_retargeter.tools.benchmark_retargeting import (
+    _legacy_runtime_retargeter_config,
+    _profile_runtime_residual_metrics,
+    build_registry_coverage_report,
+    main,
+)
 
 
 class TestBenchmarkRetargeting(unittest.TestCase):
@@ -70,6 +75,19 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(metrics["torso_unreachable_residual"]["status"], "ok")
         self.assertGreater(metrics["torso_unreachable_residual"]["value"], 0.19)
 
+    def test_registry_coverage_report_marks_missing_and_incomplete_targets(self):
+        report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "e3_v2", "oli"))
+        by_name = {entry["requested_name"]: entry for entry in report["robots"]}
+
+        self.assertEqual(by_name["roboparty_rpo"]["status"], "ready")
+        self.assertTrue(by_name["roboparty_rpo"]["paths"]["mjcf_path"]["exists"])
+        self.assertTrue(by_name["roboparty_rpo"]["compiled_profile"]["exists"])
+        self.assertEqual(by_name["unitree_g1"]["status"], "registered_incomplete")
+        self.assertIn("missing_mjcf_path", by_name["unitree_g1"]["blockers"])
+        self.assertIn("incomplete_morphology", by_name["unitree_g1"]["blockers"])
+        self.assertEqual(by_name["e3_v2"]["status"], "missing_registration")
+        self.assertEqual(by_name["oli"]["status"], "missing_registration")
+
     def test_benchmark_writes_required_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / "bench"
@@ -89,6 +107,7 @@ class TestBenchmarkRetargeting(unittest.TestCase):
                 "benchmark_frames.csv",
                 "environment.json",
                 "commands.txt",
+                "registry_coverage.json",
                 "per_robot/roboparty_rpo.json",
             ):
                 self.assertTrue((out / rel).exists(), rel)
@@ -97,6 +116,9 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertEqual(summary["status"], "ok")
             self.assertIn("task_residual_by_type_priority", summary["metric_names"])
             self.assertEqual(summary["robots"], ["roboparty_rpo"])
+            self.assertIn("registry_coverage", summary)
+            coverage = json.loads((out / "registry_coverage.json").read_text())
+            self.assertEqual(summary["registry_coverage"]["status_counts"], coverage["status_counts"])
 
             per_robot = json.loads((out / "per_robot" / "roboparty_rpo.json").read_text())
             self.assertEqual(per_robot["profile_schema_version"], 2)
