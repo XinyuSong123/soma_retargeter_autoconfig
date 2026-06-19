@@ -40,6 +40,40 @@ _SEMANTIC_PARENTS = {
     "RightFoot": "RightShin",
 }
 _SEMANTIC_CHILDREN = {parent: child for child, parent in _SEMANTIC_PARENTS.items()}
+_COLLISION_PROXY_SEMANTICS = {
+    "Chest",
+    "LeftArm",
+    "RightArm",
+    "LeftForeArm",
+    "RightForeArm",
+    "LeftLeg",
+    "RightLeg",
+    "LeftShin",
+    "RightShin",
+    "LeftHand",
+    "RightHand",
+}
+_COLLISION_PAIR_SEMANTICS = (
+    ("Chest", "LeftArm"),
+    ("Chest", "RightArm"),
+    ("Chest", "LeftForeArm"),
+    ("Chest", "RightForeArm"),
+    ("Chest", "LeftHand"),
+    ("Chest", "RightHand"),
+    ("LeftArm", "RightArm"),
+    ("LeftForeArm", "RightForeArm"),
+    ("LeftHand", "RightHand"),
+    ("LeftLeg", "RightLeg"),
+    ("LeftShin", "RightShin"),
+    ("LeftHand", "LeftLeg"),
+    ("LeftHand", "LeftShin"),
+    ("LeftHand", "RightLeg"),
+    ("LeftHand", "RightShin"),
+    ("RightHand", "LeftLeg"),
+    ("RightHand", "LeftShin"),
+    ("RightHand", "RightLeg"),
+    ("RightHand", "RightShin"),
+)
 
 
 def _semantic_confidence(semantic: str, body: str, morphology: MorphologyAnalysis) -> float:
@@ -230,6 +264,138 @@ def _chain_profile_for_site(
     )
 
 
+def _bodies_are_adjacent(lhs_body: str, rhs_body: str, morphology: MorphologyAnalysis) -> bool:
+    lhs = morphology.bodies.get(lhs_body)
+    rhs = morphology.bodies.get(rhs_body)
+    if lhs is None or rhs is None:
+        return False
+    return lhs.parent_body_name == rhs_body or rhs.parent_body_name == lhs_body
+
+
+def _collision_proxy_for_site(
+    semantic: str,
+    site: SemanticSite,
+    chain: KinematicChainProfile | None,
+    morphology: MorphologyAnalysis,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    geoms = morphology.geoms_by_body.get(site.body_name, [])
+    if geoms:
+        radius = max(float(geom.bounding_radius) for geom in geoms)
+        weighted_center = np.zeros(3, dtype=float)
+        radius_sum = 0.0
+        for geom in geoms:
+            weighted_center += geom.local_position * float(geom.bounding_radius)
+            radius_sum += float(geom.bounding_radius)
+        local_center = weighted_center / max(radius_sum, 1.0e-8)
+        return (
+            {
+                "semantic": semantic,
+                "body": site.body_name,
+                "shape": "sphere",
+                "local_center": local_center.tolist(),
+                "radius": max(radius, 1.0e-4),
+                "source": "geom_bounds",
+                "geom_count": len(geoms),
+            },
+            None,
+        )
+
+    if chain is not None and chain.total_length > 1.0e-5:
+        return (
+            {
+                "semantic": semantic,
+                "body": site.body_name,
+                "shape": "sphere",
+                "local_center": [0.0, 0.0, 0.0],
+                "radius": max(float(chain.total_length) * 0.15, 1.0e-4),
+                "source": "chain_length_fallback",
+                "geom_count": 0,
+            },
+            {"code": "collision_proxy_from_chain_length", "semantic": semantic, "body": site.body_name},
+        )
+
+    return None, {"code": "collision_proxy_unavailable", "semantic": semantic, "body": site.body_name}
+
+
+def _compile_collision_config(
+    semantic_sites: dict[str, SemanticSite],
+    chains: dict[str, KinematicChainProfile],
+    morphology: MorphologyAnalysis,
+    raw_config: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    warnings: list[dict[str, Any]] = []
+    raw_collision = raw_config.get("self_collision", raw_config.get("collision", {}))
+    if isinstance(raw_collision, dict) and raw_collision.get("enabled") is False:
+        return {"enabled": False, "reason": "disabled_by_config", "proxies": [], "pairs": [], "margin": 0.03}, []
+
+    margin = 0.03
+    if isinstance(raw_collision, dict):
+        try:
+            margin = float(raw_collision.get("margin", margin))
+        except (TypeError, ValueError):
+            warnings.append({"code": "invalid_collision_margin", "value": raw_collision.get("margin")})
+            margin = 0.03
+
+    proxies: list[dict[str, Any]] = []
+    proxy_by_semantic: dict[str, dict[str, Any]] = {}
+    for semantic in sorted(_COLLISION_PROXY_SEMANTICS):
+        site = semantic_sites.get(semantic)
+        if site is None:
+            continue
+        proxy, warning = _collision_proxy_for_site(semantic, site, chains.get(semantic), morphology)
+        if warning is not None:
+            warnings.append(warning)
+        if proxy is not None:
+            proxies.append(proxy)
+            proxy_by_semantic[semantic] = proxy
+
+    pairs: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for lhs_semantic, rhs_semantic in _COLLISION_PAIR_SEMANTICS:
+        lhs = proxy_by_semantic.get(lhs_semantic)
+        rhs = proxy_by_semantic.get(rhs_semantic)
+        if lhs is None or rhs is None:
+            continue
+        if _bodies_are_adjacent(lhs["body"], rhs["body"], morphology):
+            continue
+        key = tuple(sorted((lhs_semantic, rhs_semantic)))
+        if key in seen:
+            continue
+        seen.add(key)
+        pairs.append(
+            {
+                "a": lhs_semantic,
+                "b": rhs_semantic,
+                "body_a": lhs["body"],
+                "body_b": rhs["body"],
+                "margin": margin,
+                "priority": 0,
+                "barrier": "smooth_soft_sphere",
+            }
+        )
+
+    enabled = bool(proxies and pairs)
+    if not enabled:
+        warnings.append({
+            "code": "collision_proxy_disabled",
+            "reason": "no usable non-adjacent proxy pairs",
+            "proxy_count": len(proxies),
+            "pair_count": len(pairs),
+        })
+
+    return (
+        {
+            "enabled": enabled,
+            "margin": margin,
+            "proxies": proxies,
+            "pairs": pairs,
+            "source": "geom_bounds_or_chain_length",
+            "runtime_barrier": "not_implemented",
+        },
+        warnings,
+    )
+
+
 def compile_retarget_profile(
     *,
     robot_name: str,
@@ -273,6 +439,8 @@ def compile_retarget_profile(
         pole_task = _pole_task_for_site(site, semantic_sites, chains.get(site.semantic_name))
         if pole_task is not None:
             tasks.append(pole_task)
+    collision, collision_warnings = _compile_collision_config(semantic_sites, chains, morphology, raw_config)
+    warnings.extend(collision_warnings)
 
     confidences = [site.confidence for site in semantic_sites.values()]
     profile_confidence = float(min(confidences)) if confidences else 0.0
@@ -291,6 +459,7 @@ def compile_retarget_profile(
         segment_ratios={},
         tasks=tasks,
         contact=raw_config.get("contact_aware_foot_ik", {}),
+        collision=collision,
         solver={"priority_weight_bands": {"0": 10000.0, "1": 1000.0, "2": 100.0, "3": 10.0, "4": 1.0}},
         warnings=warnings,
         confidence=profile_confidence,

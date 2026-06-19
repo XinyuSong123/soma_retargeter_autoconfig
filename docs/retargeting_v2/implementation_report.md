@@ -25,6 +25,7 @@
 - Direction, pole-vector, temporal, joint-limit, contact, and ground-barrier objectives: `soma_retargeter/pipelines/ik_objectives.py`
 - v2 runtime wiring and priority guard: `soma_retargeter/pipelines/newton_pipeline.py`
 - Compile-level benchmark artifact CLI: `soma_retargeter/tools/benchmark_retargeting.py`
+- Compile-level self-collision proxy and high-risk pair metadata: `soma_retargeter/robotics/morphology.py` and `soma_retargeter/robotics/task_compiler.py`
 
 ## Tests
 
@@ -34,7 +35,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest result before this report update: `51 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest result before this report update: `53 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
@@ -46,7 +47,7 @@ python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo uni
 
 Current artifact scope is compile-level validation. Runtime motion metrics such as foot slide, penetration, RMSE, and velocity percentiles are present in the schema but marked `not_run`.
 
-RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, no warnings, and enabled sparse tasks.
+RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, enabled sparse tasks, and self-collision metadata. Mesh bounds are not parsed yet, so RPO collision proxies use chain-length fallbacks and the profile records warnings for unsupported mesh geoms.
 
 Unitree G1 currently produces a v2 artifact, but its chain summary shows zero reachable ranks and minimal chain lengths; this is a known limitation of the current registered model/config path and needs deeper registry/morphology work before runtime acceptance.
 
@@ -54,7 +55,7 @@ Unitree G1 currently produces a v2 artifact, but its chain summary shows zero re
 
 - Implement true motion-level benchmark loops for legacy and v2 runtime.
 - Add E3 v2 and OLI registry assets when available.
-- Add self-collision proxy generation and runtime barrier.
+- Implement runtime self-collision barrier objective from compiled proxy pairs.
 - Strengthen semantic auto-detection beyond explicit maps.
 - Complete root-height source/reporting and torso leakage quantitative gates.
 - Produce before/after motion metrics for acceptance thresholds.

@@ -119,6 +119,64 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertEqual(pole.target_site, "LeftHand")
         self.assertTrue(pole.enabled)
 
+    def test_collision_proxies_and_pairs_are_written_from_geoms(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="base">
+              <body name="torso" pos="0 0 1.0">
+                <geom name="torso_sphere" type="sphere" size="0.2"/>
+              </body>
+              <body name="left_hand" pos="0.5 0.3 0.8">
+                <geom name="left_hand_sphere" type="sphere" size="0.05"/>
+              </body>
+              <body name="right_hand" pos="0.5 -0.3 0.8">
+                <geom name="right_hand_sphere" type="sphere" size="0.05"/>
+              </body>
+              <body name="left_leg" pos="0 0.1 0.4">
+                <geom name="left_leg_box" type="box" size="0.05 0.05 0.2"/>
+              </body>
+              <body name="right_leg" pos="0 -0.1 0.4">
+                <geom name="right_leg_box" type="box" size="0.05 0.05 0.2"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {
+                "ik_map": {
+                    "Chest": "torso",
+                    "LeftHand": "left_hand",
+                    "RightHand": "right_hand",
+                    "LeftLeg": "left_leg",
+                    "RightLeg": "right_leg",
+                }
+            }
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        self.assertEqual(morphology.summary()["geom_count"], 5)
+        collision = profile.collision
+        self.assertTrue(collision["enabled"])
+        self.assertEqual(collision["margin"], 0.03)
+        self.assertGreaterEqual(len(collision["proxies"]), 5)
+        pairs = {(pair["a"], pair["b"]) for pair in collision["pairs"]}
+        self.assertIn(("Chest", "LeftHand"), pairs)
+        self.assertIn(("LeftHand", "RightLeg"), pairs)
+        chest_proxy = next(proxy for proxy in collision["proxies"] if proxy["semantic"] == "Chest")
+        self.assertEqual(chest_proxy["source"], "geom_bounds")
+        self.assertAlmostEqual(chest_proxy["radius"], 0.2)
+
+    def test_collision_config_disables_safely_without_proxies(self):
+        morphology = analyze_mjcf_morphology(None)
+        raw = {"ik_map": {"Chest": "torso"}}
+        profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+        self.assertFalse(profile.collision["enabled"])
+        self.assertTrue(any(warning["code"] == "collision_proxy_disabled" for warning in profile.warnings))
+
 
 if __name__ == "__main__":
     unittest.main()

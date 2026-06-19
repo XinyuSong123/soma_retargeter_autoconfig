@@ -23,11 +23,23 @@ class BodyInfo:
 
 
 @dataclass(frozen=True)
+class GeomInfo:
+    geom_name: str
+    body_name: str
+    geom_type: str
+    local_position: np.ndarray
+    world_position: np.ndarray
+    size: np.ndarray
+    bounding_radius: float
+
+
+@dataclass(frozen=True)
 class MorphologyAnalysis:
     mjcf_path: str | None
     robot_fingerprint: str
     body_names: list[str]
     bodies: dict[str, BodyInfo]
+    geoms_by_body: dict[str, list[GeomInfo]]
     joint_dofs: list[JointDofInfo]
     joints_by_body: dict[str, list[JointDofInfo]]
     warnings: list[dict[str, Any]]
@@ -36,6 +48,7 @@ class MorphologyAnalysis:
         return {
             "mjcf_path": self.mjcf_path,
             "body_count": len(self.body_names),
+            "geom_count": sum(len(items) for items in self.geoms_by_body.values()),
             "movable_joint_count": len(self.joint_dofs),
             "joint_names": [j.joint_name for j in self.joint_dofs],
         }
@@ -110,6 +123,34 @@ def _quat_rotate_wxyz(quat: np.ndarray, vec: np.ndarray) -> np.ndarray:
     return vec + 2.0 * (w * uv + uuv)
 
 
+def _as_float_array(value: str | None) -> np.ndarray:
+    if not value:
+        return np.zeros(0, dtype=float)
+    out = []
+    for item in value.split():
+        try:
+            out.append(float(item))
+        except ValueError:
+            return np.zeros(0, dtype=float)
+    return np.array(out, dtype=float)
+
+
+def _geom_bounding_radius(geom_type: str, size: np.ndarray) -> float:
+    if len(size) == 0:
+        return 0.0
+    if geom_type == "sphere":
+        return float(size[0])
+    if geom_type in {"capsule", "cylinder"}:
+        radius = float(size[0])
+        half_length = float(size[1]) if len(size) > 1 else 0.0
+        return float(np.sqrt(radius * radius + half_length * half_length))
+    if geom_type == "box":
+        return float(np.linalg.norm(size[:3]))
+    if geom_type == "ellipsoid":
+        return float(np.max(size[:3]))
+    return float(np.max(np.abs(size)))
+
+
 def _parse_range(value: str | None, joint_type: str) -> tuple[float, float, bool]:
     if joint_type == "free":
         return -float("inf"), float("inf"), True
@@ -129,20 +170,21 @@ def _parse_range(value: str | None, joint_type: str) -> tuple[float, float, bool
 def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
     warnings: list[dict[str, Any]] = []
     if mjcf_path is None:
-        return MorphologyAnalysis(None, "missing-mjcf", [], {}, [], {}, [{"code": "missing_mjcf_path"}])
+        return MorphologyAnalysis(None, "missing-mjcf", [], {}, {}, [], {}, [{"code": "missing_mjcf_path"}])
 
     path = Path(mjcf_path)
     digest = file_sha256(path)
     if digest is None:
-        return MorphologyAnalysis(str(path), "missing-mjcf", [], {}, [], {}, [{"code": "mjcf_not_found", "path": str(path)}])
+        return MorphologyAnalysis(str(path), "missing-mjcf", [], {}, {}, [], {}, [{"code": "mjcf_not_found", "path": str(path)}])
 
     try:
         root = ET.parse(path).getroot()
     except ET.ParseError as exc:
-        return MorphologyAnalysis(str(path), digest, [], {}, [], {}, [{"code": "mjcf_parse_error", "message": str(exc)}])
+        return MorphologyAnalysis(str(path), digest, [], {}, {}, [], {}, [{"code": "mjcf_parse_error", "message": str(exc)}])
 
     body_names: list[str] = []
     bodies: dict[str, BodyInfo] = {}
+    geoms_by_body: dict[str, list[GeomInfo]] = {}
     joint_dofs: list[JointDofInfo] = []
     joints_by_body: dict[str, list[JointDofInfo]] = {}
 
@@ -166,6 +208,32 @@ def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
             world_rotation_wxyz=world_rot,
         )
         joints_by_body[body_name] = []
+        geoms_by_body[body_name] = []
+        for geom_idx, geom in enumerate(body.findall("geom")):
+            geom_type = geom.attrib.get("type", "sphere")
+            local_geom_pos = _as_vec3(geom.attrib.get("pos"), (0.0, 0.0, 0.0))
+            world_geom_pos = world_pos + _quat_rotate_wxyz(world_rot, local_geom_pos)
+            size = _as_float_array(geom.attrib.get("size"))
+            radius = _geom_bounding_radius(geom_type, size)
+            if radius <= 0.0:
+                warnings.append({
+                    "code": "unsupported_geom_for_collision_proxy",
+                    "body": body_name,
+                    "geom": geom.attrib.get("name", f"{body_name}_geom_{geom_idx}"),
+                    "type": geom_type,
+                })
+                continue
+            geoms_by_body[body_name].append(
+                GeomInfo(
+                    geom_name=geom.attrib.get("name", f"{body_name}_geom_{geom_idx}"),
+                    body_name=body_name,
+                    geom_type=geom_type,
+                    local_position=local_geom_pos,
+                    world_position=world_geom_pos,
+                    size=size,
+                    bounding_radius=radius,
+                )
+            )
         for joint in body.findall("joint"):
             joint_type = joint.attrib.get("type", "hinge")
             if joint_type == "free":
@@ -206,4 +274,4 @@ def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
         for child in worldbody.findall("body"):
             walk(child, None, np.zeros(3, dtype=float), np.array([1.0, 0.0, 0.0, 0.0], dtype=float))
 
-    return MorphologyAnalysis(str(path), digest, body_names, bodies, joint_dofs, joints_by_body, warnings)
+    return MorphologyAnalysis(str(path), digest, body_names, bodies, geoms_by_body, joint_dofs, joints_by_body, warnings)

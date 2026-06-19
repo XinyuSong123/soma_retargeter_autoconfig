@@ -40,6 +40,9 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertEqual(per_robot["profile_schema_version"], 2)
             self.assertIn("task_summary", per_robot)
             self.assertIn("chain_summary", per_robot)
+            self.assertIn("collision_summary", per_robot)
+            self.assertIn("proxy_count", per_robot["collision_summary"])
+            self.assertIn("pair_count", per_robot["collision_summary"])
             self.assertEqual(per_robot["metrics"]["hand_position_rmse"]["status"], "not_run")
 
             with (out / "benchmark_frames.csv").open(newline="") as handle:

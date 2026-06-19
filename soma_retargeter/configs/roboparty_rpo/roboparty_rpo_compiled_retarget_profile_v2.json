@@ -601,11 +601,336 @@
       "translational_rank": 1
     }
   },
+  "collision": {
+    "enabled": true,
+    "margin": 0.03,
+    "pairs": [
+      {
+        "a": "Chest",
+        "b": "LeftArm",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "torso_link",
+        "body_b": "left_arm_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "Chest",
+        "b": "RightArm",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "torso_link",
+        "body_b": "right_arm_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "Chest",
+        "b": "LeftForeArm",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "torso_link",
+        "body_b": "left_elbow_pitch_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "Chest",
+        "b": "RightForeArm",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "torso_link",
+        "body_b": "right_elbow_pitch_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "Chest",
+        "b": "LeftHand",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "torso_link",
+        "body_b": "left_elbow_yaw_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "Chest",
+        "b": "RightHand",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "torso_link",
+        "body_b": "right_elbow_yaw_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftArm",
+        "b": "RightArm",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_arm_roll_link",
+        "body_b": "right_arm_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftForeArm",
+        "b": "RightForeArm",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_elbow_pitch_link",
+        "body_b": "right_elbow_pitch_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftHand",
+        "b": "RightHand",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_elbow_yaw_link",
+        "body_b": "right_elbow_yaw_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftLeg",
+        "b": "RightLeg",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_thigh_roll_link",
+        "body_b": "right_thigh_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftShin",
+        "b": "RightShin",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_knee_link",
+        "body_b": "right_knee_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftHand",
+        "b": "LeftLeg",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_elbow_yaw_link",
+        "body_b": "left_thigh_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftHand",
+        "b": "LeftShin",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_elbow_yaw_link",
+        "body_b": "left_knee_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftHand",
+        "b": "RightLeg",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_elbow_yaw_link",
+        "body_b": "right_thigh_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "LeftHand",
+        "b": "RightShin",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "left_elbow_yaw_link",
+        "body_b": "right_knee_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "RightHand",
+        "b": "LeftLeg",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "right_elbow_yaw_link",
+        "body_b": "left_thigh_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "RightHand",
+        "b": "LeftShin",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "right_elbow_yaw_link",
+        "body_b": "left_knee_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "RightHand",
+        "b": "RightLeg",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "right_elbow_yaw_link",
+        "body_b": "right_thigh_roll_link",
+        "margin": 0.03,
+        "priority": 0
+      },
+      {
+        "a": "RightHand",
+        "b": "RightShin",
+        "barrier": "smooth_soft_sphere",
+        "body_a": "right_elbow_yaw_link",
+        "body_b": "right_knee_link",
+        "margin": 0.03,
+        "priority": 0
+      }
+    ],
+    "proxies": [
+      {
+        "body": "torso_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.010929540165290267,
+        "semantic": "Chest",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "left_arm_roll_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.04483565204521549,
+        "semantic": "LeftArm",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "left_elbow_pitch_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.03654874396617205,
+        "semantic": "LeftForeArm",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "left_elbow_yaw_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.008077747210701756,
+        "semantic": "LeftHand",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "left_thigh_roll_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.028268704056041247,
+        "semantic": "LeftLeg",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "left_knee_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.0484559053090103,
+        "semantic": "LeftShin",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "right_arm_roll_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.04470710602657844,
+        "semantic": "RightArm",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "right_elbow_pitch_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.03654874396617205,
+        "semantic": "RightForeArm",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "right_elbow_yaw_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.008077747210701756,
+        "semantic": "RightHand",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "right_thigh_roll_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.02820780193832824,
+        "semantic": "RightLeg",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      },
+      {
+        "body": "right_knee_link",
+        "geom_count": 0,
+        "local_center": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "radius": 0.048671700016116363,
+        "semantic": "RightShin",
+        "shape": "sphere",
+        "source": "chain_length_fallback"
+      }
+    ],
+    "runtime_barrier": "not_implemented",
+    "source": "geom_bounds_or_chain_length"
+  },
   "compiler_version": "2.0.0",
   "confidence": 1.0,
   "contact": {},
   "morphology_summary": {
     "body_count": 24,
+    "geom_count": 0,
     "joint_names": [
       "left_thigh_yaw_joint",
       "left_thigh_roll_joint",
@@ -1327,5 +1652,205 @@
       "task_type": "pole_vector"
     }
   ],
-  "warnings": []
+  "warnings": [
+    {
+      "body": "base_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "base_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_thigh_yaw_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_thigh_yaw_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_thigh_roll_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_thigh_roll_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_thigh_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_thigh_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_knee_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_knee_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_ankle_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_ankle_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_ankle_roll_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_ankle_roll_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_thigh_yaw_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_thigh_yaw_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_thigh_roll_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_thigh_roll_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_thigh_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_thigh_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_knee_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_knee_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_ankle_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_ankle_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_ankle_roll_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_ankle_roll_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "torso_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "torso_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_arm_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_arm_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_arm_roll_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_arm_roll_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_arm_yaw_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_arm_yaw_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_elbow_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_elbow_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "left_elbow_yaw_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "left_elbow_yaw_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_arm_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_arm_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_arm_roll_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_arm_roll_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_arm_yaw_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_arm_yaw_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_elbow_pitch_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_elbow_pitch_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "right_elbow_yaw_link",
+      "code": "unsupported_geom_for_collision_proxy",
+      "geom": "right_elbow_yaw_link_geom_0",
+      "type": "mesh"
+    },
+    {
+      "body": "torso_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "Chest"
+    },
+    {
+      "body": "left_arm_roll_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftArm"
+    },
+    {
+      "body": "left_elbow_pitch_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftForeArm"
+    },
+    {
+      "body": "left_elbow_yaw_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftHand"
+    },
+    {
+      "body": "left_thigh_roll_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftLeg"
+    },
+    {
+      "body": "left_knee_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftShin"
+    },
+    {
+      "body": "right_arm_roll_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightArm"
+    },
+    {
+      "body": "right_elbow_pitch_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightForeArm"
+    },
+    {
+      "body": "right_elbow_yaw_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightHand"
+    },
+    {
+      "body": "right_thigh_roll_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightLeg"
+    },
+    {
+      "body": "right_knee_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightShin"
+    }
+  ]
 }

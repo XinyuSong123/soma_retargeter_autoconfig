@@ -138,12 +138,26 @@ def _chain_summary(profile: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _collision_summary(profile: dict[str, Any]) -> dict[str, Any]:
+    collision = profile.get("collision", {})
+    proxies = collision.get("proxies", []) if isinstance(collision, dict) else []
+    pairs = collision.get("pairs", []) if isinstance(collision, dict) else []
+    return {
+        "enabled": bool(collision.get("enabled", False)) if isinstance(collision, dict) else False,
+        "margin": collision.get("margin") if isinstance(collision, dict) else None,
+        "proxy_count": len(proxies) if isinstance(proxies, list) else 0,
+        "pair_count": len(pairs) if isinstance(pairs, list) else 0,
+        "runtime_barrier": collision.get("runtime_barrier") if isinstance(collision, dict) else None,
+    }
+
+
 def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[str, Any]:
     profile = io_utils.load_json(profile_path)
     diagnostics = validate_compiled_retarget_profile(profile)
     warnings = list(profile.get("warnings", [])) + diagnostics
     task_summary = _task_summary(profile)
     chain_summary = _chain_summary(profile)
+    collision_summary = _collision_summary(profile)
     return {
         "robot": robot,
         "status": "ok" if not diagnostics else "diagnostics",
@@ -157,6 +171,7 @@ def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[
         "warnings": warnings,
         "task_summary": task_summary,
         "chain_summary": chain_summary,
+        "collision_summary": collision_summary,
         "metrics": {
             "task_residual_by_type_priority": {
                 "status": "not_run",

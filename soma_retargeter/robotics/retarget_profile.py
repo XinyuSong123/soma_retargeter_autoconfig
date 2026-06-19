@@ -94,6 +94,7 @@ class CompiledRetargetProfile:
     segment_ratios: dict[str, float]
     tasks: list[TaskSpec]
     contact: dict[str, Any]
+    collision: dict[str, Any]
     solver: dict[str, Any]
     warnings: list[dict[str, Any]] = field(default_factory=list)
     confidence: float = 0.0
