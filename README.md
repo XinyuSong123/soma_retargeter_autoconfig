@@ -135,6 +135,7 @@ The compiler writes a schema v2 profile with deterministic JSON, explicit `xyzw`
 Generated runtime configs now include a `compiled_retarget_profile` reference. Advanced users can override its path with `COMPILED_RETARGET_PROFILE_DICT` in `params.py`; otherwise the registry uses `<robot>_compiled_retarget_profile_v2.json` beside the retargeter config.
 
 When a v2 profile is present, runtime mapping is task-driven: disabled or unreachable position/orientation tasks are not instantiated as legacy IK objectives.
+Runtime weights are resolved from the compiled profile's priority bands (`0: 1e4` through `4: 1` by default) and include diagnostics if adjacent priority ratios fall below the required 10x separation.
 For reachable low-rank rotation tasks, the runtime projects target quaternions into the compiled rotation basis before updating Newton rotation objectives.
 Middle-limb direction tasks are run as unit-vector IK objectives between compiled parent/child robot bodies. Pole-vector tasks use parent/middle/child bend-plane normals with per-environment source fallback to the previous or neutral normal. Mixed analytic/autodiff Jacobian mode is enabled only when these v2 residuals are active.
 The runtime scaler also switches to segment-local target construction from the compiled chain lengths, while the legacy geocentric scaler remains available as `LegacyHumanToRobotScaler`.

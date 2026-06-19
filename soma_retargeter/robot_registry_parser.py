@@ -100,6 +100,7 @@ _DEFAULT_IK_WEIGHTS = {
     "LeftFoot": (2.0, 1.0),
     "RightFoot": (2.0, 1.0),
 }
+_DEFAULT_PRIORITY_WEIGHT_BANDS = {"0": 10000.0, "1": 1000.0, "2": 100.0, "3": 10.0, "4": 1.0}
 
 
 def get_params_path() -> Path:
@@ -781,6 +782,9 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         runtime_config["compiled_retarget_profile_schema_version"] = 2
         if compiled_profile_path.exists():
             compiled_profile = io_utils.load_json(compiled_profile_path)
+            priority_bands, priority_diagnostics = _resolve_priority_weight_bands(compiled_profile)
+            runtime_config["priority_weight_bands"] = priority_bands
+            runtime_config["priority_scheduler_diagnostics"] = priority_diagnostics
             runtime_config["direction_tasks"] = _extract_compiled_profile_direction_tasks(compiled_profile)
             runtime_config["pole_vector_tasks"] = _extract_compiled_profile_pole_vector_tasks(compiled_profile)
 
@@ -833,8 +837,9 @@ def _apply_compiled_profile_tasks_to_ik_map(
     if compiled_profile.get("schema_version") != 2:
         return ik_map
 
-    position_enabled: set[str] = set()
-    rotation_basis_by_semantic: dict[str, Any] = {}
+    priority_bands, _ = _resolve_priority_weight_bands(compiled_profile)
+    position_weight_by_semantic: dict[str, float] = {}
+    rotation_task_by_semantic: dict[str, dict[str, Any]] = {}
     for task in compiled_profile.get("tasks", []):
         if not isinstance(task, dict) or not task.get("enabled", False):
             continue
@@ -842,21 +847,29 @@ def _apply_compiled_profile_tasks_to_ik_map(
         if not isinstance(semantic, str):
             continue
         if task.get("position_mask_or_basis") is not None:
-            position_enabled.add(semantic)
+            position_weight_by_semantic[semantic] = _task_priority_weight(task, priority_bands)
         if task.get("rotation_mask_or_basis") is not None:
-            rotation_basis_by_semantic[semantic] = task.get("rotation_mask_or_basis")
+            rotation_task_by_semantic[semantic] = task
 
     out: dict[str, dict[str, Any]] = {}
     for joint_name, entry in ik_map.items():
         updated = dict(entry)
-        if joint_name not in position_enabled:
+        if joint_name not in position_weight_by_semantic:
             updated["t_weight"] = 0.0
             updated["v2_position_disabled_reason"] = "compiled profile has no enabled position task"
-        if joint_name not in rotation_basis_by_semantic:
+        else:
+            updated["t_weight"] = position_weight_by_semantic[joint_name]
+            updated["v2_position_priority"] = _semantic_task_priority(compiled_profile, joint_name, "position")
+            updated["v2_position_weight_source"] = "compiled priority band"
+        if joint_name not in rotation_task_by_semantic:
             updated["r_weight"] = 0.0
             updated["v2_rotation_disabled_reason"] = "compiled profile has no enabled rotation task"
         else:
-            updated["v2_rotation_basis"] = rotation_basis_by_semantic[joint_name]
+            task = rotation_task_by_semantic[joint_name]
+            updated["r_weight"] = _task_priority_weight(task, priority_bands)
+            updated["v2_rotation_basis"] = task.get("rotation_mask_or_basis")
+            updated["v2_rotation_priority"] = int(task.get("priority", 3))
+            updated["v2_rotation_weight_source"] = "compiled priority band"
         out[joint_name] = updated
     return out
 
@@ -873,6 +886,7 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
     if compiled_profile.get("schema_version") != 2:
         return []
 
+    priority_bands, _ = _resolve_priority_weight_bands(compiled_profile)
     out: list[dict[str, Any]] = []
     for task in compiled_profile.get("tasks", []):
         if not isinstance(task, dict) or not task.get("enabled", False):
@@ -891,18 +905,85 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
             continue
         if normalized_weight <= 0.0:
             continue
+        priority_weight = _task_priority_weight(task, priority_bands)
         out.append(
             {
                 "name": str(task.get("name") or f"{target_site}_{task_type}"),
                 "reference_site": reference_site,
                 "target_site": target_site,
                 "source_semantic": str(task.get("source_semantic") or target_site),
-                "weight": normalized_weight,
+                "weight": priority_weight,
+                "normalized_weight": normalized_weight,
                 "characteristic_length": characteristic_length,
                 "priority": priority,
+                "priority_weight_band": priority_bands.get(str(priority), normalized_weight),
+                "weight_source": "compiled priority band",
             }
         )
     return out
+
+
+def _resolve_priority_weight_bands(compiled_profile: dict[str, Any]) -> tuple[dict[str, float], list[dict[str, Any]]]:
+    raw_bands = compiled_profile.get("solver", {}).get("priority_weight_bands", {})
+    bands: dict[str, float] = {}
+    diagnostics: list[dict[str, Any]] = []
+    for key, default_value in _DEFAULT_PRIORITY_WEIGHT_BANDS.items():
+        raw_value = raw_bands.get(key, default_value) if isinstance(raw_bands, dict) else default_value
+        try:
+            value = float(raw_value)
+        except (TypeError, ValueError):
+            diagnostics.append({"code": "invalid_priority_weight_band", "priority": key, "value": raw_value})
+            value = float(default_value)
+        if value <= 0.0 or not math.isfinite(value):
+            diagnostics.append({"code": "invalid_priority_weight_band", "priority": key, "value": raw_value})
+            value = float(default_value)
+        bands[key] = value
+
+    for high, low in zip(range(0, 4), range(1, 5)):
+        high_value = bands[str(high)]
+        low_value = bands[str(low)]
+        ratio = high_value / low_value if low_value > 0.0 else float("inf")
+        if ratio < 10.0:
+            diagnostics.append(
+                {
+                    "code": "priority_band_ratio_too_small",
+                    "higher_priority": high,
+                    "lower_priority": low,
+                    "ratio": ratio,
+                    "minimum_ratio": 10.0,
+                }
+            )
+    return bands, diagnostics
+
+
+def _task_priority_weight(task: dict[str, Any], priority_bands: dict[str, float]) -> float:
+    try:
+        priority = int(task.get("priority", 3))
+    except (TypeError, ValueError):
+        priority = 3
+    try:
+        fallback = float(task.get("normalized_weight", priority_bands.get("3", 10.0)))
+    except (TypeError, ValueError):
+        fallback = priority_bands.get("3", 10.0)
+    return float(priority_bands.get(str(priority), fallback))
+
+
+def _semantic_task_priority(compiled_profile: dict[str, Any], semantic: str, task_kind: str) -> int | None:
+    for task in compiled_profile.get("tasks", []):
+        if not isinstance(task, dict) or not task.get("enabled", False):
+            continue
+        task_semantic = task.get("target_site") or task.get("source_semantic")
+        if task_semantic != semantic:
+            continue
+        if task_kind == "position" and task.get("position_mask_or_basis") is None:
+            continue
+        if task_kind == "rotation" and task.get("rotation_mask_or_basis") is None:
+            continue
+        try:
+            return int(task.get("priority", 3))
+        except (TypeError, ValueError):
+            return None
+    return None
 
 
 def load_retargeter_config(
