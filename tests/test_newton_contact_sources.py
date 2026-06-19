@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import warp as wp
 
+from soma_retargeter.pipelines.ik_objectives import IKObjectivePerEnvGroundHeightBarrier
 from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
 
 
@@ -11,6 +12,27 @@ class _DummyObjective:
 
 
 class TestNewtonContactModes(unittest.TestCase):
+    def test_ground_barrier_residual_penalizes_only_penetration(self):
+        obj = IKObjectivePerEnvGroundHeightBarrier(
+            link_index=0,
+            link_offset=wp.vec3(0.0, 0.0, 0.0),
+            weights=wp.array(np.array([2.0], dtype=np.float32), dtype=wp.float32),
+            ground_height=0.0,
+            margin=0.1,
+        )
+        obj.bind_device(wp.get_device())
+        problem_idx = wp.array(np.array([0], dtype=np.int32), dtype=wp.int32)
+
+        body_q = wp.array([[wp.transform(wp.vec3(0.0, 0.0, -0.05), wp.quat_identity())]], dtype=wp.transform)
+        residuals = wp.zeros((1, 1), dtype=wp.float32)
+        obj.compute_residuals(body_q, None, None, residuals, 0, problem_idx)
+        self.assertTrue(np.allclose(residuals.numpy(), [[1.0]]))
+
+        body_q = wp.array([[wp.transform(wp.vec3(0.0, 0.0, 0.05), wp.quat_identity())]], dtype=wp.transform)
+        residuals = wp.zeros((1, 1), dtype=wp.float32)
+        obj.compute_residuals(body_q, None, None, residuals, 0, problem_idx)
+        self.assertTrue(np.allclose(residuals.numpy(), [[0.0]]))
+
     def test_missing_left_right_foot_skips_objectives(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)
         pipe.contact_aware_foot_ik_enabled = True
@@ -102,6 +124,53 @@ class TestNewtonContactModes(unittest.TestCase):
         frame_targets[:, 6] = 1.0
         pipe._update_contact_objectives_for_frame(0, 0, frame_targets, [])
         self.assertEqual(obj.weights, [(0, 0.8)])
+
+    def test_ground_barrier_objectives_use_contact_weight_bands(self):
+        pipe = NewtonPipeline.__new__(NewtonPipeline)
+        pipe.ground_barrier_enabled = True
+        pipe.ground_barrier_config = {
+            "ground_height": 0.0,
+            "margin": 0.05,
+            "stance_weight": 2.0,
+            "swing_weight": 0.25,
+        }
+        pipe.contact_aware_foot_ik = {
+            "contact_on_threshold": 0.6,
+            "anchor_offsets": {
+                "left": {"toe": [0.1, 0.0, 0.0], "heel": [-0.1, 0.0, 0.0]},
+                "right": {"toe": [0.1, 0.0, 0.0], "heel": [-0.1, 0.0, 0.0]},
+            },
+        }
+        pipe.mapped_body_link_by_joint = {"LeftFoot": 1, "RightFoot": 2}
+
+        objectives = pipe._create_ground_barrier_objectives(2)
+        self.assertEqual(len(objectives), 4)
+        self.assertEqual(set(pipe.ground_barrier_objective_map), {"left_toe", "left_heel", "right_toe", "right_heel"})
+        self.assertTrue(np.allclose(objectives[0].weights.numpy(), [0.25, 0.25]))
+
+        class Obj:
+            def __init__(self):
+                self.weights = []
+
+            def set_weight(self, env, value):
+                self.weights.append((env, value))
+
+        left_toe = Obj()
+        left_heel = Obj()
+        right_toe = Obj()
+        right_heel = Obj()
+        dummy_objectives = {
+            "left_toe": left_toe,
+            "left_heel": left_heel,
+            "right_toe": right_toe,
+            "right_heel": right_heel,
+        }
+        for key, obj in dummy_objectives.items():
+            pipe.ground_barrier_objective_map[key]["objective"] = obj
+        pipe.input_contact_scores = [{"left_toe_contact_score": np.array([1.0], dtype=np.float32)}]
+        pipe._update_ground_barrier_objectives_for_frame(0, 0, objectives)
+        self.assertEqual(left_toe.weights, [(0, 2.0)])
+        self.assertEqual(left_heel.weights, [(0, 0.25)])
 
 
 if __name__ == "__main__":

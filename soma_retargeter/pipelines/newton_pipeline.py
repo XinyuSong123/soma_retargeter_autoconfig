@@ -14,6 +14,7 @@ import soma_retargeter.pipelines.utils as pipeline_utils
 from soma_retargeter.pipelines.ik_objectives import (
     IKObjectiveDirection,
     IKObjectivePoleVector,
+    IKObjectivePerEnvGroundHeightBarrier,
     IKObjectivePerEnvWeightedPosition,
     IKRangeNormalizedJointLimitBarrier,
     IKTemporalJointRegularizer,
@@ -98,6 +99,8 @@ class NewtonPipeline:
         self.contact_aware_foot_ik = retargeter_config.get("contact_aware_foot_ik", {})
         self.contact_aware_foot_ik_enabled = bool(self.contact_aware_foot_ik.get("enabled", False))
         self.contact_source = str(self.contact_aware_foot_ik.get("contact_source", "auto")).lower()
+        self.ground_barrier_config = retargeter_config.get("ground_barrier", {})
+        self.ground_barrier_enabled = bool(self.ground_barrier_config.get("enabled", False))
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
 
@@ -328,6 +331,7 @@ class NewtonPipeline:
                 smooth_joint_filter_objective,
                 temporal_velocity_objective,
                 temporal_acceleration_objective,
+                ground_barrier_objectives,
                 contact_objectives,
             ) = self._create_ik_objectives(num_envs, model, state)
 
@@ -336,6 +340,7 @@ class NewtonPipeline:
                 *rotation_objectives,
                 *direction_objectives,
                 *pole_vector_objectives,
+                *ground_barrier_objectives,
                 *contact_objectives,
             ]
             if self.joint_limit_weight > 0.0:
@@ -416,6 +421,8 @@ class NewtonPipeline:
 
                     if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
                         self._update_contact_objectives_for_frame(env, frame, frame_targets, contact_objectives)
+                    if self.ground_barrier_enabled:
+                        self._update_ground_barrier_objectives_for_frame(env, frame, ground_barrier_objectives)
 
                 guard_before_q = None
                 guard_before_cost = None
@@ -781,6 +788,7 @@ class NewtonPipeline:
             mode=IKTemporalJointRegularizer.MODE_ACCELERATION,
         )
 
+        ground_barrier_objectives = self._create_ground_barrier_objectives(num_envs)
         contact_objectives = self._create_contact_aware_objectives(num_envs, pos_target_arrays)
         return (
             position_objectives,
@@ -791,6 +799,7 @@ class NewtonPipeline:
             smooth_joint_limiter_objective,
             temporal_velocity_objective,
             temporal_acceleration_objective,
+            ground_barrier_objectives,
             contact_objectives,
         )
 
@@ -1005,3 +1014,71 @@ class NewtonPipeline:
             weight = cfg["stance"] if cfg["active"][env] else cfg["swing"]
             if hasattr(cfg["objective"], "set_weight"):
                 cfg["objective"].set_weight(env, weight)
+
+    def _create_ground_barrier_objectives(self, num_envs):
+        if not self.ground_barrier_enabled:
+            self.ground_barrier_objective_map = {}
+            return []
+
+        anchors = self.contact_aware_foot_ik.get("anchor_offsets", {})
+        left = anchors.get("left", {})
+        right = anchors.get("right", {})
+        if not left or not right:
+            print("[WARN] ground_barrier enabled but contact_aware_foot_ik anchor_offsets are missing; skipping.")
+            self.ground_barrier_objective_map = {}
+            return []
+
+        link_lookup = getattr(self, "mapped_body_link_by_joint", None)
+        if not link_lookup:
+            link_lookup = {}
+            for name, entry in zip(self.mapped_joints, self.mapped_body_link_pos_data):
+                link_lookup[name] = entry[1] if len(entry) == 3 else entry[0]
+        if "LeftFoot" not in link_lookup or "RightFoot" not in link_lookup:
+            print("[WARN] ground_barrier enabled but LeftFoot/RightFoot are missing in ik_map; skipping.")
+            self.ground_barrier_objective_map = {}
+            return []
+
+        ground_height = float(self.ground_barrier_config.get("ground_height", 0.0))
+        margin = float(self.ground_barrier_config.get("margin", 0.03))
+        stance_weight = float(self.ground_barrier_config.get("stance_weight", 1.0))
+        swing_weight = float(self.ground_barrier_config.get("swing_weight", 0.1))
+        mapping = {
+            "left_toe": ("LeftFoot", left.get("toe"), "left_toe_contact_score"),
+            "left_heel": ("LeftFoot", left.get("heel"), "left_heel_contact_score"),
+            "right_toe": ("RightFoot", right.get("toe"), "right_toe_contact_score"),
+            "right_heel": ("RightFoot", right.get("heel"), "right_heel_contact_score"),
+        }
+
+        out = []
+        self.ground_barrier_objective_map = {}
+        for key, (joint, offset, score_key) in mapping.items():
+            if offset is None or joint not in link_lookup:
+                continue
+            weights = wp.array(np.full(num_envs, swing_weight, dtype=np.float32), dtype=wp.float32)
+            obj = IKObjectivePerEnvGroundHeightBarrier(
+                link_index=link_lookup[joint],
+                link_offset=wp.vec3(*offset),
+                weights=weights,
+                ground_height=ground_height,
+                margin=margin,
+            )
+            out.append(obj)
+            self.ground_barrier_objective_map[key] = {
+                "objective": obj,
+                "score_key": score_key,
+                "stance": stance_weight,
+                "swing": swing_weight,
+            }
+        return out
+
+    def _update_ground_barrier_objectives_for_frame(self, env, frame, ground_barrier_objectives):
+        if not hasattr(self, "ground_barrier_objective_map"):
+            return
+        scores = self.input_contact_scores[env] if env < len(self.input_contact_scores) else None
+        on_t = float(self.contact_aware_foot_ik.get("contact_on_threshold", 0.6))
+        for cfg in self.ground_barrier_objective_map.values():
+            score = 0.0
+            if scores is not None and cfg["score_key"] in scores and frame < len(scores[cfg["score_key"]]):
+                score = float(scores[cfg["score_key"]][frame])
+            weight = cfg["stance"] if score >= on_t else cfg["swing"]
+            cfg["objective"].set_weight(env, weight)

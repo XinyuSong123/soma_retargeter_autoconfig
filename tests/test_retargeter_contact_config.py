@@ -18,6 +18,15 @@ class TestContactConfig(unittest.TestCase):
         self.assertIn("contact_aware_foot_ik", cfg)
         self.assertTrue(cfg["contact_aware_foot_ik"]["enabled"])
 
+    def test_ground_barrier_config_passthrough(self):
+        raw = {
+            "ik_map": {},
+            "ground_barrier": {"enabled": True, "stance_weight": 2.0, "swing_weight": 0.25},
+        }
+        cfg = build_runtime_retargeter_config("roboparty_rpo", raw)
+        self.assertEqual(cfg["ground_barrier"]["stance_weight"], 2.0)
+        self.assertEqual(cfg["ground_barrier"]["swing_weight"], 0.25)
+
     def test_backward_compat_missing_contact_config(self):
         cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}})
         self.assertNotIn("contact_aware_foot_ik", cfg)

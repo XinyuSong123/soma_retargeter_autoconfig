@@ -143,6 +143,8 @@ The runtime scaler also switches to segment-local target construction from the c
 Joint safety uses a range-normalized margin barrier for the warm-up smooth filter path: finite non-continuous joints have near-zero residual inside the safe margin and monotonic residual growth near either limit; the final clamp remains a numerical safeguard.
 Temporal velocity and acceleration regularizers are available through `temporal_velocity_weight` and `temporal_acceleration_weight`. They are disabled by default for backward compatibility, and when enabled they normalize actuated joint deltas by joint range and each clip's sample rate while skipping the floating root coordinates.
 
+Optional `ground_barrier` runtime config adds a soft height barrier on configured virtual sole anchors. It uses contact scores to apply stronger stance weights and lighter swing weights, preventing toe/heel anchors from penetrating the explicit ground height without changing legacy configs by default.
+
 ### Config optimizer
 
 Register the robot files in `params.py`, then launch the optimizer:
