@@ -987,31 +987,77 @@ class NewtonPipeline:
                 target_positions=targets,
                 weights=weights)
             out.append(obj)
-            self.contact_objective_map[key] = {"objective": obj, "score_key": score_key, "stance": float(w_stance), "swing": float(w_swing), "active": [False]*num_envs, "locked": [None]*num_envs}
+            self.contact_objective_map[key] = {
+                "objective": obj,
+                "score_key": score_key,
+                "stance": float(w_stance),
+                "swing": float(w_swing),
+                "active": [False] * num_envs,
+                "locked": [None] * num_envs,
+                "age": [0] * num_envs,
+                "release_remaining": [0] * num_envs,
+                "release_total": [0] * num_envs,
+                "release_start": [None] * num_envs,
+            }
         return out
 
     def _update_contact_objectives_for_frame(self, env, frame, frame_targets, contact_objectives):
         if not hasattr(self, "contact_objective_map"):
             return
         scores = self.input_contact_scores[env] if env < len(self.input_contact_scores) else None
-        on_t = float(self.contact_aware_foot_ik.get("contact_on_threshold", 0.6)); off_t = float(self.contact_aware_foot_ik.get("contact_off_threshold", 0.3))
+        on_t = float(self.contact_aware_foot_ik.get("contact_on_threshold", 0.6))
+        off_t = float(self.contact_aware_foot_ik.get("contact_off_threshold", 0.3))
+        min_contact_frames = max(1, int(self.contact_aware_foot_ik.get("min_contact_frames", 1)))
+        release_blend_frames = max(0, int(self.contact_aware_foot_ik.get("release_blend_frames", 0)))
         if "LeftFoot" not in self.mapped_joints or "RightFoot" not in self.mapped_joints:
             return
         joint_idx = {"LeftFoot": self.mapped_joints.index("LeftFoot"), "RightFoot": self.mapped_joints.index("RightFoot")}
         for key, cfg in self.contact_objective_map.items():
+            n_env_state = max(env + 1, len(cfg.get("active", [])))
+            cfg.setdefault("age", [0] * n_env_state)
+            cfg.setdefault("release_remaining", [0] * n_env_state)
+            cfg.setdefault("release_total", [0] * n_env_state)
+            cfg.setdefault("release_start", [None] * n_env_state)
             side_joint = "LeftFoot" if key.startswith("left") else "RightFoot"
             foot = frame_targets[joint_idx[side_joint]]
             pos=np.array(foot[0:3],dtype=np.float32); q=wp.quat(*foot[3:7]); off=cfg["objective"].link_offset
             world = pos + np.array(wp.quat_rotate(q, off), dtype=np.float32)
-            score = float(scores[cfg["score_key"]][frame]) if scores is not None and frame < len(scores[cfg["score_key"]]) else 0.0
+            score = 0.0
+            if scores is not None and cfg["score_key"] in scores and frame < len(scores[cfg["score_key"]]):
+                score = float(scores[cfg["score_key"]][frame])
             active = cfg["active"][env]
             if (not active) and score >= on_t:
-                cfg["active"][env]=True; cfg["locked"][env]=world.copy()
-            elif active and score <= off_t:
-                cfg["active"][env]=False; cfg["locked"][env]=None
-            target = cfg["locked"][env] if cfg["active"][env] and cfg["locked"][env] is not None else world
+                cfg["active"][env] = True
+                cfg["locked"][env] = world.copy()
+                cfg["age"][env] = 0
+                cfg["release_remaining"][env] = 0
+                cfg["release_total"][env] = 0
+                cfg["release_start"][env] = None
+            elif active and score <= off_t and cfg["age"][env] >= min_contact_frames:
+                cfg["active"][env] = False
+                if release_blend_frames > 0 and cfg["locked"][env] is not None:
+                    cfg["release_remaining"][env] = release_blend_frames
+                    cfg["release_total"][env] = release_blend_frames
+                    cfg["release_start"][env] = np.array(cfg["locked"][env], dtype=np.float32)
+                cfg["locked"][env] = None
+                cfg["age"][env] = 0
+
+            if cfg["active"][env]:
+                cfg["age"][env] += 1
+                target = cfg["locked"][env] if cfg["locked"][env] is not None else world
+                weight = cfg["stance"]
+            elif cfg["release_remaining"][env] > 0 and cfg["release_start"][env] is not None:
+                alpha = float(cfg["release_remaining"][env]) / float(max(cfg["release_total"][env], 1))
+                target = cfg["release_start"][env] * alpha + world * (1.0 - alpha)
+                weight = cfg["swing"] + (cfg["stance"] - cfg["swing"]) * alpha
+                cfg["release_remaining"][env] -= 1
+                if cfg["release_remaining"][env] <= 0:
+                    cfg["release_total"][env] = 0
+                    cfg["release_start"][env] = None
+            else:
+                target = world
+                weight = cfg["swing"]
             cfg["objective"].set_target_position(env, wp.vec3(*target))
-            weight = cfg["stance"] if cfg["active"][env] else cfg["swing"]
             if hasattr(cfg["objective"], "set_weight"):
                 cfg["objective"].set_weight(env, weight)
 

@@ -125,6 +125,112 @@ class TestNewtonContactModes(unittest.TestCase):
         pipe._update_contact_objectives_for_frame(0, 0, frame_targets, [])
         self.assertEqual(obj.weights, [(0, 0.8)])
 
+    def test_contact_min_duration_holds_locked_target(self):
+        pipe = NewtonPipeline.__new__(NewtonPipeline)
+        pipe.contact_aware_foot_ik = {
+            "contact_on_threshold": 0.6,
+            "contact_off_threshold": 0.3,
+            "min_contact_frames": 2,
+            "release_blend_frames": 0,
+        }
+        pipe.input_contact_scores = [{"left_toe_contact_score": np.array([1.0, 0.0, 0.0], dtype=np.float32)}]
+        pipe.mapped_joints = ["LeftFoot", "RightFoot"]
+
+        class Obj:
+            link_offset = wp.vec3(0.0, 0.0, 0.0)
+
+            def __init__(self):
+                self.targets = []
+                self.weights = []
+
+            def set_target_position(self, env, value):
+                self.targets.append(tuple(np.array(value, dtype=np.float32)))
+
+            def set_weight(self, env, value):
+                self.weights.append((env, value))
+
+        obj = Obj()
+        pipe.contact_objective_map = {
+            "left_toe": {
+                "objective": obj,
+                "score_key": "left_toe_contact_score",
+                "stance": 0.8,
+                "swing": 0.1,
+                "active": [False],
+                "locked": [None],
+                "age": [0],
+                "release_remaining": [0],
+                "release_total": [0],
+                "release_start": [None],
+            }
+        }
+
+        frame_targets = np.zeros((2, 7), dtype=np.float32)
+        frame_targets[:, 6] = 1.0
+        frame_targets[0, 0] = 1.0
+        pipe._update_contact_objectives_for_frame(0, 0, frame_targets, [])
+        frame_targets[0, 0] = 2.0
+        pipe._update_contact_objectives_for_frame(0, 1, frame_targets, [])
+        frame_targets[0, 0] = 3.0
+        pipe._update_contact_objectives_for_frame(0, 2, frame_targets, [])
+
+        self.assertEqual(obj.targets[0], (1.0, 0.0, 0.0))
+        self.assertEqual(obj.targets[1], (1.0, 0.0, 0.0))
+        self.assertEqual(obj.targets[2], (3.0, 0.0, 0.0))
+        self.assertEqual(obj.weights, [(0, 0.8), (0, 0.8), (0, 0.1)])
+
+    def test_contact_release_blends_from_locked_target(self):
+        pipe = NewtonPipeline.__new__(NewtonPipeline)
+        pipe.contact_aware_foot_ik = {
+            "contact_on_threshold": 0.6,
+            "contact_off_threshold": 0.3,
+            "min_contact_frames": 1,
+            "release_blend_frames": 2,
+        }
+        pipe.input_contact_scores = [{"left_toe_contact_score": np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)}]
+        pipe.mapped_joints = ["LeftFoot", "RightFoot"]
+
+        class Obj:
+            link_offset = wp.vec3(0.0, 0.0, 0.0)
+
+            def __init__(self):
+                self.targets = []
+                self.weights = []
+
+            def set_target_position(self, env, value):
+                self.targets.append(tuple(np.array(value, dtype=np.float32)))
+
+            def set_weight(self, env, value):
+                self.weights.append((env, value))
+
+        obj = Obj()
+        pipe.contact_objective_map = {
+            "left_toe": {
+                "objective": obj,
+                "score_key": "left_toe_contact_score",
+                "stance": 0.8,
+                "swing": 0.2,
+                "active": [False],
+                "locked": [None],
+                "age": [0],
+                "release_remaining": [0],
+                "release_total": [0],
+                "release_start": [None],
+            }
+        }
+
+        frame_targets = np.zeros((2, 7), dtype=np.float32)
+        frame_targets[:, 6] = 1.0
+        for frame, x in enumerate([1.0, 3.0, 5.0, 7.0]):
+            frame_targets[0, 0] = x
+            pipe._update_contact_objectives_for_frame(0, frame, frame_targets, [])
+
+        self.assertEqual(obj.targets[0], (1.0, 0.0, 0.0))
+        self.assertEqual(obj.targets[1], (1.0, 0.0, 0.0))
+        self.assertEqual(obj.targets[2], (3.0, 0.0, 0.0))
+        self.assertEqual(obj.targets[3], (7.0, 0.0, 0.0))
+        self.assertEqual(obj.weights, [(0, 0.8), (0, 0.8), (0, 0.5), (0, 0.2)])
+
     def test_ground_barrier_objectives_use_contact_weight_bands(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)
         pipe.ground_barrier_enabled = True
