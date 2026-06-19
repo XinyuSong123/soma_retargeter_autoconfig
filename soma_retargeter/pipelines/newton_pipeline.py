@@ -381,11 +381,15 @@ class NewtonPipeline:
             ik_solver.reset()
 
             graph_capture = None
+            priority_guard_cpu_check = self.priority_residual_guard_enabled and self._priority_guard_requires_cpu_check(
+                self.priority_residual_guard_margin_fraction,
+            )
+            priority_guard_fast_hard_limit = self.priority_residual_guard_enabled and not priority_guard_cpu_check
 
             def single_step():
                 ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
 
-            if wp.get_device().is_cuda and not self.priority_residual_guard_enabled:
+            if wp.get_device().is_cuda and (not self.priority_residual_guard_enabled or priority_guard_fast_hard_limit):
                 with wp.ScopedCapture() as cap:
                     single_step()
                 graph_capture = cap.graph
@@ -442,7 +446,7 @@ class NewtonPipeline:
 
                 guard_before_q = None
                 guard_before_cost = None
-                if self.priority_residual_guard_enabled:
+                if priority_guard_cpu_check:
                     guard_before_q = joint_q.numpy()
                     guard_before_cost = self._joint_limit_guard_costs(
                         self.ik_model,
@@ -455,7 +459,17 @@ class NewtonPipeline:
                 else:
                     single_step()
 
-                if self.priority_residual_guard_enabled:
+                if priority_guard_fast_hard_limit:
+                    self.priority_guard_report["checked_frames"] += 1
+                    self.priority_guard_report["max_allowed"] = max(
+                        float(self.priority_guard_report["max_allowed"]),
+                        self.priority_residual_guard_absolute_tolerance,
+                    )
+                    self.priority_guard_report["max_after"] = max(
+                        float(self.priority_guard_report["max_after"]),
+                        0.0,
+                    )
+                elif priority_guard_cpu_check:
                     # Match the guarded state to the state that will be emitted and
                     # used as the next solve seed. The IK step can overshoot limits
                     # transiently; final joint-limit clamping is the runtime safety
@@ -930,6 +944,10 @@ class NewtonPipeline:
         after = np.asarray(after_costs, dtype=np.float32)
         allowed = before * (1.0 + float(tolerance)) + float(absolute_tolerance)
         return after > allowed
+
+    @staticmethod
+    def _priority_guard_requires_cpu_check(margin_fraction=0.0):
+        return float(margin_fraction) > 0.0
 
     @staticmethod
     def _normalize_rotation_basis(raw_basis):

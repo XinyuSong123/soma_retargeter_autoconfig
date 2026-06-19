@@ -180,6 +180,11 @@ class TestTemporalObjectives(unittest.TestCase):
             )
         )
 
+    def test_priority_guard_cpu_check_only_required_for_soft_margin_guard(self):
+        self.assertFalse(NewtonPipeline._priority_guard_requires_cpu_check(0.0))
+        self.assertFalse(NewtonPipeline._priority_guard_requires_cpu_check(-0.1))
+        self.assertTrue(NewtonPipeline._priority_guard_requires_cpu_check(0.08))
+
     def test_runtime_config_passes_priority_guard_options(self):
         cfg = build_runtime_retargeter_config(
             "roboparty_rpo",

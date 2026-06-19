@@ -52,7 +52,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest verified result: `77 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest verified result: `78 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
@@ -70,7 +70,7 @@ Unitree G1 currently produces a v2 artifact and separated legacy/v2 bounded runt
 
 Registry coverage currently reports RoboParty RPO and generic `unitree_g1` as `ready`; `unitree_g1_23dof`, `unitree_g1_29dof`, `e3_v2`, and `oli` remain `missing_registration`.
 
-Current bounded gate status is `failed`: RoboParty RPO and generic Unitree G1 pass penetration and residual availability gates on the selected high-motion windows, and both now record zero priority-guard rollbacks while protecting hard joint-limit penetration. RPO v2 and Unitree G1 v2 still fail hand/foot tracking, velocity, acceleration, and runtime-overhead gates, so the next acceptance work is motion stabilization rather than static-output rollback.
+Current bounded gate status is `failed`: RoboParty RPO and generic Unitree G1 pass penetration and residual availability gates on the selected high-motion windows, and both now record zero priority-guard rollbacks while protecting hard joint-limit penetration. The hard-penetration guard uses the CUDA graph-capture fast path, reducing bounded v2 runtime materially, but RPO v2 and Unitree G1 v2 still fail hand/foot tracking, velocity, acceleration, and runtime-overhead gates, so the next acceptance work is motion stabilization and remaining runtime reduction rather than static-output rollback.
 
 ## Remaining Work
 
