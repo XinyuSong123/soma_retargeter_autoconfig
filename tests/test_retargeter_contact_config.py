@@ -45,6 +45,25 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["compiled_retarget_profile_schema_version"], 2)
         self.assertTrue(cfg["compiled_retarget_profile"].endswith("roboparty_rpo_compiled_retarget_profile_v2.json"))
 
+    def test_compiled_v2_tasks_disable_unreachable_legacy_objectives(self):
+        raw = {
+            "ik_map": {
+                "Hips": "base_link",
+                "Chest": "torso_link",
+                "LeftArm": "left_arm_roll_link",
+                "LeftHand": "left_elbow_yaw_link",
+            }
+        }
+        cfg = build_runtime_retargeter_config("roboparty_rpo", raw)
+        self.assertGreater(cfg["ik_map"]["Hips"]["t_weight"], 0.0)
+        self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 0.0)
+        self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.0)
+        self.assertGreater(cfg["ik_map"]["Chest"]["r_weight"], 0.0)
+        self.assertEqual(cfg["ik_map"]["LeftArm"]["t_weight"], 0.0)
+        self.assertEqual(cfg["ik_map"]["LeftArm"]["r_weight"], 0.0)
+        self.assertGreater(cfg["ik_map"]["LeftHand"]["t_weight"], 0.0)
+        self.assertEqual(cfg["ik_map"]["LeftHand"]["r_weight"], 0.0)
+
     def test_compiled_profile_registry_path_and_validation(self):
         path = get_profile_path("roboparty_rpo", "compiled_retarget_profile")
         self.assertIsNotNone(path)

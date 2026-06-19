@@ -785,6 +785,8 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         normalized_entry = _normalize_ik_mapping_entry(str(joint_name), entry)
         if normalized_entry is not None:
             ik_map[str(joint_name)] = normalized_entry
+    if compiled_profile_path is not None and compiled_profile_path.exists():
+        ik_map = _apply_compiled_profile_tasks_to_ik_map(ik_map, io_utils.load_json(compiled_profile_path))
     runtime_config["ik_map"] = ik_map
 
     passthrough_keys = (
@@ -816,6 +818,39 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
     if "human_robot_scaler_config" in raw_config:
         runtime_config["human_robot_scaler_config"] = raw_config["human_robot_scaler_config"]
     return runtime_config
+
+
+def _apply_compiled_profile_tasks_to_ik_map(
+    ik_map: dict[str, dict[str, Any]],
+    compiled_profile: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    if compiled_profile.get("schema_version") != 2:
+        return ik_map
+
+    position_enabled: set[str] = set()
+    rotation_enabled: set[str] = set()
+    for task in compiled_profile.get("tasks", []):
+        if not isinstance(task, dict) or not task.get("enabled", False):
+            continue
+        semantic = task.get("target_site") or task.get("source_semantic")
+        if not isinstance(semantic, str):
+            continue
+        if task.get("position_mask_or_basis") is not None:
+            position_enabled.add(semantic)
+        if task.get("rotation_mask_or_basis") is not None:
+            rotation_enabled.add(semantic)
+
+    out: dict[str, dict[str, Any]] = {}
+    for joint_name, entry in ik_map.items():
+        updated = dict(entry)
+        if joint_name not in position_enabled:
+            updated["t_weight"] = 0.0
+            updated["v2_position_disabled_reason"] = "compiled profile has no enabled position task"
+        if joint_name not in rotation_enabled:
+            updated["r_weight"] = 0.0
+            updated["v2_rotation_disabled_reason"] = "compiled profile has no enabled rotation task"
+        out[joint_name] = updated
+    return out
 
 
 def load_retargeter_config(

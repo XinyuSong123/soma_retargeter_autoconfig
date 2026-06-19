@@ -97,7 +97,8 @@ class NewtonPipeline:
             self.mapped_joints,
             self.mapped_joint_indices,
             self.mapped_body_link_pos_data,
-            self.mapped_body_link_rot_data
+            self.mapped_body_link_rot_data,
+            self.mapped_body_link_by_joint,
         ) = self._build_target_mapping(
             self.ik_model,
             self.human_robot_scaler.skeleton,
@@ -324,8 +325,11 @@ class NewtonPipeline:
                     if frame > (len(self.input_targets[env]) - 1):
                         continue
                     frame_targets = self.input_targets[env][frame]
-                    for i, target in enumerate(frame_targets):
+                    for i, (effector_idx, _, _) in enumerate(self.mapped_body_link_pos_data):
+                        target = frame_targets[effector_idx]
                         position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
+                    for i, (effector_idx, _, _) in enumerate(self.mapped_body_link_rot_data):
+                        target = frame_targets[effector_idx]
                         rotation_objectives[i].set_target_rotation(env, wp.quat(*target[3:7]))
 
                     if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
@@ -419,18 +423,26 @@ class NewtonPipeline:
         mapped_joint_indices = []
         mapped_body_link_pos_data = []
         mapped_body_link_rot_data = []
+        mapped_body_link_by_joint = {}
         body_names = [newton_utils.get_name_from_label(label) for label in self.robot_builder.body_label]
         for joint, mapping_data in retargeter_config["ik_map"].items():
+            effector_idx = len(mapped_joints)
             mapped_joints.append(joint)
             mapped_joint_indices.append(skeleton.joint_index(joint))
-            mapped_body_link_pos_data.append((body_names.index(mapping_data['t_body']), mapping_data['t_weight']))
-            mapped_body_link_rot_data.append((body_names.index(mapping_data['r_body']), mapping_data['r_weight']))
+            t_link_idx = body_names.index(mapping_data['t_body'])
+            r_link_idx = body_names.index(mapping_data['r_body'])
+            mapped_body_link_by_joint[joint] = t_link_idx
+            if float(mapping_data.get('t_weight', 0.0)) > 0.0:
+                mapped_body_link_pos_data.append((effector_idx, t_link_idx, float(mapping_data['t_weight'])))
+            if float(mapping_data.get('r_weight', 0.0)) > 0.0:
+                mapped_body_link_rot_data.append((effector_idx, r_link_idx, float(mapping_data['r_weight'])))
 
         return (
             mapped_joints,
             mapped_joint_indices,
             mapped_body_link_pos_data,
-            mapped_body_link_rot_data)
+            mapped_body_link_rot_data,
+            mapped_body_link_by_joint)
 
     def _create_ik_objectives(self, num_envs, model, state):
         newton.eval_fk(model, model.joint_q, model.joint_qd, state)
@@ -445,10 +457,10 @@ class NewtonPipeline:
         body_q = state.body_q.numpy()
         for env in range(num_envs):
             base = env * self.num_body_count
-            for ee_idx, (link_idx, _) in enumerate(self.mapped_body_link_pos_data):
+            for ee_idx, (_, link_idx, _) in enumerate(self.mapped_body_link_pos_data):
                 pos_targets[env, ee_idx] = body_q[base + link_idx][0:3]
 
-            for ee_idx, (link_idx, _) in enumerate(self.mapped_body_link_rot_data):
+            for ee_idx, (_, link_idx, _) in enumerate(self.mapped_body_link_rot_data):
                 rot_wp = wp.quat(body_q[base + link_idx][3:7])
                 rot_targets[env, ee_idx] = wp.normalize(rot_wp)
 
@@ -464,7 +476,7 @@ class NewtonPipeline:
             rot_target_arrays.append(rot_wp)
 
         position_objectives = []
-        for i, (link_idx, w) in enumerate(self.mapped_body_link_pos_data):
+        for i, (_, link_idx, w) in enumerate(self.mapped_body_link_pos_data):
             objective = ik.IKObjectivePosition(
                 link_index=link_idx,
                 link_offset=wp.vec3(0.0, 0.0, 0.0),
@@ -473,7 +485,7 @@ class NewtonPipeline:
             position_objectives.append(objective)
 
         rotation_objectives = []
-        for i, (link_idx, w) in enumerate(self.mapped_body_link_rot_data):
+        for i, (_, link_idx, w) in enumerate(self.mapped_body_link_rot_data):
             objective = ik.IKObjectiveRotation(
                 link_index=link_idx,
                 link_offset_rotation=wp.quat_identity(),
@@ -508,7 +520,11 @@ class NewtonPipeline:
             print("[WARN] contact_aware_foot_ik enabled but anchor_offsets not configured; skipping.")
             self.contact_objective_map = {}
             return []
-        link_lookup = {name: link for name, (link, _) in zip(self.mapped_joints, self.mapped_body_link_pos_data)}
+        link_lookup = getattr(self, "mapped_body_link_by_joint", None)
+        if not link_lookup:
+            link_lookup = {}
+            for name, entry in zip(self.mapped_joints, self.mapped_body_link_pos_data):
+                link_lookup[name] = entry[1] if len(entry) == 3 else entry[0]
         if "LeftFoot" not in link_lookup or "RightFoot" not in link_lookup:
             print("[WARN] contact_aware_foot_ik enabled but LeftFoot/RightFoot are missing in ik_map; skipping.")
             self.contact_objective_map = {}
