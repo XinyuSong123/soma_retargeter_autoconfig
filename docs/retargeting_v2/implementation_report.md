@@ -2,6 +2,9 @@
 
 ## Current Commits
 
+- `cdbf65e Infer missing semantics from body names`
+- `e9f5bd0 Infer distal sites from child anchors`
+- `3f4421c Prefer explicit MJCF sites for v2 distal sites`
 - `bb91825 Use mesh bounds for v2 virtual sites`
 - `9496fa9 Validate compiled profile cache fingerprints`
 - `bcbdfad Validate v2 left right chain symmetry`
@@ -36,7 +39,7 @@
 - v2 runtime wiring and priority guard: `soma_retargeter/pipelines/newton_pipeline.py`
 - Compile-level benchmark artifact CLI: `soma_retargeter/tools/benchmark_retargeting.py`
 - Compile-level self-collision proxy and high-risk pair metadata: `soma_retargeter/robotics/morphology.py` and `soma_retargeter/robotics/task_compiler.py`
-- Root-motion scale and ground-height provenance metadata: `soma_retargeter/robotics/task_compiler.py`
+- Root-motion scale and ground-height provenance metadata from semantic hips and virtual foot site rest positions: `soma_retargeter/robotics/task_compiler.py`
 - Compiled profile health-gate validation, including left/right chain length mismatch thresholds: `soma_retargeter/robot_registry_parser.py`
 - Compiled profile cache fingerprint invalidation for robot morphology, source config, and compiler version: `soma_retargeter/robot_registry_parser.py`
 
@@ -48,7 +51,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest result before this report update: `68 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest result before this report update: `69 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
@@ -60,7 +63,7 @@ python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo uni
 
 Current artifact scope is compile-level validation. Runtime motion metrics such as foot slide, penetration, RMSE, and velocity percentiles are present in the schema but marked `not_run`.
 
-RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, enabled sparse tasks, mesh-derived hand/foot virtual sites, mesh-derived self-collision metadata, morphology site-count metadata, and matching cache fingerprints.
+RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, enabled sparse tasks, mesh-derived hand/foot virtual sites, virtual-foot-site root/ground metadata, mesh-derived self-collision metadata, morphology site-count metadata, and matching cache fingerprints.
 
 Unitree G1 currently produces a v2 artifact, but its chain summary shows zero reachable ranks and minimal chain lengths; this is a known limitation of the current registered model/config path and needs deeper registry/morphology work before runtime acceptance.
 

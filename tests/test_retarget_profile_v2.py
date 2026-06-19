@@ -452,6 +452,39 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertEqual(root_motion["ground_height_source"], "explicit_ground_barrier")
         self.assertAlmostEqual(profile.segment_ratios["leg_length"], root_motion["horizontal_scale"])
 
+    def test_root_ground_metadata_uses_virtual_foot_site_positions(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="pelvis" pos="0 0 1.0">
+              <body name="left_foot" pos="0.1 0.1 -0.9">
+                <site name="left_foot_sole" pos="0 0 -0.1"/>
+              </body>
+              <body name="right_foot" pos="0.1 -0.1 -0.9">
+                <site name="right_foot_sole" pos="0 0 -0.1"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {
+                "ik_map": {"Hips": "pelvis", "LeftFoot": "left_foot", "RightFoot": "right_foot"},
+                "root_motion": {"source_leg_length_m": 0.5},
+            }
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        root_motion = profile.rest_frame_alignment["root_motion"]
+        self.assertEqual(profile.semantic_sites["LeftFoot"].source, "explicit_site")
+        self.assertEqual(profile.semantic_sites["RightFoot"].source, "explicit_site")
+        self.assertAlmostEqual(root_motion["robot_leg_length_m"], np.sqrt(1.01), places=6)
+        self.assertAlmostEqual(root_motion["robot_nominal_pelvis_height_m"], 1.0)
+        self.assertAlmostEqual(root_motion["ground_height_m"], 0.0)
+        self.assertEqual(root_motion["ground_height_source"], "semantic_foot_rest_min_z")
+
     def test_root_ground_metadata_warns_when_leg_length_unavailable(self):
         morphology = analyze_mjcf_morphology(None)
         raw = {"ik_map": {"Hips": "pelvis"}}

@@ -13,7 +13,7 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 ## Runtime Objectives
 
 - Position tasks remain analytic IK objectives for enabled end-effectors and root targets.
-- Root motion metadata records semantic hips/feet leg-length scale, nominal pelvis height, ground height, and provenance.
+- Root motion metadata records semantic hips and virtual foot site leg-length scale, nominal pelvis height, ground height, and provenance.
 - Torso rotation targets are projected to the compiled reachable basis before they enter IK.
 - Middle-limb direction tasks track parent-to-child unit vectors.
 - Pole-vector tasks track bend-plane normals and fall back per environment on degenerate source geometry.

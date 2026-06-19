@@ -7,5 +7,5 @@
 - Unitree G1 v2 profile currently reports zero chain ranks and placeholder chain lengths, indicating incomplete registry/morphology coverage for that asset path.
 - Semantic auto-detection now fills missing entries with conservative body-name matching, but topology and rest-pose spatial inference are still shallow; explicit `ik_map` remains the most reliable path.
 - Virtual hand and foot sites now prefer explicit MJCF sites, distal child anchors, and then primitive geom or STL mesh distal bounds when available, but non-STL mesh formats and rotated/fromto geom bounds are still limited.
-- Root/ground metadata is compile-time provenance only; runtime root-height stabilization still needs motion-level acceptance metrics.
+- Root/ground metadata uses compile-time semantic hips and virtual foot site rest positions only; runtime root-height stabilization still needs motion-level acceptance metrics.
 - The priority residual guard currently protects joint-limit margin residuals, not all high-priority feasibility residuals.

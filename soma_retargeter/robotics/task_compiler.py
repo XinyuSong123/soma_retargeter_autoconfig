@@ -439,6 +439,13 @@ def _semantic_root_body(semantic: str, semantic_sites: dict[str, SemanticSite]) 
     return semantic_sites[semantic].body_name
 
 
+def _site_world_position(site: SemanticSite, morphology: MorphologyAnalysis) -> np.ndarray | None:
+    body_info = morphology.bodies.get(site.body_name)
+    if body_info is None:
+        return None
+    return body_info.world_position + _quat_rotate_wxyz(body_info.world_rotation_wxyz, site.local_position)
+
+
 def _chain_profile_for_site(
     semantic: str,
     site: SemanticSite,
@@ -468,10 +475,8 @@ def _chain_profile_for_site(
     if joints:
         rotational_j = np.stack([j.axis_world_rest for j in joints], axis=1)
         rotational_basis, singular_rot, rotational_rank = orthonormal_basis_from_jacobian(rotational_j)
-        if site.body_name in morphology.bodies:
-            body_info = morphology.bodies[site.body_name]
-            tip_pos = body_info.world_position + _quat_rotate_wxyz(body_info.world_rotation_wxyz, site.local_position)
-        else:
+        tip_pos = _site_world_position(site, morphology)
+        if tip_pos is None:
             tip_pos = np.zeros(3)
         translational_cols = []
         for joint in joints:
@@ -671,14 +676,10 @@ def _compile_root_ground_metadata(
     ground_height_source = "default_world_z0"
     confidence = 0.0
 
-    if hips_site is not None and hips_site.body_name in morphology.bodies and foot_sites:
-        foot_positions = [
-            morphology.bodies[site.body_name].world_position
-            for site in foot_sites
-            if site.body_name in morphology.bodies
-        ]
+    hips_pos = _site_world_position(hips_site, morphology) if hips_site is not None else None
+    if hips_site is not None and hips_pos is not None and foot_sites:
+        foot_positions = [pos for site in foot_sites if (pos := _site_world_position(site, morphology)) is not None]
         if foot_positions:
-            hips_pos = morphology.bodies[hips_site.body_name].world_position
             foot_center = np.mean(np.stack(foot_positions, axis=0), axis=0)
             robot_leg_length = float(np.linalg.norm(hips_pos - foot_center))
             min_foot_z = float(min(pos[2] for pos in foot_positions))
