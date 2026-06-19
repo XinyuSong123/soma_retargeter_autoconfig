@@ -147,6 +147,8 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(metrics["hand_position_rmse"]["axis_order"], ["x", "y", "z"])
         self.assertEqual(metrics["hand_position_rmse"]["sample_count"], 2)
         self.assertTrue(np.allclose(metrics["hand_position_rmse"]["axis_rmse"], [0.0, 0.0, 0.0]))
+        self.assertIn("LeftHand", metrics["hand_position_rmse"]["by_semantic"])
+        self.assertEqual(metrics["hand_position_rmse"]["by_semantic"]["LeftHand"]["sample_count"], 2)
 
     def test_runtime_tracking_metrics_include_axis_error_diagnostics(self):
         frames = np.zeros((2, 7), dtype=np.float32)
@@ -171,6 +173,10 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertTrue(np.allclose(metrics["hand_position_rmse"]["axis_rmse"], [np.sqrt(2.5), 0.0, 0.0]))
         self.assertTrue(np.allclose(metrics["hand_position_rmse"]["mean_error"], [1.5, 0.0, 0.0]))
         self.assertTrue(np.allclose(metrics["hand_position_rmse"]["p95_abs_error"], [1.95, 0.0, 0.0]))
+        self.assertAlmostEqual(metrics["hand_position_rmse"]["by_semantic"]["LeftHand"]["value"], np.sqrt(2.5))
+        self.assertTrue(
+            np.allclose(metrics["hand_position_rmse"]["by_semantic"]["LeftHand"]["axis_rmse"], [np.sqrt(2.5), 0.0, 0.0])
+        )
 
     def test_aggregate_motion_metrics_preserves_tracking_axis_diagnostics(self):
         aggregated = _aggregate_motion_metrics(
@@ -185,6 +191,17 @@ class TestBenchmarkRetargeting(unittest.TestCase):
                             "p95_abs_error": [1.0, 0.0, 0.0],
                             "axis_order": ["x", "y", "z"],
                             "sample_count": 1,
+                            "by_semantic": {
+                                "LeftHand": {
+                                    "status": "ok",
+                                    "value": 1.0,
+                                    "axis_rmse": [1.0, 0.0, 0.0],
+                                    "mean_error": [1.0, 0.0, 0.0],
+                                    "p95_abs_error": [1.0, 0.0, 0.0],
+                                    "axis_order": ["x", "y", "z"],
+                                    "sample_count": 1,
+                                }
+                            },
                         }
                     }
                 },
@@ -198,6 +215,17 @@ class TestBenchmarkRetargeting(unittest.TestCase):
                             "p95_abs_error": [3.0, 0.0, 0.0],
                             "axis_order": ["x", "y", "z"],
                             "sample_count": 3,
+                            "by_semantic": {
+                                "LeftHand": {
+                                    "status": "ok",
+                                    "value": 3.0,
+                                    "axis_rmse": [3.0, 0.0, 0.0],
+                                    "mean_error": [3.0, 0.0, 0.0],
+                                    "p95_abs_error": [3.0, 0.0, 0.0],
+                                    "axis_order": ["x", "y", "z"],
+                                    "sample_count": 3,
+                                }
+                            },
                         }
                     }
                 },
@@ -208,6 +236,8 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(payload["value"], 2.0)
         self.assertEqual(payload["sample_count"], 4)
         self.assertTrue(np.allclose(payload["axis_rmse"], [2.5, 0.0, 0.0]))
+        self.assertEqual(payload["by_semantic"]["LeftHand"]["sample_count"], 4)
+        self.assertTrue(np.allclose(payload["by_semantic"]["LeftHand"]["axis_rmse"], [2.5, 0.0, 0.0]))
 
     def test_registry_coverage_report_marks_missing_and_incomplete_targets(self):
         report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "unitree_g1_29dof", "e3_v2", "oli"))

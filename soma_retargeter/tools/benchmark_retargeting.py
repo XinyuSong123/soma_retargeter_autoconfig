@@ -763,7 +763,7 @@ def _tracking_residual_stats(targets: np.ndarray, actual: np.ndarray) -> dict[st
     }
 
 
-def _tracking_metric_payload(stats: list[dict[str, Any]], *, unit: str = "m") -> dict[str, Any]:
+def _weighted_tracking_payload(stats: list[dict[str, Any]], *, unit: str = "m") -> dict[str, Any]:
     if not stats:
         return _metric_payload(None, unit=unit, statistic="rmse")
     weights = np.asarray([max(int(item.get("count", 0)), 0) for item in stats], dtype=np.float64)
@@ -781,6 +781,24 @@ def _tracking_metric_payload(stats: list[dict[str, Any]], *, unit: str = "m") ->
         "axis_order": ["x", "y", "z"],
         "sample_count": int(np.sum(weights)),
     }
+
+
+def _tracking_metric_payload(stats_by_semantic: dict[str, dict[str, Any]], *, unit: str = "m") -> dict[str, Any]:
+    if not stats_by_semantic:
+        return _metric_payload(None, unit=unit, statistic="rmse")
+    payload = _weighted_tracking_payload(list(stats_by_semantic.values()), unit=unit)
+    payload["by_semantic"] = {
+        semantic: {
+            **_metric_payload(float(stats["rmse"]), unit=unit, statistic="rmse"),
+            "axis_rmse": list(stats["axis_rmse"]),
+            "mean_error": list(stats["mean_error"]),
+            "p95_abs_error": list(stats["p95_abs_error"]),
+            "axis_order": ["x", "y", "z"],
+            "sample_count": int(stats.get("count", 0)),
+        }
+        for semantic, stats in sorted(stats_by_semantic.items())
+    }
+    return payload
 
 
 def _aligned_runtime_target_frames(pipeline: Any, motion_index: int) -> np.ndarray | None:
@@ -983,15 +1001,15 @@ def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_i
             ("hand_position_rmse", ("LeftHand", "RightHand")),
             ("foot_position_rmse", ("LeftFoot", "RightFoot")),
         ):
-            stats = []
+            stats_by_semantic = {}
             for semantic in semantics:
                 if semantic not in semantic_pose or semantic not in mapped_joints:
                     continue
                 target_idx = mapped_joints.index(semantic)
                 stat = _tracking_residual_stats(target_frames[:, target_idx, 0:3], semantic_pose[semantic]["position"])
                 if stat is not None:
-                    stats.append(stat)
-            metrics[metric_name] = _tracking_metric_payload(stats, unit="m")
+                    stats_by_semantic[semantic] = stat
+            metrics[metric_name] = _tracking_metric_payload(stats_by_semantic, unit="m")
     metrics.update(_profile_runtime_residual_metrics(profile, pipeline, motion_index, semantic_pose))
     return metrics
 
@@ -1031,6 +1049,50 @@ def _aggregate_motion_metrics(motion_payloads: list[dict[str, Any]]) -> dict[str
                     aggregated[metric_name][key] = [float(value) for value in np.average(arr, axis=0, weights=weights)]
                 aggregated[metric_name]["axis_order"] = list(tracking_payloads[0].get("axis_order", ["x", "y", "z"]))
                 aggregated[metric_name]["sample_count"] = int(np.sum(weights))
+                semantic_names = sorted(
+                    {
+                        str(semantic)
+                        for payload in tracking_payloads
+                        for semantic in (payload.get("by_semantic", {}) if isinstance(payload.get("by_semantic"), dict) else {})
+                    }
+                )
+                by_semantic = {}
+                for semantic in semantic_names:
+                    semantic_payloads = [
+                        payload["by_semantic"][semantic]
+                        for payload in tracking_payloads
+                        if isinstance(payload.get("by_semantic"), dict)
+                        and isinstance(payload["by_semantic"].get(semantic), dict)
+                        and payload["by_semantic"][semantic].get("status") == "ok"
+                    ]
+                    if not semantic_payloads:
+                        continue
+                    semantic_weights = np.asarray(
+                        [max(int(payload.get("sample_count", 0)), 0) for payload in semantic_payloads],
+                        dtype=np.float64,
+                    )
+                    if semantic_weights.sum() <= 0.0:
+                        semantic_weights = np.ones(len(semantic_payloads), dtype=np.float64)
+                    by_semantic[semantic] = {
+                        "status": "ok",
+                        "value": float(
+                            np.average(
+                                np.asarray([float(payload["value"]) for payload in semantic_payloads], dtype=np.float64),
+                                weights=semantic_weights,
+                            )
+                        ),
+                        "unit": tracking_payloads[0].get("unit", ""),
+                        "statistic": "rmse",
+                        "axis_order": list(semantic_payloads[0].get("axis_order", ["x", "y", "z"])),
+                        "sample_count": int(np.sum(semantic_weights)),
+                    }
+                    for key in ("axis_rmse", "mean_error", "p95_abs_error"):
+                        arr = np.asarray([payload[key] for payload in semantic_payloads], dtype=np.float64)
+                        by_semantic[semantic][key] = [
+                            float(value) for value in np.average(arr, axis=0, weights=semantic_weights)
+                        ]
+                if by_semantic:
+                    aggregated[metric_name]["by_semantic"] = by_semantic
         elif seen_payloads:
             reasons = sorted({str(payload.get("reason", payload.get("status", "unavailable"))) for payload in seen_payloads})
             aggregated[metric_name] = {
