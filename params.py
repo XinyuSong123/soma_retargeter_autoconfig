@@ -32,6 +32,7 @@ ROBOT_URDF_DICT = {
 # 重定向配置路径，把骨架的不同部位映射到机器人对应的link
 RETARGETER_CONFIG_DICT = {
     "unitree_g1": CONFIG_ROOT / "unitree_g1" / "soma_to_g1_retargeter_config.json",
+    "unitree_g1_23dof": CONFIG_ROOT / "unitree_g1_23dof" / "soma_to_g1_23dof_retargeter_config.json",
     "roboparty_rpo": CONFIG_ROOT / "roboparty_rpo" / "soma_to_rpo_retargeter_config.json",
 }
 
@@ -48,6 +49,7 @@ POSE_PAIR_JSON_DICT["my_robot"] = {
 '''
 POSE_PAIR_JSON_DICT = {
     "unitree_g1": {},
+    "unitree_g1_23dof": {},
     "roboparty_rpo": {
         "t_pose": RPO_POSE_PAIR_ROOT / "roboparty_rpo_t_pose.json",
         "natural_down": RPO_POSE_PAIR_ROOT / "roboparty_rpo_natural_down.json",

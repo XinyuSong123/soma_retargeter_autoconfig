@@ -83,15 +83,15 @@
             "v2_value": 554.5352939485574
           },
           {
-            "allowed_max": 1.0294588189572096,
-            "delta": 3.316792104393244,
-            "legacy_value": 0.8235670551657677,
+            "allowed_max": 1.08723109588027,
+            "delta": 3.34039119631052,
+            "legacy_value": 0.869784876704216,
             "metric": "runtime_seconds.motion_runtime",
             "rule": "relative_not_worse",
             "status": "failed",
             "tolerance": 0.25,
             "unit": "s",
-            "v2_value": 4.1403591595590115
+            "v2_value": 4.210176073014736
           }
         ],
         "passed_count": 5,
@@ -180,15 +180,15 @@
             "v2_value": 863.5041694473578
           },
           {
-            "allowed_max": 1.1536334035918117,
-            "delta": 3.688953224569559,
-            "legacy_value": 0.9229067228734493,
+            "allowed_max": 1.2192249111831188,
+            "delta": 3.715277820825577,
+            "legacy_value": 0.9753799289464951,
             "metric": "runtime_seconds.motion_runtime",
             "rule": "relative_not_worse",
             "status": "failed",
             "tolerance": 0.25,
             "unit": "s",
-            "v2_value": 4.611859947443008
+            "v2_value": 4.690657749772072
           }
         ],
         "passed_count": 7,
@@ -246,7 +246,8 @@
   "registry_coverage": {
     "registered_robots": [
       "roboparty_rpo",
-      "unitree_g1"
+      "unitree_g1",
+      "unitree_g1_23dof"
     ],
     "robots": [
       {
@@ -310,67 +311,34 @@
         "status": "ready"
       },
       {
-        "blockers": [
-          "missing_registration"
-        ],
+        "blockers": [],
         "compiled_profile": {
-          "compiler_version": null,
+          "compiler_version": "2.1.3",
           "diagnostics": [],
-          "exists": false,
-          "path": null,
-          "robot_fingerprint": null,
-          "schema_version": null,
+          "exists": true,
+          "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/unitree_g1_23dof/unitree_g1_23dof_compiled_retarget_profile_v2.json",
+          "robot_fingerprint": "e4bc9f227d79fd23dfb62141ce76d8ba7d4b3ddfbc8af1a06df2037f65a6af62",
+          "schema_version": 2,
           "warnings": []
-        },
-        "onboarding_report": {
-          "minimal_semantic_ik_map_template": {
-            "Chest": "<torso_body>",
-            "Hips": "<pelvis_or_base_body>",
-            "LeftFoot": "<left_foot_or_ankle_body>",
-            "LeftHand": "<left_hand_or_forearm_distal_body>",
-            "RightFoot": "<right_foot_or_ankle_body>",
-            "RightHand": "<right_hand_or_forearm_distal_body>"
-          },
-          "next_commands": [
-            "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --validate-only",
-            "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --force",
-            "python -m soma_retargeter.tools.benchmark_retargeting --robots unitree_g1_23dof --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
-          ],
-          "notes": [
-            "Do not fabricate robot assets or download unlicensed files.",
-            "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
-            "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
-          ],
-          "params_py_entries": [
-            "ROBOT_XML_DICT['unitree_g1_23dof']",
-            "RETARGETER_CONFIG_DICT['unitree_g1_23dof']",
-            "ROBOT_URDF_DICT['unitree_g1_23dof'] optional"
-          ],
-          "required_files": {
-            "mjcf_or_xml": "assets/robots/unitree_g1_23dof/mjcf/<robot>.xml",
-            "retargeter_config": "soma_retargeter/configs/unitree_g1_23dof/soma_to_unitree_g1_23dof_retargeter_config.json",
-            "urdf_optional": "assets/robots/unitree_g1_23dof/urdf/<robot>.urdf"
-          },
-          "status": "missing_assets_or_registration"
         },
         "paths": {
           "mjcf_path": {
-            "exists": false,
-            "path": null
+            "exists": true,
+            "path": "/mnt/ssd1/song/.cache/newton/newton-assets_unitree_g1_308a72cd/unitree_g1/mjcf/g1_23dof_rev_1_0.xml"
           },
           "retargeter_config": {
-            "exists": false,
-            "path": null
+            "exists": true,
+            "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/unitree_g1_23dof/soma_to_g1_23dof_retargeter_config.json"
           },
           "urdf_path": {
             "exists": false,
             "path": null
           }
         },
-        "registered": false,
+        "registered": true,
         "requested_name": "unitree_g1_23dof",
         "resolved_name": "unitree_g1_23dof",
-        "status": "missing_registration"
+        "status": "ready"
       },
       {
         "blockers": [],
@@ -531,8 +499,8 @@
     ],
     "schema_version": 1,
     "status_counts": {
-      "missing_registration": 3,
-      "ready": 3
+      "missing_registration": 2,
+      "ready": 4
     },
     "targets": [
       "roboparty_rpo",
@@ -813,16 +781,16 @@
               "value": 2.317901325736721
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8910828605294228,
-              "compile_profile": 0.045729152858257294,
-              "metric_runtime": 0.327580988407135,
+              "bvh_load_runtime": 0.938154973089695,
+              "compile_profile": 0.04239780828356743,
+              "metric_runtime": 0.33639349788427353,
               "motion_count": 2,
-              "motion_runtime": 0.8235670551657677,
+              "motion_runtime": 0.869784876704216,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 5.0646220035851,
-              "solve_fps": 197.19483577548715,
-              "solve_runtime": 0.8113802745938301,
-              "target_setup_runtime": 0.012186780571937561
+              "pipeline_construct_runtime": 5.183255769312382,
+              "solve_fps": 186.59963695993034,
+              "solve_runtime": 0.857450757175684,
+              "target_setup_runtime": 0.012334119528532028
             },
             "solver_iterations": {
               "status": "ok",
@@ -1667,15 +1635,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8910828605294228,
-              "metric_runtime": 0.327580988407135,
+              "bvh_load_runtime": 0.938154973089695,
+              "metric_runtime": 0.33639349788427353,
               "motion_count": 2,
-              "motion_runtime": 0.8235670551657677,
+              "motion_runtime": 0.869784876704216,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 5.0646220035851,
-              "solve_fps": 197.19483577548715,
-              "solve_runtime": 0.8113802745938301,
-              "target_setup_runtime": 0.012186780571937561
+              "pipeline_construct_runtime": 5.183255769312382,
+              "solve_fps": 186.59963695993034,
+              "solve_runtime": 0.857450757175684,
+              "target_setup_runtime": 0.012334119528532028
             },
             "status": "ok"
           },
@@ -1905,16 +1873,16 @@
               "value": 14.271998329495917
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8755983971059322,
-              "compile_profile": 0.045729152858257294,
-              "metric_runtime": 0.3273426592350006,
+              "bvh_load_runtime": 0.8094449564814568,
+              "compile_profile": 0.04239780828356743,
+              "metric_runtime": 0.3333534486591816,
               "motion_count": 2,
-              "motion_runtime": 4.1403591595590115,
+              "motion_runtime": 4.210176073014736,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.6306349746882915,
-              "solve_fps": 40.9920905516926,
-              "solve_runtime": 3.90319200232625,
-              "target_setup_runtime": 0.23716715723276138
+              "pipeline_construct_runtime": 4.285484913736582,
+              "solve_fps": 40.32767186160706,
+              "solve_runtime": 3.967499054968357,
+              "target_setup_runtime": 0.2426770180463791
             },
             "solver_iterations": {
               "status": "ok",
@@ -2768,15 +2736,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8755983971059322,
-              "metric_runtime": 0.3273426592350006,
+              "bvh_load_runtime": 0.8094449564814568,
+              "metric_runtime": 0.3333534486591816,
               "motion_count": 2,
-              "motion_runtime": 4.1403591595590115,
+              "motion_runtime": 4.210176073014736,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.6306349746882915,
-              "solve_fps": 40.9920905516926,
-              "solve_runtime": 3.90319200232625,
-              "target_setup_runtime": 0.23716715723276138
+              "pipeline_construct_runtime": 4.285484913736582,
+              "solve_fps": 40.32767186160706,
+              "solve_runtime": 3.967499054968357,
+              "target_setup_runtime": 0.2426770180463791
             },
             "status": "ok"
           },
@@ -3008,16 +2976,16 @@
           "value": 14.271998329495917
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8755983971059322,
-          "compile_profile": 0.045729152858257294,
-          "metric_runtime": 0.3273426592350006,
+          "bvh_load_runtime": 0.8094449564814568,
+          "compile_profile": 0.04239780828356743,
+          "metric_runtime": 0.3333534486591816,
           "motion_count": 2,
-          "motion_runtime": 4.1403591595590115,
+          "motion_runtime": 4.210176073014736,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.6306349746882915,
-          "solve_fps": 40.9920905516926,
-          "solve_runtime": 3.90319200232625,
-          "target_setup_runtime": 0.23716715723276138
+          "pipeline_construct_runtime": 4.285484913736582,
+          "solve_fps": 40.32767186160706,
+          "solve_runtime": 3.967499054968357,
+          "target_setup_runtime": 0.2426770180463791
         },
         "solver_iterations": {
           "status": "ok",
@@ -3871,15 +3839,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8755983971059322,
-          "metric_runtime": 0.3273426592350006,
+          "bvh_load_runtime": 0.8094449564814568,
+          "metric_runtime": 0.3333534486591816,
           "motion_count": 2,
-          "motion_runtime": 4.1403591595590115,
+          "motion_runtime": 4.210176073014736,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.6306349746882915,
-          "solve_fps": 40.9920905516926,
-          "solve_runtime": 3.90319200232625,
-          "target_setup_runtime": 0.23716715723276138
+          "pipeline_construct_runtime": 4.285484913736582,
+          "solve_fps": 40.32767186160706,
+          "solve_runtime": 3.967499054968357,
+          "target_setup_runtime": 0.2426770180463791
         },
         "status": "ok"
       },
@@ -4179,16 +4147,16 @@
               "value": 2.532490246215586
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8857640027999878,
-              "compile_profile": 0.03800642490386963,
-              "metric_runtime": 0.32425716146826744,
+              "bvh_load_runtime": 0.8655737675726414,
+              "compile_profile": 0.037971023470163345,
+              "metric_runtime": 0.33260565623641014,
               "motion_count": 2,
-              "motion_runtime": 0.9229067228734493,
+              "motion_runtime": 0.9753799289464951,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.632650196552277,
-              "solve_fps": 175.02064550289768,
-              "solve_runtime": 0.9141778647899628,
-              "target_setup_runtime": 0.008728858083486557
+              "pipeline_construct_runtime": 4.469263631850481,
+              "solve_fps": 165.51364230090763,
+              "solve_runtime": 0.9666876867413521,
+              "target_setup_runtime": 0.008692242205142975
             },
             "solver_iterations": {
               "status": "ok",
@@ -5033,15 +5001,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8857640027999878,
-              "metric_runtime": 0.32425716146826744,
+              "bvh_load_runtime": 0.8655737675726414,
+              "metric_runtime": 0.33260565623641014,
               "motion_count": 2,
-              "motion_runtime": 0.9229067228734493,
+              "motion_runtime": 0.9753799289464951,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.632650196552277,
-              "solve_fps": 175.02064550289768,
-              "solve_runtime": 0.9141778647899628,
-              "target_setup_runtime": 0.008728858083486557
+              "pipeline_construct_runtime": 4.469263631850481,
+              "solve_fps": 165.51364230090763,
+              "solve_runtime": 0.9666876867413521,
+              "target_setup_runtime": 0.008692242205142975
             },
             "status": "ok"
           },
@@ -5271,16 +5239,16 @@
               "value": 8.111093106011701
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8366751186549664,
-              "compile_profile": 0.03800642490386963,
-              "metric_runtime": 0.3236372247338295,
+              "bvh_load_runtime": 0.8597456812858582,
+              "compile_profile": 0.037971023470163345,
+              "metric_runtime": 0.3271630145609379,
               "motion_count": 2,
-              "motion_runtime": 4.611859947443008,
+              "motion_runtime": 4.690657749772072,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.219453185796738,
-              "solve_fps": 36.56995179826529,
-              "solve_runtime": 4.375176671892405,
-              "target_setup_runtime": 0.23668327555060387
+              "pipeline_construct_runtime": 4.1926703453063965,
+              "solve_fps": 35.93597630509432,
+              "solve_runtime": 4.452362686395645,
+              "target_setup_runtime": 0.2382950633764267
             },
             "solver_iterations": {
               "status": "ok",
@@ -6134,15 +6102,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8366751186549664,
-              "metric_runtime": 0.3236372247338295,
+              "bvh_load_runtime": 0.8597456812858582,
+              "metric_runtime": 0.3271630145609379,
               "motion_count": 2,
-              "motion_runtime": 4.611859947443008,
+              "motion_runtime": 4.690657749772072,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.219453185796738,
-              "solve_fps": 36.56995179826529,
-              "solve_runtime": 4.375176671892405,
-              "target_setup_runtime": 0.23668327555060387
+              "pipeline_construct_runtime": 4.1926703453063965,
+              "solve_fps": 35.93597630509432,
+              "solve_runtime": 4.452362686395645,
+              "target_setup_runtime": 0.2382950633764267
             },
             "status": "ok"
           },
@@ -6374,16 +6342,16 @@
           "value": 8.111093106011701
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8366751186549664,
-          "compile_profile": 0.03800642490386963,
-          "metric_runtime": 0.3236372247338295,
+          "bvh_load_runtime": 0.8597456812858582,
+          "compile_profile": 0.037971023470163345,
+          "metric_runtime": 0.3271630145609379,
           "motion_count": 2,
-          "motion_runtime": 4.611859947443008,
+          "motion_runtime": 4.690657749772072,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.219453185796738,
-          "solve_fps": 36.56995179826529,
-          "solve_runtime": 4.375176671892405,
-          "target_setup_runtime": 0.23668327555060387
+          "pipeline_construct_runtime": 4.1926703453063965,
+          "solve_fps": 35.93597630509432,
+          "solve_runtime": 4.452362686395645,
+          "target_setup_runtime": 0.2382950633764267
         },
         "solver_iterations": {
           "status": "ok",
@@ -7237,15 +7205,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8366751186549664,
-          "metric_runtime": 0.3236372247338295,
+          "bvh_load_runtime": 0.8597456812858582,
+          "metric_runtime": 0.3271630145609379,
           "motion_count": 2,
-          "motion_runtime": 4.611859947443008,
+          "motion_runtime": 4.690657749772072,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.219453185796738,
-          "solve_fps": 36.56995179826529,
-          "solve_runtime": 4.375176671892405,
-          "target_setup_runtime": 0.23668327555060387
+          "pipeline_construct_runtime": 4.1926703453063965,
+          "solve_fps": 35.93597630509432,
+          "solve_runtime": 4.452362686395645,
+          "target_setup_runtime": 0.2382950633764267
         },
         "status": "ok"
       },

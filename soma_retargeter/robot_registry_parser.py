@@ -24,7 +24,7 @@ POSE_SLOT_ORDER = (
     "arms_forward_squat_hip_yaw_out_45",
 )
 
-_BUILTIN_ROBOT_NAMES = {"unitree_g1", "roboparty_rpo"}
+_BUILTIN_ROBOT_NAMES = {"unitree_g1", "unitree_g1_23dof", "roboparty_rpo"}
 _BUILTIN_ALIASES = {
     "g1": "unitree_g1",
     "unitree": "unitree_g1",
@@ -267,6 +267,13 @@ def get_robot_mjcf_path(robot_name: str | None) -> Path | None:
     explicit_path = _get_raw_profile_path(robot_name, "mjcf_path")
     if explicit_path is not None:
         return explicit_path
+    if robot_name == "unitree_g1_23dof":
+        try:
+            import newton
+
+            return Path(newton.utils.download_asset("unitree_g1")) / "mjcf/g1_23dof_rev_1_0.xml"
+        except Exception:
+            return None
     if robot_name == "unitree_g1":
         try:
             import newton

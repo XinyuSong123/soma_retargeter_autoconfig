@@ -1,7 +1,8 @@
 {
   "registered_robots": [
     "roboparty_rpo",
-    "unitree_g1"
+    "unitree_g1",
+    "unitree_g1_23dof"
   ],
   "robots": [
     {
@@ -65,67 +66,34 @@
       "status": "ready"
     },
     {
-      "blockers": [
-        "missing_registration"
-      ],
+      "blockers": [],
       "compiled_profile": {
-        "compiler_version": null,
+        "compiler_version": "2.1.3",
         "diagnostics": [],
-        "exists": false,
-        "path": null,
-        "robot_fingerprint": null,
-        "schema_version": null,
+        "exists": true,
+        "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/unitree_g1_23dof/unitree_g1_23dof_compiled_retarget_profile_v2.json",
+        "robot_fingerprint": "e4bc9f227d79fd23dfb62141ce76d8ba7d4b3ddfbc8af1a06df2037f65a6af62",
+        "schema_version": 2,
         "warnings": []
-      },
-      "onboarding_report": {
-        "minimal_semantic_ik_map_template": {
-          "Chest": "<torso_body>",
-          "Hips": "<pelvis_or_base_body>",
-          "LeftFoot": "<left_foot_or_ankle_body>",
-          "LeftHand": "<left_hand_or_forearm_distal_body>",
-          "RightFoot": "<right_foot_or_ankle_body>",
-          "RightHand": "<right_hand_or_forearm_distal_body>"
-        },
-        "next_commands": [
-          "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --validate-only",
-          "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --force",
-          "python -m soma_retargeter.tools.benchmark_retargeting --robots unitree_g1_23dof --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
-        ],
-        "notes": [
-          "Do not fabricate robot assets or download unlicensed files.",
-          "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
-          "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
-        ],
-        "params_py_entries": [
-          "ROBOT_XML_DICT['unitree_g1_23dof']",
-          "RETARGETER_CONFIG_DICT['unitree_g1_23dof']",
-          "ROBOT_URDF_DICT['unitree_g1_23dof'] optional"
-        ],
-        "required_files": {
-          "mjcf_or_xml": "assets/robots/unitree_g1_23dof/mjcf/<robot>.xml",
-          "retargeter_config": "soma_retargeter/configs/unitree_g1_23dof/soma_to_unitree_g1_23dof_retargeter_config.json",
-          "urdf_optional": "assets/robots/unitree_g1_23dof/urdf/<robot>.urdf"
-        },
-        "status": "missing_assets_or_registration"
       },
       "paths": {
         "mjcf_path": {
-          "exists": false,
-          "path": null
+          "exists": true,
+          "path": "/mnt/ssd1/song/.cache/newton/newton-assets_unitree_g1_308a72cd/unitree_g1/mjcf/g1_23dof_rev_1_0.xml"
         },
         "retargeter_config": {
-          "exists": false,
-          "path": null
+          "exists": true,
+          "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/unitree_g1_23dof/soma_to_g1_23dof_retargeter_config.json"
         },
         "urdf_path": {
           "exists": false,
           "path": null
         }
       },
-      "registered": false,
+      "registered": true,
       "requested_name": "unitree_g1_23dof",
       "resolved_name": "unitree_g1_23dof",
-      "status": "missing_registration"
+      "status": "ready"
     },
     {
       "blockers": [],
@@ -286,8 +254,8 @@
   ],
   "schema_version": 1,
   "status_counts": {
-    "missing_registration": 3,
-    "ready": 3
+    "missing_registration": 2,
+    "ready": 4
   },
   "targets": [
     "roboparty_rpo",

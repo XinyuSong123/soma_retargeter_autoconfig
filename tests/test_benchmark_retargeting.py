@@ -240,7 +240,7 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertTrue(np.allclose(payload["by_semantic"]["LeftHand"]["axis_rmse"], [2.5, 0.0, 0.0]))
 
     def test_registry_coverage_report_marks_missing_and_incomplete_targets(self):
-        report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "unitree_g1_29dof", "e3_v2", "oli"))
+        report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "unitree_g1_23dof", "unitree_g1_29dof", "e3_v2", "oli"))
         by_name = {entry["requested_name"]: entry for entry in report["robots"]}
 
         self.assertEqual(by_name["roboparty_rpo"]["status"], "ready")
@@ -249,6 +249,11 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(by_name["unitree_g1"]["status"], "ready")
         self.assertTrue(by_name["unitree_g1"]["paths"]["mjcf_path"]["exists"])
         self.assertEqual(by_name["unitree_g1"]["blockers"], [])
+        self.assertEqual(by_name["unitree_g1_23dof"]["resolved_name"], "unitree_g1_23dof")
+        self.assertEqual(by_name["unitree_g1_23dof"]["status"], "ready")
+        self.assertTrue(by_name["unitree_g1_23dof"]["paths"]["mjcf_path"]["exists"])
+        self.assertTrue(by_name["unitree_g1_23dof"]["compiled_profile"]["exists"])
+        self.assertEqual(by_name["unitree_g1_23dof"]["blockers"], [])
         self.assertEqual(by_name["unitree_g1_29dof"]["resolved_name"], "unitree_g1")
         self.assertEqual(by_name["unitree_g1_29dof"]["status"], "ready")
         self.assertTrue(by_name["unitree_g1_29dof"]["paths"]["mjcf_path"]["exists"])
