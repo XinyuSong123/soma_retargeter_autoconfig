@@ -21,7 +21,11 @@ import warp as wp
 import soma_retargeter.utils.io_utils as io_utils
 from soma_retargeter.robot_registry_parser import (
     ensure_compiled_retarget_profile,
+    ensure_generated_scaler_config,
     get_robot_profile,
+    get_robot_model_height,
+    get_profile_path,
+    make_config_reference,
     resolve_robot_name,
     validate_compiled_retarget_profile,
 )
@@ -224,11 +228,20 @@ def _merge_runtime_metrics(metrics: dict[str, Any], runtime: dict[str, Any] | No
     metrics["runtime_seconds"] = runtime_seconds
 
 
+def _profile_metrics(task_summary: dict[str, Any], confidence: float, warning_count: int, elapsed_s: float, runtime: dict[str, Any] | None) -> dict[str, Any]:
+    metrics = _not_run_metrics(task_summary, elapsed_s)
+    metrics["confidence"] = confidence
+    metrics["warnings"] = warning_count
+    _merge_runtime_metrics(metrics, runtime)
+    return metrics
+
+
 def summarize_profile(
     robot: str,
     profile_path: Path,
     elapsed_s: float,
     runtime: dict[str, Any] | None = None,
+    compare_runtimes: dict[str, dict[str, Any] | None] | None = None,
 ) -> dict[str, Any]:
     profile = io_utils.load_json(profile_path)
     diagnostics = validate_compiled_retarget_profile(profile)
@@ -237,10 +250,15 @@ def summarize_profile(
     chain_summary = _chain_summary(profile)
     collision_summary = _collision_summary(profile)
     root_ground_summary = _root_ground_summary(profile)
-    metrics = _not_run_metrics(task_summary, elapsed_s)
-    metrics["confidence"] = float(profile.get("confidence", 0.0))
-    metrics["warnings"] = len(warnings)
-    _merge_runtime_metrics(metrics, runtime)
+    confidence = float(profile.get("confidence", 0.0))
+    metrics = _profile_metrics(task_summary, confidence, len(warnings), elapsed_s, runtime)
+    compare_results = {}
+    for compare_mode, compare_runtime in (compare_runtimes or {}).items():
+        compare_results[compare_mode] = {
+            "status": compare_runtime.get("status", "not_run") if isinstance(compare_runtime, dict) else "not_run",
+            "motion_benchmark": compare_runtime,
+            "metrics": _profile_metrics(task_summary, confidence, len(warnings), elapsed_s, compare_runtime),
+        }
     return {
         "robot": robot,
         "status": "ok" if not diagnostics else "diagnostics",
@@ -257,6 +275,7 @@ def summarize_profile(
         "collision_summary": collision_summary,
         "root_ground_summary": root_ground_summary,
         "motion_benchmark": runtime,
+        "compare_results": compare_results,
         "metrics": metrics,
     }
 
@@ -291,6 +310,76 @@ def _resolve_motion_paths(raw_paths: list[str], max_motions: int | None = None) 
     if max_motions is not None and max_motions > 0:
         return deduped[:max_motions]
     return deduped
+
+
+def _normalize_legacy_ik_map(raw_config: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    # Keep this local to the benchmark so legacy comparison does not affect the
+    # v2 runtime registry path.
+    from soma_retargeter.robot_registry_parser import _normalize_ik_mapping_entry
+
+    out: dict[str, dict[str, Any]] = {}
+    raw_ik_map = raw_config.get("ik_map", {})
+    if not isinstance(raw_ik_map, dict):
+        return out
+    for joint_name, entry in raw_ik_map.items():
+        normalized = _normalize_ik_mapping_entry(str(joint_name), entry)
+        if normalized is not None:
+            out[str(joint_name)] = normalized
+    return out
+
+
+def _legacy_runtime_retargeter_config(robot: str) -> dict[str, Any]:
+    raw_path = get_profile_path(robot, "retargeter_config")
+    if raw_path is None:
+        raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+    raw_config = io_utils.load_json(raw_path)
+    scaler_path = ensure_generated_scaler_config(robot)
+    if scaler_path is None:
+        raise FileNotFoundError(f"Scaler config cannot be generated for robot {robot!r}")
+    config = {
+        "initialization_pose": "soma/soma_zero_frame0.bvh",
+        "num_initialization_frames": 10,
+        "num_stabilization_frames": 5,
+        "human_robot_scaler_config": make_config_reference(scaler_path),
+        "model_height": get_robot_model_height(robot),
+        "ik_iterations": 24,
+        "joint_limit_weight": 10.0,
+        "smooth_joint_filter_weight": 5.5,
+        "collision_weight": 0.0,
+        "enable_post_processing": False,
+        "ik_map": _normalize_legacy_ik_map(raw_config),
+    }
+    for key in (
+        "ik_iterations",
+        "joint_limit_weight",
+        "smooth_joint_filter_weight",
+        "temporal_velocity_weight",
+        "temporal_acceleration_weight",
+        "collision_weight",
+        "enable_post_processing",
+        "feet_stabilizer_config",
+        "smooth_joint_filter_objective_body_masks",
+        "output_default_pose_blend_frames",
+        "output_default_pose_blend_bodies",
+        "enable_virtual_foot_grounding",
+        "virtual_foot_grounding_smooth_window",
+        "contact_aware_foot_ik",
+        "ground_barrier",
+        "model_height",
+        "human_robot_scaler_config",
+    ):
+        if key in raw_config:
+            config[key] = raw_config[key]
+    return config
+
+
+def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] | None:
+    compare_mode = compare_mode.lower()
+    if compare_mode == "legacy":
+        return _legacy_runtime_retargeter_config(robot)
+    if compare_mode == "v2":
+        return None
+    raise ValueError(f"Unsupported compare mode {compare_mode!r}; expected 'legacy' or 'v2'.")
 
 
 def _metric_payload(value: float | int | None, **extra: Any) -> dict[str, Any]:
@@ -501,7 +590,13 @@ def _aggregate_motion_metrics(motion_payloads: list[dict[str, Any]]) -> dict[str
     return aggregated
 
 
-def _run_runtime_benchmark(robot: str, profile_path: Path, motion_paths: list[Path], max_frames: int) -> dict[str, Any] | None:
+def _run_runtime_benchmark(
+    robot: str,
+    profile_path: Path,
+    motion_paths: list[Path],
+    max_frames: int,
+    compare_mode: str = "v2",
+) -> dict[str, Any] | None:
     if not motion_paths:
         return None
     import soma_retargeter.assets.bvh as bvh_utils
@@ -528,7 +623,7 @@ def _run_runtime_benchmark(robot: str, profile_path: Path, motion_paths: list[Pa
     if first_skeleton is None or not animations:
         return None
 
-    pipeline = NewtonPipeline(first_skeleton, "soma", robot)
+    pipeline = NewtonPipeline(first_skeleton, "soma", robot, retarget_config=_runtime_retargeter_config(robot, compare_mode))
     started = time.perf_counter()
     pipeline.add_input_motions(animations, [wp.transform_identity()] * len(animations), True)
     output_buffers = pipeline.execute()
@@ -545,6 +640,7 @@ def _run_runtime_benchmark(robot: str, profile_path: Path, motion_paths: list[Pa
         )
     return {
         "status": "ok",
+        "compare_mode": compare_mode,
         "motions": motion_payloads,
         "runtime_seconds": {
             "motion_runtime": elapsed,
@@ -564,6 +660,17 @@ def _run_runtime_benchmark(robot: str, profile_path: Path, motion_paths: list[Pa
     }
 
 
+def _runtime_failure_payload(exc: BaseException) -> dict[str, Any]:
+    return {
+        "status": "failed",
+        "exception": type(exc).__name__,
+        "message": str(exc),
+        "stack": traceback.format_exc(),
+        "runtime_seconds": {},
+        "metrics": {name: {"status": "failed", "reason": str(exc)} for name in _RUNTIME_METRIC_NAMES},
+    }
+
+
 def run_robot(robot_arg: str, output_dir: Path, force: bool, command: str, args: argparse.Namespace) -> dict[str, Any]:
     robot = resolve_robot_name(robot_arg)
     started = time.perf_counter()
@@ -572,21 +679,16 @@ def run_robot(robot_arg: str, output_dir: Path, force: bool, command: str, args:
         if profile_path is None:
             raise ValueError(f"No compiled profile path available for robot {robot!r}")
         elapsed = time.perf_counter() - started
-        runtime = None
+        compare_runtimes: dict[str, dict[str, Any] | None] = {}
         motion_paths = _resolve_motion_paths(args.motions, args.max_motions)
         if motion_paths:
-            try:
-                runtime = _run_runtime_benchmark(robot, profile_path, motion_paths, args.max_frames)
-            except Exception as exc:
-                runtime = {
-                    "status": "failed",
-                    "exception": type(exc).__name__,
-                    "message": str(exc),
-                    "stack": traceback.format_exc(),
-                    "runtime_seconds": {},
-                    "metrics": {name: {"status": "failed", "reason": str(exc)} for name in _RUNTIME_METRIC_NAMES},
-                }
-        result = summarize_profile(robot, profile_path, elapsed, runtime=runtime)
+            for compare_mode in args.compare:
+                try:
+                    compare_runtimes[compare_mode] = _run_runtime_benchmark(robot, profile_path, motion_paths, args.max_frames, compare_mode)
+                except Exception as exc:
+                    compare_runtimes[compare_mode] = _runtime_failure_payload(exc)
+        primary_runtime = compare_runtimes.get("v2") or next((payload for payload in compare_runtimes.values() if payload is not None), None)
+        result = summarize_profile(robot, profile_path, elapsed, runtime=primary_runtime, compare_runtimes=compare_runtimes)
         _write_json(output_dir / "per_robot" / f"{robot}.json", result)
         return result
     except Exception as exc:
@@ -604,9 +706,13 @@ def _write_frames_csv(path: Path, results: list[dict[str, Any]]) -> None:
         )
         writer.writeheader()
         for result in results:
+            compare_results = result.get("compare_results", {})
             for compare_mode in result.get("compare_modes", []):
+                compare_metrics = result.get("metrics", {})
+                if isinstance(compare_results, dict) and compare_mode in compare_results:
+                    compare_metrics = compare_results[compare_mode].get("metrics", compare_metrics)
                 for metric in METRIC_NAMES:
-                    metric_payload = result.get("metrics", {}).get(metric, {})
+                    metric_payload = compare_metrics.get(metric, {})
                     metric_status = metric_payload.get("status", result.get("status")) if isinstance(metric_payload, dict) else result.get("status")
                     metric_value = metric_payload.get("value", "") if isinstance(metric_payload, dict) else ""
                     writer.writerow(
@@ -619,21 +725,22 @@ def _write_frames_csv(path: Path, results: list[dict[str, Any]]) -> None:
                             "status": metric_status,
                         }
                     )
-            motion_benchmark = result.get("motion_benchmark", {})
-            if not isinstance(motion_benchmark, dict):
-                continue
-            for motion_idx, motion in enumerate(motion_benchmark.get("motions", [])):
-                for metric, metric_payload in motion.get("metrics", {}).items():
-                    writer.writerow(
-                        {
-                            "robot": result.get("robot"),
-                            "compare_mode": "runtime",
-                            "frame": motion_idx,
-                            "metric": metric,
-                            "value": metric_payload.get("value", "") if isinstance(metric_payload, dict) else "",
-                            "status": metric_payload.get("status", result.get("status")) if isinstance(metric_payload, dict) else result.get("status"),
-                        }
-                    )
+                compare_payload = compare_results.get(compare_mode, {}) if isinstance(compare_results, dict) else {}
+                motion_benchmark = compare_payload.get("motion_benchmark", {})
+                if not isinstance(motion_benchmark, dict):
+                    continue
+                for motion_idx, motion in enumerate(motion_benchmark.get("motions", [])):
+                    for metric, metric_payload in motion.get("metrics", {}).items():
+                        writer.writerow(
+                            {
+                                "robot": result.get("robot"),
+                                "compare_mode": compare_mode,
+                                "frame": motion_idx,
+                                "metric": metric,
+                                "value": metric_payload.get("value", "") if isinstance(metric_payload, dict) else "",
+                                "status": metric_payload.get("status", result.get("status")) if isinstance(metric_payload, dict) else result.get("status"),
+                            }
+                        )
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

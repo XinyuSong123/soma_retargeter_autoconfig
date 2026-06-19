@@ -33,4 +33,4 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 - `per_robot/<robot>.json`
 - `failures/<robot>.json` on failure
 
-When `--motions` is provided, the benchmark expands BVH files, runs a capped NewtonPipeline rollout, and records runtime metrics in `motion_benchmark` plus aggregate `metrics`. Full legacy/v2 runtime comparison and per-objective residual extraction are still future work.
+When `--motions` is provided, the benchmark expands BVH files and runs capped NewtonPipeline rollouts for each requested compare mode. Legacy rollouts use the raw configured `ik_map` without the compiled profile; v2 rollouts use the morphology-aware compiled profile. Results are recorded under `compare_results`, with v2 mirrored into top-level `motion_benchmark` and aggregate `metrics` for backward compatibility. Full-motion comparison and per-objective residual extraction are still future work.

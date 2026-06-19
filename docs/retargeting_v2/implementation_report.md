@@ -52,7 +52,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest result before this report update: `70 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest result before this report update: `71 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
@@ -62,15 +62,15 @@ Generated command:
 python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 --motions assets/motions/bvh --max-motions 1 --max-frames 5 --compare legacy v2 --output artifacts/retargeting_v2 --force
 ```
 
-Current artifact scope includes compile-level validation plus a bounded runtime smoke rollout for the first discovered BVH motion. Runtime metrics now include joint-limit margin, foot slide or structured unavailability, penetration, root tilt, hand/foot position RMSE, velocity/acceleration p95, solver iterations, and fallback counts. Task residual by priority and torso reachable/unreachable residual metrics are still marked `unavailable` because their per-objective runtime residual extraction is not implemented yet.
+Current artifact scope includes compile-level validation plus bounded runtime smoke rollouts for the first discovered BVH motion. The benchmark now runs legacy and v2 compare modes through separate runtime configs: legacy uses the raw string `ik_map` with default position/rotation weights and no compiled profile, while v2 uses the compiled morphology-aware profile, direction/pole tasks, segment-local scaler, and priority guard. Runtime metrics include joint-limit margin, foot slide or structured unavailability, penetration, root tilt, hand/foot position RMSE, velocity/acceleration p95, solver iterations, and fallback counts. Task residual by priority and torso reachable/unreachable residual metrics are still marked `unavailable` because their per-objective runtime residual extraction is not implemented yet.
 
-RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, enabled sparse tasks, mesh-derived hand/foot virtual sites, virtual-foot-site root/ground metadata, mesh-derived self-collision metadata, morphology site-count metadata, matching cache fingerprints, and runtime-smoke metrics with zero measured penetration in the bounded sample.
+RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, enabled sparse tasks, mesh-derived hand/foot virtual sites, virtual-foot-site root/ground metadata, mesh-derived self-collision metadata, morphology site-count metadata, matching cache fingerprints, and separated legacy/v2 runtime-smoke metrics with zero measured v2 penetration in the bounded sample.
 
-Unitree G1 currently produces a v2 artifact and runtime-smoke metrics, but its chain summary shows zero reachable ranks and minimal chain lengths; this is a known limitation of the current registered model/config path and needs deeper registry/morphology work before runtime acceptance.
+Unitree G1 currently produces a v2 artifact and separated legacy/v2 runtime-smoke metrics. The bounded sample shows legacy foot penetration while v2 reports zero measured penetration, but its chain summary still shows zero reachable ranks and minimal chain lengths; this is a known limitation of the current registered model/config path and needs deeper registry/morphology work before runtime acceptance.
 
 ## Remaining Work
 
-- Extend the bounded runtime-smoke benchmark into full motion-level legacy/v2 comparison loops.
+- Extend the bounded runtime-smoke benchmark into full-motion legacy/v2 comparison loops.
 - Add E3 v2 and OLI registry assets when available.
 - Add runtime benchmark coverage for optional collision barriers on real motions.
 - Strengthen semantic auto-detection beyond conservative body-name matching.

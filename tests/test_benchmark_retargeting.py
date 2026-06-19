@@ -5,10 +5,20 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from soma_retargeter.tools.benchmark_retargeting import main
+from soma_retargeter.tools.benchmark_retargeting import _legacy_runtime_retargeter_config, main
 
 
 class TestBenchmarkRetargeting(unittest.TestCase):
+    def test_legacy_runtime_config_does_not_use_compiled_profile(self):
+        cfg = _legacy_runtime_retargeter_config("roboparty_rpo")
+        self.assertNotIn("compiled_retarget_profile", cfg)
+        self.assertNotIn("direction_tasks", cfg)
+        self.assertNotIn("pole_vector_tasks", cfg)
+        self.assertEqual(cfg["ik_map"]["Hips"]["t_weight"], 10.0)
+        self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 2.0)
+        self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.5)
+        self.assertEqual(cfg["ik_map"]["Chest"]["r_weight"], 0.5)
+
     def test_benchmark_writes_required_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / "bench"
@@ -97,15 +107,17 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertEqual(rc, 0)
             per_robot = json.loads((out / "per_robot" / "roboparty_rpo.json").read_text())
             self.assertEqual(per_robot["motion_benchmark"]["status"], "ok")
+            self.assertIn("legacy", per_robot["compare_results"])
+            self.assertIn("v2", per_robot["compare_results"])
             self.assertEqual(per_robot["metrics"]["velocity_p95"]["status"], "ok")
             self.assertEqual(per_robot["metrics"]["velocity_p95"]["value"], 2.5)
             self.assertEqual(per_robot["metrics"]["runtime_seconds"]["motion_runtime"], 1.25)
 
             with (out / "benchmark_frames.csv").open(newline="") as handle:
                 rows = list(csv.DictReader(handle))
-            runtime_rows = [row for row in rows if row["compare_mode"] == "runtime" and row["metric"] == "velocity_p95"]
-            self.assertEqual(len(runtime_rows), 1)
-            self.assertEqual(runtime_rows[0]["value"], "2.5")
+            runtime_rows = [row for row in rows if row["frame"] == "0" and row["metric"] == "velocity_p95"]
+            self.assertEqual({row["compare_mode"] for row in runtime_rows}, {"legacy", "v2"})
+            self.assertTrue(all(row["value"] == "2.5" for row in runtime_rows))
 
     def test_benchmark_persists_failure_payload(self):
         with tempfile.TemporaryDirectory() as td:
