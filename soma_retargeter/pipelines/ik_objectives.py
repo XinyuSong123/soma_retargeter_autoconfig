@@ -278,6 +278,41 @@ def _autodiff_diag_jac_fill(
 
 
 @wp.kernel
+def _temporal_joint_residuals(
+    joint_q: wp.array2d(dtype=wp.float32),
+    reference_q: wp.array2d(dtype=wp.float32),
+    reference_q2: wp.array2d(dtype=wp.float32),
+    scales: wp.array2d(dtype=wp.float32),
+    coord_masks: wp.array1d(dtype=wp.float32),
+    weight: wp.array1d(dtype=wp.float32),
+    mode: int,
+    start_idx: int,
+    problem_idx_map: wp.array1d(dtype=wp.int32),
+    residuals: wp.array2d(dtype=wp.float32),
+):
+    row, coord_idx = wp.tid()
+    base = problem_idx_map[row]
+    delta = joint_q[row, coord_idx] - reference_q[base, coord_idx]
+    if mode == 2:
+        delta = joint_q[row, coord_idx] - 2.0 * reference_q[base, coord_idx] + reference_q2[base, coord_idx]
+    residuals[row, start_idx + coord_idx] = delta * scales[base, coord_idx] * coord_masks[coord_idx] * weight[0]
+
+
+@wp.kernel
+def _temporal_joint_jac_analytic(
+    scales: wp.array2d(dtype=wp.float32),
+    coord_masks: wp.array1d(dtype=wp.float32),
+    weight: wp.array1d(dtype=wp.float32),
+    start_idx: int,
+    n_coords: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem_idx, coord_idx = wp.tid()
+    if coord_idx < n_coords:
+        jacobian[problem_idx, start_idx + coord_idx, coord_idx] = scales[problem_idx, coord_idx] * coord_masks[coord_idx] * weight[0]
+
+
+@wp.kernel
 def _per_env_position_residuals(
     body_q: wp.array2d(dtype=wp.transform),
     target_pos: wp.array1d(dtype=wp.vec3),
@@ -705,6 +740,104 @@ class IKRangeNormalizedJointLimitBarrier(ik.IKObjective):
                 self.margin_fraction,
                 self._weight,
                 start_idx,
+            ],
+            outputs=[jacobian],
+            device=self.device,
+        )
+
+
+class IKTemporalJointRegularizer(ik.IKObjective):
+    """Per-environment velocity or acceleration regularizer in normalized joint coordinates."""
+
+    MODE_VELOCITY = 1
+    MODE_ACCELERATION = 2
+
+    def __init__(self, reference_q, scales, weight=0.0, coord_masks=None, mode=MODE_VELOCITY, reference_q2=None):
+        super().__init__()
+        self.reference_q = reference_q
+        self.reference_q2 = reference_q2 if reference_q2 is not None else reference_q
+        self.scales = scales
+        self.weight = wp.array([float(weight)], dtype=wp.float32)
+        self.mode = int(mode)
+        self.n_coords = reference_q.shape[1]
+        self.coord_masks = None
+        self.coord_masks_np = None
+        if coord_masks is not None:
+            if isinstance(coord_masks, np.ndarray):
+                self.coord_masks_np = coord_masks.astype(np.float32)
+            elif isinstance(coord_masks, wp.array):
+                self.coord_masks = coord_masks
+
+    def init_buffers(self, model, jacobian_mode):
+        self._require_batch_layout()
+        if self.n_coords != model.joint_coord_count:
+            raise ValueError(f"Temporal reference width {self.n_coords} does not match model coords {model.joint_coord_count}")
+        if self.coord_masks_np is not None and len(self.coord_masks_np) == model.joint_coord_count:
+            self.coord_masks = wp.array(self.coord_masks_np, dtype=wp.float32, device=self.device)
+        if self.coord_masks is None:
+            self.coord_masks = wp.ones(shape=model.joint_coord_count, dtype=wp.float32, device=self.device)
+
+    def supports_analytic(self):
+        return True
+
+    def residual_dim(self):
+        return self.n_coords
+
+    def set_weight(self, value):
+        wp.launch(
+            _update_weight,
+            dim=1,
+            inputs=[float(value)],
+            outputs=[self.weight],
+            device=self.device,
+        )
+
+    def set_references(self, reference_q, reference_q2=None, scales=None):
+        self._require_batch_layout()
+        ref = np.asarray(reference_q, dtype=np.float32)
+        if ref.shape != self.reference_q.shape:
+            raise ValueError(f"Expected reference_q shape {self.reference_q.shape}, got {ref.shape}")
+        wp.copy(self.reference_q, wp.array(ref, dtype=wp.float32, device=self.device))
+        if reference_q2 is not None:
+            ref2 = np.asarray(reference_q2, dtype=np.float32)
+            if ref2.shape != self.reference_q2.shape:
+                raise ValueError(f"Expected reference_q2 shape {self.reference_q2.shape}, got {ref2.shape}")
+            wp.copy(self.reference_q2, wp.array(ref2, dtype=wp.float32, device=self.device))
+        if scales is not None:
+            scale_values = np.asarray(scales, dtype=np.float32)
+            if scale_values.shape != self.scales.shape:
+                raise ValueError(f"Expected scales shape {self.scales.shape}, got {scale_values.shape}")
+            wp.copy(self.scales, wp.array(scale_values, dtype=wp.float32, device=self.device))
+
+    def compute_residuals(self, body_q, joint_q, model, residuals, start_idx, problem_idx):
+        wp.launch(
+            _temporal_joint_residuals,
+            dim=[joint_q.shape[0], self.n_coords],
+            inputs=[
+                joint_q,
+                self.reference_q,
+                self.reference_q2,
+                self.scales,
+                self.coord_masks,
+                self.weight,
+                self.mode,
+                start_idx,
+                problem_idx,
+            ],
+            outputs=[residuals],
+            device=self.device,
+        )
+
+    def compute_jacobian_analytic(self, body_q, joint_q, model, jacobian, joint_S_s, start_idx):
+        wp.launch(
+            _temporal_joint_jac_analytic,
+            dim=[joint_q.shape[0], self.n_coords],
+            inputs=[
+                self.scales,
+                self.coord_masks,
+                self.weight,
+                start_idx,
+                self.n_coords,
             ],
             outputs=[jacobian],
             device=self.device,

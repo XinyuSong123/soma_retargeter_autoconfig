@@ -797,6 +797,8 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         "ik_iterations",
         "joint_limit_weight",
         "smooth_joint_filter_weight",
+        "temporal_velocity_weight",
+        "temporal_acceleration_weight",
         "collision_weight",
         "enable_post_processing",
         "feet_stabilizer_config",

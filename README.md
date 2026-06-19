@@ -139,6 +139,7 @@ For reachable low-rank rotation tasks, the runtime projects target quaternions i
 Middle-limb direction tasks are run as unit-vector IK objectives between compiled parent/child robot bodies. Pole-vector tasks use parent/middle/child bend-plane normals with per-environment source fallback to the previous or neutral normal. Mixed analytic/autodiff Jacobian mode is enabled only when these v2 residuals are active.
 The runtime scaler also switches to segment-local target construction from the compiled chain lengths, while the legacy geocentric scaler remains available as `LegacyHumanToRobotScaler`.
 Joint safety uses a range-normalized margin barrier for the warm-up smooth filter path: finite non-continuous joints have near-zero residual inside the safe margin and monotonic residual growth near either limit; the final clamp remains a numerical safeguard.
+Temporal velocity and acceleration regularizers are available through `temporal_velocity_weight` and `temporal_acceleration_weight`. They are disabled by default for backward compatibility, and when enabled they normalize actuated joint deltas by joint range and each clip's sample rate while skipping the floating root coordinates.
 
 ### Config optimizer
 
@@ -168,7 +169,7 @@ The optimizer is now an advanced residual calibration path. The default path is 
 | `animation/` | Core data structures for skeletons, animation buffers, IK, and skinned meshes. |
 | `assets/` | File I/O for BVH, CSV, and USD formats. |
 | `pipelines/` | Retargeting pipeline: IK solving, feet stabilization, and joint limit clamping. |
-| `pipelines/ik_objectives.py` | Custom IK objectives for per-env contact anchors, v2 direction and pole-vector tasks, and range-normalized joint-limit barriers. |
+| `pipelines/ik_objectives.py` | Custom IK objectives for per-env contact anchors, v2 direction and pole-vector tasks, range-normalized joint-limit barriers, and temporal regularizers. |
 | `robotics/` | Human-to-robot scaling and robot output formatting. |
 | `robotics/human_to_robot_scaler.py` | Legacy v1 scaler plus v2 segment-local target builder. |
 | `robotics/task_compiler.py` | Morphology-aware v2 task/profile compiler. |

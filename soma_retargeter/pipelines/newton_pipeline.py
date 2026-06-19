@@ -16,6 +16,7 @@ from soma_retargeter.pipelines.ik_objectives import (
     IKObjectivePoleVector,
     IKObjectivePerEnvWeightedPosition,
     IKRangeNormalizedJointLimitBarrier,
+    IKTemporalJointRegularizer,
 )
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
@@ -33,6 +34,8 @@ from soma_retargeter.pipelines.foot_contact_inference import (
 _DEFAULT_IK_SOLVER_ITERATIONS = 24
 _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT = 10.0
 _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT = 5.5
+_DEFAULT_TEMPORAL_VELOCITY_WEIGHT = 0.0
+_DEFAULT_TEMPORAL_ACCELERATION_WEIGHT = 0.0
 _DEFAULT_NUM_INITIALIZATION_FRAMES = 10
 _DEFAULT_NUM_STABILIZATION_FRAMES = 5
 
@@ -76,6 +79,8 @@ class NewtonPipeline:
         self.ik_iterations = retargeter_config.get('ik_iterations', _DEFAULT_IK_SOLVER_ITERATIONS)
         self.joint_limit_weight = retargeter_config.get('joint_limit_weight', _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT)
         self.smooth_joint_filter_weight = retargeter_config.get('smooth_joint_filter_weight', _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT)
+        self.temporal_velocity_weight = retargeter_config.get('temporal_velocity_weight', _DEFAULT_TEMPORAL_VELOCITY_WEIGHT)
+        self.temporal_acceleration_weight = retargeter_config.get('temporal_acceleration_weight', _DEFAULT_TEMPORAL_ACCELERATION_WEIGHT)
         self.post_processing_enabled = retargeter_config.get('enable_post_processing', True)
         self.virtual_foot_grounding_enabled = retargeter_config.get('enable_virtual_foot_grounding', True)
         self.virtual_foot_grounding_smooth_window = max(
@@ -259,6 +264,8 @@ class NewtonPipeline:
         self.ik_iterations = max(1, self.ik_iterations)
         self.joint_limit_weight = max(0.0, self.joint_limit_weight)
         self.smooth_joint_filter_weight = max(0.0, self.smooth_joint_filter_weight)
+        self.temporal_velocity_weight = max(0.0, float(self.temporal_velocity_weight))
+        self.temporal_acceleration_weight = max(0.0, float(self.temporal_acceleration_weight))
 
         print("[INFO] Newton Retargeter Settings: ")
         print(f"[INFO]\t  Source Skeleton Type: {pipeline_utils.get_source_str_from_type(self.source_type)}")
@@ -270,11 +277,23 @@ class NewtonPipeline:
         print(f"[INFO]\t  IK Solver Iterations: {self.ik_iterations}")
         print(f"[INFO]\t  Joint Limit Objective Weight: {self.joint_limit_weight}")
         print(f"[INFO]\t  Smooth Joint Filter Objective Weight: {self.smooth_joint_filter_weight}")
+        print(f"[INFO]\t  Temporal Velocity Weight: {self.temporal_velocity_weight}")
+        print(f"[INFO]\t  Temporal Acceleration Weight: {self.temporal_acceleration_weight}")
 
         restore_contact_aware = self.contact_aware_foot_ik_enabled
         try:
             model = self._build_model(num_envs)
             state = model.state()
+            default_joint_q = model.joint_q.numpy().astype(np.float32)
+            temporal_velocity_scales, temporal_acceleration_scales, temporal_coord_masks = self._build_temporal_scale_matrices(
+                model,
+                num_envs,
+            )
+            self.temporal_prev_q = np.array(default_joint_q, copy=True)
+            self.temporal_prevprev_q = np.array(default_joint_q, copy=True)
+            self.temporal_velocity_scales = temporal_velocity_scales
+            self.temporal_acceleration_scales = temporal_acceleration_scales
+            self.temporal_coord_masks = temporal_coord_masks
 
             if self.post_processing_enabled:
                 self.feet_stabilizer.setup_num_envs(num_envs)
@@ -287,6 +306,8 @@ class NewtonPipeline:
                 pole_vector_objectives,
                 joint_limit_objective,
                 smooth_joint_filter_objective,
+                temporal_velocity_objective,
+                temporal_acceleration_objective,
                 contact_objectives,
             ) = self._create_ik_objectives(num_envs, model, state)
 
@@ -301,6 +322,10 @@ class NewtonPipeline:
                 ik_solver_active_objectives.append(joint_limit_objective)
             if self.smooth_joint_filter_weight > 0.0:
                 ik_solver_active_objectives.append(smooth_joint_filter_objective)
+            if self.temporal_velocity_weight > 0.0:
+                ik_solver_active_objectives.append(temporal_velocity_objective)
+            if self.temporal_acceleration_weight > 0.0:
+                ik_solver_active_objectives.append(temporal_acceleration_objective)
 
             ik_solver = ik.IKSolver(
                 model=self.ik_model,
@@ -337,6 +362,10 @@ class NewtonPipeline:
                     smooth_joint_filter_objective.set_weight(
                         self.smooth_joint_filter_weight * (frame / float(num_frames_to_remove))
                     )
+                if self.temporal_velocity_weight > 0.0:
+                    temporal_velocity_objective.set_references(self.temporal_prev_q)
+                if self.temporal_acceleration_weight > 0.0:
+                    temporal_acceleration_objective.set_references(self.temporal_prev_q, self.temporal_prevprev_q)
 
                 for env in range(num_envs):
                     if frame > (len(self.input_targets[env]) - 1):
@@ -389,6 +418,8 @@ class NewtonPipeline:
                     if frame > (len(self.input_targets[env]) - 1):
                         continue
                     joint_q_data[env][frame] = np.array(data[env], copy=True)
+                    self.temporal_prevprev_q[env] = self.temporal_prev_q[env]
+                    self.temporal_prev_q[env] = np.asarray(data[env], dtype=np.float32)
 
             output_buffers = []
             for i in range(num_envs):
@@ -654,6 +685,43 @@ class NewtonPipeline:
             weight=0.0,
             coord_masks=self.smooth_joint_filter_coord_masks)
 
+        temporal_prev_q = getattr(
+            self,
+            "temporal_prev_q",
+            self.ik_model.joint_q.numpy().astype(np.float32),
+        )
+        temporal_prevprev_q = getattr(self, "temporal_prevprev_q", temporal_prev_q)
+        temporal_velocity_scales = getattr(
+            self,
+            "temporal_velocity_scales",
+            np.zeros_like(temporal_prev_q, dtype=np.float32),
+        )
+        temporal_acceleration_scales = getattr(
+            self,
+            "temporal_acceleration_scales",
+            np.zeros_like(temporal_prev_q, dtype=np.float32),
+        )
+        temporal_coord_masks = getattr(
+            self,
+            "temporal_coord_masks",
+            np.zeros(self.ik_model.joint_coord_count, dtype=np.float32),
+        )
+        temporal_velocity_objective = IKTemporalJointRegularizer(
+            reference_q=wp.array(np.asarray(temporal_prev_q, dtype=np.float32), dtype=wp.float32),
+            scales=wp.array(np.asarray(temporal_velocity_scales, dtype=np.float32), dtype=wp.float32),
+            weight=self.temporal_velocity_weight,
+            coord_masks=temporal_coord_masks,
+            mode=IKTemporalJointRegularizer.MODE_VELOCITY,
+        )
+        temporal_acceleration_objective = IKTemporalJointRegularizer(
+            reference_q=wp.array(np.asarray(temporal_prev_q, dtype=np.float32), dtype=wp.float32),
+            reference_q2=wp.array(np.asarray(temporal_prevprev_q, dtype=np.float32), dtype=wp.float32),
+            scales=wp.array(np.asarray(temporal_acceleration_scales, dtype=np.float32), dtype=wp.float32),
+            weight=self.temporal_acceleration_weight,
+            coord_masks=temporal_coord_masks,
+            mode=IKTemporalJointRegularizer.MODE_ACCELERATION,
+        )
+
         contact_objectives = self._create_contact_aware_objectives(num_envs, pos_target_arrays)
         return (
             position_objectives,
@@ -662,8 +730,60 @@ class NewtonPipeline:
             pole_vector_objectives,
             joint_limit_objective,
             smooth_joint_limiter_objective,
+            temporal_velocity_objective,
+            temporal_acceleration_objective,
             contact_objectives,
         )
+
+    def _build_temporal_scale_matrices(self, model, num_envs):
+        coord_ranges, coord_masks = self._joint_coord_ranges_and_temporal_mask(model)
+        sample_rates = np.asarray(
+            [
+                float(rate) if float(rate) > 0.0 else 60.0
+                for rate in (self.input_sample_rates[:num_envs] or [60.0] * num_envs)
+            ],
+            dtype=np.float32,
+        )
+        if len(sample_rates) < num_envs:
+            sample_rates = np.pad(sample_rates, (0, num_envs - len(sample_rates)), constant_values=60.0)
+        sample_rates = sample_rates[:num_envs]
+
+        inv_ranges = np.zeros_like(coord_ranges, dtype=np.float32)
+        valid = coord_ranges > 1.0e-8
+        inv_ranges[valid] = 1.0 / coord_ranges[valid]
+        velocity_scales = sample_rates[:, None] * inv_ranges[None, :]
+        acceleration_scales = (sample_rates[:, None] ** 2) * inv_ranges[None, :]
+        velocity_scales *= coord_masks[None, :]
+        acceleration_scales *= coord_masks[None, :]
+        return velocity_scales.astype(np.float32), acceleration_scales.astype(np.float32), coord_masks.astype(np.float32)
+
+    @staticmethod
+    def _joint_coord_ranges_and_temporal_mask(model):
+        n_coords = model.joint_coord_count
+        coord_ranges = np.zeros(n_coords, dtype=np.float32)
+        coord_masks = np.zeros(n_coords, dtype=np.float32)
+        q_start_np = model.joint_q_start.numpy()
+        qd_start_np = model.joint_qd_start.numpy()
+        joint_dof_dim_np = model.joint_dof_dim.numpy()
+        lower = model.joint_limit_lower.numpy().astype(np.float32)
+        upper = model.joint_limit_upper.numpy().astype(np.float32)
+
+        for joint_idx in range(model.joint_count):
+            coord0 = q_start_np[joint_idx]
+            dof0 = qd_start_np[joint_idx]
+            lin, ang = joint_dof_dim_np[joint_idx]
+            dof_count = int(lin + ang)
+            for k in range(dof_count):
+                coord_idx = coord0 + k
+                dof_idx = dof0 + k
+                if coord_idx >= n_coords or dof_idx >= len(lower):
+                    continue
+                span = float(upper[dof_idx] - lower[dof_idx])
+                if np.isfinite(span) and 1.0e-8 < span < 1.0e5:
+                    coord_ranges[coord_idx] = span
+                    coord_masks[coord_idx] = 1.0
+        coord_masks[: min(7, n_coords)] = 0.0
+        return coord_ranges, coord_masks
 
     @staticmethod
     def _normalize_rotation_basis(raw_basis):
