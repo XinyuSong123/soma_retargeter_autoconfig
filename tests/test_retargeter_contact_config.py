@@ -52,6 +52,36 @@ class TestContactConfig(unittest.TestCase):
         self.assertIn("inner_edge", cfg["contact_aware_foot_ik"]["anchor_offsets"]["left"])
         self.assertIn("outer_edge", cfg["contact_aware_foot_ik"]["anchor_offsets"]["right"])
 
+    def test_contact_config_merges_virtual_sole_anchors_when_offsets_missing(self):
+        raw = {
+            "ik_map": {},
+            "contact_aware_foot_ik": {
+                "enabled": True,
+                "contact_on_threshold": 0.7,
+                "contact_off_threshold": 0.4,
+            },
+            "virtual_sole_anchors": {
+                "enabled": True,
+                "left": {"toe": [0.1, 0.0, 0.0], "heel": [-0.1, 0.0, 0.0]},
+                "right": {"toe": [0.1, 0.0, 0.0], "heel": [-0.1, 0.0, 0.0]},
+            },
+        }
+        cfg = build_runtime_retargeter_config("roboparty_rpo", raw)
+        contact_cfg = cfg["contact_aware_foot_ik"]
+        self.assertEqual(contact_cfg["contact_on_threshold"], 0.7)
+        self.assertEqual(contact_cfg["contact_off_threshold"], 0.4)
+        self.assertEqual(contact_cfg["contact_source"], "auto")
+        self.assertEqual(contact_cfg["anchor_offsets"]["left"]["toe"], [0.1, 0.0, 0.0])
+        self.assertEqual(contact_cfg["anchor_offsets"]["right"]["heel"], [-0.1, 0.0, 0.0])
+
+    def test_e3_fixture_contact_config_has_runtime_anchor_offsets(self):
+        raw = io_utils.load_json(get_profile_path("e3_v2", "retargeter_config"))
+        cfg = build_runtime_retargeter_config("e3_v2", raw)
+        contact_cfg = cfg["contact_aware_foot_ik"]
+        self.assertTrue(contact_cfg["enabled"])
+        self.assertIn("anchor_offsets", contact_cfg)
+        self.assertEqual(contact_cfg["anchor_offsets"]["left"]["toe"], [0.17, 0.0, -0.055])
+
     def test_teacher_metadata_not_forwarded(self):
         cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}, "teacher_refinement": {}, "g1_teacher_refined": True})
         self.assertNotIn("teacher_refinement", cfg)

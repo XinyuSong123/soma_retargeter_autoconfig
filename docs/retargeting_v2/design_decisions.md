@@ -96,6 +96,18 @@ Risk: more per-frame CPU updates.
 
 Verification: contact regression tests cover per-env weight setting, warmup label alignment, minimum duration, and release blending.
 
+## Contact Transform Input Compatibility
+
+Problem: contact heuristic inference can receive global transforms as either Warp transform objects or numpy transform rows, depending on the animation buffer path.
+
+Decision: normalize each transform through a small translation extractor that first tries `wp.transform_get_translation` and then falls back to the first three numeric row values.
+
+Reason: contact-aware IK should not silently disable locks just because a buffer returns `[x, y, z, qx, qy, qz, qw]` rows instead of Warp transform objects.
+
+Risk: nonstandard transform row layouts still need explicit adapters.
+
+Verification: contact inference tests cover numpy transform rows, and current bounded E3 artifacts run without the previous transform-type contact warning.
+
 ## Virtual Site Inference
 
 Problem: robots without wrists should not track a full hand orientation at an elbow-yaw link origin.

@@ -22,6 +22,16 @@ def _contact_score_from_positions(positions: np.ndarray, ground_height: float, v
     return np.clip((height_gate * vel_gate).astype(np.float32), 0.0, 1.0)
 
 
+def _translation_from_transform(transform) -> np.ndarray:
+    try:
+        return np.asarray(wp.transform_get_translation(transform), dtype=np.float32)
+    except Exception:
+        arr = np.asarray(transform, dtype=np.float32)
+        if arr.shape[-1] < 3:
+            raise ValueError(f"Expected transform with at least 3 translation values, got shape {arr.shape}")
+        return arr.reshape(-1)[:3].astype(np.float32)
+
+
 def infer_contacts_from_animation_buffer(buffer, root_tx=wp.transform_identity(), smoothing_window: int = 5) -> dict[str, np.ndarray]:
     skel = buffer.skeleton
     names = {
@@ -47,7 +57,7 @@ def infer_contacts_from_animation_buffer(buffer, root_tx=wp.transform_identity()
     for frame in range(buffer.num_frames):
         gtx = buffer.compute_global_transforms(frame, root_tx=root_tx)
         for key, idx in joint_indices.items():
-            traces[key][frame] = np.array(wp.transform_get_translation(gtx[idx]), dtype=np.float32)
+            traces[key][frame] = _translation_from_transform(gtx[idx])
 
     all_z = np.concatenate([v[:, 2] for v in traces.values()])
     ground = float(np.percentile(all_z, 2.0))

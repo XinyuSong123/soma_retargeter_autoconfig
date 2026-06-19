@@ -500,6 +500,8 @@ def _normalize_legacy_ik_map(raw_config: dict[str, Any]) -> dict[str, dict[str, 
 
 
 def _legacy_runtime_retargeter_config(robot: str) -> dict[str, Any]:
+    from soma_retargeter.robot_registry_parser import _build_contact_aware_foot_ik_from_virtual_anchors
+
     raw_path = get_profile_path(robot, "retargeter_config")
     if raw_path is None:
         raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
@@ -541,6 +543,14 @@ def _legacy_runtime_retargeter_config(robot: str) -> dict[str, Any]:
     ):
         if key in raw_config:
             config[key] = raw_config[key]
+    if isinstance(config.get("contact_aware_foot_ik"), dict):
+        contact_cfg = dict(config["contact_aware_foot_ik"])
+        if contact_cfg.get("enabled", False) and "anchor_offsets" not in contact_cfg:
+            auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(raw_config)
+            if auto_contact_cfg is not None:
+                contact_cfg.setdefault("contact_source", auto_contact_cfg.get("contact_source", "auto"))
+                contact_cfg["anchor_offsets"] = auto_contact_cfg["anchor_offsets"]
+                config["contact_aware_foot_ik"] = contact_cfg
     return config
 
 

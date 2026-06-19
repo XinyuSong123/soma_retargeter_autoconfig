@@ -882,6 +882,14 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(raw_config)
         if auto_contact_cfg is not None:
             runtime_config["contact_aware_foot_ik"] = auto_contact_cfg
+    elif isinstance(runtime_config.get("contact_aware_foot_ik"), dict):
+        contact_cfg = dict(runtime_config["contact_aware_foot_ik"])
+        if contact_cfg.get("enabled", False) and "anchor_offsets" not in contact_cfg:
+            auto_contact_cfg = _build_contact_aware_foot_ik_from_virtual_anchors(raw_config)
+            if auto_contact_cfg is not None:
+                contact_cfg.setdefault("contact_source", auto_contact_cfg.get("contact_source", "auto"))
+                contact_cfg["anchor_offsets"] = auto_contact_cfg["anchor_offsets"]
+                runtime_config["contact_aware_foot_ik"] = contact_cfg
 
     if "model_height" in raw_config:
         runtime_config["model_height"] = raw_config["model_height"]

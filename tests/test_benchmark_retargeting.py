@@ -32,6 +32,13 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.5)
         self.assertEqual(cfg["ik_map"]["Chest"]["r_weight"], 0.5)
 
+    def test_legacy_runtime_config_merges_contact_anchor_offsets(self):
+        cfg = _legacy_runtime_retargeter_config("e3_v2")
+        contact_cfg = cfg["contact_aware_foot_ik"]
+        self.assertTrue(contact_cfg["enabled"])
+        self.assertIn("anchor_offsets", contact_cfg)
+        self.assertEqual(contact_cfg["anchor_offsets"]["left"]["toe"], [0.17, 0.0, -0.055])
+
     def test_pole_analytic_compare_mode_forces_only_pole_jacobians(self):
         self.assertIsNone(_runtime_retargeter_config("roboparty_rpo", "v2"))
         cfg = _runtime_retargeter_config("roboparty_rpo", "v2_pole_analytic")
