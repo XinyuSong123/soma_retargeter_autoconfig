@@ -11,6 +11,7 @@ from soma_retargeter.robotics.reachability import rotation_vector_to_quat_xyzw
 from soma_retargeter.tools.benchmark_retargeting import (
     _legacy_runtime_retargeter_config,
     _profile_runtime_residual_metrics,
+    _select_motion_window,
     build_benchmark_gate_report,
     build_registry_coverage_report,
     main,
@@ -75,6 +76,18 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertLess(metrics["torso_reachable_residual"]["value"], 0.01)
         self.assertEqual(metrics["torso_unreachable_residual"]["status"], "ok")
         self.assertGreater(metrics["torso_unreachable_residual"]["value"], 0.19)
+
+    def test_select_motion_window_prefers_high_motion_segment(self):
+        transforms = np.zeros((8, 1, 7), dtype=np.float64)
+        transforms[:, :, 3] = 1.0
+        transforms[4, 0, 0] = 10.0
+        transforms[5, 0, 0] = 20.0
+        transforms[6:, 0, 0] = 20.0
+        animation = type("A", (), {"num_frames": 8, "local_transforms": transforms})()
+
+        start, count, mode = _select_motion_window(animation, 3)
+
+        self.assertEqual((start, count, mode), (3, 3, "max_motion_window"))
 
     def test_registry_coverage_report_marks_missing_and_incomplete_targets(self):
         report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "e3_v2", "oli"))

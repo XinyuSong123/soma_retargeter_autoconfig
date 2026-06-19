@@ -1016,6 +1016,28 @@ def build_benchmark_gate_report(results: list[dict[str, Any]], *, strict: bool =
     }
 
 
+def _select_motion_window(animation: Any, max_frames: int) -> tuple[int, int, str]:
+    frame_count = int(getattr(animation, "num_frames", 0))
+    if max_frames <= 0 or frame_count <= max_frames:
+        return 0, frame_count, "full_clip"
+    transforms = np.asarray(animation.local_transforms, dtype=np.float64)
+    if transforms.ndim < 2 or len(transforms) != frame_count:
+        return 0, max_frames, "prefix_fallback"
+    flattened = transforms.reshape(frame_count, -1)
+    frame_motion = np.linalg.norm(np.diff(flattened, axis=0), axis=1)
+    if frame_motion.size == 0 or not np.any(np.isfinite(frame_motion)):
+        return 0, max_frames, "prefix_fallback"
+    frame_motion = np.nan_to_num(frame_motion, nan=0.0, posinf=0.0, neginf=0.0)
+    window_edges = max_frames - 1
+    if window_edges <= 0:
+        start = int(np.argmax(frame_motion))
+        return min(start, frame_count - max_frames), max_frames, "max_motion_window"
+    window_scores = np.convolve(frame_motion, np.ones(window_edges, dtype=np.float64), mode="valid")
+    start = int(np.argmax(window_scores))
+    start = min(max(start, 0), frame_count - max_frames)
+    return start, max_frames, "max_motion_window"
+
+
 def _run_runtime_benchmark(
     robot: str,
     profile_path: Path,
@@ -1037,13 +1059,19 @@ def _run_runtime_benchmark(
         skeleton, animation = bvh_utils.load_bvh(str(path), first_skeleton)
         if first_skeleton is None:
             first_skeleton = skeleton
+        source_start, source_count, frame_selection = _select_motion_window(animation, max_frames)
         if max_frames > 0 and animation.num_frames > max_frames:
             animation = AnimationBuffer(
                 animation.skeleton,
-                max_frames,
+                source_count,
                 animation.sample_rate,
-                np.array(animation.local_transforms[:max_frames], copy=True),
+                np.array(animation.local_transforms[source_start:source_start + source_count], copy=True),
             )
+            animation.benchmark_source_frame_start = source_start
+            animation.benchmark_frame_selection = frame_selection
+        else:
+            animation.benchmark_source_frame_start = source_start
+            animation.benchmark_frame_selection = frame_selection
         animations.append(animation)
         used_paths.append(path)
     if first_skeleton is None or not animations:
@@ -1061,6 +1089,8 @@ def _run_runtime_benchmark(
                 "motion": str(used_paths[idx]),
                 "frames": int(buffer.num_frames),
                 "sample_rate": float(buffer.sample_rate),
+                "source_frame_start": int(getattr(animations[idx], "benchmark_source_frame_start", 0)),
+                "frame_selection": str(getattr(animations[idx], "benchmark_frame_selection", "unknown")),
                 "metrics": _runtime_metrics_for_buffer(profile, pipeline, idx, buffer),
             }
         )
@@ -1072,6 +1102,7 @@ def _run_runtime_benchmark(
             "motion_runtime": elapsed,
             "motion_count": len(motion_payloads),
         },
+        "priority_guard": getattr(pipeline, "priority_guard_report", {}),
         "metrics": {
             **_aggregate_motion_metrics(motion_payloads),
             "fallback_counts": {

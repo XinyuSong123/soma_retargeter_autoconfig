@@ -2,6 +2,7 @@
 
 - Runtime benchmark artifacts now include separated bounded multi-motion legacy/v2 rollouts and profile-task residual summaries when BVH motions and semantic site trajectories are available, but uncapped full-length comparison and solver-native residual extraction beyond those summaries are not implemented yet.
 - Benchmark gates are currently report-only unless `--strict-gates` is supplied; the current bounded sample intentionally records failing gates instead of hiding known RPO/Unitree regressions.
+- Bounded benchmark windows now select the highest-motion contiguous source segment instead of the static clip prefix, but RPO v2 currently rolls back every guarded frame and Unitree G1 remains static despite no guard rollback.
 - Profile validation now covers numeric health gates and left/right chain length mismatch thresholds, but true symmetry tying is still compile-time reporting rather than a separate constrained optimizer.
 - Self-collision runtime barriers are optional and disabled by default through `collision_weight=0.0`; motion-level evidence is still needed before making them a default feasibility term.
 - Registry coverage artifacts now make missing target coverage explicit: `unitree_g1_23dof`, `unitree_g1_29dof`, `e3_v2`, and `oli` are not registered in the current workspace, so runtime benchmark artifacts cover only `roboparty_rpo` and generic `unitree_g1`.
