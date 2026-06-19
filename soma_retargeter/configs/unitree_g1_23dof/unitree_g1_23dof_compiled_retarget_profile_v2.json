@@ -981,7 +981,7 @@
     "runtime_barrier": "sphere_pair_optional",
     "source": "geom_bounds_or_chain_length"
   },
-  "compiler_version": "2.1.3",
+  "compiler_version": "2.1.4",
   "confidence": 1.0,
   "contact": {},
   "morphology_summary": {
@@ -1378,7 +1378,7 @@
       "characteristic_length": 0.3697080671525221,
       "enabled": true,
       "name": "LeftFoot_position",
-      "normalized_weight": 1000.0,
+      "normalized_weight": 500.0,
       "position_mask_or_basis": [
         [
           1.0,
@@ -1397,7 +1397,7 @@
         ]
       ],
       "priority": 1,
-      "reason": "end-effector position task",
+      "reason": "end-effector position task; softened for single-axis torso profile",
       "reference_site": null,
       "robust_loss": "none",
       "rotation_mask_or_basis": null,
@@ -1500,7 +1500,7 @@
       "characteristic_length": 0.3697080671525221,
       "enabled": true,
       "name": "RightFoot_position",
-      "normalized_weight": 1000.0,
+      "normalized_weight": 500.0,
       "position_mask_or_basis": [
         [
           1.0,
@@ -1519,7 +1519,7 @@
         ]
       ],
       "priority": 1,
-      "reason": "end-effector position task",
+      "reason": "end-effector position task; softened for single-axis torso profile",
       "reference_site": null,
       "robust_loss": "none",
       "rotation_mask_or_basis": null,

@@ -99,6 +99,8 @@ class TestContactConfig(unittest.TestCase):
                 "Chest": "torso_link",
                 "LeftArm": "left_arm_roll_link",
                 "LeftHand": "left_elbow_yaw_link",
+                "LeftFoot": "left_ankle_roll_link",
+                "RightFoot": "right_ankle_roll_link",
             }
         }
         cfg = build_runtime_retargeter_config("roboparty_rpo", raw)
@@ -116,8 +118,10 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_basis"], [[0.0], [0.0], [1.0]])
         self.assertEqual(cfg["ik_map"]["LeftArm"]["t_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["LeftArm"]["r_weight"], 0.0)
-        self.assertEqual(cfg["ik_map"]["LeftHand"]["t_weight"], 100.0)
+        self.assertEqual(cfg["ik_map"]["LeftHand"]["t_weight"], 50.0)
         self.assertEqual(cfg["ik_map"]["LeftHand"]["r_weight"], 0.0)
+        self.assertEqual(cfg["ik_map"]["LeftFoot"]["t_weight"], 500.0)
+        self.assertEqual(cfg["ik_map"]["RightFoot"]["t_weight"], 500.0)
         self.assertNotIn("v2_position_link_offset", cfg["ik_map"]["LeftHand"])
         g1_cfg = build_runtime_retargeter_config("unitree_g1", {"ik_map": {"LeftHand": "left_wrist_yaw_link"}})
         self.assertEqual(
