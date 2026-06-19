@@ -102,7 +102,7 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["Hips"]["v2_position_weight_source"], "compiled task normalized weight")
         self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.0)
-        self.assertEqual(cfg["ik_map"]["Chest"]["r_weight"], 100.0)
+        self.assertEqual(cfg["ik_map"]["Chest"]["r_weight"], 1.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_priority"], 2)
         self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_weight_source"], "compiled task normalized weight")
         self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_basis"], [[0.0], [0.0], [1.0]])

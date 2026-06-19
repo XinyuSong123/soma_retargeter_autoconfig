@@ -347,7 +347,11 @@ def _make_site(
 def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> TaskSpec:
     if site.semantic_name == "Chest":
         basis = chain.rotational_basis.tolist() if chain is not None and chain.rotational_rank > 0 else None
-        weight = 50.0 if chain is not None and chain.rotational_rank > 1 else 100.0
+        weight = 100.0
+        if chain is not None and chain.rotational_rank == 1:
+            weight = 1.0
+        elif chain is not None and chain.rotational_rank > 1:
+            weight = 50.0
         return TaskSpec(
             name="torso_projected_relative_rotation",
             task_type="projected_relative_rotation",
@@ -364,6 +368,8 @@ def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> T
             reason=(
                 "projected to reachable torso rotational basis; softened for multi-axis torso"
                 if chain is not None and chain.rotational_rank > 1
+                else "projected to reachable torso rotational basis; weak style target for single-axis torso"
+                if chain is not None and chain.rotational_rank == 1
                 else "projected to reachable torso rotational basis"
                 if chain is not None and chain.rotational_rank > 0
                 else "disabled: no reachable torso rotation basis"
