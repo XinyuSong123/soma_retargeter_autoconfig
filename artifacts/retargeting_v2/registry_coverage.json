@@ -77,6 +77,37 @@
         "schema_version": null,
         "warnings": []
       },
+      "onboarding_report": {
+        "minimal_semantic_ik_map_template": {
+          "Chest": "<torso_body>",
+          "Hips": "<pelvis_or_base_body>",
+          "LeftFoot": "<left_foot_or_ankle_body>",
+          "LeftHand": "<left_hand_or_forearm_distal_body>",
+          "RightFoot": "<right_foot_or_ankle_body>",
+          "RightHand": "<right_hand_or_forearm_distal_body>"
+        },
+        "next_commands": [
+          "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --validate-only",
+          "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --force",
+          "python -m soma_retargeter.tools.benchmark_retargeting --robots unitree_g1_23dof --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
+        ],
+        "notes": [
+          "Do not fabricate robot assets or download unlicensed files.",
+          "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
+          "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
+        ],
+        "params_py_entries": [
+          "ROBOT_XML_DICT['unitree_g1_23dof']",
+          "RETARGETER_CONFIG_DICT['unitree_g1_23dof']",
+          "ROBOT_URDF_DICT['unitree_g1_23dof'] optional"
+        ],
+        "required_files": {
+          "mjcf_or_xml": "assets/robots/unitree_g1_23dof/mjcf/<robot>.xml",
+          "retargeter_config": "soma_retargeter/configs/unitree_g1_23dof/soma_to_unitree_g1_23dof_retargeter_config.json",
+          "urdf_optional": "assets/robots/unitree_g1_23dof/urdf/<robot>.urdf"
+        },
+        "status": "missing_assets_or_registration"
+      },
       "paths": {
         "mjcf_path": {
           "exists": false,
@@ -139,6 +170,37 @@
         "schema_version": null,
         "warnings": []
       },
+      "onboarding_report": {
+        "minimal_semantic_ik_map_template": {
+          "Chest": "<torso_body>",
+          "Hips": "<pelvis_or_base_body>",
+          "LeftFoot": "<left_foot_or_ankle_body>",
+          "LeftHand": "<left_hand_or_forearm_distal_body>",
+          "RightFoot": "<right_foot_or_ankle_body>",
+          "RightHand": "<right_hand_or_forearm_distal_body>"
+        },
+        "next_commands": [
+          "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --validate-only",
+          "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --force",
+          "python -m soma_retargeter.tools.benchmark_retargeting --robots e3_v2 --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
+        ],
+        "notes": [
+          "Do not fabricate robot assets or download unlicensed files.",
+          "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
+          "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
+        ],
+        "params_py_entries": [
+          "ROBOT_XML_DICT['e3_v2']",
+          "RETARGETER_CONFIG_DICT['e3_v2']",
+          "ROBOT_URDF_DICT['e3_v2'] optional"
+        ],
+        "required_files": {
+          "mjcf_or_xml": "assets/robots/e3_v2/mjcf/<robot>.xml",
+          "retargeter_config": "soma_retargeter/configs/e3_v2/soma_to_e3_v2_retargeter_config.json",
+          "urdf_optional": "assets/robots/e3_v2/urdf/<robot>.urdf"
+        },
+        "status": "missing_assets_or_registration"
+      },
       "paths": {
         "mjcf_path": {
           "exists": false,
@@ -170,6 +232,37 @@
         "robot_fingerprint": null,
         "schema_version": null,
         "warnings": []
+      },
+      "onboarding_report": {
+        "minimal_semantic_ik_map_template": {
+          "Chest": "<torso_body>",
+          "Hips": "<pelvis_or_base_body>",
+          "LeftFoot": "<left_foot_or_ankle_body>",
+          "LeftHand": "<left_hand_or_forearm_distal_body>",
+          "RightFoot": "<right_foot_or_ankle_body>",
+          "RightHand": "<right_hand_or_forearm_distal_body>"
+        },
+        "next_commands": [
+          "python -m soma_retargeter.tools.autoconfigure_robot --robot oli --validate-only",
+          "python -m soma_retargeter.tools.autoconfigure_robot --robot oli --force",
+          "python -m soma_retargeter.tools.benchmark_retargeting --robots oli --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
+        ],
+        "notes": [
+          "Do not fabricate robot assets or download unlicensed files.",
+          "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
+          "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
+        ],
+        "params_py_entries": [
+          "ROBOT_XML_DICT['oli']",
+          "RETARGETER_CONFIG_DICT['oli']",
+          "ROBOT_URDF_DICT['oli'] optional"
+        ],
+        "required_files": {
+          "mjcf_or_xml": "assets/robots/oli/mjcf/<robot>.xml",
+          "retargeter_config": "soma_retargeter/configs/oli/soma_to_oli_retargeter_config.json",
+          "urdf_optional": "assets/robots/oli/urdf/<robot>.urdf"
+        },
+        "status": "missing_assets_or_registration"
       },
       "paths": {
         "mjcf_path": {

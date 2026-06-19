@@ -225,6 +225,16 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(by_name["unitree_g1_29dof"]["blockers"], [])
         self.assertEqual(by_name["e3_v2"]["status"], "missing_registration")
         self.assertEqual(by_name["oli"]["status"], "missing_registration")
+        self.assertEqual(by_name["oli"]["onboarding_report"]["status"], "missing_assets_or_registration")
+        self.assertIn("mjcf_or_xml", by_name["oli"]["onboarding_report"]["required_files"])
+        self.assertEqual(
+            sorted(by_name["oli"]["onboarding_report"]["minimal_semantic_ik_map_template"].keys()),
+            ["Chest", "Hips", "LeftFoot", "LeftHand", "RightFoot", "RightHand"],
+        )
+        self.assertIn(
+            "python -m soma_retargeter.tools.autoconfigure_robot --robot oli --validate-only",
+            by_name["oli"]["onboarding_report"]["next_commands"],
+        )
 
     def test_benchmark_gate_report_flags_threshold_failures(self):
         result = {

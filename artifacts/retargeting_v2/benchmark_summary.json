@@ -83,15 +83,15 @@
             "v2_value": 554.5352939485574
           },
           {
-            "allowed_max": 1.054778154939413,
-            "delta": 3.291615329682827,
-            "legacy_value": 0.8438225239515305,
+            "allowed_max": 1.049339766614139,
+            "delta": 3.3454849049448967,
+            "legacy_value": 0.8394718132913113,
             "metric": "runtime_seconds.motion_runtime",
             "rule": "relative_not_worse",
             "status": "failed",
             "tolerance": 0.25,
             "unit": "s",
-            "v2_value": 4.1354378536343575
+            "v2_value": 4.184956718236208
           }
         ],
         "passed_count": 5,
@@ -180,15 +180,15 @@
             "v2_value": 863.5041694473578
           },
           {
-            "allowed_max": 1.1473886063322425,
-            "delta": 3.7122430242598057,
-            "legacy_value": 0.917910885065794,
+            "allowed_max": 1.1885575903579593,
+            "delta": 3.701760698109865,
+            "legacy_value": 0.9508460722863674,
             "metric": "runtime_seconds.motion_runtime",
             "rule": "relative_not_worse",
             "status": "failed",
             "tolerance": 0.25,
             "unit": "s",
-            "v2_value": 4.6301539093256
+            "v2_value": 4.652606770396233
           }
         ],
         "passed_count": 7,
@@ -322,6 +322,37 @@
           "schema_version": null,
           "warnings": []
         },
+        "onboarding_report": {
+          "minimal_semantic_ik_map_template": {
+            "Chest": "<torso_body>",
+            "Hips": "<pelvis_or_base_body>",
+            "LeftFoot": "<left_foot_or_ankle_body>",
+            "LeftHand": "<left_hand_or_forearm_distal_body>",
+            "RightFoot": "<right_foot_or_ankle_body>",
+            "RightHand": "<right_hand_or_forearm_distal_body>"
+          },
+          "next_commands": [
+            "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --validate-only",
+            "python -m soma_retargeter.tools.autoconfigure_robot --robot unitree_g1_23dof --force",
+            "python -m soma_retargeter.tools.benchmark_retargeting --robots unitree_g1_23dof --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
+          ],
+          "notes": [
+            "Do not fabricate robot assets or download unlicensed files.",
+            "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
+            "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
+          ],
+          "params_py_entries": [
+            "ROBOT_XML_DICT['unitree_g1_23dof']",
+            "RETARGETER_CONFIG_DICT['unitree_g1_23dof']",
+            "ROBOT_URDF_DICT['unitree_g1_23dof'] optional"
+          ],
+          "required_files": {
+            "mjcf_or_xml": "assets/robots/unitree_g1_23dof/mjcf/<robot>.xml",
+            "retargeter_config": "soma_retargeter/configs/unitree_g1_23dof/soma_to_unitree_g1_23dof_retargeter_config.json",
+            "urdf_optional": "assets/robots/unitree_g1_23dof/urdf/<robot>.urdf"
+          },
+          "status": "missing_assets_or_registration"
+        },
         "paths": {
           "mjcf_path": {
             "exists": false,
@@ -384,6 +415,37 @@
           "schema_version": null,
           "warnings": []
         },
+        "onboarding_report": {
+          "minimal_semantic_ik_map_template": {
+            "Chest": "<torso_body>",
+            "Hips": "<pelvis_or_base_body>",
+            "LeftFoot": "<left_foot_or_ankle_body>",
+            "LeftHand": "<left_hand_or_forearm_distal_body>",
+            "RightFoot": "<right_foot_or_ankle_body>",
+            "RightHand": "<right_hand_or_forearm_distal_body>"
+          },
+          "next_commands": [
+            "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --validate-only",
+            "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --force",
+            "python -m soma_retargeter.tools.benchmark_retargeting --robots e3_v2 --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
+          ],
+          "notes": [
+            "Do not fabricate robot assets or download unlicensed files.",
+            "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
+            "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
+          ],
+          "params_py_entries": [
+            "ROBOT_XML_DICT['e3_v2']",
+            "RETARGETER_CONFIG_DICT['e3_v2']",
+            "ROBOT_URDF_DICT['e3_v2'] optional"
+          ],
+          "required_files": {
+            "mjcf_or_xml": "assets/robots/e3_v2/mjcf/<robot>.xml",
+            "retargeter_config": "soma_retargeter/configs/e3_v2/soma_to_e3_v2_retargeter_config.json",
+            "urdf_optional": "assets/robots/e3_v2/urdf/<robot>.urdf"
+          },
+          "status": "missing_assets_or_registration"
+        },
         "paths": {
           "mjcf_path": {
             "exists": false,
@@ -415,6 +477,37 @@
           "robot_fingerprint": null,
           "schema_version": null,
           "warnings": []
+        },
+        "onboarding_report": {
+          "minimal_semantic_ik_map_template": {
+            "Chest": "<torso_body>",
+            "Hips": "<pelvis_or_base_body>",
+            "LeftFoot": "<left_foot_or_ankle_body>",
+            "LeftHand": "<left_hand_or_forearm_distal_body>",
+            "RightFoot": "<right_foot_or_ankle_body>",
+            "RightHand": "<right_hand_or_forearm_distal_body>"
+          },
+          "next_commands": [
+            "python -m soma_retargeter.tools.autoconfigure_robot --robot oli --validate-only",
+            "python -m soma_retargeter.tools.autoconfigure_robot --robot oli --force",
+            "python -m soma_retargeter.tools.benchmark_retargeting --robots oli --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
+          ],
+          "notes": [
+            "Do not fabricate robot assets or download unlicensed files.",
+            "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
+            "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
+          ],
+          "params_py_entries": [
+            "ROBOT_XML_DICT['oli']",
+            "RETARGETER_CONFIG_DICT['oli']",
+            "ROBOT_URDF_DICT['oli'] optional"
+          ],
+          "required_files": {
+            "mjcf_or_xml": "assets/robots/oli/mjcf/<robot>.xml",
+            "retargeter_config": "soma_retargeter/configs/oli/soma_to_oli_retargeter_config.json",
+            "urdf_optional": "assets/robots/oli/urdf/<robot>.urdf"
+          },
+          "status": "missing_assets_or_registration"
         },
         "paths": {
           "mjcf_path": {
@@ -608,16 +701,16 @@
               "value": 2.317901325736721
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8459362685680389,
-              "compile_profile": 0.04598522558808327,
-              "metric_runtime": 0.3327013775706291,
+              "bvh_load_runtime": 0.9074248373508453,
+              "compile_profile": 0.04685637727379799,
+              "metric_runtime": 0.32553011551499367,
               "motion_count": 2,
-              "motion_runtime": 0.8438225239515305,
+              "motion_runtime": 0.8394718132913113,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 5.235096547752619,
-              "solve_fps": 192.4619951881715,
-              "solve_runtime": 0.8313329592347145,
-              "target_setup_runtime": 0.012489564716815948
+              "pipeline_construct_runtime": 5.333195749670267,
+              "solve_fps": 193.65204030750698,
+              "solve_runtime": 0.8262241892516613,
+              "target_setup_runtime": 0.013247624039649963
             },
             "solver_iterations": {
               "status": "ok",
@@ -1126,15 +1219,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8459362685680389,
-              "metric_runtime": 0.3327013775706291,
+              "bvh_load_runtime": 0.9074248373508453,
+              "metric_runtime": 0.32553011551499367,
               "motion_count": 2,
-              "motion_runtime": 0.8438225239515305,
+              "motion_runtime": 0.8394718132913113,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 5.235096547752619,
-              "solve_fps": 192.4619951881715,
-              "solve_runtime": 0.8313329592347145,
-              "target_setup_runtime": 0.012489564716815948
+              "pipeline_construct_runtime": 5.333195749670267,
+              "solve_fps": 193.65204030750698,
+              "solve_runtime": 0.8262241892516613,
+              "target_setup_runtime": 0.013247624039649963
             },
             "status": "ok"
           },
@@ -1252,16 +1345,16 @@
               "value": 14.271998329495917
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.872297428548336,
-              "compile_profile": 0.04598522558808327,
-              "metric_runtime": 0.3298211544752121,
+              "bvh_load_runtime": 0.8212265521287918,
+              "compile_profile": 0.04685637727379799,
+              "metric_runtime": 0.33230217546224594,
               "motion_count": 2,
-              "motion_runtime": 4.1354378536343575,
+              "motion_runtime": 4.184956718236208,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.497544649988413,
-              "solve_fps": 41.04333322084794,
-              "solve_runtime": 3.898318860679865,
-              "target_setup_runtime": 0.23711899295449257
+              "pipeline_construct_runtime": 4.378597181290388,
+              "solve_fps": 40.53701123185974,
+              "solve_runtime": 3.9470102787017822,
+              "target_setup_runtime": 0.23794643953442574
             },
             "solver_iterations": {
               "status": "ok",
@@ -1779,15 +1872,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.872297428548336,
-              "metric_runtime": 0.3298211544752121,
+              "bvh_load_runtime": 0.8212265521287918,
+              "metric_runtime": 0.33230217546224594,
               "motion_count": 2,
-              "motion_runtime": 4.1354378536343575,
+              "motion_runtime": 4.184956718236208,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.497544649988413,
-              "solve_fps": 41.04333322084794,
-              "solve_runtime": 3.898318860679865,
-              "target_setup_runtime": 0.23711899295449257
+              "pipeline_construct_runtime": 4.378597181290388,
+              "solve_fps": 40.53701123185974,
+              "solve_runtime": 3.9470102787017822,
+              "target_setup_runtime": 0.23794643953442574
             },
             "status": "ok"
           },
@@ -1907,16 +2000,16 @@
           "value": 14.271998329495917
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.872297428548336,
-          "compile_profile": 0.04598522558808327,
-          "metric_runtime": 0.3298211544752121,
+          "bvh_load_runtime": 0.8212265521287918,
+          "compile_profile": 0.04685637727379799,
+          "metric_runtime": 0.33230217546224594,
           "motion_count": 2,
-          "motion_runtime": 4.1354378536343575,
+          "motion_runtime": 4.184956718236208,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.497544649988413,
-          "solve_fps": 41.04333322084794,
-          "solve_runtime": 3.898318860679865,
-          "target_setup_runtime": 0.23711899295449257
+          "pipeline_construct_runtime": 4.378597181290388,
+          "solve_fps": 40.53701123185974,
+          "solve_runtime": 3.9470102787017822,
+          "target_setup_runtime": 0.23794643953442574
         },
         "solver_iterations": {
           "status": "ok",
@@ -2434,15 +2527,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.872297428548336,
-          "metric_runtime": 0.3298211544752121,
+          "bvh_load_runtime": 0.8212265521287918,
+          "metric_runtime": 0.33230217546224594,
           "motion_count": 2,
-          "motion_runtime": 4.1354378536343575,
+          "motion_runtime": 4.184956718236208,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.497544649988413,
-          "solve_fps": 41.04333322084794,
-          "solve_runtime": 3.898318860679865,
-          "target_setup_runtime": 0.23711899295449257
+          "pipeline_construct_runtime": 4.378597181290388,
+          "solve_fps": 40.53701123185974,
+          "solve_runtime": 3.9470102787017822,
+          "target_setup_runtime": 0.23794643953442574
         },
         "status": "ok"
       },
@@ -2630,16 +2723,16 @@
               "value": 2.532490246215586
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8816334642469883,
-              "compile_profile": 0.04010549932718277,
-              "metric_runtime": 0.3293341100215912,
+              "bvh_load_runtime": 0.9010080434381962,
+              "compile_profile": 0.04112571105360985,
+              "metric_runtime": 0.3302857391536236,
               "motion_count": 2,
-              "motion_runtime": 0.917910885065794,
+              "motion_runtime": 0.9508460722863674,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.597319062799215,
-              "solve_fps": 175.9664343129998,
-              "solve_runtime": 0.9092643186450005,
-              "target_setup_runtime": 0.008646566420793533
+              "pipeline_construct_runtime": 4.505160205066204,
+              "solve_fps": 169.97998352713216,
+              "solve_runtime": 0.9412873014807701,
+              "target_setup_runtime": 0.009558770805597305
             },
             "solver_iterations": {
               "status": "ok",
@@ -3148,15 +3241,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8816334642469883,
-              "metric_runtime": 0.3293341100215912,
+              "bvh_load_runtime": 0.9010080434381962,
+              "metric_runtime": 0.3302857391536236,
               "motion_count": 2,
-              "motion_runtime": 0.917910885065794,
+              "motion_runtime": 0.9508460722863674,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.597319062799215,
-              "solve_fps": 175.9664343129998,
-              "solve_runtime": 0.9092643186450005,
-              "target_setup_runtime": 0.008646566420793533
+              "pipeline_construct_runtime": 4.505160205066204,
+              "solve_fps": 169.97998352713216,
+              "solve_runtime": 0.9412873014807701,
+              "target_setup_runtime": 0.009558770805597305
             },
             "status": "ok"
           },
@@ -3274,16 +3367,16 @@
               "value": 8.111093106011701
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8957546316087246,
-              "compile_profile": 0.04010549932718277,
-              "metric_runtime": 0.3546353951096535,
+              "bvh_load_runtime": 0.8929904364049435,
+              "compile_profile": 0.04112571105360985,
+              "metric_runtime": 0.3289954960346222,
               "motion_count": 2,
-              "motion_runtime": 4.6301539093256,
+              "motion_runtime": 4.652606770396233,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.162018608301878,
-              "solve_fps": 36.42466708160516,
-              "solve_runtime": 4.392627656459808,
-              "target_setup_runtime": 0.23752625286579132
+              "pipeline_construct_runtime": 4.209115818142891,
+              "solve_fps": 36.26158208288804,
+              "solve_runtime": 4.412383321672678,
+              "target_setup_runtime": 0.2402234487235546
             },
             "solver_iterations": {
               "status": "ok",
@@ -3801,15 +3894,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8957546316087246,
-              "metric_runtime": 0.3546353951096535,
+              "bvh_load_runtime": 0.8929904364049435,
+              "metric_runtime": 0.3289954960346222,
               "motion_count": 2,
-              "motion_runtime": 4.6301539093256,
+              "motion_runtime": 4.652606770396233,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.162018608301878,
-              "solve_fps": 36.42466708160516,
-              "solve_runtime": 4.392627656459808,
-              "target_setup_runtime": 0.23752625286579132
+              "pipeline_construct_runtime": 4.209115818142891,
+              "solve_fps": 36.26158208288804,
+              "solve_runtime": 4.412383321672678,
+              "target_setup_runtime": 0.2402234487235546
             },
             "status": "ok"
           },
@@ -3929,16 +4022,16 @@
           "value": 8.111093106011701
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8957546316087246,
-          "compile_profile": 0.04010549932718277,
-          "metric_runtime": 0.3546353951096535,
+          "bvh_load_runtime": 0.8929904364049435,
+          "compile_profile": 0.04112571105360985,
+          "metric_runtime": 0.3289954960346222,
           "motion_count": 2,
-          "motion_runtime": 4.6301539093256,
+          "motion_runtime": 4.652606770396233,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.162018608301878,
-          "solve_fps": 36.42466708160516,
-          "solve_runtime": 4.392627656459808,
-          "target_setup_runtime": 0.23752625286579132
+          "pipeline_construct_runtime": 4.209115818142891,
+          "solve_fps": 36.26158208288804,
+          "solve_runtime": 4.412383321672678,
+          "target_setup_runtime": 0.2402234487235546
         },
         "solver_iterations": {
           "status": "ok",
@@ -4456,15 +4549,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8957546316087246,
-          "metric_runtime": 0.3546353951096535,
+          "bvh_load_runtime": 0.8929904364049435,
+          "metric_runtime": 0.3289954960346222,
           "motion_count": 2,
-          "motion_runtime": 4.6301539093256,
+          "motion_runtime": 4.652606770396233,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.162018608301878,
-          "solve_fps": 36.42466708160516,
-          "solve_runtime": 4.392627656459808,
-          "target_setup_runtime": 0.23752625286579132
+          "pipeline_construct_runtime": 4.209115818142891,
+          "solve_fps": 36.26158208288804,
+          "solve_runtime": 4.412383321672678,
+          "target_setup_runtime": 0.2402234487235546
         },
         "status": "ok"
       },

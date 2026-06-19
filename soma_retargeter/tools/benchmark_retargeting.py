@@ -186,6 +186,41 @@ def _compiled_profile_payload(path: Path | None) -> dict[str, Any]:
     return payload
 
 
+def _missing_robot_onboarding_report(robot_name: str) -> dict[str, Any]:
+    config_dir = f"soma_retargeter/configs/{robot_name}"
+    return {
+        "status": "missing_assets_or_registration",
+        "required_files": {
+            "mjcf_or_xml": f"assets/robots/{robot_name}/mjcf/<robot>.xml",
+            "urdf_optional": f"assets/robots/{robot_name}/urdf/<robot>.urdf",
+            "retargeter_config": f"{config_dir}/soma_to_{robot_name}_retargeter_config.json",
+        },
+        "params_py_entries": [
+            f"ROBOT_XML_DICT[{robot_name!r}]",
+            f"RETARGETER_CONFIG_DICT[{robot_name!r}]",
+            f"ROBOT_URDF_DICT[{robot_name!r}] optional",
+        ],
+        "minimal_semantic_ik_map_template": {
+            "Hips": "<pelvis_or_base_body>",
+            "Chest": "<torso_body>",
+            "LeftHand": "<left_hand_or_forearm_distal_body>",
+            "RightHand": "<right_hand_or_forearm_distal_body>",
+            "LeftFoot": "<left_foot_or_ankle_body>",
+            "RightFoot": "<right_foot_or_ankle_body>",
+        },
+        "next_commands": [
+            f"python -m soma_retargeter.tools.autoconfigure_robot --robot {robot_name} --validate-only",
+            f"python -m soma_retargeter.tools.autoconfigure_robot --robot {robot_name} --force",
+            f"python -m soma_retargeter.tools.benchmark_retargeting --robots {robot_name} --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2",
+        ],
+        "notes": [
+            "Do not fabricate robot assets or download unlicensed files.",
+            "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
+            "Pose-pair files are optional bounded refinement inputs after the compiled profile validates.",
+        ],
+    }
+
+
 def _coverage_entry(robot_name: str) -> dict[str, Any]:
     resolved = resolve_robot_name(robot_name)
     profile = get_robot_profile(resolved)
@@ -213,7 +248,7 @@ def _coverage_entry(robot_name: str) -> dict[str, Any]:
             blockers.append("incomplete_morphology")
 
     status = "ready" if not blockers else ("missing_registration" if not registered else "registered_incomplete")
-    return {
+    entry = {
         "requested_name": robot_name,
         "resolved_name": resolved,
         "status": status,
@@ -226,6 +261,9 @@ def _coverage_entry(robot_name: str) -> dict[str, Any]:
         },
         "compiled_profile": compiled_payload,
     }
+    if not registered:
+        entry["onboarding_report"] = _missing_robot_onboarding_report(robot_name)
+    return entry
 
 
 def build_registry_coverage_report(targets: tuple[str, ...] = _DEFAULT_COVERAGE_TARGETS) -> dict[str, Any]:
