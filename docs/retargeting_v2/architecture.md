@@ -19,7 +19,7 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 - Contact toe/heel targets use per-environment targets, per-environment weights, hysteresis, minimum stance duration, and release blending.
 - Optional ground barriers penalize sole-anchor penetration with per-environment stance/swing weights.
 - Joint-limit and temporal objectives are range and sample-rate normalized.
-- Compiled collision metadata records sphere proxies, high-risk non-adjacent pairs, and margins. Runtime self-collision barrier execution is not implemented yet.
+- Compiled collision metadata records sphere proxies, high-risk non-adjacent pairs, and margins. Runtime sphere-pair barriers are optional and enabled with `collision_weight`.
 
 ## Generated Artifacts
 

@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import warp as wp
 
-from soma_retargeter.pipelines.ik_objectives import IKObjectivePerEnvGroundHeightBarrier
+from soma_retargeter.pipelines.ik_objectives import IKObjectivePerEnvGroundHeightBarrier, IKObjectiveSphereCollisionBarrier
 from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
 
 
@@ -32,6 +32,56 @@ class TestNewtonContactModes(unittest.TestCase):
         residuals = wp.zeros((1, 1), dtype=wp.float32)
         obj.compute_residuals(body_q, None, None, residuals, 0, problem_idx)
         self.assertTrue(np.allclose(residuals.numpy(), [[0.0]]))
+
+    def test_sphere_collision_barrier_residual_penalizes_overlap_only(self):
+        obj = IKObjectiveSphereCollisionBarrier(
+            link_index_a=0,
+            link_offset_a=wp.vec3(0.0, 0.0, 0.0),
+            radius_a=0.2,
+            link_index_b=1,
+            link_offset_b=wp.vec3(0.0, 0.0, 0.0),
+            radius_b=0.2,
+            margin=0.1,
+            weight=2.0,
+        )
+        obj.bind_device(wp.get_device())
+
+        body_q = wp.array(
+            [[
+                wp.transform(wp.vec3(0.0, 0.0, 0.0), wp.quat_identity()),
+                wp.transform(wp.vec3(0.45, 0.0, 0.0), wp.quat_identity()),
+            ]],
+            dtype=wp.transform,
+        )
+        residuals = wp.zeros((1, 1), dtype=wp.float32)
+        obj.compute_residuals(body_q, None, None, residuals, 0, None)
+        self.assertTrue(np.allclose(residuals.numpy(), [[1.0]]))
+
+        body_q = wp.array(
+            [[
+                wp.transform(wp.vec3(0.0, 0.0, 0.0), wp.quat_identity()),
+                wp.transform(wp.vec3(0.7, 0.0, 0.0), wp.quat_identity()),
+            ]],
+            dtype=wp.transform,
+        )
+        residuals = wp.zeros((1, 1), dtype=wp.float32)
+        obj.compute_residuals(body_q, None, None, residuals, 0, None)
+        self.assertTrue(np.allclose(residuals.numpy(), [[0.0]]))
+
+        obj.affects_dof_a = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+        obj.affects_dof_b = wp.array(np.array([0], dtype=np.uint8), dtype=wp.uint8)
+        joint_s = wp.array([[wp.spatial_vector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0)]], dtype=wp.spatial_vector)
+        jacobian = wp.zeros((1, 1, 1), dtype=wp.float32)
+        model = type("M", (), {"joint_dof_count": 1})()
+        body_q = wp.array(
+            [[
+                wp.transform(wp.vec3(0.0, 0.0, 0.0), wp.quat_identity()),
+                wp.transform(wp.vec3(0.45, 0.0, 0.0), wp.quat_identity()),
+            ]],
+            dtype=wp.transform,
+        )
+        obj.compute_jacobian_analytic(body_q, None, model, jacobian, joint_s, 0)
+        self.assertTrue(np.allclose(jacobian.numpy(), [[[20.0]]]))
 
     def test_missing_left_right_foot_skips_objectives(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)

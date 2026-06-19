@@ -2,6 +2,9 @@
 
 ## Current Commits
 
+- `a710df0 Add optional runtime collision barriers`
+- `1c1ebc1 Add compile-time self collision metadata`
+- `9de10ae Add v2 benchmark artifact reporting`
 - `3e1b6c9 Add contact lock release state machine`
 - `05a78a8 Add optional ground height barrier`
 - `2201779 Guard priority zero joint limit residuals`
@@ -35,7 +38,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest result before this report update: `53 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest result before this report update: `56 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
@@ -55,7 +58,7 @@ Unitree G1 currently produces a v2 artifact, but its chain summary shows zero re
 
 - Implement true motion-level benchmark loops for legacy and v2 runtime.
 - Add E3 v2 and OLI registry assets when available.
-- Implement runtime self-collision barrier objective from compiled proxy pairs.
+- Add runtime benchmark coverage for optional collision barriers on real motions.
 - Strengthen semantic auto-detection beyond explicit maps.
 - Complete root-height source/reporting and torso leakage quantitative gates.
 - Produce before/after motion metrics for acceptance thresholds.

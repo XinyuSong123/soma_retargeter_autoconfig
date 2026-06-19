@@ -390,7 +390,7 @@ def _compile_collision_config(
             "proxies": proxies,
             "pairs": pairs,
             "source": "geom_bounds_or_chain_length",
-            "runtime_barrier": "not_implemented",
+            "runtime_barrier": "sphere_pair_optional",
         },
         warnings,
     )

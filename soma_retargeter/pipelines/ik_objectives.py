@@ -424,6 +424,83 @@ def _ground_height_barrier_jac_analytic(
     jacobian[problem_idx, start_idx, dof_idx] = -weights[problem_idx] * v_ee[2] / wp.max(margin, 1.0e-6)
 
 
+@wp.kernel
+def _sphere_collision_barrier_residuals(
+    body_q: wp.array2d(dtype=wp.transform),
+    link_index_a: int,
+    link_offset_a: wp.vec3,
+    radius_a: wp.float32,
+    link_index_b: int,
+    link_offset_b: wp.vec3,
+    radius_b: wp.float32,
+    margin: wp.float32,
+    weight: wp.float32,
+    start_idx: int,
+    residuals: wp.array2d(dtype=wp.float32),
+):
+    problem_idx = wp.tid()
+    tf_a = body_q[problem_idx, link_index_a]
+    tf_b = body_q[problem_idx, link_index_b]
+    pos_a = wp.transform_point(tf_a, link_offset_a)
+    pos_b = wp.transform_point(tf_b, link_offset_b)
+    delta = pos_a - pos_b
+    distance = wp.length(delta)
+    penetration = radius_a + radius_b + margin - distance
+    residual = 0.0
+    if penetration > 0.0:
+        residual = penetration / wp.max(margin, 1.0e-6)
+    residuals[problem_idx, start_idx] = residual * weight
+
+
+@wp.kernel
+def _sphere_collision_barrier_jac_analytic(
+    link_index_a: int,
+    link_offset_a: wp.vec3,
+    radius_a: wp.float32,
+    link_index_b: int,
+    link_offset_b: wp.vec3,
+    radius_b: wp.float32,
+    affects_dof_a: wp.array1d(dtype=wp.uint8),
+    affects_dof_b: wp.array1d(dtype=wp.uint8),
+    body_q: wp.array2d(dtype=wp.transform),
+    joint_S_s: wp.array2d(dtype=wp.spatial_vector),
+    margin: wp.float32,
+    weight: wp.float32,
+    start_idx: int,
+    n_dofs: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem_idx, dof_idx = wp.tid()
+
+    affects_a = affects_dof_a[dof_idx] != 0
+    affects_b = affects_dof_b[dof_idx] != 0
+    if not affects_a and not affects_b:
+        return
+
+    tf_a = body_q[problem_idx, link_index_a]
+    tf_b = body_q[problem_idx, link_index_b]
+    rot_a = wp.quat(tf_a[3], tf_a[4], tf_a[5], tf_a[6])
+    rot_b = wp.quat(tf_b[3], tf_b[4], tf_b[5], tf_b[6])
+    pos_a = wp.vec3(tf_a[0], tf_a[1], tf_a[2]) + wp.quat_rotate(rot_a, link_offset_a)
+    pos_b = wp.vec3(tf_b[0], tf_b[1], tf_b[2]) + wp.quat_rotate(rot_b, link_offset_b)
+    delta = pos_a - pos_b
+    distance = wp.length(delta)
+    penetration = radius_a + radius_b + margin - distance
+    if penetration <= 0.0 or distance <= 1.0e-8:
+        return
+
+    normal = delta / distance
+    S = joint_S_s[problem_idx, dof_idx]
+    v_orig = wp.vec3(S[0], S[1], S[2])
+    omega = wp.vec3(S[3], S[4], S[5])
+    relative_velocity = wp.vec3(0.0, 0.0, 0.0)
+    if affects_a:
+        relative_velocity = relative_velocity + v_orig + wp.cross(omega, pos_a)
+    if affects_b:
+        relative_velocity = relative_velocity - (v_orig + wp.cross(omega, pos_b))
+    jacobian[problem_idx, start_idx, dof_idx] = -weight * wp.dot(normal, relative_velocity) / wp.max(margin, 1.0e-6)
+
+
 class IKObjectivePerEnvWeightedPosition(ik.IKObjective):
     """Position objective with independently updateable target and weight per environment."""
 
@@ -614,6 +691,116 @@ class IKObjectivePerEnvGroundHeightBarrier(ik.IKObjective):
                 joint_S_s,
                 self.ground_height,
                 self.margin,
+                start_idx,
+                n_dofs,
+            ],
+            outputs=[jacobian],
+            device=self.device,
+        )
+
+
+class IKObjectiveSphereCollisionBarrier(ik.IKObjective):
+    """Analytic soft barrier between two body-local sphere proxies."""
+
+    def __init__(
+        self,
+        link_index_a,
+        link_offset_a,
+        radius_a,
+        link_index_b,
+        link_offset_b,
+        radius_b,
+        margin=0.03,
+        weight=1.0,
+    ):
+        super().__init__()
+        self.link_index_a = link_index_a
+        self.link_offset_a = link_offset_a
+        self.radius_a = float(radius_a)
+        self.link_index_b = link_index_b
+        self.link_offset_b = link_offset_b
+        self.radius_b = float(radius_b)
+        self.margin = float(margin)
+        self.weight = float(weight)
+        self.affects_dof_a = None
+        self.affects_dof_b = None
+
+    def init_buffers(self, model, jacobian_mode):
+        self._require_batch_layout()
+        if jacobian_mode != IKJacobianType.ANALYTIC:
+            raise NotImplementedError("IKObjectiveSphereCollisionBarrier currently supports analytic Jacobian mode only")
+
+        joint_qd_start_np = model.joint_qd_start.numpy()
+        dof_to_joint_np = np.empty(joint_qd_start_np[-1], dtype=np.int32)
+        for j in range(len(joint_qd_start_np) - 1):
+            dof_to_joint_np[joint_qd_start_np[j]:joint_qd_start_np[j + 1]] = j
+
+        joint_child_np = model.joint_child.numpy()
+        body_to_joint_np = np.full(model.body_count, -1, np.int32)
+        for j in range(model.joint_count):
+            child = joint_child_np[j]
+            if child != -1:
+                body_to_joint_np[child] = j
+
+        joint_parent_np = model.joint_parent.numpy()
+
+        def ancestor_dof_mask(link_index):
+            ancestors = np.zeros(model.joint_count, dtype=bool)
+            body = link_index
+            while body != -1:
+                j = body_to_joint_np[body]
+                if j != -1:
+                    ancestors[j] = True
+                body = joint_parent_np[j] if j != -1 else -1
+            return ancestors[dof_to_joint_np].astype(np.uint8)
+
+        self.affects_dof_a = wp.array(ancestor_dof_mask(self.link_index_a), device=self.device)
+        self.affects_dof_b = wp.array(ancestor_dof_mask(self.link_index_b), device=self.device)
+
+    def supports_analytic(self):
+        return True
+
+    def residual_dim(self):
+        return 1
+
+    def compute_residuals(self, body_q, joint_q, model, residuals, start_idx, problem_idx):
+        wp.launch(
+            _sphere_collision_barrier_residuals,
+            dim=body_q.shape[0],
+            inputs=[
+                body_q,
+                self.link_index_a,
+                self.link_offset_a,
+                self.radius_a,
+                self.link_index_b,
+                self.link_offset_b,
+                self.radius_b,
+                self.margin,
+                self.weight,
+                start_idx,
+            ],
+            outputs=[residuals],
+            device=self.device,
+        )
+
+    def compute_jacobian_analytic(self, body_q, joint_q, model, jacobian, joint_S_s, start_idx):
+        n_dofs = model.joint_dof_count
+        wp.launch(
+            _sphere_collision_barrier_jac_analytic,
+            dim=[body_q.shape[0], n_dofs],
+            inputs=[
+                self.link_index_a,
+                self.link_offset_a,
+                self.radius_a,
+                self.link_index_b,
+                self.link_offset_b,
+                self.radius_b,
+                self.affects_dof_a,
+                self.affects_dof_b,
+                body_q,
+                joint_S_s,
+                self.margin,
+                self.weight,
                 start_idx,
                 n_dofs,
             ],

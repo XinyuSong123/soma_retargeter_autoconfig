@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+from soma_retargeter.pipelines.ik_objectives import IKObjectiveSphereCollisionBarrier
 from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
 from soma_retargeter.robotics.reachability import quat_xyzw_to_rotation_vector, rotation_vector_to_quat_xyzw
 
@@ -135,6 +136,45 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
         )
         self.assertTrue(used_fallback)
         self.assertTrue(np.allclose(normal, fallback))
+
+    def test_collision_objectives_are_created_from_compiled_pairs_when_weighted(self):
+        pipe = NewtonPipeline.__new__(NewtonPipeline)
+        pipe.collision_weight = 3.0
+        pipe.mapped_body_link_by_joint = {"Chest": 1, "LeftHand": 2, "RightHand": 3}
+        pipe.compiled_collision_config = {
+            "enabled": True,
+            "margin": 0.05,
+            "runtime_barrier": "sphere_pair",
+            "proxies": [
+                {"semantic": "Chest", "local_center": [0.0, 0.0, 0.0], "radius": 0.3},
+                {"semantic": "LeftHand", "local_center": [0.0, 0.0, 0.0], "radius": 0.05},
+                {"semantic": "RightHand", "local_center": [0.0, 0.0, 0.0], "radius": 0.05},
+            ],
+            "pairs": [
+                {"a": "Chest", "b": "LeftHand", "margin": 0.04},
+                {"a": "Chest", "b": "Missing", "margin": 0.04},
+            ],
+        }
+
+        objectives = pipe._create_collision_objectives()
+        self.assertEqual(len(objectives), 1)
+        self.assertIsInstance(objectives[0], IKObjectiveSphereCollisionBarrier)
+        self.assertEqual(objectives[0].link_index_a, 1)
+        self.assertEqual(objectives[0].link_index_b, 2)
+        self.assertAlmostEqual(objectives[0].radius_a, 0.3)
+        self.assertAlmostEqual(objectives[0].radius_b, 0.05)
+        self.assertAlmostEqual(objectives[0].margin, 0.04)
+        self.assertAlmostEqual(objectives[0].weight, 3.0)
+        self.assertEqual(pipe.collision_objective_report["created"], 1)
+        self.assertEqual(pipe.collision_objective_report["skipped"], 1)
+
+    def test_collision_objectives_default_to_disabled_when_weight_is_zero(self):
+        pipe = NewtonPipeline.__new__(NewtonPipeline)
+        pipe.collision_weight = 0.0
+        pipe.compiled_collision_config = {"enabled": True, "pairs": [{"a": "Chest", "b": "LeftHand"}]}
+        objectives = pipe._create_collision_objectives()
+        self.assertEqual(objectives, [])
+        self.assertFalse(pipe.collision_objective_report["enabled"])
 
 
 if __name__ == "__main__":

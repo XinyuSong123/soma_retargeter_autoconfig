@@ -64,13 +64,13 @@ Verification: legacy scaler validation rejects non-positive scale.
 
 Problem: self-collision should be a priority-0 feasibility term.
 
-Decision: compile sphere proxy metadata and high-risk non-adjacent pair lists into the profile first; keep runtime barrier execution disabled and explicitly reported as `not_implemented`.
+Decision: compile sphere proxy metadata and high-risk non-adjacent pair lists into the profile, then instantiate optional analytic sphere-pair barriers when `collision_weight > 0`.
 
-Reason: proxy extraction and pair filtering can be made deterministic now, while runtime collision Jacobians need separate solver work.
+Reason: the sphere-pair barrier is lightweight, deterministic, and can be disabled by default for backward compatibility while preserving a clear path to feasibility-pass collision costs.
 
-Risk: motions can still self-intersect until runtime barriers consume the compiled pairs.
+Risk: motions can still self-intersect when `collision_weight` is left at its legacy default of `0.0`; tuning default activation still needs motion-level benchmark evidence.
 
-Verification: unit tests cover geom-derived proxy generation, pair generation, and safe disabled behavior when proxies are unavailable.
+Verification: unit tests cover geom-derived proxy generation, pair generation, safe disabled behavior when proxies are unavailable, optional runtime objective creation, and the sphere overlap residual kernel.
 
 ## Cache
 

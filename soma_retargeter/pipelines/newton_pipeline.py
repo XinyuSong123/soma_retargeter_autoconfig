@@ -16,6 +16,7 @@ from soma_retargeter.pipelines.ik_objectives import (
     IKObjectivePoleVector,
     IKObjectivePerEnvGroundHeightBarrier,
     IKObjectivePerEnvWeightedPosition,
+    IKObjectiveSphereCollisionBarrier,
     IKRangeNormalizedJointLimitBarrier,
     IKTemporalJointRegularizer,
     range_normalized_joint_limit_barrier,
@@ -83,6 +84,7 @@ class NewtonPipeline:
         self.smooth_joint_filter_weight = retargeter_config.get('smooth_joint_filter_weight', _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT)
         self.temporal_velocity_weight = retargeter_config.get('temporal_velocity_weight', _DEFAULT_TEMPORAL_VELOCITY_WEIGHT)
         self.temporal_acceleration_weight = retargeter_config.get('temporal_acceleration_weight', _DEFAULT_TEMPORAL_ACCELERATION_WEIGHT)
+        self.collision_weight = float(retargeter_config.get("collision_weight", 0.0))
         self.priority_residual_guard_enabled = bool(
             retargeter_config.get("priority_residual_guard_enabled", bool(retargeter_config.get("compiled_retarget_profile")))
         )
@@ -110,8 +112,15 @@ class NewtonPipeline:
         self.human_robot_scaler = HumanToRobotScaler(
             skeleton, retargeter_config['model_height'], io_utils.get_config_file(retargeter_config['human_robot_scaler_config']))
         compiled_profile = retargeter_config.get("compiled_retarget_profile")
+        self.compiled_collision_config = {}
         if compiled_profile:
-            self.human_robot_scaler.enable_segment_local_from_profile(io_utils.get_config_file(compiled_profile))
+            compiled_profile_path = io_utils.get_config_file(compiled_profile)
+            self.human_robot_scaler.enable_segment_local_from_profile(compiled_profile_path)
+            try:
+                self.compiled_collision_config = io_utils.load_json(compiled_profile_path).get("collision", {})
+            except Exception as exc:
+                print(f"[WARN] Failed to load compiled collision config from {compiled_profile_path}: {exc}")
+                self.compiled_collision_config = {}
 
         self.num_body_count = self.robot_builder.body_count
         self.num_dofs = self.robot_builder.joint_dof_count
@@ -332,6 +341,7 @@ class NewtonPipeline:
                 temporal_velocity_objective,
                 temporal_acceleration_objective,
                 ground_barrier_objectives,
+                collision_objectives,
                 contact_objectives,
             ) = self._create_ik_objectives(num_envs, model, state)
 
@@ -341,6 +351,7 @@ class NewtonPipeline:
                 *direction_objectives,
                 *pole_vector_objectives,
                 *ground_barrier_objectives,
+                *collision_objectives,
                 *contact_objectives,
             ]
             if self.joint_limit_weight > 0.0:
@@ -789,6 +800,7 @@ class NewtonPipeline:
         )
 
         ground_barrier_objectives = self._create_ground_barrier_objectives(num_envs)
+        collision_objectives = self._create_collision_objectives()
         contact_objectives = self._create_contact_aware_objectives(num_envs, pos_target_arrays)
         return (
             position_objectives,
@@ -800,6 +812,7 @@ class NewtonPipeline:
             temporal_velocity_objective,
             temporal_acceleration_objective,
             ground_barrier_objectives,
+            collision_objectives,
             contact_objectives,
         )
 
@@ -1060,6 +1073,63 @@ class NewtonPipeline:
             cfg["objective"].set_target_position(env, wp.vec3(*target))
             if hasattr(cfg["objective"], "set_weight"):
                 cfg["objective"].set_weight(env, weight)
+
+    def _create_collision_objectives(self):
+        self.collision_objective_report = {
+            "enabled": bool(self.compiled_collision_config.get("enabled", False)) and self.collision_weight > 0.0,
+            "weight": float(self.collision_weight),
+            "created": 0,
+            "skipped": 0,
+            "runtime_barrier": self.compiled_collision_config.get("runtime_barrier"),
+        }
+        if self.collision_weight <= 0.0 or not self.compiled_collision_config.get("enabled", False):
+            return []
+
+        link_lookup = getattr(self, "mapped_body_link_by_joint", None) or {}
+        proxies = {
+            str(proxy.get("semantic")): proxy
+            for proxy in self.compiled_collision_config.get("proxies", [])
+            if isinstance(proxy, dict) and proxy.get("semantic")
+        }
+        out = []
+        default_margin = float(self.compiled_collision_config.get("margin", 0.03))
+        for pair in self.compiled_collision_config.get("pairs", []):
+            if not isinstance(pair, dict):
+                self.collision_objective_report["skipped"] += 1
+                continue
+            semantic_a = str(pair.get("a"))
+            semantic_b = str(pair.get("b"))
+            proxy_a = proxies.get(semantic_a)
+            proxy_b = proxies.get(semantic_b)
+            if proxy_a is None or proxy_b is None or semantic_a not in link_lookup or semantic_b not in link_lookup:
+                self.collision_objective_report["skipped"] += 1
+                continue
+            try:
+                center_a = proxy_a.get("local_center", [0.0, 0.0, 0.0])
+                center_b = proxy_b.get("local_center", [0.0, 0.0, 0.0])
+                radius_a = float(proxy_a.get("radius", 0.0))
+                radius_b = float(proxy_b.get("radius", 0.0))
+                margin = float(pair.get("margin", default_margin))
+            except (TypeError, ValueError):
+                self.collision_objective_report["skipped"] += 1
+                continue
+            if radius_a <= 0.0 or radius_b <= 0.0 or margin <= 0.0:
+                self.collision_objective_report["skipped"] += 1
+                continue
+            out.append(
+                IKObjectiveSphereCollisionBarrier(
+                    link_index_a=link_lookup[semantic_a],
+                    link_offset_a=wp.vec3(*center_a),
+                    radius_a=radius_a,
+                    link_index_b=link_lookup[semantic_b],
+                    link_offset_b=wp.vec3(*center_b),
+                    radius_b=radius_b,
+                    margin=margin,
+                    weight=self.collision_weight,
+                )
+            )
+            self.collision_objective_report["created"] += 1
+        return out
 
     def _create_ground_barrier_objectives(self, num_envs):
         if not self.ground_barrier_enabled:
