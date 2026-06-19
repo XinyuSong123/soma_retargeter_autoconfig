@@ -25,6 +25,7 @@ from soma_retargeter.robotics.reachability import (
     quat_xyzw_to_rotation_vector,
 )
 from soma_retargeter.robot_registry_parser import (
+    build_runtime_retargeter_config,
     ensure_compiled_retarget_profile,
     ensure_generated_scaler_config,
     get_robot_profile,
@@ -541,7 +542,18 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         return _legacy_runtime_retargeter_config(robot)
     if compare_mode == "v2":
         return None
-    raise ValueError(f"Unsupported compare mode {compare_mode!r}; expected 'legacy' or 'v2'.")
+    if compare_mode == "v2_pole_analytic":
+        raw_path = get_profile_path(robot, "retargeter_config")
+        if raw_path is None:
+            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        for task in config.get("pole_vector_tasks", []):
+            if isinstance(task, dict):
+                task["analytic_jacobian"] = True
+                task["jacobian_schedule_reason"] = "benchmark experiment: force analytic pole-vector Jacobian"
+        config["benchmark_compare_mode"] = compare_mode
+        return config
+    raise ValueError(f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', or 'v2_pole_analytic'.")
 
 
 def _metric_payload(value: float | int | None, **extra: Any) -> dict[str, Any]:
@@ -1467,7 +1479,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--motions", nargs="+", default=[])
     parser.add_argument("--max-motions", type=int, default=1)
     parser.add_argument("--max-frames", type=int, default=120)
-    parser.add_argument("--compare", nargs="+", default=["legacy", "v2"])
+    parser.add_argument("--compare", nargs="+", default=["legacy", "v2"], help="Compare modes: legacy, v2, or v2_pole_analytic.")
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--force", action="store_true")

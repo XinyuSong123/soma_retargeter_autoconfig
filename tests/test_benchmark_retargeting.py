@@ -12,6 +12,7 @@ from soma_retargeter.tools.benchmark_retargeting import (
     _aggregate_motion_metrics,
     _legacy_runtime_retargeter_config,
     _profile_runtime_residual_metrics,
+    _runtime_retargeter_config,
     _runtime_metrics_for_buffer,
     _select_motion_window,
     build_benchmark_gate_report,
@@ -30,6 +31,15 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 2.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.5)
         self.assertEqual(cfg["ik_map"]["Chest"]["r_weight"], 0.5)
+
+    def test_pole_analytic_compare_mode_forces_only_pole_jacobians(self):
+        self.assertIsNone(_runtime_retargeter_config("roboparty_rpo", "v2"))
+        cfg = _runtime_retargeter_config("roboparty_rpo", "v2_pole_analytic")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_pole_analytic")
+        self.assertTrue(cfg["pole_vector_tasks"])
+        self.assertTrue(all(task["analytic_jacobian"] for task in cfg["pole_vector_tasks"]))
+        self.assertTrue(any(not task["analytic_jacobian"] for task in cfg["direction_tasks"]))
+        self.assertIn("force analytic pole-vector", cfg["pole_vector_tasks"][0]["jacobian_schedule_reason"])
 
     def test_profile_runtime_residual_metrics_include_torso_leakage(self):
         profile = {
