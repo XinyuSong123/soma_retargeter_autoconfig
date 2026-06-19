@@ -2,6 +2,7 @@ import unittest
 from soma_retargeter.robot_registry_parser import (
     _resolve_priority_weight_bands,
     build_runtime_retargeter_config,
+    compiled_profile_cache_diagnostics,
     get_profile_path,
     load_compiled_retarget_profile,
     validate_compiled_retarget_profile,
@@ -104,6 +105,7 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(profile["schema_version"], 2)
         self.assertEqual(profile["quaternion_order"], "xyzw")
         self.assertEqual(validate_compiled_retarget_profile(profile), [])
+        self.assertEqual(compiled_profile_cache_diagnostics("roboparty_rpo", profile), [])
 
         diagnostics = validate_compiled_retarget_profile({"schema_version": 1})
         self.assertTrue(any(item["code"] == "invalid_schema_version" for item in diagnostics))
@@ -132,6 +134,35 @@ class TestContactConfig(unittest.TestCase):
         self.assertIn("non_finite_profile_value", codes)
         self.assertIn("symmetric_chain_length_mismatch", codes)
         self.assertIn("symmetric_segment_length_mismatch", codes)
+
+    def test_compiled_profile_validation_requires_cache_fingerprints(self):
+        profile = load_compiled_retarget_profile("roboparty_rpo")
+        del profile["compiler_version"]
+        profile["source_config_hash"] = ""
+        diagnostics = validate_compiled_retarget_profile(profile)
+        self.assertTrue(
+            any(
+                item["code"] == "missing_profile_key" and item["key"] == "compiler_version"
+                for item in diagnostics
+            )
+        )
+        self.assertTrue(
+            any(
+                item["code"] == "invalid_profile_fingerprint" and item["key"] == "source_config_hash"
+                for item in diagnostics
+            )
+        )
+
+    def test_compiled_profile_cache_diagnostics_report_stale_fingerprints(self):
+        profile = load_compiled_retarget_profile("roboparty_rpo")
+        profile["compiler_version"] = "old"
+        profile["robot_fingerprint"] = "old"
+        profile["source_config_hash"] = "old"
+        diagnostics = compiled_profile_cache_diagnostics("roboparty_rpo", profile)
+        codes = {item["code"] for item in diagnostics}
+        self.assertIn("compiled_profile_compiler_version_stale", codes)
+        self.assertIn("compiled_profile_robot_fingerprint_stale", codes)
+        self.assertIn("compiled_profile_source_config_hash_stale", codes)
 
     def test_priority_band_validation_reports_small_adjacent_ratio(self):
         bands, diagnostics = _resolve_priority_weight_bands(

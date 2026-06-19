@@ -76,10 +76,10 @@ Verification: unit tests cover geom-derived proxy generation, pair generation, s
 
 Problem: compiled profiles must be deterministic and reusable.
 
-Decision: generated profile paths are derived from robot config paths and validated before reuse.
+Decision: generated profile paths are derived from robot config paths, validated before reuse, and invalidated when the cached robot fingerprint, source config hash, or compiler version differs from the current registry state.
 
 Reason: the runtime can opt into v2 without requiring manual profile path wiring.
 
-Risk: stale profiles can remain if source assets change without force regeneration.
+Risk: fingerprint coverage is only as complete as the morphology analyzer and registered config inputs; unregistered external dependencies still need explicit registration before they can affect cache invalidation.
 
-Verification: profile deterministic serialization tests and registry validation path.
+Verification: profile deterministic serialization tests, registry validation path, and stale cache fingerprint diagnostics.

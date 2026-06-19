@@ -13,6 +13,7 @@ from types import ModuleType
 from typing import Any
 
 import soma_retargeter.utils.io_utils as io_utils
+from soma_retargeter.robotics.retarget_profile import COMPILER_VERSION, stable_hash_payload
 
 
 POSE_SLOT_ORDER = (
@@ -1032,9 +1033,22 @@ def validate_compiled_retarget_profile(profile: dict[str, Any]) -> list[dict[str
         diagnostics.append({"code": "invalid_schema_version", "expected": 2, "actual": profile.get("schema_version")})
     if profile.get("quaternion_order") != "xyzw":
         diagnostics.append({"code": "invalid_quaternion_order", "expected": "xyzw", "actual": profile.get("quaternion_order")})
-    for key in ("robot_fingerprint", "source_skeleton_fingerprint", "semantic_sites", "chains", "tasks", "solver"):
+    for key in (
+        "compiler_version",
+        "robot_fingerprint",
+        "source_config_hash",
+        "source_skeleton_fingerprint",
+        "semantic_sites",
+        "chains",
+        "tasks",
+        "solver",
+    ):
         if key not in profile:
             diagnostics.append({"code": "missing_profile_key", "key": key})
+    for key in ("compiler_version", "robot_fingerprint", "source_config_hash"):
+        value = profile.get(key)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
+            diagnostics.append({"code": "invalid_profile_fingerprint", "key": key, "value": value})
     if not isinstance(profile.get("semantic_sites", {}), dict):
         diagnostics.append({"code": "invalid_semantic_sites"})
     if not isinstance(profile.get("chains", {}), dict):
@@ -1143,6 +1157,45 @@ def validate_compiled_retarget_profile(profile: dict[str, Any]) -> list[dict[str
     return diagnostics
 
 
+def _expected_compiled_profile_cache_fingerprints(robot_name: str | None) -> dict[str, str] | None:
+    robot_name = resolve_robot_name(robot_name)
+    profile = get_robot_profile(robot_name)
+    if profile is None:
+        return None
+    raw_config_path = profile.get("retargeter_config")
+    if not raw_config_path:
+        return None
+
+    from soma_retargeter.robotics.morphology import analyze_mjcf_morphology
+
+    raw_config = io_utils.load_json(raw_config_path)
+    morphology = analyze_mjcf_morphology(profile.get("mjcf_path"))
+    source_config_hash = stable_hash_payload({"path": str(raw_config_path), "config": raw_config})
+    return {
+        "compiler_version": COMPILER_VERSION,
+        "robot_fingerprint": morphology.robot_fingerprint,
+        "source_config_hash": source_config_hash,
+    }
+
+
+def compiled_profile_cache_diagnostics(robot_name: str | None, profile: dict[str, Any]) -> list[dict[str, Any]]:
+    expected = _expected_compiled_profile_cache_fingerprints(robot_name)
+    if expected is None:
+        return [{"code": "compiled_profile_cache_unavailable", "robot": resolve_robot_name(robot_name)}]
+
+    diagnostics: list[dict[str, Any]] = []
+    for key, expected_value in expected.items():
+        actual_value = profile.get(key)
+        if actual_value != expected_value:
+            diagnostics.append({
+                "code": f"compiled_profile_{key}_stale",
+                "key": key,
+                "expected": expected_value,
+                "actual": actual_value,
+            })
+    return diagnostics
+
+
 def load_compiled_retarget_profile(robot_name: str | None, *, require_valid: bool = True) -> dict[str, Any] | None:
     path = get_profile_path(robot_name, "compiled_retarget_profile")
     if path is None or not path.exists():
@@ -1217,7 +1270,9 @@ def ensure_compiled_retarget_profile(robot_name: str | None, *, force: bool = Fa
     if output_path is None:
         return None
     if output_path.exists() and not force:
-        diagnostics = validate_compiled_retarget_profile(io_utils.load_json(output_path))
+        cached_profile = io_utils.load_json(output_path)
+        diagnostics = validate_compiled_retarget_profile(cached_profile)
+        diagnostics.extend(compiled_profile_cache_diagnostics(robot_name, cached_profile))
         if not diagnostics:
             return output_path
 
