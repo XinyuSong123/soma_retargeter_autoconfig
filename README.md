@@ -33,13 +33,19 @@ SOMA Retargeter is part of the [SOMA body model](https://github.com/NVlabs/SOMA-
 
 <summary>Setup instructions</summary>
 
-### Method 1 (conda + pip)
+### Method 1 (conda environment)
 
 #### 1. Create and Activate Conda Environment
 
 ```bash
-conda create -n soma-retargeter python=3.12 -y
-conda activate soma-retargeter
+conda env create -f environment.yml
+conda activate soma-retargeter-v2
+```
+
+If the environment already exists, update it from the same file:
+
+```bash
+conda env update -n soma-retargeter-v2 -f environment.yml
 ```
 
 #### 2. Download LFS Assets
@@ -50,9 +56,7 @@ git lfs pull
 
 #### 3. Install the Library
 
-```bash
-pip install .
-```
+The conda environment installs this project in editable mode through `environment.yml`. If you created the environment manually instead, install it with `pip install -e .`.
 
 ### Method 2 (uv)
 
