@@ -1099,6 +1099,59 @@ def build_benchmark_gate_report(results: list[dict[str, Any]], *, strict: bool =
     }
 
 
+def write_gate_failure_payloads(
+    output_dir: Path,
+    gate_report: dict[str, Any],
+    results: list[dict[str, Any]],
+    command: str,
+) -> list[dict[str, Any]]:
+    """Persist structured failure summaries for report-only gate failures."""
+
+    results_by_robot = {str(result.get("robot")): result for result in results if result.get("robot") is not None}
+    written = []
+    for robot_report in gate_report.get("robots", []):
+        if not isinstance(robot_report, dict) or robot_report.get("status") != "failed":
+            continue
+        robot = str(robot_report.get("robot"))
+        result = results_by_robot.get(robot, {})
+        failed_gates = [gate for gate in robot_report.get("gates", []) if isinstance(gate, dict) and gate.get("status") == "failed"]
+        unavailable_gates = [
+            gate for gate in robot_report.get("gates", []) if isinstance(gate, dict) and gate.get("status") == "unavailable"
+        ]
+        payload = {
+            "schema_version": 1,
+            "status": "failed",
+            "failure_type": "benchmark_gate",
+            "robot": robot,
+            "command": command,
+            "reproduction_command": command,
+            "per_robot_artifact": f"per_robot/{robot}.json",
+            "profile_path": result.get("profile_path"),
+            "profile_schema_version": result.get("profile_schema_version"),
+            "compiler_version": result.get("compiler_version"),
+            "robot_fingerprint": result.get("robot_fingerprint"),
+            "warnings": result.get("warnings", []),
+            "task_summary": result.get("task_summary", {}),
+            "chain_summary": result.get("chain_summary", {}),
+            "root_ground_summary": result.get("root_ground_summary", {}),
+            "failed_gates": failed_gates,
+            "unavailable_gates": unavailable_gates,
+            "compare_metrics": {
+                mode: payload.get("metrics", {})
+                for mode, payload in (result.get("compare_results") or {}).items()
+                if isinstance(payload, dict)
+            },
+            "compare_runtime_seconds": {
+                mode: (payload.get("motion_benchmark") or {}).get("runtime_seconds", {})
+                for mode, payload in (result.get("compare_results") or {}).items()
+                if isinstance(payload, dict)
+            },
+        }
+        _write_json(output_dir / "failures" / f"{robot}_gates.json", payload)
+        written.append({"robot": robot, "path": f"failures/{robot}_gates.json", "failed_count": len(failed_gates)})
+    return written
+
+
 def _select_motion_window(animation: Any, max_frames: int) -> tuple[int, int, str]:
     frame_count = int(getattr(animation, "num_frames", 0))
     if max_frames <= 0 or frame_count <= max_frames:
@@ -1334,11 +1387,13 @@ def main(argv: list[str] | None = None) -> int:
         results.append(result)
     benchmark_gates = build_benchmark_gate_report(results, strict=args.strict_gates)
     _write_json(output_dir / "benchmark_gates.json", benchmark_gates)
+    gate_failure_artifacts = write_gate_failure_payloads(output_dir, benchmark_gates, results, command)
 
     summary = {
         "schema_version": 1,
         "status": "ok" if all(result.get("status") in {"ok", "diagnostics"} for result in results) else "failed",
         "benchmark_gate_status": benchmark_gates["status"],
+        "gate_failure_artifacts": gate_failure_artifacts,
         "robots": [result.get("robot") for result in results],
         "compare_modes": list(args.compare),
         "motions": [str(Path(path)) for path in args.motions],

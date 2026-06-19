@@ -434,6 +434,13 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertEqual(rc, 4)
             gates = json.loads((out / "benchmark_gates.json").read_text())
             self.assertEqual(gates["status"], "failed")
+            failure = json.loads((out / "failures" / "roboparty_rpo_gates.json").read_text())
+            self.assertEqual(failure["failure_type"], "benchmark_gate")
+            self.assertEqual(failure["robot"], "roboparty_rpo")
+            self.assertIn("--strict-gates", failure["reproduction_command"])
+            self.assertEqual([gate["metric"] for gate in failure["failed_gates"]], ["penetration"])
+            summary = json.loads((out / "benchmark_summary.json").read_text())
+            self.assertEqual(summary["gate_failure_artifacts"][0]["path"], "failures/roboparty_rpo_gates.json")
 
     def test_benchmark_persists_failure_payload(self):
         with tempfile.TemporaryDirectory() as td:
