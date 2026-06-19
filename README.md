@@ -133,9 +133,12 @@ Useful validation modes:
 ```bash
 python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --validate-only --strict
 python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --force --output ./profile_v2.json
+python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --dry-run --write-report
+python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --force --benchmark --strict
 ```
 
 The compiler writes a schema v2 profile with deterministic JSON, explicit `xyzw` quaternion order, robot/source fingerprints, semantic sites, chain reachability placeholders, task specs, contact settings, confidence, and structured warnings. Low-confidence semantic mappings return exit code `2`; invalid model/config input returns exit code `3`.
+`--write-report` emits a sidecar `*.autoconfig_report.json` with paths, confidence, warnings, seed, and benchmark status. `--benchmark --strict` runs the legacy/v2 benchmark with strict gates and returns exit code `4` when a benchmark gate fails.
 
 Compile-level benchmark artifacts can be generated with:
 

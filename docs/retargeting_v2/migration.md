@@ -10,12 +10,14 @@
 python -m soma_retargeter.tools.autoconfigure_robot --robot <robot> --force
 ```
 
-4. Inspect the generated compiled profile warnings and confidence.
+4. Inspect the generated compiled profile warnings and confidence. Use `--dry-run --write-report` to produce a sidecar `*.autoconfig_report.json` without writing the compiled profile.
 5. Run:
 
 ```bash
 python -m soma_retargeter.tools.benchmark_retargeting --robots <robot> --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2
 ```
+
+The autoconfig CLI accepts `--benchmark --strict` as a one-command validation path; it forwards the configured seed to the benchmark and returns exit code `4` when strict benchmark gates fail.
 
 ## Legacy Compatibility
 

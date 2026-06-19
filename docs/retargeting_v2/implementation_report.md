@@ -37,7 +37,7 @@
 - Reachability projection helpers: `soma_retargeter/robotics/reachability.py`
 - v2 task compiler: `soma_retargeter/robotics/task_compiler.py`
 - Conservative body-name semantic inference for missing `ik_map` entries: `soma_retargeter/robotics/task_compiler.py`
-- Autoconfig CLI: `soma_retargeter/tools/autoconfigure_robot.py`
+- Autoconfig CLI with dry-run, report, seed, strict validation, and optional strict benchmark return-code handling: `soma_retargeter/tools/autoconfigure_robot.py`
 - Runtime registry integration: `soma_retargeter/robot_registry_parser.py`
 - Segment-local target builder: `soma_retargeter/robotics/human_to_robot_scaler.py`
 - MJCF explicit sites, distal child anchors, and primitive/STL mesh bounds for distal virtual sites and collision proxies: `soma_retargeter/robotics/morphology.py` and `soma_retargeter/robotics/task_compiler.py`
