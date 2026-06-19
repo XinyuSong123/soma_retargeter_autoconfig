@@ -9,6 +9,7 @@ import numpy as np
 
 from soma_retargeter.robotics.reachability import rotation_vector_to_quat_xyzw
 from soma_retargeter.tools.benchmark_retargeting import (
+    _aggregate_motion_metrics,
     _legacy_runtime_retargeter_config,
     _profile_runtime_residual_metrics,
     _runtime_metrics_for_buffer,
@@ -143,6 +144,70 @@ class TestBenchmarkRetargeting(unittest.TestCase):
 
         self.assertEqual(metrics["hand_position_rmse"]["status"], "ok")
         self.assertAlmostEqual(metrics["hand_position_rmse"]["value"], 0.0)
+        self.assertEqual(metrics["hand_position_rmse"]["axis_order"], ["x", "y", "z"])
+        self.assertEqual(metrics["hand_position_rmse"]["sample_count"], 2)
+        self.assertTrue(np.allclose(metrics["hand_position_rmse"]["axis_rmse"], [0.0, 0.0, 0.0]))
+
+    def test_runtime_tracking_metrics_include_axis_error_diagnostics(self):
+        frames = np.zeros((2, 7), dtype=np.float32)
+        frames[:, 3:7] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+        buffer = type("B", (), {"data": frames, "sample_rate": 30.0})()
+        actual_positions = np.asarray([[2.0, 1.0, 0.0], [4.0, 1.0, 0.0]], dtype=np.float64)
+        target = np.zeros((2, 1, 7), dtype=np.float64)
+        target[:, :, 3:7] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+        target[:, 0, 0:3] = np.asarray([[1.0, 1.0, 0.0], [2.0, 1.0, 0.0]], dtype=np.float64)
+        pipeline = type("P", (), {"ik_model": None, "input_targets": [target], "mapped_joints": ["LeftHand"]})()
+
+        with (
+            mock.patch("soma_retargeter.tools.benchmark_retargeting._joint_limit_margin", return_value=0.0),
+            mock.patch(
+                "soma_retargeter.tools.benchmark_retargeting._body_site_pose_trajectories",
+                return_value={"LeftHand": {"position": actual_positions}},
+            ),
+        ):
+            metrics = _runtime_metrics_for_buffer({"semantic_sites": {}}, pipeline, 0, buffer)
+
+        self.assertAlmostEqual(metrics["hand_position_rmse"]["value"], np.sqrt((1.0 + 4.0) / 2.0))
+        self.assertTrue(np.allclose(metrics["hand_position_rmse"]["axis_rmse"], [np.sqrt(2.5), 0.0, 0.0]))
+        self.assertTrue(np.allclose(metrics["hand_position_rmse"]["mean_error"], [1.5, 0.0, 0.0]))
+        self.assertTrue(np.allclose(metrics["hand_position_rmse"]["p95_abs_error"], [1.95, 0.0, 0.0]))
+
+    def test_aggregate_motion_metrics_preserves_tracking_axis_diagnostics(self):
+        aggregated = _aggregate_motion_metrics(
+            [
+                {
+                    "metrics": {
+                        "hand_position_rmse": {
+                            "status": "ok",
+                            "value": 1.0,
+                            "axis_rmse": [1.0, 0.0, 0.0],
+                            "mean_error": [1.0, 0.0, 0.0],
+                            "p95_abs_error": [1.0, 0.0, 0.0],
+                            "axis_order": ["x", "y", "z"],
+                            "sample_count": 1,
+                        }
+                    }
+                },
+                {
+                    "metrics": {
+                        "hand_position_rmse": {
+                            "status": "ok",
+                            "value": 3.0,
+                            "axis_rmse": [3.0, 0.0, 0.0],
+                            "mean_error": [3.0, 0.0, 0.0],
+                            "p95_abs_error": [3.0, 0.0, 0.0],
+                            "axis_order": ["x", "y", "z"],
+                            "sample_count": 3,
+                        }
+                    }
+                },
+            ]
+        )
+
+        payload = aggregated["hand_position_rmse"]
+        self.assertEqual(payload["value"], 2.0)
+        self.assertEqual(payload["sample_count"], 4)
+        self.assertTrue(np.allclose(payload["axis_rmse"], [2.5, 0.0, 0.0]))
 
     def test_registry_coverage_report_marks_missing_and_incomplete_targets(self):
         report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "e3_v2", "oli"))

@@ -706,6 +706,45 @@ def _tracking_rmse(targets: np.ndarray, actual: np.ndarray) -> float | None:
     return float(np.sqrt(np.mean(np.sum(residuals * residuals, axis=1))))
 
 
+def _tracking_residual_stats(targets: np.ndarray, actual: np.ndarray) -> dict[str, Any] | None:
+    count = min(len(targets), len(actual))
+    if count == 0:
+        return None
+    residuals = np.asarray(actual[:count], dtype=np.float64) - np.asarray(targets[:count], dtype=np.float64)
+    finite = np.all(np.isfinite(residuals), axis=1)
+    if not np.any(finite):
+        return None
+    residuals = residuals[finite]
+    axis_rmse = np.sqrt(np.mean(residuals * residuals, axis=0))
+    return {
+        "rmse": float(np.sqrt(np.mean(np.sum(residuals * residuals, axis=1)))),
+        "axis_rmse": [float(value) for value in axis_rmse],
+        "mean_error": [float(value) for value in np.mean(residuals, axis=0)],
+        "p95_abs_error": [float(value) for value in np.percentile(np.abs(residuals), 95.0, axis=0)],
+        "count": int(len(residuals)),
+    }
+
+
+def _tracking_metric_payload(stats: list[dict[str, Any]], *, unit: str = "m") -> dict[str, Any]:
+    if not stats:
+        return _metric_payload(None, unit=unit, statistic="rmse")
+    weights = np.asarray([max(int(item.get("count", 0)), 0) for item in stats], dtype=np.float64)
+    if weights.sum() <= 0.0:
+        weights = np.ones(len(stats), dtype=np.float64)
+    values = np.asarray([float(item["rmse"]) for item in stats], dtype=np.float64)
+    axis_rmse = np.asarray([item["axis_rmse"] for item in stats], dtype=np.float64)
+    mean_error = np.asarray([item["mean_error"] for item in stats], dtype=np.float64)
+    p95_abs_error = np.asarray([item["p95_abs_error"] for item in stats], dtype=np.float64)
+    return {
+        **_metric_payload(float(np.average(values, weights=weights)), unit=unit, statistic="rmse"),
+        "axis_rmse": [float(value) for value in np.average(axis_rmse, axis=0, weights=weights)],
+        "mean_error": [float(value) for value in np.average(mean_error, axis=0, weights=weights)],
+        "p95_abs_error": [float(value) for value in np.average(p95_abs_error, axis=0, weights=weights)],
+        "axis_order": ["x", "y", "z"],
+        "sample_count": int(np.sum(weights)),
+    }
+
+
 def _aligned_runtime_target_frames(pipeline: Any, motion_index: int) -> np.ndarray | None:
     input_targets = getattr(pipeline, "input_targets", [])
     if motion_index >= len(input_targets):
@@ -906,13 +945,15 @@ def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_i
             ("hand_position_rmse", ("LeftHand", "RightHand")),
             ("foot_position_rmse", ("LeftFoot", "RightFoot")),
         ):
-            values = []
+            stats = []
             for semantic in semantics:
                 if semantic not in semantic_pose or semantic not in mapped_joints:
                     continue
                 target_idx = mapped_joints.index(semantic)
-                values.append(_tracking_rmse(target_frames[:, target_idx, 0:3], semantic_pose[semantic]["position"]))
-            metrics[metric_name] = _metric_payload(float(np.mean(values)) if values else None, unit="m", statistic="rmse")
+                stat = _tracking_residual_stats(target_frames[:, target_idx, 0:3], semantic_pose[semantic]["position"])
+                if stat is not None:
+                    stats.append(stat)
+            metrics[metric_name] = _tracking_metric_payload(stats, unit="m")
     metrics.update(_profile_runtime_residual_metrics(profile, pipeline, motion_index, semantic_pose))
     return metrics
 
@@ -935,6 +976,23 @@ def _aggregate_motion_metrics(motion_payloads: list[dict[str, Any]]) -> dict[str
                 "motion_count": len(values),
                 "aggregation": "mean",
             }
+            tracking_payloads = [
+                payload
+                for payload in seen_payloads
+                if payload.get("status") == "ok"
+                and "axis_rmse" in payload
+                and "mean_error" in payload
+                and "p95_abs_error" in payload
+            ]
+            if tracking_payloads:
+                weights = np.asarray([max(int(payload.get("sample_count", 0)), 0) for payload in tracking_payloads], dtype=np.float64)
+                if weights.sum() <= 0.0:
+                    weights = np.ones(len(tracking_payloads), dtype=np.float64)
+                for key in ("axis_rmse", "mean_error", "p95_abs_error"):
+                    arr = np.asarray([payload[key] for payload in tracking_payloads], dtype=np.float64)
+                    aggregated[metric_name][key] = [float(value) for value in np.average(arr, axis=0, weights=weights)]
+                aggregated[metric_name]["axis_order"] = list(tracking_payloads[0].get("axis_order", ["x", "y", "z"]))
+                aggregated[metric_name]["sample_count"] = int(np.sum(weights))
         elif seen_payloads:
             reasons = sorted({str(payload.get("reason", payload.get("status", "unavailable"))) for payload in seen_payloads})
             aggregated[metric_name] = {
