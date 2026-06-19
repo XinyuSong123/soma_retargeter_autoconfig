@@ -883,6 +883,7 @@ def _apply_compiled_profile_tasks_to_ik_map(
             rotation_task_by_semantic[semantic] = task
 
     out: dict[str, dict[str, Any]] = {}
+    semantic_sites = compiled_profile.get("semantic_sites", {})
     for joint_name, entry in ik_map.items():
         updated = dict(entry)
         if joint_name not in position_weight_by_semantic:
@@ -892,6 +893,11 @@ def _apply_compiled_profile_tasks_to_ik_map(
             updated["t_weight"] = position_weight_by_semantic[joint_name]
             updated["v2_position_priority"] = _semantic_task_priority(compiled_profile, joint_name, "position")
             updated["v2_position_weight_source"] = "compiled priority band"
+            site = semantic_sites.get(joint_name) if isinstance(semantic_sites, dict) else None
+            local_position = site.get("local_position") if isinstance(site, dict) else None
+            offset_supported = bool(site.get("orientation_supported", False)) or "Foot" in joint_name
+            if offset_supported and isinstance(local_position, list) and len(local_position) == 3:
+                updated["v2_position_link_offset"] = [float(value) for value in local_position]
         if joint_name not in rotation_task_by_semantic:
             updated["r_weight"] = 0.0
             updated["v2_rotation_disabled_reason"] = "compiled profile has no enabled rotation task"

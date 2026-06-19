@@ -110,6 +110,12 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["LeftArm"]["r_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["LeftHand"]["t_weight"], 100.0)
         self.assertEqual(cfg["ik_map"]["LeftHand"]["r_weight"], 0.0)
+        self.assertNotIn("v2_position_link_offset", cfg["ik_map"]["LeftHand"])
+        g1_cfg = build_runtime_retargeter_config("unitree_g1", {"ik_map": {"LeftHand": "left_wrist_yaw_link"}})
+        self.assertEqual(
+            g1_cfg["ik_map"]["LeftHand"]["v2_position_link_offset"],
+            [0.17635336870442034, -0.010919955391605394, 0.006463830307906945],
+        )
         left_arm_direction = next(task for task in cfg["direction_tasks"] if task["name"] == "LeftArm_direction")
         self.assertEqual(left_arm_direction["reference_site"], "Chest")
         self.assertEqual(left_arm_direction["target_site"], "LeftArm")

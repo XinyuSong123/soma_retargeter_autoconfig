@@ -19,7 +19,13 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
         cfg = {
             "ik_map": {
                 "Hips": {"t_body": "base", "r_body": "base", "t_weight": 10.0, "r_weight": 0.0},
-                "LeftHand": {"t_body": "hand", "r_body": "hand", "t_weight": 1.0, "r_weight": 0.0},
+                "LeftHand": {
+                    "t_body": "hand",
+                    "r_body": "hand",
+                    "t_weight": 1.0,
+                    "r_weight": 0.0,
+                    "v2_position_link_offset": [0.2, 0.0, 0.0],
+                },
                 "Chest": {
                     "t_body": "torso",
                     "r_body": "torso",
@@ -34,7 +40,10 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
 
         self.assertEqual(mapped_joints, ["Hips", "LeftHand", "Chest"])
         self.assertEqual(mapped_indices, [0, 1, 2])
-        self.assertEqual(pos_data, [(0, 0, 10.0), (1, 1, 1.0)])
+        self.assertEqual(pos_data[0][:3], (0, 0, 10.0))
+        self.assertTrue(np.allclose(pos_data[0][3], [0.0, 0.0, 0.0]))
+        self.assertEqual(pos_data[1][:3], (1, 1, 1.0))
+        self.assertTrue(np.allclose(pos_data[1][3], [0.2, 0.0, 0.0]))
         self.assertEqual(rot_data[0][:3], (2, 2, 0.5))
         self.assertTrue(np.allclose(rot_data[0][3], [[0.0], [0.0], [1.0]]))
         self.assertEqual(link_by_joint, {"Hips": 0, "LeftHand": 1, "Chest": 2})

@@ -454,7 +454,7 @@ class NewtonPipeline:
                     if frame > (len(self.input_targets[env]) - 1):
                         continue
                     frame_targets = self.input_targets[env][frame]
-                    for i, (effector_idx, _, _) in enumerate(self.mapped_body_link_pos_data):
+                    for i, (effector_idx, _, _, _) in enumerate(self.mapped_body_link_pos_data):
                         target = frame_targets[effector_idx]
                         position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
                     for i, (effector_idx, _, _, basis) in enumerate(self.mapped_body_link_rot_data):
@@ -664,7 +664,10 @@ class NewtonPipeline:
             r_link_idx = body_names.index(mapping_data['r_body'])
             mapped_body_link_by_joint[joint] = t_link_idx
             if float(mapping_data.get('t_weight', 0.0)) > 0.0:
-                mapped_body_link_pos_data.append((effector_idx, t_link_idx, float(mapping_data['t_weight'])))
+                link_offset = np.asarray(mapping_data.get("v2_position_link_offset", [0.0, 0.0, 0.0]), dtype=np.float32)
+                if link_offset.shape != (3,) or not np.all(np.isfinite(link_offset)):
+                    link_offset = np.zeros(3, dtype=np.float32)
+                mapped_body_link_pos_data.append((effector_idx, t_link_idx, float(mapping_data['t_weight']), link_offset))
             if float(mapping_data.get('r_weight', 0.0)) > 0.0:
                 mapped_body_link_rot_data.append((
                     effector_idx,
@@ -754,8 +757,11 @@ class NewtonPipeline:
         body_q = state.body_q.numpy()
         for env in range(num_envs):
             base = env * self.num_body_count
-            for ee_idx, (_, link_idx, _) in enumerate(self.mapped_body_link_pos_data):
-                pos_targets[env, ee_idx] = body_q[base + link_idx][0:3]
+            for ee_idx, (_, link_idx, _, link_offset) in enumerate(self.mapped_body_link_pos_data):
+                body_transform = body_q[base + link_idx]
+                body_pos = np.asarray(body_transform[0:3], dtype=np.float32)
+                body_rot = wp.quat(*body_transform[3:7])
+                pos_targets[env, ee_idx] = body_pos + np.asarray(wp.quat_rotate(body_rot, wp.vec3(*link_offset)), dtype=np.float32)
 
             for ee_idx, (_, link_idx, _, _) in enumerate(self.mapped_body_link_rot_data):
                 rot_wp = wp.quat(body_q[base + link_idx][3:7])
@@ -801,10 +807,10 @@ class NewtonPipeline:
         self.pole_vector_fallback_counts = np.zeros(pole_num_ees, dtype=np.int64)
 
         position_objectives = []
-        for i, (_, link_idx, w) in enumerate(self.mapped_body_link_pos_data):
+        for i, (_, link_idx, w, link_offset) in enumerate(self.mapped_body_link_pos_data):
             objective = ik.IKObjectivePosition(
                 link_index=link_idx,
-                link_offset=wp.vec3(0.0, 0.0, 0.0),
+                link_offset=wp.vec3(*link_offset),
                 target_positions=pos_target_arrays[i],
                 weight=w)
             position_objectives.append(objective)
@@ -1116,7 +1122,7 @@ class NewtonPipeline:
         if not link_lookup:
             link_lookup = {}
             for name, entry in zip(self.mapped_joints, self.mapped_body_link_pos_data):
-                link_lookup[name] = entry[1] if len(entry) == 3 else entry[0]
+                link_lookup[name] = entry[1]
         if "LeftFoot" not in link_lookup or "RightFoot" not in link_lookup:
             print("[WARN] contact_aware_foot_ik enabled but LeftFoot/RightFoot are missing in ik_map; skipping.")
             self.contact_objective_map = {}
@@ -1287,7 +1293,7 @@ class NewtonPipeline:
         if not link_lookup:
             link_lookup = {}
             for name, entry in zip(self.mapped_joints, self.mapped_body_link_pos_data):
-                link_lookup[name] = entry[1] if len(entry) == 3 else entry[0]
+                link_lookup[name] = entry[1]
         if "LeftFoot" not in link_lookup or "RightFoot" not in link_lookup:
             print("[WARN] ground_barrier enabled but LeftFoot/RightFoot are missing in ik_map; skipping.")
             self.ground_barrier_objective_map = {}
