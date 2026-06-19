@@ -17,6 +17,7 @@ from soma_retargeter.pipelines.ik_objectives import (
     IKObjectivePerEnvWeightedPosition,
     IKRangeNormalizedJointLimitBarrier,
     IKTemporalJointRegularizer,
+    range_normalized_joint_limit_barrier,
 )
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
@@ -81,6 +82,12 @@ class NewtonPipeline:
         self.smooth_joint_filter_weight = retargeter_config.get('smooth_joint_filter_weight', _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT)
         self.temporal_velocity_weight = retargeter_config.get('temporal_velocity_weight', _DEFAULT_TEMPORAL_VELOCITY_WEIGHT)
         self.temporal_acceleration_weight = retargeter_config.get('temporal_acceleration_weight', _DEFAULT_TEMPORAL_ACCELERATION_WEIGHT)
+        self.priority_residual_guard_enabled = bool(
+            retargeter_config.get("priority_residual_guard_enabled", bool(retargeter_config.get("compiled_retarget_profile")))
+        )
+        self.priority_residual_guard_tolerance = float(retargeter_config.get("priority_residual_guard_tolerance", 0.05))
+        self.priority_residual_guard_absolute_tolerance = float(retargeter_config.get("priority_residual_guard_absolute_tolerance", 1.0e-5))
+        self.priority_residual_guard_margin_fraction = float(retargeter_config.get("priority_residual_guard_margin_fraction", 0.08))
         self.post_processing_enabled = retargeter_config.get('enable_post_processing', True)
         self.virtual_foot_grounding_enabled = retargeter_config.get('enable_virtual_foot_grounding', True)
         self.virtual_foot_grounding_smooth_window = max(
@@ -266,6 +273,9 @@ class NewtonPipeline:
         self.smooth_joint_filter_weight = max(0.0, self.smooth_joint_filter_weight)
         self.temporal_velocity_weight = max(0.0, float(self.temporal_velocity_weight))
         self.temporal_acceleration_weight = max(0.0, float(self.temporal_acceleration_weight))
+        self.priority_residual_guard_tolerance = max(0.0, float(self.priority_residual_guard_tolerance))
+        self.priority_residual_guard_absolute_tolerance = max(0.0, float(self.priority_residual_guard_absolute_tolerance))
+        self.priority_residual_guard_margin_fraction = max(0.0, float(self.priority_residual_guard_margin_fraction))
 
         print("[INFO] Newton Retargeter Settings: ")
         print(f"[INFO]\t  Source Skeleton Type: {pipeline_utils.get_source_str_from_type(self.source_type)}")
@@ -279,6 +289,7 @@ class NewtonPipeline:
         print(f"[INFO]\t  Smooth Joint Filter Objective Weight: {self.smooth_joint_filter_weight}")
         print(f"[INFO]\t  Temporal Velocity Weight: {self.temporal_velocity_weight}")
         print(f"[INFO]\t  Temporal Acceleration Weight: {self.temporal_acceleration_weight}")
+        print(f"[INFO]\t  Priority Residual Guard Enabled: {self.priority_residual_guard_enabled}")
 
         restore_contact_aware = self.contact_aware_foot_ik_enabled
         try:
@@ -294,6 +305,15 @@ class NewtonPipeline:
             self.temporal_velocity_scales = temporal_velocity_scales
             self.temporal_acceleration_scales = temporal_acceleration_scales
             self.temporal_coord_masks = temporal_coord_masks
+            self.priority_guard_report = {
+                "enabled": bool(self.priority_residual_guard_enabled),
+                "protected_priority": 0,
+                "protected_residual": "joint_limit_margin",
+                "rollback_count": 0,
+                "checked_frames": 0,
+                "max_allowed": 0.0,
+                "max_after": 0.0,
+            }
 
             if self.post_processing_enabled:
                 self.feet_stabilizer.setup_num_envs(num_envs)
@@ -344,7 +364,7 @@ class NewtonPipeline:
             def single_step():
                 ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
 
-            if wp.get_device().is_cuda:
+            if wp.get_device().is_cuda and not self.priority_residual_guard_enabled:
                 with wp.ScopedCapture() as cap:
                     single_step()
                 graph_capture = cap.graph
@@ -397,10 +417,49 @@ class NewtonPipeline:
                     if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
                         self._update_contact_objectives_for_frame(env, frame, frame_targets, contact_objectives)
 
+                guard_before_q = None
+                guard_before_cost = None
+                if self.priority_residual_guard_enabled:
+                    guard_before_q = joint_q.numpy()
+                    guard_before_cost = self._joint_limit_guard_costs(
+                        self.ik_model,
+                        guard_before_q,
+                        self.priority_residual_guard_margin_fraction,
+                    )
+
                 if graph_capture is not None:
                     wp.capture_launch(graph_capture)
                 else:
                     single_step()
+
+                if self.priority_residual_guard_enabled:
+                    guard_after_q = joint_q.numpy()
+                    guard_after_cost = self._joint_limit_guard_costs(
+                        self.ik_model,
+                        guard_after_q,
+                        self.priority_residual_guard_margin_fraction,
+                    )
+                    should_rollback = self._priority_guard_should_rollback(
+                        guard_before_cost,
+                        guard_after_cost,
+                        self.priority_residual_guard_tolerance,
+                        self.priority_residual_guard_absolute_tolerance,
+                    )
+                    allowed = guard_before_cost * (1.0 + self.priority_residual_guard_tolerance) + self.priority_residual_guard_absolute_tolerance
+                    self.priority_guard_report["checked_frames"] += 1
+                    self.priority_guard_report["max_allowed"] = max(
+                        float(self.priority_guard_report["max_allowed"]),
+                        float(np.max(allowed)) if len(allowed) else 0.0,
+                    )
+                    self.priority_guard_report["max_after"] = max(
+                        float(self.priority_guard_report["max_after"]),
+                        float(np.max(guard_after_cost)) if len(guard_after_cost) else 0.0,
+                    )
+                    if bool(np.any(should_rollback)):
+                        rollback_q = np.array(guard_after_q, copy=True)
+                        rollback_q[should_rollback] = guard_before_q[should_rollback]
+                        wp.copy(joint_q, wp.array(rollback_q.astype(np.float32), dtype=wp.float32, device=self.ik_model.device))
+                        self.priority_guard_report["rollback_count"] += int(np.count_nonzero(should_rollback))
 
                 if self.post_processing_enabled:
                     self.feet_stabilizer.reset_state(joint_q)
@@ -784,6 +843,51 @@ class NewtonPipeline:
                     coord_masks[coord_idx] = 1.0
         coord_masks[: min(7, n_coords)] = 0.0
         return coord_ranges, coord_masks
+
+    @staticmethod
+    def _joint_limit_guard_residuals(model, joint_q_frames, margin_fraction=0.08):
+        joint_q_frames = np.asarray(joint_q_frames, dtype=np.float32)
+        if joint_q_frames.ndim == 1:
+            joint_q_frames = joint_q_frames[None, :]
+        n_envs, n_coords = joint_q_frames.shape
+        residuals = np.zeros((n_envs, n_coords), dtype=np.float32)
+
+        q_start_np = model.joint_q_start.numpy()
+        qd_start_np = model.joint_qd_start.numpy()
+        joint_dof_dim_np = model.joint_dof_dim.numpy()
+        lower = model.joint_limit_lower.numpy().astype(np.float32)
+        upper = model.joint_limit_upper.numpy().astype(np.float32)
+
+        for joint_idx in range(model.joint_count):
+            coord0 = q_start_np[joint_idx]
+            dof0 = qd_start_np[joint_idx]
+            lin, ang = joint_dof_dim_np[joint_idx]
+            for k in range(int(lin + ang)):
+                coord_idx = coord0 + k
+                dof_idx = dof0 + k
+                if coord_idx >= n_coords or dof_idx >= len(lower):
+                    continue
+                for env in range(n_envs):
+                    residuals[env, coord_idx] = range_normalized_joint_limit_barrier(
+                        joint_q_frames[env, coord_idx],
+                        lower[dof_idx],
+                        upper[dof_idx],
+                        margin_fraction,
+                    )[0]
+        residuals[:, : min(7, n_coords)] = 0.0
+        return residuals
+
+    @staticmethod
+    def _joint_limit_guard_costs(model, joint_q_frames, margin_fraction=0.08):
+        residuals = NewtonPipeline._joint_limit_guard_residuals(model, joint_q_frames, margin_fraction)
+        return np.sum(residuals * residuals, axis=1).astype(np.float32)
+
+    @staticmethod
+    def _priority_guard_should_rollback(before_costs, after_costs, tolerance=0.05, absolute_tolerance=1.0e-5):
+        before = np.asarray(before_costs, dtype=np.float32)
+        after = np.asarray(after_costs, dtype=np.float32)
+        allowed = before * (1.0 + float(tolerance)) + float(absolute_tolerance)
+        return after > allowed
 
     @staticmethod
     def _normalize_rotation_basis(raw_basis):

@@ -25,6 +25,18 @@ class _TemporalScaleModel:
         self.joint_limit_upper = wp.array(np.array([1.0, 2.0], dtype=np.float32), dtype=wp.float32)
 
 
+class _GuardModel:
+    joint_coord_count = 8
+    joint_count = 2
+
+    def __init__(self):
+        self.joint_q_start = wp.array(np.array([0, 7, 8], dtype=np.int32), dtype=wp.int32)
+        self.joint_qd_start = wp.array(np.array([0, 0, 1], dtype=np.int32), dtype=wp.int32)
+        self.joint_dof_dim = wp.array(np.array([[0, 0], [0, 1]], dtype=np.int32), dtype=wp.int32)
+        self.joint_limit_lower = wp.array(np.array([-1.0], dtype=np.float32), dtype=wp.float32)
+        self.joint_limit_upper = wp.array(np.array([1.0], dtype=np.float32), dtype=wp.float32)
+
+
 class TestTemporalObjectives(unittest.TestCase):
     def test_velocity_residual_is_per_env_sample_rate_and_range_normalized(self):
         reference = wp.array(
@@ -122,6 +134,49 @@ class TestTemporalObjectives(unittest.TestCase):
         )
         self.assertEqual(cfg["temporal_velocity_weight"], 0.2)
         self.assertEqual(cfg["temporal_acceleration_weight"], 0.05)
+
+    def test_priority_guard_costs_ignore_root_and_track_joint_limit_margin(self):
+        costs = NewtonPipeline._joint_limit_guard_costs(
+            _GuardModel(),
+            np.array(
+                [
+                    [99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 0.0],
+                    [99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 0.95],
+                ],
+                dtype=np.float32,
+            ),
+            margin_fraction=0.2,
+        )
+
+        self.assertAlmostEqual(float(costs[0]), 0.0)
+        self.assertGreater(float(costs[1]), 0.0)
+
+    def test_priority_guard_rolls_back_only_when_protected_cost_regresses(self):
+        self.assertTrue(
+            np.array_equal(
+                NewtonPipeline._priority_guard_should_rollback(
+                    np.array([1.0, 1.0], dtype=np.float32),
+                    np.array([1.01, 1.2], dtype=np.float32),
+                    tolerance=0.05,
+                    absolute_tolerance=0.0,
+                ),
+                np.array([False, True]),
+            )
+        )
+
+    def test_runtime_config_passes_priority_guard_options(self):
+        cfg = build_runtime_retargeter_config(
+            "roboparty_rpo",
+            {
+                "ik_map": {},
+                "priority_residual_guard_enabled": False,
+                "priority_residual_guard_tolerance": 0.2,
+                "priority_residual_guard_absolute_tolerance": 0.01,
+            },
+        )
+        self.assertFalse(cfg["priority_residual_guard_enabled"])
+        self.assertEqual(cfg["priority_residual_guard_tolerance"], 0.2)
+        self.assertEqual(cfg["priority_residual_guard_absolute_tolerance"], 0.01)
 
 
 if __name__ == "__main__":

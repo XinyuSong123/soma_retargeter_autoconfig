@@ -136,6 +136,7 @@ Generated runtime configs now include a `compiled_retarget_profile` reference. A
 
 When a v2 profile is present, runtime mapping is task-driven: disabled or unreachable position/orientation tasks are not instantiated as legacy IK objectives.
 Runtime weights are resolved from the compiled profile's priority bands (`0: 1e4` through `4: 1` by default) and include diagnostics if adjacent priority ratios fall below the required 10x separation.
+The priority residual guard protects the priority-0 joint-limit margin residual by default for v2 profiles: if a solve step regresses that residual beyond tolerance, the affected environment is rolled back and the rollback count is stored on `priority_guard_report`.
 For reachable low-rank rotation tasks, the runtime projects target quaternions into the compiled rotation basis before updating Newton rotation objectives.
 Middle-limb direction tasks are run as unit-vector IK objectives between compiled parent/child robot bodies. Pole-vector tasks use parent/middle/child bend-plane normals with per-environment source fallback to the previous or neutral normal. Mixed analytic/autodiff Jacobian mode is enabled only when these v2 residuals are active.
 The runtime scaler also switches to segment-local target construction from the compiled chain lengths, while the legacy geocentric scaler remains available as `LegacyHumanToRobotScaler`.
