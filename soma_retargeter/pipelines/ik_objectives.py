@@ -69,6 +69,183 @@ def _update_weight(
 
 
 @wp.kernel
+def _update_weight_at_index(
+    in_index: wp.int32,
+    in_value: wp.float32,
+    out_weight: wp.array1d(dtype=wp.float32),
+):
+    out_weight[in_index] = in_value
+
+
+@wp.kernel
+def _update_position_target_at_index(
+    in_index: wp.int32,
+    in_value: wp.vec3,
+    out_target: wp.array1d(dtype=wp.vec3),
+):
+    out_target[in_index] = in_value
+
+
+@wp.kernel
+def _per_env_position_residuals(
+    body_q: wp.array2d(dtype=wp.transform),
+    target_pos: wp.array1d(dtype=wp.vec3),
+    weights: wp.array1d(dtype=wp.float32),
+    link_index: int,
+    link_offset: wp.vec3,
+    start_idx: int,
+    problem_idx_map: wp.array1d(dtype=wp.int32),
+    residuals: wp.array2d(dtype=wp.float32),
+):
+    row = wp.tid()
+    base = problem_idx_map[row]
+
+    body_tf = body_q[row, link_index]
+    ee_pos = wp.transform_point(body_tf, link_offset)
+    error = target_pos[base] - ee_pos
+    weight = weights[base]
+    residuals[row, start_idx + 0] = weight * error[0]
+    residuals[row, start_idx + 1] = weight * error[1]
+    residuals[row, start_idx + 2] = weight * error[2]
+
+
+@wp.kernel
+def _per_env_position_jac_analytic(
+    link_index: int,
+    link_offset: wp.vec3,
+    affects_dof: wp.array1d(dtype=wp.uint8),
+    weights: wp.array1d(dtype=wp.float32),
+    body_q: wp.array2d(dtype=wp.transform),
+    joint_S_s: wp.array2d(dtype=wp.spatial_vector),
+    start_idx: int,
+    n_dofs: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem_idx, dof_idx = wp.tid()
+
+    if affects_dof[dof_idx] == 0:
+        return
+
+    body_tf = body_q[problem_idx, link_index]
+    rot_w = wp.quat(body_tf[3], body_tf[4], body_tf[5], body_tf[6])
+    pos_w = wp.vec3(body_tf[0], body_tf[1], body_tf[2])
+    ee_pos_world = pos_w + wp.quat_rotate(rot_w, link_offset)
+
+    S = joint_S_s[problem_idx, dof_idx]
+    v_orig = wp.vec3(S[0], S[1], S[2])
+    omega = wp.vec3(S[3], S[4], S[5])
+    v_ee = v_orig + wp.cross(omega, ee_pos_world)
+    weight = weights[problem_idx]
+
+    jacobian[problem_idx, start_idx + 0, dof_idx] = -weight * v_ee[0]
+    jacobian[problem_idx, start_idx + 1, dof_idx] = -weight * v_ee[1]
+    jacobian[problem_idx, start_idx + 2, dof_idx] = -weight * v_ee[2]
+
+
+class IKObjectivePerEnvWeightedPosition(ik.IKObjective):
+    """Position objective with independently updateable target and weight per environment."""
+
+    def __init__(self, link_index, link_offset, target_positions, weights):
+        super().__init__()
+        self.link_index = link_index
+        self.link_offset = link_offset
+        self.target_positions = target_positions
+        self.weights = weights
+        self.affects_dof = None
+
+    def init_buffers(self, model, jacobian_mode):
+        self._require_batch_layout()
+        if jacobian_mode != IKJacobianType.ANALYTIC:
+            raise NotImplementedError("IKObjectivePerEnvWeightedPosition currently supports analytic Jacobian mode only")
+
+        joint_qd_start_np = model.joint_qd_start.numpy()
+        dof_to_joint_np = np.empty(joint_qd_start_np[-1], dtype=np.int32)
+        for j in range(len(joint_qd_start_np) - 1):
+            dof_to_joint_np[joint_qd_start_np[j]:joint_qd_start_np[j + 1]] = j
+
+        links_per_problem = model.body_count
+        joint_child_np = model.joint_child.numpy()
+        body_to_joint_np = np.full(links_per_problem, -1, np.int32)
+        for j in range(model.joint_count):
+            child = joint_child_np[j]
+            if child != -1:
+                body_to_joint_np[child] = j
+
+        joint_q_start_np = model.joint_q_start.numpy()
+        ancestors = np.zeros(len(joint_q_start_np) - 1, dtype=bool)
+        joint_parent_np = model.joint_parent.numpy()
+        body = self.link_index
+        while body != -1:
+            j = body_to_joint_np[body]
+            if j != -1:
+                ancestors[j] = True
+            body = joint_parent_np[j] if j != -1 else -1
+        self.affects_dof = wp.array(ancestors[dof_to_joint_np].astype(np.uint8), device=self.device)
+
+    def supports_analytic(self):
+        return True
+
+    def residual_dim(self):
+        return 3
+
+    def set_target_position(self, problem_idx, new_position):
+        self._require_batch_layout()
+        wp.launch(
+            _update_position_target_at_index,
+            dim=1,
+            inputs=[problem_idx, new_position],
+            outputs=[self.target_positions],
+            device=self.device,
+        )
+
+    def set_weight(self, problem_idx, value):
+        self._require_batch_layout()
+        wp.launch(
+            _update_weight_at_index,
+            dim=1,
+            inputs=[problem_idx, value],
+            outputs=[self.weights],
+            device=self.device,
+        )
+
+    def compute_residuals(self, body_q, joint_q, model, residuals, start_idx, problem_idx):
+        wp.launch(
+            _per_env_position_residuals,
+            dim=body_q.shape[0],
+            inputs=[
+                body_q,
+                self.target_positions,
+                self.weights,
+                self.link_index,
+                self.link_offset,
+                start_idx,
+                problem_idx,
+            ],
+            outputs=[residuals],
+            device=self.device,
+        )
+
+    def compute_jacobian_analytic(self, body_q, joint_q, model, jacobian, joint_S_s, start_idx):
+        n_dofs = model.joint_dof_count
+        wp.launch(
+            _per_env_position_jac_analytic,
+            dim=[body_q.shape[0], n_dofs],
+            inputs=[
+                self.link_index,
+                self.link_offset,
+                self.affects_dof,
+                self.weights,
+                body_q,
+                joint_S_s,
+                start_idx,
+                n_dofs,
+            ],
+            outputs=[jacobian],
+            device=self.device,
+        )
+
+
+@wp.kernel
 def _smooth_joint_filter_jac_analytic(
     dof_to_coord: wp.array1d(dtype=wp.int32),    # (n_dofs)
     coord_masks: wp.array1d(dtype=wp.float32),   # (n_coords)

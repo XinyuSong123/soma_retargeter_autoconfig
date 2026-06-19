@@ -11,7 +11,7 @@ import soma_retargeter.assets.bvh as bvh_utils
 import soma_retargeter.utils.newton_utils as newton_utils
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
-from soma_retargeter.pipelines.ik_objectives import IKSmoothJointFilter
+from soma_retargeter.pipelines.ik_objectives import IKSmoothJointFilter, IKObjectivePerEnvWeightedPosition
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
 from soma_retargeter.robotics.human_to_robot_scaler import HumanToRobotScaler
@@ -182,26 +182,23 @@ class NewtonPipeline:
         """
         offsets = offsets if len(offsets) == len(buffers) else [wp.transform_identity()] * len(buffers)
         for i in trange(len(buffers), desc="[INFO] Converting Motions for Newton"):
-            buffer = buffers[i]
+            raw_buffer = buffers[i]
+            explicit_scores = self._read_explicit_contact_scores(raw_buffer) if self.contact_aware_foot_ik_enabled else None
+            buffer = raw_buffer
             if self.initialization_pose and self.num_initialization_frames > 0:
                 buffer = newton_utils.create_buffer_with_initialization_frames(
-                    self.initialization_pose, buffers[i], self.num_initialization_frames, self.num_stabilization_frames)
+                    self.initialization_pose, raw_buffer, self.num_initialization_frames, self.num_stabilization_frames)
+                explicit_scores = self._prepend_contact_scores_for_warmup(explicit_scores)
 
             self.max_frames = max(self.max_frames, buffer.num_frames)
             buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
 
             self.input_targets.append(buffer_effectors[:, self.target_effector_indices, :])
-            self.input_sample_rates.append(buffers[i].sample_rate)
+            self.input_sample_rates.append(raw_buffer.sample_rate)
             if self.contact_aware_foot_ik_enabled:
                 try:
                     window = int(self.contact_aware_foot_ik.get("contact_score_smoothing_window", 5))
-                    scores = None
-                    if self.contact_source in ("auto", "npz_foot_contacts"):
-                        foot_contacts = getattr(buffer, "foot_contacts", None)
-                        if foot_contacts is None:
-                            foot_contacts = getattr(buffer, "contacts", None)
-                        if foot_contacts is not None:
-                            scores = contacts_from_npz_foot_contacts(np.asarray(foot_contacts), window)
+                    scores = explicit_scores
                     if scores is None and self.contact_source in ("auto", "soma_heuristic"):
                         scores = infer_contacts_from_animation_buffer(buffer, offsets[i], window)
                     self.input_contact_scores.append(scores)
@@ -211,12 +208,35 @@ class NewtonPipeline:
             else:
                 self.input_contact_scores.append(None)
 
+    def _read_explicit_contact_scores(self, buffer):
+        if self.contact_source not in ("auto", "npz_foot_contacts"):
+            return None
+        foot_contacts = getattr(buffer, "foot_contacts", None)
+        if foot_contacts is None:
+            foot_contacts = getattr(buffer, "contacts", None)
+        if foot_contacts is None:
+            return None
+        window = int(self.contact_aware_foot_ik.get("contact_score_smoothing_window", 5))
+        return contacts_from_npz_foot_contacts(np.asarray(foot_contacts), window)
+
+    def _prepend_contact_scores_for_warmup(self, scores):
+        if scores is None:
+            return None
+        prepend_count = self.num_initialization_frames + self.num_stabilization_frames
+        if prepend_count <= 0:
+            return scores
+        out = {}
+        for key, values in scores.items():
+            values = np.asarray(values, dtype=np.float32)
+            if len(values) == 0:
+                out[key] = values
+                continue
+            out[key] = np.concatenate([np.full(prepend_count, values[0], dtype=np.float32), values])
+        return out
+
     def execute(self):
         """
         Run the retargeting pipeline on all added input motions.
-
-        This method builds a multi-environment Newton model, sets up IK
-        objectives, and performs frame-by-frame IK solving.
 
         Returns:
             list[CSVAnimationBuffer]: A list of retargeted robot motions, one per input motion.
@@ -226,7 +246,6 @@ class NewtonPipeline:
             self.retargeted_motions = []
             return
 
-        # Clamp objective weights to valid values
         self.ik_iterations = max(1, self.ik_iterations)
         self.joint_limit_weight = max(0.0, self.joint_limit_weight)
         self.smooth_joint_filter_weight = max(0.0, self.smooth_joint_filter_weight)
@@ -241,136 +260,125 @@ class NewtonPipeline:
         print(f"[INFO]\t  IK Solver Iterations: {self.ik_iterations}")
         print(f"[INFO]\t  Joint Limit Objective Weight: {self.joint_limit_weight}")
         print(f"[INFO]\t  Smooth Joint Filter Objective Weight: {self.smooth_joint_filter_weight}")
+
         restore_contact_aware = self.contact_aware_foot_ik_enabled
-        if self.contact_aware_foot_ik_enabled and num_envs > 1:
-            # IKObjectivePosition weight can be shared globally in multi-env mode.
-            # Disable contact-aware weights in that case to avoid cross-env interference.
-            print("[WARN] contact_aware_foot_ik with batch size > 1 is disabled to avoid global objective weight conflicts.")
-            self.contact_aware_foot_ik_enabled = False
+        try:
+            model = self._build_model(num_envs)
+            state = model.state()
 
-        model = self._build_model(num_envs)
-        state = model.state()
-
-        if self.post_processing_enabled:
-            self.feet_stabilizer.setup_num_envs(num_envs)
-            env_feet_tx = np.empty((num_envs, len(self.feet_effector_indices), 7), dtype=np.float32)
-
-        (
-            position_objectives,
-            rotation_objectives,
-            joint_limit_objective,
-            smooth_joint_filter_objective,
-            contact_objectives
-        ) = self._create_ik_objectives(num_envs, model, state)
-
-        # Add optional objectives
-        ik_solver_active_objectives = [*position_objectives, *rotation_objectives, *contact_objectives]
-        if self.joint_limit_weight > 0.0:
-            ik_solver_active_objectives.append(joint_limit_objective)
-        if self.smooth_joint_filter_weight > 0.0:
-            ik_solver_active_objectives.append(smooth_joint_filter_objective)
-
-        ik_solver = ik.IKSolver(
-            model=self.ik_model,
-            n_problems=num_envs,
-            objectives=ik_solver_active_objectives,
-            lambda_initial=0.1,
-            jacobian_mode=ik.IKJacobianType.ANALYTIC)
-
-        joint_q = wp.empty(shape=(num_envs, self.ik_model.joint_coord_count))
-        wp.copy(joint_q, model.joint_q)
-
-        # Solver initialization
-        ik_solver.reset()
-
-        graph_capture = None
-
-        def single_step():
-            ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
-
-        if wp.get_device().is_cuda:
-            with wp.ScopedCapture() as cap:
-                single_step()
-            graph_capture = cap.graph
-        else:
-            ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
-
-        #import time
-        num_frames_to_remove = self.num_initialization_frames + self.num_stabilization_frames
-        joint_q_data = [
-            np.zeros((len(self.input_targets[i]), self.ik_model.joint_coord_count), dtype=np.float32)
-            for i in range(num_envs)
-        ]
-        for frame in trange(self.max_frames, desc="[INFO] Retargeting Motions"):
-            if num_frames_to_remove > 0 and frame <= num_frames_to_remove:
-                smooth_joint_filter_objective.set_weight(self.smooth_joint_filter_weight * (frame / float(num_frames_to_remove)))
-
-            #start_time = time.time()
-            for env in range(num_envs):
-                if frame > (len(self.input_targets[env])-1):
-                    continue
-                frame_targets = self.input_targets[env][frame]
-                for i, target in enumerate(frame_targets):
-                    position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
-                    rotation_objectives[i].set_target_rotation(env, wp.quat(*target[3:7]))
-
-                if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
-                    self._update_contact_objectives_for_frame(env, frame, frame_targets, contact_objectives)
-
-            if graph_capture is not None:
-                wp.capture_launch(graph_capture)
-            else:
-                single_step()
-
-            data = None
             if self.post_processing_enabled:
-                self.feet_stabilizer.reset_state(joint_q)
+                self.feet_stabilizer.setup_num_envs(num_envs)
+                env_feet_tx = np.empty((num_envs, len(self.feet_effector_indices), 7), dtype=np.float32)
+
+            (
+                position_objectives,
+                rotation_objectives,
+                joint_limit_objective,
+                smooth_joint_filter_objective,
+                contact_objectives,
+            ) = self._create_ik_objectives(num_envs, model, state)
+
+            ik_solver_active_objectives = [*position_objectives, *rotation_objectives, *contact_objectives]
+            if self.joint_limit_weight > 0.0:
+                ik_solver_active_objectives.append(joint_limit_objective)
+            if self.smooth_joint_filter_weight > 0.0:
+                ik_solver_active_objectives.append(smooth_joint_filter_objective)
+
+            ik_solver = ik.IKSolver(
+                model=self.ik_model,
+                n_problems=num_envs,
+                objectives=ik_solver_active_objectives,
+                lambda_initial=0.1,
+                jacobian_mode=ik.IKJacobianType.ANALYTIC,
+            )
+
+            joint_q = wp.empty(shape=(num_envs, self.ik_model.joint_coord_count))
+            wp.copy(joint_q, model.joint_q)
+            ik_solver.reset()
+
+            graph_capture = None
+
+            def single_step():
+                ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
+
+            if wp.get_device().is_cuda:
+                with wp.ScopedCapture() as cap:
+                    single_step()
+                graph_capture = cap.graph
+            else:
+                ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
+
+            num_frames_to_remove = self.num_initialization_frames + self.num_stabilization_frames
+            joint_q_data = [
+                np.zeros((len(self.input_targets[i]), self.ik_model.joint_coord_count), dtype=np.float32)
+                for i in range(num_envs)
+            ]
+
+            for frame in trange(self.max_frames, desc="[INFO] Retargeting Motions"):
+                if num_frames_to_remove > 0 and frame <= num_frames_to_remove:
+                    smooth_joint_filter_objective.set_weight(
+                        self.smooth_joint_filter_weight * (frame / float(num_frames_to_remove))
+                    )
 
                 for env in range(num_envs):
-                    if frame > (len(self.input_targets[env])-1):
-                        env_feet_tx[env] = np.asarray(self.input_targets[env][-1][self.feet_effector_indices])
-                    else:
-                        env_feet_tx[env] = np.asarray(self.input_targets[env][frame][self.feet_effector_indices])
+                    if frame > (len(self.input_targets[env]) - 1):
+                        continue
+                    frame_targets = self.input_targets[env][frame]
+                    for i, target in enumerate(frame_targets):
+                        position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
+                        rotation_objectives[i].set_target_rotation(env, wp.quat(*target[3:7]))
 
-                self.feet_stabilizer.solve(env_feet_tx)
-                data = self.joint_limit_clamper.apply(self.feet_stabilizer.current_state()).numpy()
-            else:
-                data = self.joint_limit_clamper.apply(joint_q).numpy()
+                    if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
+                        self._update_contact_objectives_for_frame(env, frame, frame_targets, contact_objectives)
 
-            for env in range(num_envs):
-                if frame > (len(self.input_targets[env])-1):
-                    continue
+                if graph_capture is not None:
+                    wp.capture_launch(graph_capture)
+                else:
+                    single_step()
 
-                joint_q_data[env][frame] = np.array(data[env], copy=True)
+                if self.post_processing_enabled:
+                    self.feet_stabilizer.reset_state(joint_q)
+                    for env in range(num_envs):
+                        if frame > (len(self.input_targets[env]) - 1):
+                            env_feet_tx[env] = np.asarray(self.input_targets[env][-1][self.feet_effector_indices])
+                        else:
+                            env_feet_tx[env] = np.asarray(self.input_targets[env][frame][self.feet_effector_indices])
+                    self.feet_stabilizer.solve(env_feet_tx)
+                    data = self.joint_limit_clamper.apply(self.feet_stabilizer.current_state()).numpy()
+                else:
+                    data = self.joint_limit_clamper.apply(joint_q).numpy()
 
-            #end_time = time.time()
-            #print(f"Time taken for frame {frame}: {end_time - start_time} seconds")
+                for env in range(num_envs):
+                    if frame > (len(self.input_targets[env]) - 1):
+                        continue
+                    joint_q_data[env][frame] = np.array(data[env], copy=True)
 
-        output_buffers = []
-        for i in range(num_envs):
-            raw_data = joint_q_data[i][num_frames_to_remove:].astype(np.float32)
-            raw_data = self._apply_output_default_pose_blend(raw_data)
-            if self.virtual_foot_grounding_enabled:
-                raw_data, grounding_stats = apply_virtual_foot_grounding_to_frames(
-                    raw_data,
-                    model=self.ik_model,
-                    robot_builder=self.robot_builder,
-                    robot_name=pipeline_utils.get_target_str_from_type(self.target_type),
-                    smooth_window=self.virtual_foot_grounding_smooth_window,
-                )
-                if grounding_stats.applied:
-                    print(
-                        "[INFO] Virtual foot grounding: "
-                        f"lifted {grounding_stats.lifted_frames}/{grounding_stats.frames} frames, "
-                        f"max lift {grounding_stats.max_lift_m:.4f} m, "
-                        f"min support z {grounding_stats.min_support_z_before_m:.4f} -> "
-                        f"{grounding_stats.min_support_z_after_m:.4f} m"
+            output_buffers = []
+            for i in range(num_envs):
+                raw_data = joint_q_data[i][num_frames_to_remove:].astype(np.float32)
+                raw_data = self._apply_output_default_pose_blend(raw_data)
+                if self.virtual_foot_grounding_enabled:
+                    raw_data, grounding_stats = apply_virtual_foot_grounding_to_frames(
+                        raw_data,
+                        model=self.ik_model,
+                        robot_builder=self.robot_builder,
+                        robot_name=pipeline_utils.get_target_str_from_type(self.target_type),
+                        smooth_window=self.virtual_foot_grounding_smooth_window,
                     )
-                elif grounding_stats.reason != "ok":
-                    print(f"[INFO] Virtual foot grounding skipped: {grounding_stats.reason}")
-            output_buffers.append(CSVAnimationBuffer.create_from_raw_data(raw_data, self.input_sample_rates[i]))
-        self.contact_aware_foot_ik_enabled = restore_contact_aware
-        return output_buffers
+                    if grounding_stats.applied:
+                        print(
+                            "[INFO] Virtual foot grounding: "
+                            f"lifted {grounding_stats.lifted_frames}/{grounding_stats.frames} frames, "
+                            f"max lift {grounding_stats.max_lift_m:.4f} m, "
+                            f"min support z {grounding_stats.min_support_z_before_m:.4f} -> "
+                            f"{grounding_stats.min_support_z_after_m:.4f} m"
+                        )
+                    elif grounding_stats.reason != "ok":
+                        print(f"[INFO] Virtual foot grounding skipped: {grounding_stats.reason}")
+                output_buffers.append(CSVAnimationBuffer.create_from_raw_data(raw_data, self.input_sample_rates[i]))
+            return output_buffers
+        finally:
+            self.contact_aware_foot_ik_enabled = restore_contact_aware
 
     def _apply_output_default_pose_blend(self, joint_q_frames: np.ndarray) -> np.ndarray:
         if self.output_default_pose_blend_frames <= 0 or len(joint_q_frames) == 0:
@@ -516,7 +524,12 @@ class NewtonPipeline:
             if offset is None or joint not in link_lookup:
                 continue
             targets = wp.array(np.zeros((num_envs,3), dtype=np.float32), dtype=wp.vec3)
-            obj = ik.IKObjectivePosition(link_index=link_lookup[joint], link_offset=wp.vec3(*offset), target_positions=targets, weight=w_swing)
+            weights = wp.array(np.full(num_envs, float(w_swing), dtype=np.float32), dtype=wp.float32)
+            obj = IKObjectivePerEnvWeightedPosition(
+                link_index=link_lookup[joint],
+                link_offset=wp.vec3(*offset),
+                target_positions=targets,
+                weights=weights)
             out.append(obj)
             self.contact_objective_map[key] = {"objective": obj, "score_key": score_key, "stance": float(w_stance), "swing": float(w_swing), "active": [False]*num_envs, "locked": [None]*num_envs}
         return out
@@ -544,4 +557,4 @@ class NewtonPipeline:
             cfg["objective"].set_target_position(env, wp.vec3(*target))
             weight = cfg["stance"] if cfg["active"][env] else cfg["swing"]
             if hasattr(cfg["objective"], "set_weight"):
-                cfg["objective"].set_weight(weight)
+                cfg["objective"].set_weight(env, weight)

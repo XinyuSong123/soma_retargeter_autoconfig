@@ -115,6 +115,23 @@ python ./app/bvh_to_csv_converter.py --viewer null --robot roboparty_rpo
 
 Batch mode recursively finds all `.bvh` files in the import folder, processes them in configurable batch sizes, and writes CSV files to the export folder mirroring the input directory structure.
 
+### Retargeting v2 autoconfig
+
+New robots should first go through the morphology-aware profile compiler. Register the robot MJCF/XML and minimal semantic `ik_map` in `params.py`, then run:
+
+```bash
+python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo
+```
+
+Useful validation modes:
+
+```bash
+python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --validate-only --strict
+python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --force --output ./profile_v2.json
+```
+
+The compiler writes a schema v2 profile with deterministic JSON, explicit `xyzw` quaternion order, robot/source fingerprints, semantic sites, chain reachability placeholders, task specs, contact settings, confidence, and structured warnings. Low-confidence semantic mappings return exit code `2`; invalid model/config input returns exit code `3`.
+
 ### Config optimizer
 
 Register the robot files in `params.py`, then launch the optimizer:
@@ -123,7 +140,7 @@ Register the robot files in `params.py`, then launch the optimizer:
 python ./app/pose_optimizer_ui.py --viewer gl --robot roboparty_rpo
 ```
 
-The optimizer can start with only a robot T-pose JSON. Additional paired robot poses can be registered later in `POSE_PAIR_JSON_DICT` when the first result needs refinement.
+The optimizer is now an advanced residual calibration path. The default path is to generate a v2 profile from robot morphology and a minimal semantic map; paired robot poses in `POSE_PAIR_JSON_DICT` should only be used for bounded refinement when the compiled profile already validates.
 
 ## Code Overview
 
@@ -144,6 +161,9 @@ The optimizer can start with only a robot T-pose JSON. Additional paired robot p
 | `assets/` | File I/O for BVH, CSV, and USD formats. |
 | `pipelines/` | Retargeting pipeline: IK solving, feet stabilization, and joint limit clamping. |
 | `robotics/` | Human-to-robot scaling and robot output formatting. |
+| `robotics/task_compiler.py` | Morphology-aware v2 task/profile compiler. |
+| `robotics/reachability.py` | Reachability basis, projector, and projected rotation utilities. |
+| `tools/autoconfigure_robot.py` | CLI for compiling deterministic v2 robot retargeting profiles. |
 | `renderers/` | Visualization for the interactive viewer. |
 | `utils/` | Math, pose, coordinate conversion, Newton and Warp helpers. |
 | `configs/` | Minimal robot link maps and paired pose files; generated scaler/converter configs are created on first use. |

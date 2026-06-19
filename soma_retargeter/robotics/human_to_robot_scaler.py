@@ -20,9 +20,10 @@ class HumanToRobotScaler:
         self.skeleton = skeleton
 
         ratio = human_height / config['human_height_assumption']
-        joint_scales = config['joint_scales']
-        for key in joint_scales.keys():
-            joint_scales[key] *= ratio
+        joint_scales = {
+            key: float(value) * ratio
+            for key, value in config['joint_scales'].items()
+        }
 
         joint_offsets = {}
         joint_offset_data = config['joint_offsets']
