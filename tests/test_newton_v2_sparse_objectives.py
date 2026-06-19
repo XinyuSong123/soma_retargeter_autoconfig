@@ -63,7 +63,13 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
                 "LeftArm": {"t_body": "arm", "r_body": "arm", "t_weight": 0.0, "r_weight": 0.0},
             },
             "direction_tasks": [
-                {"name": "LeftArm_direction", "reference_site": "Chest", "target_site": "LeftArm", "weight": 10.0}
+                {
+                    "name": "LeftArm_direction",
+                    "reference_site": "Chest",
+                    "target_site": "LeftArm",
+                    "weight": 10.0,
+                    "analytic_jacobian": True,
+                }
             ],
         }
 
@@ -71,7 +77,7 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
 
         self.assertEqual(
             pipe.mapped_body_link_direction_data,
-            [(1, 2, 1, 2, 10.0, "LeftArm_direction")],
+            [(1, 2, 1, 2, 10.0, "LeftArm_direction", True)],
         )
 
     def test_build_target_mapping_extracts_v2_pole_vector_tasks(self):

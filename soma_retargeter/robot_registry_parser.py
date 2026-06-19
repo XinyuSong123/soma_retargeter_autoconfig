@@ -13,7 +13,7 @@ from types import ModuleType
 from typing import Any
 
 import soma_retargeter.utils.io_utils as io_utils
-from soma_retargeter.robotics.retarget_profile import COMPILER_VERSION, stable_hash_payload
+from soma_retargeter.robotics.retarget_profile import COMPILER_VERSION, profile_to_json_dict, stable_hash_payload
 
 
 POSE_SLOT_ORDER = (
@@ -763,16 +763,20 @@ def _build_contact_aware_foot_ik_from_virtual_anchors(raw_config: dict[str, Any]
     }
 
 
-def _compiled_profile_runtime_ik_iterations(compiled_profile: dict[str, Any]) -> int:
+def _compiled_profile_torso_rotational_rank(compiled_profile: dict[str, Any]) -> int:
     chains = compiled_profile.get("chains", {})
     chest_chain = chains.get("Chest") if isinstance(chains, dict) else None
     if isinstance(chest_chain, dict):
         try:
-            rotational_rank = int(chest_chain.get("rotational_rank", 0))
+            return int(chest_chain.get("rotational_rank", 0))
         except (TypeError, ValueError):
-            rotational_rank = 0
-        if rotational_rank == 1:
-            return _SINGLE_AXIS_TORSO_COMPILED_PROFILE_IK_ITERATIONS
+            return 0
+    return 0
+
+
+def _compiled_profile_runtime_ik_iterations(compiled_profile: dict[str, Any]) -> int:
+    if _compiled_profile_torso_rotational_rank(compiled_profile) == 1:
+        return _SINGLE_AXIS_TORSO_COMPILED_PROFILE_IK_ITERATIONS
     return _DEFAULT_COMPILED_PROFILE_IK_ITERATIONS
 
 
@@ -939,6 +943,7 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
         return []
 
     priority_bands, _ = _resolve_priority_weight_bands(compiled_profile)
+    analytic_direction_jacobian = _compiled_profile_torso_rotational_rank(compiled_profile) > 1
     out: list[dict[str, Any]] = []
     for task in compiled_profile.get("tasks", []):
         if not isinstance(task, dict) or not task.get("enabled", False):
@@ -958,20 +963,26 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
         if normalized_weight <= 0.0:
             continue
         priority_weight = _task_priority_weight(task, priority_bands)
-        out.append(
-            {
-                "name": str(task.get("name") or f"{target_site}_{task_type}"),
-                "reference_site": reference_site,
-                "target_site": target_site,
-                "source_semantic": str(task.get("source_semantic") or target_site),
-                "weight": priority_weight,
-                "normalized_weight": normalized_weight,
-                "characteristic_length": characteristic_length,
-                "priority": priority,
-                "priority_weight_band": priority_bands.get(str(priority), normalized_weight),
-                "weight_source": "compiled task normalized weight",
-            }
-        )
+        payload = {
+            "name": str(task.get("name") or f"{target_site}_{task_type}"),
+            "reference_site": reference_site,
+            "target_site": target_site,
+            "source_semantic": str(task.get("source_semantic") or target_site),
+            "weight": priority_weight,
+            "normalized_weight": normalized_weight,
+            "characteristic_length": characteristic_length,
+            "priority": priority,
+            "priority_weight_band": priority_bands.get(str(priority), normalized_weight),
+            "weight_source": "compiled task normalized weight",
+        }
+        if task_type == "direction":
+            payload["analytic_jacobian"] = bool(analytic_direction_jacobian)
+            payload["jacobian_schedule_reason"] = (
+                "enabled for multi-axis torso profile"
+                if analytic_direction_jacobian
+                else "disabled for single-axis torso profile to preserve bounded tracking"
+            )
+        out.append(payload)
     return out
 
 
@@ -1244,6 +1255,16 @@ def compiled_profile_cache_diagnostics(robot_name: str | None, profile: dict[str
     return diagnostics
 
 
+def _compiled_profile_has_incomplete_morphology(profile: dict[str, Any]) -> bool:
+    if profile.get("robot_fingerprint") == "missing-mjcf":
+        return True
+    warnings = profile.get("warnings", [])
+    if not isinstance(warnings, list):
+        return False
+    warning_codes = {str(item.get("code")) for item in warnings if isinstance(item, dict)}
+    return bool({"missing_mjcf_path", "incomplete_morphology"} & warning_codes)
+
+
 def load_compiled_retarget_profile(robot_name: str | None, *, require_valid: bool = True) -> dict[str, Any] | None:
     path = get_profile_path(robot_name, "compiled_retarget_profile")
     if path is None or not path.exists():
@@ -1317,12 +1338,15 @@ def ensure_compiled_retarget_profile(robot_name: str | None, *, force: bool = Fa
     output_path = get_generated_compiled_profile_path(robot_name)
     if output_path is None:
         return None
+    cached_profile = None
     if output_path.exists() and not force:
         cached_profile = io_utils.load_json(output_path)
         diagnostics = validate_compiled_retarget_profile(cached_profile)
         diagnostics.extend(compiled_profile_cache_diagnostics(robot_name, cached_profile))
         if not diagnostics:
             return output_path
+    elif output_path.exists():
+        cached_profile = io_utils.load_json(output_path)
 
     profile = get_robot_profile(robot_name)
     if profile is None:
@@ -1343,6 +1367,14 @@ def ensure_compiled_retarget_profile(robot_name: str | None, *, force: bool = Fa
         morphology=morphology,
         source_config_path=raw_config_path,
     )
+    compiled_payload = profile_to_json_dict(compiled)
+    if (
+        cached_profile is not None
+        and _compiled_profile_has_incomplete_morphology(compiled_payload)
+        and not validate_compiled_retarget_profile(cached_profile)
+        and not _compiled_profile_has_incomplete_morphology(cached_profile)
+    ):
+        return output_path
     write_profile_json(compiled, output_path)
     return output_path
 

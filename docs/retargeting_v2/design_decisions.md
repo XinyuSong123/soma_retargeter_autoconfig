@@ -36,6 +36,18 @@ Risk: limiting can increase hand/foot tracking error when the IK solution jumps 
 
 Verification: unit tests cover root masking and range/dt delta limiting, and bounded benchmark artifacts show RPO and generic Unitree G1 actuated velocity/acceleration gates passing while tracking/runtime gates remain report-only failures.
 
+## Direction Jacobian Schedule
+
+Problem: direction objectives are solver dominated when evaluated through the autodiff Jacobian path, but changing their Jacobian path can change bounded tracking behavior.
+
+Decision: use an analytic direction-objective Jacobian for multi-axis torso profiles, and keep the autodiff direction objective for single-axis torso profiles.
+
+Reason: generic Unitree G1 has enough torso rotational rank to benefit from the faster analytic path while preserving tracking gates. RoboParty RPO's single-axis torso remains more sensitive, so it keeps the previously validated bounded tracking behavior.
+
+Risk: single-axis torso profiles still pay the autodiff cost, and pole-vector objectives remain on the autodiff Jacobian path.
+
+Verification: sparse-objective tests cover the analytic direction tuple wiring, registry tests assert the torso-rank schedule, and bounded artifacts show Unitree runtime improving while RPO tracking stays consistent with the single-axis baseline.
+
 ## Per-Environment Contact Weight
 
 Problem: shared contact weights break multi-env parity.
@@ -88,10 +100,10 @@ Verification: unit tests cover geom-derived proxy generation, pair generation, s
 
 Problem: compiled profiles must be deterministic and reusable.
 
-Decision: generated profile paths are derived from robot config paths, validated before reuse, and invalidated when the cached robot fingerprint, source config hash, or compiler version differs from the current registry state.
+Decision: generated profile paths are derived from robot config paths, validated before reuse, and invalidated when the cached robot fingerprint, source config hash, or compiler version differs from the current registry state. If regeneration only produces incomplete missing-MJCF morphology while an existing cached profile is structurally valid and complete, preserve the existing cache instead of overwriting it.
 
-Reason: the runtime can opt into v2 without requiring manual profile path wiring.
+Reason: the runtime can opt into v2 without requiring manual profile path wiring, and accidental execution in an environment without optional robot assets should not replace a usable compiled profile with a placeholder morphology.
 
 Risk: fingerprint coverage is only as complete as the morphology analyzer and registered config inputs; unregistered external dependencies still need explicit registration before they can affect cache invalidation.
 
-Verification: profile deterministic serialization tests, registry validation path, and stale cache fingerprint diagnostics.
+Verification: profile deterministic serialization tests, registry validation path, stale cache fingerprint diagnostics, and regression coverage for preserving a valid cache when a missing-MJCF regeneration attempt returns incomplete morphology.

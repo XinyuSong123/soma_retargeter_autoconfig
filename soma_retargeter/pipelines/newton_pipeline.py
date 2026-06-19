@@ -461,7 +461,7 @@ class NewtonPipeline:
                         target = frame_targets[effector_idx]
                         target_rotation = self._project_rotation_target(target[3:7], basis)
                         rotation_objectives[i].set_target_rotation(env, wp.quat(*target_rotation))
-                    for i, (reference_idx, target_idx, _, _, _, _) in enumerate(self.mapped_body_link_direction_data):
+                    for i, (reference_idx, target_idx, _, _, _, _, _) in enumerate(self.mapped_body_link_direction_data):
                         target_direction = self._direction_between_targets(frame_targets[reference_idx], frame_targets[target_idx])
                         direction_objectives[i].set_target_direction(env, wp.vec3(*target_direction))
                     for i, (reference_idx, middle_idx, target_idx, _, _, _, _, _) in enumerate(self.mapped_body_link_pole_vector_data):
@@ -697,6 +697,7 @@ class NewtonPipeline:
                     mapped_body_link_by_joint[target_site],
                     weight,
                     str(task.get("name") or f"{target_site}_direction"),
+                    bool(task.get("analytic_jacobian", False)),
                 )
             )
         self.mapped_body_link_direction_data = mapped_body_link_direction_data
@@ -766,7 +767,7 @@ class NewtonPipeline:
             for ee_idx, (_, link_idx, _, _) in enumerate(self.mapped_body_link_rot_data):
                 rot_wp = wp.quat(body_q[base + link_idx][3:7])
                 rot_targets[env, ee_idx] = wp.normalize(rot_wp)
-            for ee_idx, (_, _, parent_link_idx, child_link_idx, _, _) in enumerate(self.mapped_body_link_direction_data):
+            for ee_idx, (_, _, parent_link_idx, child_link_idx, _, _, _) in enumerate(self.mapped_body_link_direction_data):
                 dir_targets[env, ee_idx] = wp.vec3(
                     *self._direction_between_positions(
                         body_q[base + parent_link_idx][0:3],
@@ -825,12 +826,13 @@ class NewtonPipeline:
             rotation_objectives.append(objective)
 
         direction_objectives = []
-        for i, (_, _, parent_link_idx, child_link_idx, w, _) in enumerate(self.mapped_body_link_direction_data):
+        for i, (_, _, parent_link_idx, child_link_idx, w, _, analytic_jacobian) in enumerate(self.mapped_body_link_direction_data):
             objective = IKObjectiveDirection(
                 parent_link_index=parent_link_idx,
                 child_link_index=child_link_idx,
                 target_dirs=dir_target_arrays[i],
-                weight=w)
+                weight=w,
+                analytic_jacobian=analytic_jacobian)
             direction_objectives.append(objective)
 
         pole_vector_objectives = []
