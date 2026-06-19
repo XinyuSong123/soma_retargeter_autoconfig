@@ -74,6 +74,7 @@ _COLLISION_PAIR_SEMANTICS = (
     ("RightHand", "RightLeg"),
     ("RightHand", "RightShin"),
 )
+_DISTAL_SITE_SEMANTICS = {"LeftHand", "RightHand", "LeftFoot", "RightFoot"}
 
 
 def _semantic_confidence(semantic: str, body: str, morphology: MorphologyAnalysis) -> float:
@@ -91,13 +92,93 @@ def _hand_orientation_supported(semantic: str, body_path: list[str], joints: lis
     return "wrist" in searchable
 
 
-def _make_site(semantic: str, body: str, confidence: float, orientation_supported: bool) -> SemanticSite:
+def _quat_rotate_wxyz(quat: np.ndarray, vec: np.ndarray) -> np.ndarray:
+    w, x, y, z = quat
+    q_vec = np.array([x, y, z], dtype=float)
+    uv = np.cross(q_vec, vec)
+    uuv = np.cross(q_vec, uv)
+    return vec + 2.0 * (w * uv + uuv)
+
+
+def _quat_inverse_rotate_wxyz(quat: np.ndarray, vec: np.ndarray) -> np.ndarray:
+    inverse = np.array([quat[0], -quat[1], -quat[2], -quat[3]], dtype=float)
+    return _quat_rotate_wxyz(inverse, vec)
+
+
+def _geom_extent_along_local_direction(geom_type: str, size: np.ndarray, local_direction: np.ndarray) -> float:
+    if len(size) == 0:
+        return 0.0
+    direction = local_direction / max(float(np.linalg.norm(local_direction)), 1.0e-12)
+    if geom_type == "sphere":
+        return float(size[0])
+    if geom_type in {"capsule", "cylinder"}:
+        radius = float(size[0])
+        half_length = float(size[1]) if len(size) > 1 else 0.0
+        axial = abs(float(direction[2])) * half_length
+        radial = float(np.linalg.norm(direction[:2])) * radius
+        return axial + radial
+    if geom_type in {"box", "mesh"}:
+        return float(np.dot(np.abs(direction[:3]), size[:3]))
+    if geom_type == "ellipsoid":
+        return float(np.dot(np.abs(direction[:3]), size[:3]))
+    return 0.0
+
+
+def _distal_site_offset_from_geom_bounds(
+    semantic: str,
+    body: str,
+    root_body: str,
+    morphology: MorphologyAnalysis,
+) -> tuple[np.ndarray, str | None]:
+    if semantic not in _DISTAL_SITE_SEMANTICS:
+        return np.zeros(3, dtype=float), None
+    body_info = morphology.bodies.get(body)
+    root_info = morphology.bodies.get(root_body)
+    if body_info is None:
+        return np.zeros(3, dtype=float), None
+
+    world_direction = body_info.world_position - root_info.world_position if root_info is not None else np.zeros(3, dtype=float)
+    if float(np.linalg.norm(world_direction)) <= 1.0e-8 and body_info.parent_body_name in morphology.bodies:
+        parent_info = morphology.bodies[body_info.parent_body_name]
+        world_direction = body_info.world_position - parent_info.world_position
+    if float(np.linalg.norm(world_direction)) <= 1.0e-8:
+        return np.zeros(3, dtype=float), None
+
+    local_direction = _quat_inverse_rotate_wxyz(body_info.world_rotation_wxyz, world_direction)
+    local_direction = local_direction / max(float(np.linalg.norm(local_direction)), 1.0e-12)
+
+    best_offset: np.ndarray | None = None
+    best_projection = -float("inf")
+    for geom in morphology.geoms_by_body.get(body, []):
+        extent = _geom_extent_along_local_direction(geom.geom_type, geom.size, local_direction)
+        if extent <= 0.0:
+            continue
+        candidate = geom.local_position + local_direction * extent
+        projection = float(np.dot(candidate, local_direction))
+        if projection > best_projection:
+            best_projection = projection
+            best_offset = candidate
+
+    if best_offset is None:
+        return np.zeros(3, dtype=float), None
+    return best_offset, "geom_bounds"
+
+
+def _make_site(
+    semantic: str,
+    body: str,
+    confidence: float,
+    orientation_supported: bool,
+    morphology: MorphologyAnalysis,
+    root_body: str,
+) -> SemanticSite:
+    local_position, source_override = _distal_site_offset_from_geom_bounds(semantic, body, root_body, morphology)
     return SemanticSite(
         semantic_name=semantic,
         body_name=body,
-        local_position=np.zeros(3, dtype=float),
+        local_position=local_position,
         local_rotation_xyzw=np.array([0.0, 0.0, 0.0, 1.0], dtype=float),
-        source="explicit" if confidence >= 1.0 else "explicit_unverified",
+        source=source_override or ("explicit" if confidence >= 1.0 else "explicit_unverified"),
         confidence=confidence,
         orientation_supported=orientation_supported,
     )
@@ -219,12 +300,20 @@ def _chain_profile_for_site(
     for parent, child in zip(body_path, body_path[1:]):
         length = float(np.linalg.norm(morphology.bodies[child].world_position - morphology.bodies[parent].world_position))
         segment_lengths.append(length)
+    if site.body_name in morphology.bodies:
+        site_offset_length = float(np.linalg.norm(site.local_position))
+        if site_offset_length > 1.0e-8:
+            segment_lengths.append(site_offset_length)
     total_length = float(sum(segment_lengths)) if segment_lengths else 0.0
 
     if joints:
         rotational_j = np.stack([j.axis_world_rest for j in joints], axis=1)
         rotational_basis, singular_rot, rotational_rank = orthonormal_basis_from_jacobian(rotational_j)
-        tip_pos = morphology.bodies[site.body_name].world_position if site.body_name in morphology.bodies else np.zeros(3)
+        if site.body_name in morphology.bodies:
+            body_info = morphology.bodies[site.body_name]
+            tip_pos = body_info.world_position + _quat_rotate_wxyz(body_info.world_rotation_wxyz, site.local_position)
+        else:
+            tip_pos = np.zeros(3)
         translational_cols = []
         for joint in joints:
             joint_pos = morphology.bodies[joint.body_name].world_position
@@ -512,6 +601,8 @@ def compile_retarget_profile(
             body,
             confidence,
             _hand_orientation_supported(semantic, body_path, path_joints),
+            morphology,
+            root_body,
         )
 
     chains: dict[str, KinematicChainProfile] = {}

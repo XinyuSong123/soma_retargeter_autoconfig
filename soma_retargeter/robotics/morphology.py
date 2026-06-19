@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
+import struct
 from typing import Any
 
 import numpy as np
 
-from soma_retargeter.robotics.retarget_profile import JointDofInfo, file_sha256
+from soma_retargeter.robotics.retarget_profile import JointDofInfo, file_sha256, stable_hash_payload
 
 
 @dataclass(frozen=True)
@@ -135,6 +137,66 @@ def _as_float_array(value: str | None) -> np.ndarray:
     return np.array(out, dtype=float)
 
 
+def _resolve_mesh_file(xml_path: Path, mesh_file: str, mesh_dir: str | None) -> Path:
+    path = Path(mesh_file)
+    if path.is_absolute():
+        return path
+    if mesh_dir:
+        return (xml_path.parent / mesh_dir / path).resolve()
+    return (xml_path.parent / path).resolve()
+
+
+@lru_cache(maxsize=512)
+def _read_stl_vertices(path: Path, mesh_digest: str | None) -> tuple[tuple[float, float, float], ...]:
+    del mesh_digest
+    data = path.read_bytes()
+    vertices: list[tuple[float, float, float]] = []
+    if len(data) >= 84:
+        triangle_count = struct.unpack("<I", data[80:84])[0]
+        if 84 + triangle_count * 50 == len(data):
+            offset = 84
+            for _ in range(triangle_count):
+                offset += 12
+                for _ in range(3):
+                    vertices.append(struct.unpack("<fff", data[offset:offset + 12]))
+                    offset += 12
+                offset += 2
+            return tuple(vertices)
+
+    for line in data.decode(errors="ignore").splitlines():
+        line = line.strip()
+        if not line.startswith("vertex "):
+            continue
+        parts = line.split()
+        if len(parts) != 4:
+            continue
+        try:
+            vertices.append((float(parts[1]), float(parts[2]), float(parts[3])))
+        except ValueError:
+            continue
+    return tuple(vertices)
+
+
+@lru_cache(maxsize=512)
+def _mesh_bounds(
+    path: Path,
+    scale: tuple[float, float, float],
+    mesh_digest: str | None,
+) -> tuple[np.ndarray, np.ndarray, float] | None:
+    if not path.exists() or path.suffix.lower() != ".stl":
+        return None
+    vertices = _read_stl_vertices(path, mesh_digest)
+    if not vertices:
+        return None
+    points = np.asarray(vertices, dtype=float) * np.asarray(scale, dtype=float)
+    min_corner = np.min(points, axis=0)
+    max_corner = np.max(points, axis=0)
+    center = (min_corner + max_corner) * 0.5
+    half_extents = (max_corner - min_corner) * 0.5
+    radius = float(np.max(np.linalg.norm(points - center, axis=1)))
+    return center, half_extents, radius
+
+
 def _geom_bounding_radius(geom_type: str, size: np.ndarray) -> float:
     if len(size) == 0:
         return 0.0
@@ -187,6 +249,27 @@ def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
     geoms_by_body: dict[str, list[GeomInfo]] = {}
     joint_dofs: list[JointDofInfo] = []
     joints_by_body: dict[str, list[JointDofInfo]] = {}
+    mesh_assets: dict[str, tuple[Path, tuple[float, float, float], str | None]] = {}
+    mesh_hashes: dict[str, str] = {}
+
+    compiler = root.find("compiler")
+    mesh_dir = compiler.attrib.get("meshdir") if compiler is not None else None
+    for mesh in root.findall("./asset/mesh"):
+        name = mesh.attrib.get("name")
+        filename = mesh.attrib.get("file")
+        if not name or not filename:
+            continue
+        scale_vec = _as_vec3(mesh.attrib.get("scale"), (1.0, 1.0, 1.0))
+        scale = (float(scale_vec[0]), float(scale_vec[1]), float(scale_vec[2]))
+        mesh_path = _resolve_mesh_file(path, filename, mesh_dir)
+        digest = file_sha256(mesh_path)
+        mesh_assets[name] = (mesh_path, scale, digest)
+        if digest is None:
+            warnings.append({"code": "mesh_asset_not_found", "mesh": name, "path": str(mesh_path)})
+        else:
+            mesh_hashes[name] = digest
+
+    robot_fingerprint = stable_hash_payload({"mjcf": digest, "meshes": mesh_hashes})
 
     def walk(
         body: ET.Element,
@@ -212,9 +295,26 @@ def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
         for geom_idx, geom in enumerate(body.findall("geom")):
             geom_type = geom.attrib.get("type", "sphere")
             local_geom_pos = _as_vec3(geom.attrib.get("pos"), (0.0, 0.0, 0.0))
-            world_geom_pos = world_pos + _quat_rotate_wxyz(world_rot, local_geom_pos)
             size = _as_float_array(geom.attrib.get("size"))
             radius = _geom_bounding_radius(geom_type, size)
+            if geom_type == "mesh":
+                mesh_name = geom.attrib.get("mesh")
+                mesh_asset = mesh_assets.get(mesh_name or "")
+                bounds = _mesh_bounds(*mesh_asset) if mesh_asset is not None else None
+                if bounds is None:
+                    warnings.append({
+                        "code": "unsupported_geom_for_collision_proxy",
+                        "body": body_name,
+                        "geom": geom.attrib.get("name", f"{body_name}_geom_{geom_idx}"),
+                        "type": geom_type,
+                        "mesh": mesh_name,
+                    })
+                    continue
+                mesh_center, mesh_half_extents, mesh_radius = bounds
+                local_geom_pos = local_geom_pos + mesh_center
+                size = mesh_half_extents
+                radius = mesh_radius
+            world_geom_pos = world_pos + _quat_rotate_wxyz(world_rot, local_geom_pos)
             if radius <= 0.0:
                 warnings.append({
                     "code": "unsupported_geom_for_collision_proxy",
@@ -274,4 +374,4 @@ def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
         for child in worldbody.findall("body"):
             walk(child, None, np.zeros(3, dtype=float), np.array([1.0, 0.0, 0.0, 0.0], dtype=float))
 
-    return MorphologyAnalysis(str(path), digest, body_names, bodies, geoms_by_body, joint_dofs, joints_by_body, warnings)
+    return MorphologyAnalysis(str(path), robot_fingerprint, body_names, bodies, geoms_by_body, joint_dofs, joints_by_body, warnings)

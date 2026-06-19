@@ -119,6 +119,130 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertEqual(pole.target_site, "LeftHand")
         self.assertTrue(pole.enabled)
 
+    def test_distal_hand_site_uses_geom_bounds_offset(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="left_forearm">
+              <body name="left_hand" pos="0.4 0 0">
+                <geom name="palm" type="box" pos="0.05 0 0" size="0.1 0.03 0.02"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {"ik_map": {"LeftForeArm": "left_forearm", "LeftHand": "left_hand"}}
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        site = profile.semantic_sites["LeftHand"]
+        self.assertEqual(site.source, "geom_bounds")
+        self.assertTrue(np.allclose(site.local_position, [0.15, 0.0, 0.0]))
+        self.assertAlmostEqual(profile.chains["LeftHand"].total_length, 0.55)
+
+    def test_distal_hand_site_uses_mjcf_mesh_bounds_offset(self):
+        mesh = """
+        solid hand
+          facet normal 0 0 1
+            outer loop
+              vertex 0 0 0
+              vertex 0.2 0.04 0
+              vertex 0.2 -0.04 0
+            endloop
+          endfacet
+        endsolid hand
+        """
+        mjcf = """
+        <mujoco>
+          <compiler meshdir="meshes"/>
+          <asset>
+            <mesh name="hand_mesh" file="hand.stl"/>
+          </asset>
+          <worldbody>
+            <body name="left_forearm">
+              <body name="left_hand" pos="0.4 0 0">
+                <geom type="mesh" mesh="hand_mesh"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "meshes").mkdir()
+            (root / "meshes" / "hand.stl").write_text(mesh)
+            path = root / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {"ik_map": {"LeftForeArm": "left_forearm", "LeftHand": "left_hand"}}
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        self.assertEqual(morphology.summary()["geom_count"], 1)
+        site = profile.semantic_sites["LeftHand"]
+        self.assertEqual(site.source, "geom_bounds")
+        self.assertTrue(np.allclose(site.local_position, [0.2, 0.0, 0.0]))
+        self.assertAlmostEqual(profile.chains["LeftHand"].total_length, 0.6)
+
+    def test_mesh_bounds_and_fingerprint_refresh_when_mesh_changes(self):
+        mjcf = """
+        <mujoco>
+          <compiler meshdir="meshes"/>
+          <asset>
+            <mesh name="hand_mesh" file="hand.stl"/>
+          </asset>
+          <worldbody>
+            <body name="left_forearm">
+              <body name="left_hand" pos="0.4 0 0">
+                <geom type="mesh" mesh="hand_mesh"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+
+        def mesh_with_tip(x):
+            return f"""
+            solid hand
+              facet normal 0 0 1
+                outer loop
+                  vertex 0 0 0
+                  vertex {x} 0.04 0
+                  vertex {x} -0.04 0
+                endloop
+              endfacet
+            endsolid hand
+            """
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "meshes").mkdir()
+            mesh_path = root / "meshes" / "hand.stl"
+            robot_path = root / "robot.xml"
+            robot_path.write_text(mjcf)
+
+            mesh_path.write_text(mesh_with_tip(0.2))
+            first_morphology = analyze_mjcf_morphology(robot_path)
+            first = compile_retarget_profile(
+                robot_name="fixture",
+                raw_config={"ik_map": {"LeftForeArm": "left_forearm", "LeftHand": "left_hand"}},
+                morphology=first_morphology,
+            )
+
+            mesh_path.write_text(mesh_with_tip(0.4))
+            second_morphology = analyze_mjcf_morphology(robot_path)
+            second = compile_retarget_profile(
+                robot_name="fixture",
+                raw_config={"ik_map": {"LeftForeArm": "left_forearm", "LeftHand": "left_hand"}},
+                morphology=second_morphology,
+            )
+
+        self.assertNotEqual(first_morphology.robot_fingerprint, second_morphology.robot_fingerprint)
+        self.assertTrue(np.allclose(first.semantic_sites["LeftHand"].local_position, [0.2, 0.0, 0.0]))
+        self.assertTrue(np.allclose(second.semantic_sites["LeftHand"].local_position, [0.4, 0.0, 0.0]))
+
     def test_collision_proxies_and_pairs_are_written_from_geoms(self):
         mjcf = """
         <mujoco>
