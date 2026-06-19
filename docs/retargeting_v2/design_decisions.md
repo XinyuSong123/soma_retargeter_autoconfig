@@ -74,15 +74,15 @@ Verification: `e3_v2` autoconfig writes a schema v2 profile with valid cache dia
 
 ## Pole Jacobian Gate
 
-Problem: pole-vector objectives still keep v2 on a mixed/autodiff Jacobian path, but enabling an unvalidated analytic pole Jacobian changes optimizer behavior.
+Problem: pole-vector objectives still keep v2 on a mixed/autodiff Jacobian path, but directly enabling the validated analytic pole Jacobian changes bounded optimizer behavior.
 
 Decision: implement pole-vector analytic Jacobian support behind a per-task `analytic_jacobian` flag, and emit compiled runtime configs with the flag disabled by default.
 
-Reason: a bounded benchmark experiment showed direct analytic pole enablement lowered runtime substantially but regressed RPO and Unitree hand/foot/root gates. Preserving tracking correctness is more important than using the faster path before finite-difference validation.
+Reason: bounded benchmark experiments show direct analytic pole enablement lowers runtime substantially but regresses RPO, Unitree, and E3 hand/foot/root metrics. Preserving tracking correctness is more important than using the faster path before benchmark-safe activation.
 
 Risk: runtime remains above the report-only acceptance gate while pole objectives use autodiff.
 
-Verification: sparse-objective tests cover the pole task flag wiring, finite-difference tests validate the analytic kernel for parent-only, middle-only, child-only, partial-chain, and full-chain body masks with mixed linear/angular spatial velocity, registry tests assert the disabled reason, and bounded artifacts record pole tasks as disabled pending benchmark-safe activation. The benchmark exposes `v2_pole_analytic`, `v2_pole_analytic_w<scale>`, and `v2_no_pole` as explicit diagnostic compare modes; current artifacts and local sensitivity runs show analytic, weighted analytic, or removed pole tasks improve runtime but regress RPO/Unitree/E3 tracking or root metrics, so they remain outside the default v2 path. The runtime Jacobian scheduler now selects pure analytic mode whenever every active objective supports analytic Jacobians, so a later safe pole-vector activation does not remain on a mixed/autodiff tape path.
+Verification: sparse-objective tests cover the pole task flag wiring, finite-difference tests validate the analytic kernel for parent-only, middle-only, child-only, partial-chain, and full-chain body masks with mixed linear/angular spatial velocity, and model-topology tests validate the generated ancestor DOF masks for parent/middle/child links. Registry tests assert the disabled reason, and bounded artifacts record pole tasks as disabled pending benchmark-safe activation. The benchmark exposes `v2_pole_analytic`, `v2_pole_analytic_w<scale>`, and `v2_no_pole` as explicit diagnostic compare modes; current artifacts and local sensitivity runs show analytic, weighted analytic, or removed pole tasks improve runtime but regress RPO/Unitree/E3 tracking or root metrics, so they remain outside the default v2 path. The runtime Jacobian scheduler now selects pure analytic mode whenever every active objective supports analytic Jacobians, so a later safe pole-vector activation does not remain on a mixed/autodiff tape path.
 
 ## Per-Environment Contact Weight
 

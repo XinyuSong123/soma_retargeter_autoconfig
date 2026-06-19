@@ -253,6 +253,24 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
                     f"{jacobian.numpy()[0, :, 0]} != {finite_difference}",
                 )
 
+    def test_pole_vector_analytic_buffers_follow_model_ancestor_dofs(self):
+        class FakeModel:
+            joint_count = 4
+            body_count = 4
+            joint_dof_count = 7
+            joint_qd_start = wp.array([0, 1, 3, 4, 7], dtype=wp.int32)
+            joint_child = wp.array([0, 1, 2, 3], dtype=wp.int32)
+            joint_parent = wp.array([-1, 0, 1, 2], dtype=wp.int32)
+
+        objective = IKObjectivePoleVector(1, 2, 3, None, weight=1.0, analytic_jacobian=True)
+        objective.set_batch_layout(total_residuals=3, residual_offset=0, n_batch=1)
+        objective.bind_device(wp.get_device())
+        objective.init_buffers(FakeModel(), ik.IKJacobianType.ANALYTIC)
+
+        self.assertEqual(objective.affects_parent_dof.numpy().tolist(), [1, 1, 1, 0, 0, 0, 0])
+        self.assertEqual(objective.affects_middle_dof.numpy().tolist(), [1, 1, 1, 1, 0, 0, 0])
+        self.assertEqual(objective.affects_child_dof.numpy().tolist(), [1, 1, 1, 1, 1, 1, 1])
+
     def test_collision_objectives_are_created_from_compiled_pairs_when_weighted(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)
         pipe.collision_weight = 3.0

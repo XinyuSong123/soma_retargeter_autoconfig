@@ -200,7 +200,7 @@ class TestContactConfig(unittest.TestCase):
         self.assertFalse(left_forearm_pole["analytic_jacobian"])
         self.assertEqual(
             left_forearm_pole["jacobian_schedule_reason"],
-            "disabled pending finite-difference validation of pole-vector analytic Jacobian",
+            "disabled after validation because bounded analytic activation regressed tracking",
         )
         self.assertEqual(left_forearm_pole["priority_weight_band"], 10.0)
 

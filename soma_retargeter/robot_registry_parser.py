@@ -1002,7 +1002,7 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
             )
         elif task_type == "pole_vector":
             payload["analytic_jacobian"] = False
-            payload["jacobian_schedule_reason"] = "disabled pending finite-difference validation of pole-vector analytic Jacobian"
+            payload["jacobian_schedule_reason"] = "disabled after validation because bounded analytic activation regressed tracking"
         out.append(payload)
     return out
 
