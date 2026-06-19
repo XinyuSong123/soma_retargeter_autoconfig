@@ -1080,6 +1080,7 @@ def _run_runtime_benchmark(
     first_skeleton = None
     animations = []
     used_paths = []
+    load_started = time.perf_counter()
     for path in motion_paths:
         skeleton, animation = bvh_utils.load_bvh(str(path), first_skeleton)
         if first_skeleton is None:
@@ -1099,14 +1100,21 @@ def _run_runtime_benchmark(
             animation.benchmark_frame_selection = frame_selection
         animations.append(animation)
         used_paths.append(path)
+    load_elapsed = time.perf_counter() - load_started
     if first_skeleton is None or not animations:
         return None
 
+    construct_started = time.perf_counter()
     pipeline = NewtonPipeline(first_skeleton, "soma", robot, retarget_config=_runtime_retargeter_config(robot, compare_mode))
-    started = time.perf_counter()
+    construct_elapsed = time.perf_counter() - construct_started
+    setup_started = time.perf_counter()
     pipeline.add_input_motions(animations, [wp.transform_identity()] * len(animations), True)
+    setup_elapsed = time.perf_counter() - setup_started
+    solve_started = time.perf_counter()
     output_buffers = pipeline.execute()
-    elapsed = time.perf_counter() - started
+    solve_elapsed = time.perf_counter() - solve_started
+    elapsed = setup_elapsed + solve_elapsed
+    metrics_started = time.perf_counter()
     motion_payloads = []
     for idx, buffer in enumerate(output_buffers or []):
         motion_payloads.append(
@@ -1119,13 +1127,22 @@ def _run_runtime_benchmark(
                 "metrics": _runtime_metrics_for_buffer(profile, pipeline, idx, buffer),
             }
         )
+    metrics_elapsed = time.perf_counter() - metrics_started
+    output_frame_count = int(sum(int(getattr(buffer, "num_frames", 0)) for buffer in output_buffers or []))
     return {
         "status": "ok",
         "compare_mode": compare_mode,
         "motions": motion_payloads,
         "runtime_seconds": {
+            "bvh_load_runtime": load_elapsed,
+            "pipeline_construct_runtime": construct_elapsed,
+            "target_setup_runtime": setup_elapsed,
+            "solve_runtime": solve_elapsed,
+            "metric_runtime": metrics_elapsed,
             "motion_runtime": elapsed,
             "motion_count": len(motion_payloads),
+            "output_frame_count": output_frame_count,
+            "solve_fps": (output_frame_count / solve_elapsed) if solve_elapsed > 0.0 else None,
         },
         "priority_guard": getattr(pipeline, "priority_guard_report", {}),
         "metrics": {

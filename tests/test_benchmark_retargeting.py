@@ -245,7 +245,17 @@ class TestBenchmarkRetargeting(unittest.TestCase):
     def test_benchmark_records_runtime_motion_metrics_when_motions_are_requested(self):
         runtime_payload = {
             "status": "ok",
-            "runtime_seconds": {"motion_runtime": 1.25, "motion_count": 2},
+            "runtime_seconds": {
+                "bvh_load_runtime": 0.10,
+                "pipeline_construct_runtime": 0.20,
+                "target_setup_runtime": 0.30,
+                "solve_runtime": 0.90,
+                "metric_runtime": 0.05,
+                "motion_runtime": 1.25,
+                "motion_count": 2,
+                "output_frame_count": 8,
+                "solve_fps": 8.8888888889,
+            },
             "motions": [
                 {
                     "motion": "/tmp/fixture_a.bvh",
@@ -310,6 +320,9 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertEqual(per_robot["metrics"]["velocity_p95"]["status"], "ok")
             self.assertEqual(per_robot["metrics"]["velocity_p95"]["value"], 3.0)
             self.assertEqual(per_robot["metrics"]["runtime_seconds"]["motion_runtime"], 1.25)
+            self.assertEqual(per_robot["metrics"]["runtime_seconds"]["target_setup_runtime"], 0.30)
+            self.assertEqual(per_robot["metrics"]["runtime_seconds"]["solve_runtime"], 0.90)
+            self.assertEqual(per_robot["metrics"]["runtime_seconds"]["output_frame_count"], 8)
 
             with (out / "benchmark_frames.csv").open(newline="") as handle:
                 rows = list(csv.DictReader(handle))
