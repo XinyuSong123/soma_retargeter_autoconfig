@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+from dataclasses import dataclass
+
+import numpy as np
 import warp as wp
 
 import soma_retargeter.utils.io_utils as io_utils
@@ -8,6 +11,76 @@ import soma_retargeter.utils.pose_utils as pose_utils
 
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
+
+
+@dataclass(frozen=True)
+class SegmentLocalTargetBuilder:
+    """Build v2 target positions by recursively following source segment directions."""
+
+    joint_names: list[str]
+    parent_indices: list[int]
+    segment_lengths: np.ndarray
+    root_scale: np.ndarray | None = None
+
+    def __post_init__(self):
+        if len(self.joint_names) != len(self.parent_indices):
+            raise ValueError("joint_names and parent_indices must have the same length")
+        lengths = np.asarray(self.segment_lengths, dtype=np.float64)
+        if lengths.shape != (len(self.joint_names),):
+            raise ValueError("segment_lengths must have shape [num_joints]")
+        for idx, parent in enumerate(self.parent_indices):
+            if parent >= idx:
+                raise ValueError("parent_indices must be topologically sorted, with parent < child")
+            if parent < -1:
+                raise ValueError("parent index must be -1 or a valid parent index")
+            if parent == -1:
+                continue
+            if not np.isfinite(lengths[idx]) or lengths[idx] <= 0.0:
+                raise ValueError(f"segment length for {self.joint_names[idx]!r} must be positive")
+        if self.root_scale is not None:
+            root_scale = np.asarray(self.root_scale, dtype=np.float64)
+            if root_scale.shape != (3,) or not np.all(np.isfinite(root_scale)):
+                raise ValueError("root_scale must have shape [3] with finite values")
+
+    def compute_positions(self, source_positions: np.ndarray) -> np.ndarray:
+        positions = np.asarray(source_positions, dtype=np.float64)
+        if positions.shape != (len(self.joint_names), 3):
+            raise ValueError("source_positions must have shape [num_joints, 3]")
+
+        out = np.zeros_like(positions)
+        root_scale = np.ones(3, dtype=np.float64) if self.root_scale is None else np.asarray(self.root_scale, dtype=np.float64)
+        for idx, parent in enumerate(self.parent_indices):
+            if parent == -1:
+                out[idx] = positions[idx] * root_scale
+                continue
+            direction = positions[idx] - positions[parent]
+            norm = float(np.linalg.norm(direction))
+            if norm <= 1e-12:
+                raise ValueError(f"source segment {self.joint_names[parent]!r}->{self.joint_names[idx]!r} has near-zero length")
+            out[idx] = out[parent] + direction / norm * float(self.segment_lengths[idx])
+        return out
+
+    def compute_positions_batch(self, source_positions: np.ndarray) -> np.ndarray:
+        positions = np.asarray(source_positions, dtype=np.float64)
+        if positions.ndim != 3 or positions.shape[1:] != (len(self.joint_names), 3):
+            raise ValueError("source_positions must have shape [num_frames, num_joints, 3]")
+        return np.stack([self.compute_positions(frame) for frame in positions], axis=0)
+
+    def compute_transforms(self, source_transforms: np.ndarray) -> np.ndarray:
+        transforms = np.asarray(source_transforms, dtype=np.float64)
+        if transforms.shape != (len(self.joint_names), 7):
+            raise ValueError("source_transforms must have shape [num_joints, 7]")
+        out = np.array(transforms, copy=True)
+        out[:, 0:3] = self.compute_positions(transforms[:, 0:3])
+        return out
+
+    def compute_transforms_batch(self, source_transforms: np.ndarray) -> np.ndarray:
+        transforms = np.asarray(source_transforms, dtype=np.float64)
+        if transforms.ndim != 3 or transforms.shape[1:] != (len(self.joint_names), 7):
+            raise ValueError("source_transforms must have shape [num_frames, num_joints, 7]")
+        out = np.array(transforms, copy=True)
+        out[:, :, 0:3] = self.compute_positions_batch(transforms[:, :, 0:3])
+        return out
 
 
 class HumanToRobotScaler:
@@ -268,3 +341,6 @@ class HumanToRobotScaler:
             q = wp.mul(pose_tx.q, offset_tx.q)
             t = geocentric_scaled_t + scaled_root_t + wp.quat_rotate(q, offset_tx.p)
             out_result[i] = wp.transform(t, q)
+
+
+LegacyHumanToRobotScaler = HumanToRobotScaler

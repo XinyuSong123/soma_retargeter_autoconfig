@@ -166,6 +166,7 @@ The optimizer is now an advanced residual calibration path. The default path is 
 | `assets/` | File I/O for BVH, CSV, and USD formats. |
 | `pipelines/` | Retargeting pipeline: IK solving, feet stabilization, and joint limit clamping. |
 | `robotics/` | Human-to-robot scaling and robot output formatting. |
+| `robotics/human_to_robot_scaler.py` | Legacy v1 scaler plus v2 segment-local target builder. |
 | `robotics/task_compiler.py` | Morphology-aware v2 task/profile compiler. |
 | `robotics/reachability.py` | Reachability basis, projector, and projected rotation utilities. |
 | `tools/autoconfigure_robot.py` | CLI for compiling deterministic v2 robot retargeting profiles. |
