@@ -59,6 +59,7 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.0)
         self.assertGreater(cfg["ik_map"]["Chest"]["r_weight"], 0.0)
+        self.assertEqual(cfg["ik_map"]["Chest"]["v2_rotation_basis"], [[0.0], [0.0], [1.0]])
         self.assertEqual(cfg["ik_map"]["LeftArm"]["t_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["LeftArm"]["r_weight"], 0.0)
         self.assertGreater(cfg["ik_map"]["LeftHand"]["t_weight"], 0.0)

@@ -135,6 +135,7 @@ The compiler writes a schema v2 profile with deterministic JSON, explicit `xyzw`
 Generated runtime configs now include a `compiled_retarget_profile` reference. Advanced users can override its path with `COMPILED_RETARGET_PROFILE_DICT` in `params.py`; otherwise the registry uses `<robot>_compiled_retarget_profile_v2.json` beside the retargeter config.
 
 When a v2 profile is present, runtime mapping is task-driven: disabled or unreachable position/orientation tasks are not instantiated as legacy IK objectives.
+For reachable low-rank rotation tasks, the runtime projects target quaternions into the compiled rotation basis before updating Newton rotation objectives.
 
 ### Config optimizer
 

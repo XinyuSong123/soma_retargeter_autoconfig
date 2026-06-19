@@ -1,6 +1,9 @@
 import unittest
 
+import numpy as np
+
 from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
+from soma_retargeter.robotics.reachability import quat_xyzw_to_rotation_vector, rotation_vector_to_quat_xyzw
 
 
 class TestNewtonV2SparseObjectives(unittest.TestCase):
@@ -16,7 +19,13 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
             "ik_map": {
                 "Hips": {"t_body": "base", "r_body": "base", "t_weight": 10.0, "r_weight": 0.0},
                 "LeftHand": {"t_body": "hand", "r_body": "hand", "t_weight": 1.0, "r_weight": 0.0},
-                "Chest": {"t_body": "torso", "r_body": "torso", "t_weight": 0.0, "r_weight": 0.5},
+                "Chest": {
+                    "t_body": "torso",
+                    "r_body": "torso",
+                    "t_weight": 0.0,
+                    "r_weight": 0.5,
+                    "v2_rotation_basis": [[0.0], [0.0], [1.0]],
+                },
             }
         }
 
@@ -25,8 +34,17 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
         self.assertEqual(mapped_joints, ["Hips", "LeftHand", "Chest"])
         self.assertEqual(mapped_indices, [0, 1, 2])
         self.assertEqual(pos_data, [(0, 0, 10.0), (1, 1, 1.0)])
-        self.assertEqual(rot_data, [(2, 2, 0.5)])
+        self.assertEqual(rot_data[0][:3], (2, 2, 0.5))
+        self.assertTrue(np.allclose(rot_data[0][3], [[0.0], [0.0], [1.0]]))
         self.assertEqual(link_by_joint, {"Hips": 0, "LeftHand": 1, "Chest": 2})
+
+    def test_rotation_target_projection_drops_unreachable_components(self):
+        source = rotation_vector_to_quat_xyzw(np.array([0.25, -0.5, 0.75]))
+        projected = NewtonPipeline._project_rotation_target(source, np.array([[0.0], [0.0], [1.0]]))
+        rotvec = quat_xyzw_to_rotation_vector(projected)
+        self.assertAlmostEqual(rotvec[0], 0.0, places=6)
+        self.assertAlmostEqual(rotvec[1], 0.0, places=6)
+        self.assertAlmostEqual(rotvec[2], 0.75, places=6)
 
 
 if __name__ == "__main__":

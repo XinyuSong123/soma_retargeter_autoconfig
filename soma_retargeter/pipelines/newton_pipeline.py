@@ -16,6 +16,7 @@ from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
 from soma_retargeter.robotics.human_to_robot_scaler import HumanToRobotScaler
 from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
+from soma_retargeter.robotics.reachability import project_relative_rotation_quat_xyzw
 from soma_retargeter.pipelines.feet_stabilizer import FeetStabilizer
 from soma_retargeter.pipelines.joint_limit_clamper import JointLimitClamper
 from soma_retargeter.pipelines.motion_grounding import apply_virtual_foot_grounding_to_frames
@@ -328,9 +329,10 @@ class NewtonPipeline:
                     for i, (effector_idx, _, _) in enumerate(self.mapped_body_link_pos_data):
                         target = frame_targets[effector_idx]
                         position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
-                    for i, (effector_idx, _, _) in enumerate(self.mapped_body_link_rot_data):
+                    for i, (effector_idx, _, _, basis) in enumerate(self.mapped_body_link_rot_data):
                         target = frame_targets[effector_idx]
-                        rotation_objectives[i].set_target_rotation(env, wp.quat(*target[3:7]))
+                        target_rotation = self._project_rotation_target(target[3:7], basis)
+                        rotation_objectives[i].set_target_rotation(env, wp.quat(*target_rotation))
 
                     if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
                         self._update_contact_objectives_for_frame(env, frame, frame_targets, contact_objectives)
@@ -435,7 +437,12 @@ class NewtonPipeline:
             if float(mapping_data.get('t_weight', 0.0)) > 0.0:
                 mapped_body_link_pos_data.append((effector_idx, t_link_idx, float(mapping_data['t_weight'])))
             if float(mapping_data.get('r_weight', 0.0)) > 0.0:
-                mapped_body_link_rot_data.append((effector_idx, r_link_idx, float(mapping_data['r_weight'])))
+                mapped_body_link_rot_data.append((
+                    effector_idx,
+                    r_link_idx,
+                    float(mapping_data['r_weight']),
+                    self._normalize_rotation_basis(mapping_data.get("v2_rotation_basis")),
+                ))
 
         return (
             mapped_joints,
@@ -460,7 +467,7 @@ class NewtonPipeline:
             for ee_idx, (_, link_idx, _) in enumerate(self.mapped_body_link_pos_data):
                 pos_targets[env, ee_idx] = body_q[base + link_idx][0:3]
 
-            for ee_idx, (_, link_idx, _) in enumerate(self.mapped_body_link_rot_data):
+            for ee_idx, (_, link_idx, _, _) in enumerate(self.mapped_body_link_rot_data):
                 rot_wp = wp.quat(body_q[base + link_idx][3:7])
                 rot_targets[env, ee_idx] = wp.normalize(rot_wp)
 
@@ -485,7 +492,7 @@ class NewtonPipeline:
             position_objectives.append(objective)
 
         rotation_objectives = []
-        for i, (_, link_idx, w) in enumerate(self.mapped_body_link_rot_data):
+        for i, (_, link_idx, w, _) in enumerate(self.mapped_body_link_rot_data):
             objective = ik.IKObjectiveRotation(
                 link_index=link_idx,
                 link_offset_rotation=wp.quat_identity(),
@@ -508,6 +515,23 @@ class NewtonPipeline:
         contact_objectives = self._create_contact_aware_objectives(num_envs, pos_target_arrays)
         return position_objectives, rotation_objectives, joint_limit_objective, smooth_joint_limiter_objective, contact_objectives
 
+    @staticmethod
+    def _normalize_rotation_basis(raw_basis):
+        if raw_basis is None:
+            return None
+        basis = np.asarray(raw_basis, dtype=np.float64)
+        if basis.ndim != 2 or basis.shape[0] != 3:
+            return None
+        if basis.shape[1] >= 3:
+            return None
+        return basis
+
+    @staticmethod
+    def _project_rotation_target(quat_xyzw, basis):
+        quat_xyzw = np.asarray(quat_xyzw, dtype=np.float64)
+        if basis is None:
+            return quat_xyzw.astype(np.float32)
+        return project_relative_rotation_quat_xyzw(quat_xyzw, basis).astype(np.float32)
 
     def _create_contact_aware_objectives(self, num_envs, pos_target_arrays):
         if not self.contact_aware_foot_ik_enabled:

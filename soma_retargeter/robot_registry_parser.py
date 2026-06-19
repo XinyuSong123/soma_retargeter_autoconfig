@@ -828,7 +828,7 @@ def _apply_compiled_profile_tasks_to_ik_map(
         return ik_map
 
     position_enabled: set[str] = set()
-    rotation_enabled: set[str] = set()
+    rotation_basis_by_semantic: dict[str, Any] = {}
     for task in compiled_profile.get("tasks", []):
         if not isinstance(task, dict) or not task.get("enabled", False):
             continue
@@ -838,7 +838,7 @@ def _apply_compiled_profile_tasks_to_ik_map(
         if task.get("position_mask_or_basis") is not None:
             position_enabled.add(semantic)
         if task.get("rotation_mask_or_basis") is not None:
-            rotation_enabled.add(semantic)
+            rotation_basis_by_semantic[semantic] = task.get("rotation_mask_or_basis")
 
     out: dict[str, dict[str, Any]] = {}
     for joint_name, entry in ik_map.items():
@@ -846,9 +846,11 @@ def _apply_compiled_profile_tasks_to_ik_map(
         if joint_name not in position_enabled:
             updated["t_weight"] = 0.0
             updated["v2_position_disabled_reason"] = "compiled profile has no enabled position task"
-        if joint_name not in rotation_enabled:
+        if joint_name not in rotation_basis_by_semantic:
             updated["r_weight"] = 0.0
             updated["v2_rotation_disabled_reason"] = "compiled profile has no enabled rotation task"
+        else:
+            updated["v2_rotation_basis"] = rotation_basis_by_semantic[joint_name]
         out[joint_name] = updated
     return out
 
