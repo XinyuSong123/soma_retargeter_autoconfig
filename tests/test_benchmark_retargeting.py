@@ -48,6 +48,27 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertTrue(any(not task["analytic_jacobian"] for task in cfg["direction_tasks"]))
         self.assertIn("force analytic pole-vector", cfg["pole_vector_tasks"][0]["jacobian_schedule_reason"])
 
+    def test_no_pole_compare_mode_removes_pole_tasks_only(self):
+        cfg = _runtime_retargeter_config("unitree_g1", "v2_no_pole")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_no_pole")
+        self.assertEqual(cfg["pole_vector_tasks"], [])
+        self.assertTrue(cfg["direction_tasks"])
+
+    def test_weighted_pole_analytic_compare_mode_scales_pole_weights(self):
+        baseline = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic")
+        scaled = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic_w0.25")
+        self.assertEqual(scaled["benchmark_compare_mode"], "v2_pole_analytic_w0.25")
+        self.assertTrue(scaled["pole_vector_tasks"])
+        self.assertTrue(all(task["analytic_jacobian"] for task in scaled["pole_vector_tasks"]))
+        self.assertAlmostEqual(
+            scaled["pole_vector_tasks"][0]["weight"],
+            baseline["pole_vector_tasks"][0]["weight"] * 0.25,
+        )
+        self.assertAlmostEqual(
+            scaled["pole_vector_tasks"][0]["normalized_weight"],
+            baseline["pole_vector_tasks"][0]["normalized_weight"] * 0.25,
+        )
+
     def test_profile_runtime_residual_metrics_include_torso_leakage(self):
         profile = {
             "tasks": [

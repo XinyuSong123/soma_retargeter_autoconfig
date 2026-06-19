@@ -560,6 +560,21 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         return _legacy_runtime_retargeter_config(robot)
     if compare_mode == "v2":
         return None
+    if compare_mode == "v2_no_pole":
+        raw_path = get_profile_path(robot, "retargeter_config")
+        if raw_path is None:
+            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        config["pole_vector_tasks"] = []
+        config["benchmark_compare_mode"] = compare_mode
+        return config
+    pole_analytic_weight_scale = 1.0
+    if compare_mode.startswith("v2_pole_analytic_w"):
+        try:
+            pole_analytic_weight_scale = float(compare_mode.removeprefix("v2_pole_analytic_w"))
+        except ValueError as exc:
+            raise ValueError(f"Invalid pole analytic weight scale in compare mode {compare_mode!r}") from exc
+        compare_mode = "v2_pole_analytic"
     if compare_mode == "v2_pole_analytic":
         raw_path = get_profile_path(robot, "retargeter_config")
         if raw_path is None:
@@ -568,10 +583,14 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         for task in config.get("pole_vector_tasks", []):
             if isinstance(task, dict):
                 task["analytic_jacobian"] = True
+                task["weight"] = float(task.get("weight", 0.0)) * pole_analytic_weight_scale
+                task["normalized_weight"] = float(task.get("normalized_weight", 0.0)) * pole_analytic_weight_scale
                 task["jacobian_schedule_reason"] = "benchmark experiment: force analytic pole-vector Jacobian"
-        config["benchmark_compare_mode"] = compare_mode
+        config["benchmark_compare_mode"] = compare_mode if pole_analytic_weight_scale == 1.0 else f"{compare_mode}_w{pole_analytic_weight_scale:g}"
         return config
-    raise ValueError(f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', or 'v2_pole_analytic'.")
+    raise ValueError(
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', or 'v2_pole_analytic'."
+    )
 
 
 def _metric_payload(value: float | int | None, **extra: Any) -> dict[str, Any]:
