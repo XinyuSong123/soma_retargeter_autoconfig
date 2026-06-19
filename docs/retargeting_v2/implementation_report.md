@@ -52,17 +52,17 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest verified result: `78 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest verified result: `80 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
 Generated command:
 
 ```bash
-python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 --motions assets/motions/bvh --max-motions 2 --max-frames 5 --compare legacy v2 --output artifacts/retargeting_v2 --force
+python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 --motions assets/motions/bvh --max-motions 2 --max-frames 80 --compare legacy v2 --output artifacts/retargeting_v2 --force
 ```
 
-Current artifact scope includes compile-level validation plus bounded runtime rollouts for high-motion 5-frame windows from the first two resolved BVH motions. The benchmark now runs legacy and v2 compare modes through separate runtime configs: legacy uses the raw string `ik_map` with default position/rotation weights and no compiled profile, while v2 uses the compiled morphology-aware profile, direction/pole tasks, segment-local scaler, and priority guard. Runtime metrics include task residual by type/priority when profile tasks are evaluable, torso reachable/unreachable residuals for projected torso tasks, joint-limit margin, foot slide or structured unavailability, penetration, root tilt, hand/foot position RMSE, velocity/acceleration p95, solver iterations, fallback counts, and priority-guard diagnostics. `benchmark_summary.json` records `resolved_motions`, and per-motion payloads record `source_frame_start` plus frame-selection mode. `benchmark_frames.csv` includes the per-motion BVH path for each motion-level metric row. `benchmark_gates.json` records report-only legacy/v2 acceptance gates by default; `--strict-gates` returns exit code 4 on gate failure. `registry_coverage.json` records coverage for RPO, generic Unitree G1, G1 23DoF, G1 29DoF, E3 v2, and OLI.
+Current artifact scope includes compile-level validation plus bounded runtime rollouts for high-motion 80-frame windows from the first two resolved BVH motions. The benchmark now runs legacy and v2 compare modes through separate runtime configs: legacy uses the raw string `ik_map` with default position/rotation weights and no compiled profile, while v2 uses the compiled morphology-aware profile, direction/pole tasks, segment-local scaler, priority guard, and an 8-iteration compiled-profile IK default. Runtime metrics include task residual by type/priority when profile tasks are evaluable, torso reachable/unreachable residuals for projected torso tasks, joint-limit margin, foot slide or structured unavailability, penetration, root tilt, hand/foot position RMSE, velocity/acceleration p95, solver iterations, fallback counts, and priority-guard diagnostics. `benchmark_summary.json` records `resolved_motions`, and per-motion payloads record `source_frame_start` plus frame-selection mode. `benchmark_frames.csv` includes the per-motion BVH path for each motion-level metric row. `benchmark_gates.json` records report-only legacy/v2 acceptance gates by default; `--strict-gates` returns exit code 4 on gate failure. `registry_coverage.json` records coverage for RPO, generic Unitree G1, G1 23DoF, G1 29DoF, E3 v2, and OLI.
 
 RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, enabled sparse tasks, mesh-derived hand/foot virtual sites, virtual-foot-site root/ground metadata, mesh-derived self-collision metadata, morphology site-count metadata, matching cache fingerprints, and separated legacy/v2 bounded runtime metrics with profile task residuals, torso leakage residuals, and zero measured v2 penetration in the bounded sample.
 
@@ -70,7 +70,7 @@ Unitree G1 currently produces a v2 artifact and separated legacy/v2 bounded runt
 
 Registry coverage currently reports RoboParty RPO and generic `unitree_g1` as `ready`; `unitree_g1_23dof`, `unitree_g1_29dof`, `e3_v2`, and `oli` remain `missing_registration`.
 
-Current bounded gate status is `failed`: RoboParty RPO and generic Unitree G1 pass penetration and residual availability gates on the selected high-motion windows, and both now record zero priority-guard rollbacks while protecting hard joint-limit penetration. The hard-penetration guard uses the CUDA graph-capture fast path, reducing bounded v2 runtime materially, but RPO v2 and Unitree G1 v2 still fail hand/foot tracking, velocity, acceleration, and runtime-overhead gates, so the next acceptance work is motion stabilization and remaining runtime reduction rather than static-output rollback.
+Current bounded gate status is `failed`: RoboParty RPO and generic Unitree G1 pass penetration and residual availability gates on the selected high-motion windows, and both now record zero priority-guard rollbacks while protecting hard joint-limit penetration. The hard-penetration guard uses the CUDA graph-capture fast path, and the compiled-profile IK default now uses 8 solver iterations instead of 24 to bound overfitting and runtime. In the current artifacts, RPO v2 records `velocity_p95=160.67` and `acceleration_p95=22640.19` versus legacy `28.96` and `1627.21`; Unitree G1 v2 passes velocity with `0.0` versus legacy `56.56` but still records `acceleration_p95=29425.57` versus legacy `6388.65`. Both robots still fail hand/foot tracking and runtime-overhead gates, so the next acceptance work is motion stabilization and remaining runtime reduction rather than static-output rollback.
 
 ## Remaining Work
 

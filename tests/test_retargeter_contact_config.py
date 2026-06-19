@@ -56,6 +56,14 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["compiled_retarget_profile_schema_version"], 2)
         self.assertTrue(cfg["compiled_retarget_profile"].endswith("roboparty_rpo_compiled_retarget_profile_v2.json"))
 
+    def test_compiled_v2_runtime_uses_bounded_iteration_default(self):
+        cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}})
+        self.assertEqual(cfg["ik_iterations"], 8)
+
+    def test_explicit_runtime_iterations_override_compiled_v2_default(self):
+        cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}, "ik_iterations": 24})
+        self.assertEqual(cfg["ik_iterations"], 24)
+
     def test_compiled_v2_tasks_disable_unreachable_legacy_objectives(self):
         raw = {
             "ik_map": {
