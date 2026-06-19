@@ -27,6 +27,7 @@
 - MJCF morphology extraction: `soma_retargeter/robotics/morphology.py`
 - Reachability projection helpers: `soma_retargeter/robotics/reachability.py`
 - v2 task compiler: `soma_retargeter/robotics/task_compiler.py`
+- Conservative body-name semantic inference for missing `ik_map` entries: `soma_retargeter/robotics/task_compiler.py`
 - Autoconfig CLI: `soma_retargeter/tools/autoconfigure_robot.py`
 - Runtime registry integration: `soma_retargeter/robot_registry_parser.py`
 - Segment-local target builder: `soma_retargeter/robotics/human_to_robot_scaler.py`
@@ -47,7 +48,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest result before this report update: `66 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest result before this report update: `68 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
@@ -68,6 +69,6 @@ Unitree G1 currently produces a v2 artifact, but its chain summary shows zero re
 - Implement true motion-level benchmark loops for legacy and v2 runtime.
 - Add E3 v2 and OLI registry assets when available.
 - Add runtime benchmark coverage for optional collision barriers on real motions.
-- Strengthen semantic auto-detection beyond explicit maps.
+- Strengthen semantic auto-detection beyond conservative body-name matching.
 - Add quantitative torso leakage gates to motion-level benchmarks.
 - Produce before/after motion metrics for acceptance thresholds.

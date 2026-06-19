@@ -81,6 +81,82 @@ _DISTAL_SITE_TOKENS = {
     "LeftFoot": ("left_foot", "leftfoot", "foot", "sole", "toe", "heel"),
     "RightFoot": ("right_foot", "rightfoot", "foot", "sole", "toe", "heel"),
 }
+_SEMANTIC_INFERENCE_SPECS = {
+    "Hips": {
+        "tokens": ("pelvis", "hips", "hip", "base_link", "base", "root"),
+        "reject": ("left", "right", "shoulder", "arm", "elbow", "wrist", "hand", "knee", "ankle", "foot"),
+    },
+    "Chest": {
+        "tokens": ("torso", "chest", "trunk", "spine"),
+        "reject": ("left", "right", "arm", "elbow", "wrist", "hand", "leg", "knee", "ankle", "foot"),
+    },
+    "LeftArm": {"side": "left", "tokens": ("shoulder", "upper_arm", "arm_roll", "arm"), "reject": ("forearm", "elbow", "wrist", "hand")},
+    "RightArm": {"side": "right", "tokens": ("shoulder", "upper_arm", "arm_roll", "arm"), "reject": ("forearm", "elbow", "wrist", "hand")},
+    "LeftForeArm": {"side": "left", "tokens": ("forearm", "lower_arm", "elbow"), "reject": ("wrist", "hand")},
+    "RightForeArm": {"side": "right", "tokens": ("forearm", "lower_arm", "elbow"), "reject": ("wrist", "hand")},
+    "LeftHand": {"side": "left", "tokens": ("hand", "wrist", "palm"), "reject": ()},
+    "RightHand": {"side": "right", "tokens": ("hand", "wrist", "palm"), "reject": ()},
+    "LeftLeg": {"side": "left", "tokens": ("hip_roll", "thigh", "upper_leg", "leg"), "reject": ("knee", "shin", "ankle", "foot")},
+    "RightLeg": {"side": "right", "tokens": ("hip_roll", "thigh", "upper_leg", "leg"), "reject": ("knee", "shin", "ankle", "foot")},
+    "LeftShin": {"side": "left", "tokens": ("shin", "knee", "lower_leg"), "reject": ("ankle", "foot")},
+    "RightShin": {"side": "right", "tokens": ("shin", "knee", "lower_leg"), "reject": ("ankle", "foot")},
+    "LeftFoot": {"side": "left", "tokens": ("foot", "ankle_roll", "ankle", "toe", "sole"), "reject": ()},
+    "RightFoot": {"side": "right", "tokens": ("foot", "ankle_roll", "ankle", "toe", "sole"), "reject": ()},
+}
+
+
+def _normalize_body_token(value: str) -> str:
+    return value.lower().replace("-", "_").replace(" ", "_")
+
+
+def _side_matches(body_name: str, side: str | None) -> bool:
+    if side is None:
+        return True
+    normalized = _normalize_body_token(body_name)
+    compact = normalized.replace("_", "")
+    if side == "left":
+        return "left" in normalized or normalized.startswith("l_") or compact.startswith("l")
+    if side == "right":
+        return "right" in normalized or normalized.startswith("r_") or compact.startswith("r")
+    return True
+
+
+def _semantic_body_match_score(semantic: str, body_name: str) -> int:
+    spec = _SEMANTIC_INFERENCE_SPECS.get(semantic)
+    if spec is None:
+        return 0
+    normalized = _normalize_body_token(body_name)
+    compact = normalized.replace("_", "")
+    if not _side_matches(normalized, spec.get("side")):
+        return 0
+    for reject in spec.get("reject", ()):
+        reject_norm = _normalize_body_token(reject)
+        if reject_norm in normalized or reject_norm.replace("_", "") in compact:
+            return 0
+
+    score = 0
+    for token in spec.get("tokens", ()):
+        token_norm = _normalize_body_token(token)
+        token_compact = token_norm.replace("_", "")
+        if normalized == token_norm or compact == token_compact:
+            score += 4
+        elif token_norm in normalized or token_compact in compact:
+            score += 2
+    return score
+
+
+def _infer_semantic_body(semantic: str, morphology: MorphologyAnalysis) -> tuple[str, float] | None:
+    best: tuple[int, str] | None = None
+    for body_name in morphology.body_names:
+        score = _semantic_body_match_score(semantic, body_name)
+        if score <= 0:
+            continue
+        if best is None or score > best[0] or (score == best[0] and body_name < best[1]):
+            best = (score, body_name)
+    if best is None:
+        return None
+    confidence = min(0.9, 0.7 + 0.05 * best[0])
+    return best[1], confidence
 
 
 def _semantic_confidence(semantic: str, body: str, morphology: MorphologyAnalysis) -> float:
@@ -673,6 +749,20 @@ def compile_retarget_profile(
         if confidence < 0.7:
             warnings.append({"code": "low_semantic_confidence", "semantic": str(semantic), "body": str(body), "confidence": confidence})
         pending_sites[str(semantic)] = (str(body), confidence)
+    for semantic in sorted(_SEMANTIC_INFERENCE_SPECS):
+        if semantic in pending_sites:
+            continue
+        inferred = _infer_semantic_body(semantic, morphology)
+        if inferred is None:
+            continue
+        body, confidence = inferred
+        pending_sites[semantic] = (body, confidence)
+        warnings.append({
+            "code": "inferred_semantic_mapping",
+            "semantic": semantic,
+            "body": body,
+            "confidence": confidence,
+        })
 
     semantic_sites: dict[str, SemanticSite] = {}
     for semantic, (body, confidence) in pending_sites.items():

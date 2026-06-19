@@ -79,6 +79,73 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertEqual(arm_chain.joint_names, [])
         self.assertAlmostEqual(arm_chain.total_length, 0.2)
 
+    def test_semantic_sites_are_inferred_from_humanoid_body_names(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="pelvis">
+              <body name="torso_link" pos="0 0 0.4">
+                <body name="left_shoulder_roll_link" pos="0 0.2 0">
+                  <body name="left_elbow_link" pos="0.3 0 0">
+                    <body name="left_wrist_yaw_link" pos="0.25 0 0"/>
+                  </body>
+                </body>
+                <body name="right_shoulder_roll_link" pos="0 -0.2 0">
+                  <body name="right_elbow_link" pos="0.3 0 0">
+                    <body name="right_wrist_yaw_link" pos="0.25 0 0"/>
+                  </body>
+                </body>
+              </body>
+              <body name="left_hip_roll_link" pos="0 0.1 -0.1">
+                <body name="left_knee_link" pos="0 0 -0.4">
+                  <body name="left_ankle_roll_link" pos="0 0 -0.4"/>
+                </body>
+              </body>
+              <body name="right_hip_roll_link" pos="0 -0.1 -0.1">
+                <body name="right_knee_link" pos="0 0 -0.4">
+                  <body name="right_ankle_roll_link" pos="0 0 -0.4"/>
+                </body>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            profile = compile_retarget_profile(robot_name="fixture", raw_config={"ik_map": {}}, morphology=morphology)
+
+        self.assertEqual(profile.semantic_sites["Hips"].body_name, "pelvis")
+        self.assertEqual(profile.semantic_sites["Chest"].body_name, "torso_link")
+        self.assertEqual(profile.semantic_sites["LeftHand"].body_name, "left_wrist_yaw_link")
+        self.assertEqual(profile.semantic_sites["RightFoot"].body_name, "right_ankle_roll_link")
+        self.assertTrue(any(warning["code"] == "inferred_semantic_mapping" for warning in profile.warnings))
+        self.assertAlmostEqual(profile.confidence, 0.8)
+
+    def test_explicit_semantic_mapping_overrides_name_inference(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="pelvis">
+              <body name="torso_link" pos="0 0 0.3"/>
+              <body name="custom_chest_target" pos="0 0 0.5"/>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            profile = compile_retarget_profile(
+                robot_name="fixture",
+                raw_config={"ik_map": {"Chest": "custom_chest_target"}},
+                morphology=morphology,
+            )
+
+        self.assertEqual(profile.semantic_sites["Chest"].body_name, "custom_chest_target")
+
     def test_middle_limb_absolute_position_is_not_default_task(self):
         morphology = analyze_mjcf_morphology(None)
         raw = {"ik_map": {"LeftForeArm": "left_forearm"}}
