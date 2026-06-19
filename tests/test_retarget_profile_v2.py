@@ -48,6 +48,37 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertEqual(hand_chain.rotational_rank, 0)
         self.assertEqual(hand_chain.rotational_basis.shape, (3, 0))
 
+    def test_chain_profile_uses_mjcf_path_lengths_and_axis_rank(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="base_link">
+              <body name="torso_link" pos="0 0 0.25">
+                <joint name="waist_pitch" type="hinge" axis="0 1 0" range="-1 1"/>
+                <body name="left_arm_link" pos="0 0.2 0"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {"ik_map": {"Hips": "base_link", "Chest": "torso_link", "LeftArm": "left_arm_link"}}
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        chest_chain = profile.chains["Chest"]
+        self.assertEqual(chest_chain.joint_names, ["waist_pitch"])
+        self.assertEqual(chest_chain.rotational_rank, 1)
+        self.assertTrue(np.allclose(np.abs(chest_chain.rotational_basis[:, 0]), [0.0, 1.0, 0.0]))
+        self.assertAlmostEqual(chest_chain.total_length, 0.25)
+        self.assertEqual(profile.tasks[0].rotation_mask_or_basis, [[0.0], [1.0], [0.0]])
+
+        arm_chain = profile.chains["LeftArm"]
+        self.assertEqual(arm_chain.joint_names, [])
+        self.assertAlmostEqual(arm_chain.total_length, 0.2)
+
     def test_middle_limb_absolute_position_is_not_default_task(self):
         morphology = analyze_mjcf_morphology(None)
         raw = {"ik_map": {"LeftForeArm": "left_forearm"}}
