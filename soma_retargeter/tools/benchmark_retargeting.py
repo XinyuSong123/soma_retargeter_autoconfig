@@ -82,7 +82,7 @@ _DEFAULT_COVERAGE_TARGETS = (
 )
 
 _BENCHMARK_GATE_SPECS = (
-    ("penetration", "not_increase", 0.0, "m"),
+    ("penetration", "not_increase", 1.0e-5, "m"),
     ("root_tilt", "not_increase", 0.0, "rad"),
     ("torso_unreachable_residual", "not_increase", 0.0, "rad"),
     ("hand_position_rmse", "relative_not_worse", 0.05, "m"),

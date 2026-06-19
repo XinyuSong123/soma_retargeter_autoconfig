@@ -96,9 +96,9 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(by_name["roboparty_rpo"]["status"], "ready")
         self.assertTrue(by_name["roboparty_rpo"]["paths"]["mjcf_path"]["exists"])
         self.assertTrue(by_name["roboparty_rpo"]["compiled_profile"]["exists"])
-        self.assertEqual(by_name["unitree_g1"]["status"], "registered_incomplete")
-        self.assertIn("missing_mjcf_path", by_name["unitree_g1"]["blockers"])
-        self.assertIn("incomplete_morphology", by_name["unitree_g1"]["blockers"])
+        self.assertEqual(by_name["unitree_g1"]["status"], "ready")
+        self.assertTrue(by_name["unitree_g1"]["paths"]["mjcf_path"]["exists"])
+        self.assertEqual(by_name["unitree_g1"]["blockers"], [])
         self.assertEqual(by_name["e3_v2"]["status"], "missing_registration")
         self.assertEqual(by_name["oli"]["status"], "missing_registration")
 

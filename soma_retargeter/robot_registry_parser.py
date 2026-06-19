@@ -257,6 +257,23 @@ def _get_raw_profile_path(robot_name: str | None, key: str) -> Path | None:
     return Path(value)
 
 
+def get_robot_mjcf_path(robot_name: str | None) -> Path | None:
+    robot_name = resolve_robot_name(robot_name)
+    explicit_path = _get_raw_profile_path(robot_name, "mjcf_path")
+    if explicit_path is not None:
+        return explicit_path
+    if robot_name == "unitree_g1":
+        try:
+            import newton
+
+            return Path(newton.utils.download_asset("unitree_g1")) / "mjcf/g1_29dof_rev_1_0.xml"
+        except Exception:
+            return None
+    if robot_name == "roboparty_rpo":
+        return _REPO_ROOT / "assets/robots/atom01/mjcf/atom01.xml"
+    return None
+
+
 def get_robot_config_dir(robot_name: str | None) -> Path | None:
     robot_name = resolve_robot_name(robot_name)
     retargeter_path = _get_raw_profile_path(robot_name, "retargeter_config")
@@ -548,7 +565,7 @@ def _apply_mjcf_joint_pose(
 
 
 def _infer_robot_model_height(robot_name: str) -> float:
-    mjcf_path = _get_raw_profile_path(robot_name, "mjcf_path")
+    mjcf_path = get_robot_mjcf_path(robot_name)
     if mjcf_path is None or not mjcf_path.exists():
         return _DEFAULT_MODEL_HEIGHT_M
 
@@ -1169,7 +1186,7 @@ def _expected_compiled_profile_cache_fingerprints(robot_name: str | None) -> dic
     from soma_retargeter.robotics.morphology import analyze_mjcf_morphology
 
     raw_config = io_utils.load_json(raw_config_path)
-    morphology = analyze_mjcf_morphology(profile.get("mjcf_path"))
+    morphology = analyze_mjcf_morphology(get_robot_mjcf_path(robot_name))
     source_config_hash = stable_hash_payload({"path": str(raw_config_path), "config": raw_config})
     return {
         "compiler_version": COMPILER_VERSION,
@@ -1288,7 +1305,7 @@ def ensure_compiled_retarget_profile(robot_name: str | None, *, force: bool = Fa
     from soma_retargeter.robotics.task_compiler import compile_retarget_profile
 
     raw_config = io_utils.load_json(raw_config_path)
-    morphology = analyze_mjcf_morphology(profile.get("mjcf_path"))
+    morphology = analyze_mjcf_morphology(get_robot_mjcf_path(robot_name))
     compiled = compile_retarget_profile(
         robot_name=robot_name,
         raw_config=raw_config,
@@ -1326,6 +1343,8 @@ def get_profile_path(robot_name: str | None, key: str) -> Path | None:
         return _get_raw_profile_path(robot_name, "retargeter_config")
     if key == "link_mapping_template":
         return None
+    if key == "mjcf_path":
+        return get_robot_mjcf_path(robot_name)
 
     value = _get_raw_profile_value(robot_name, key)
     if value is None:

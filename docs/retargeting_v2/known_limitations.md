@@ -2,11 +2,11 @@
 
 - Runtime benchmark artifacts now include separated bounded multi-motion legacy/v2 rollouts and profile-task residual summaries when BVH motions and semantic site trajectories are available, but uncapped full-length comparison and solver-native residual extraction beyond those summaries are not implemented yet.
 - Benchmark gates are currently report-only unless `--strict-gates` is supplied; the current bounded sample intentionally records failing gates instead of hiding known RPO/Unitree regressions.
-- Bounded benchmark windows now select the highest-motion contiguous source segment instead of the static clip prefix, but RPO v2 currently rolls back every guarded frame and Unitree G1 remains static despite no guard rollback.
+- Bounded benchmark windows now select the highest-motion contiguous source segment instead of the static clip prefix, but RPO v2 and generic Unitree G1 v2 currently roll back every guarded frame and remain static.
 - Profile validation now covers numeric health gates and left/right chain length mismatch thresholds, but true symmetry tying is still compile-time reporting rather than a separate constrained optimizer.
 - Self-collision runtime barriers are optional and disabled by default through `collision_weight=0.0`; motion-level evidence is still needed before making them a default feasibility term.
 - Registry coverage artifacts now make missing target coverage explicit: `unitree_g1_23dof`, `unitree_g1_29dof`, `e3_v2`, and `oli` are not registered in the current workspace, so runtime benchmark artifacts cover only `roboparty_rpo` and generic `unitree_g1`.
-- Unitree G1 v2 profile currently reports zero chain ranks and placeholder chain lengths, indicating incomplete registry/morphology coverage for that asset path.
+- Generic Unitree G1 now compiles against Newton's built-in 29DoF MJCF fallback when no local XML is registered, but the named `unitree_g1_23dof` and `unitree_g1_29dof` targets still need explicit registrations before they can be benchmarked as separate acceptance targets.
 - Semantic auto-detection now fills missing entries with conservative body-name matching, but topology and rest-pose spatial inference are still shallow; explicit `ik_map` remains the most reliable path.
 - Virtual hand and foot sites now prefer explicit MJCF sites, distal child anchors, and then primitive geom or STL mesh distal bounds when available, but non-STL mesh formats and rotated/fromto geom bounds are still limited.
 - Root/ground metadata uses compile-time semantic hips and virtual foot site rest positions only; runtime root-height stabilization still needs motion-level acceptance metrics.

@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 import soma_retargeter.utils.io_utils as io_utils
-from soma_retargeter.robot_registry_parser import get_robot_profile, resolve_robot_name
+from soma_retargeter.robot_registry_parser import get_robot_mjcf_path, get_robot_profile, resolve_robot_name
 from soma_retargeter.robotics.morphology import analyze_mjcf_morphology
 from soma_retargeter.robotics.retarget_profile import write_profile_json
 from soma_retargeter.robotics.task_compiler import compile_retarget_profile
@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
 
     raw_config_path = profile.get("retargeter_config")
     raw_config = _load_raw_config(raw_config_path)
-    morphology = analyze_mjcf_morphology(profile.get("mjcf_path"))
+    morphology = analyze_mjcf_morphology(get_robot_mjcf_path(robot_name))
     compiled = compile_retarget_profile(
         robot_name=robot_name,
         raw_config=raw_config,
