@@ -370,6 +370,11 @@ class TestBenchmarkRetargeting(unittest.TestCase):
                 "output_frame_count": 8,
                 "solve_fps": 8.8888888889,
             },
+            "solver_objectives": {
+                "active_objectives": 12,
+                "pole_vector_autodiff": 4,
+                "autodiff_sparse_residual_dim": 12,
+            },
             "motions": [
                 {
                     "motion": "/tmp/fixture_a.bvh",
@@ -437,6 +442,7 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertEqual(per_robot["metrics"]["runtime_seconds"]["target_setup_runtime"], 0.30)
             self.assertEqual(per_robot["metrics"]["runtime_seconds"]["solve_runtime"], 0.90)
             self.assertEqual(per_robot["metrics"]["runtime_seconds"]["output_frame_count"], 8)
+            self.assertEqual(per_robot["compare_results"]["v2"]["motion_benchmark"]["solver_objectives"]["pole_vector_autodiff"], 4)
 
             with (out / "benchmark_frames.csv").open(newline="") as handle:
                 rows = list(csv.DictReader(handle))
@@ -451,6 +457,7 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             return {
                 "status": "ok",
                 "runtime_seconds": {"motion_runtime": 1.0, "motion_count": 1},
+                "solver_objectives": {"active_objectives": 3, "autodiff_sparse_residual_dim": 6},
                 "motions": [],
                 "metrics": {
                     "penetration": {"status": "ok", "value": value, "motion_count": 1},
@@ -484,6 +491,7 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             self.assertEqual(failure["robot"], "roboparty_rpo")
             self.assertIn("--strict-gates", failure["reproduction_command"])
             self.assertEqual([gate["metric"] for gate in failure["failed_gates"]], ["penetration"])
+            self.assertEqual(failure["compare_solver_objectives"]["v2"]["autodiff_sparse_residual_dim"], 6)
             summary = json.loads((out / "benchmark_summary.json").read_text())
             self.assertEqual(summary["gate_failure_artifacts"][0]["path"], "failures/roboparty_rpo_gates.json")
 

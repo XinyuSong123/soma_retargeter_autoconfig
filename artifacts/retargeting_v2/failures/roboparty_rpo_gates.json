@@ -252,16 +252,16 @@
         "value": 2.317901325736721
       },
       "runtime_seconds": {
-        "bvh_load_runtime": 0.938154973089695,
-        "compile_profile": 0.04239780828356743,
-        "metric_runtime": 0.33639349788427353,
+        "bvh_load_runtime": 0.8222734145820141,
+        "compile_profile": 0.04173603653907776,
+        "metric_runtime": 0.34068844094872475,
         "motion_count": 2,
-        "motion_runtime": 0.869784876704216,
+        "motion_runtime": 0.9036191962659359,
         "output_frame_count": 160,
-        "pipeline_construct_runtime": 5.183255769312382,
-        "solve_fps": 186.59963695993034,
-        "solve_runtime": 0.857450757175684,
-        "target_setup_runtime": 0.012334119528532028
+        "pipeline_construct_runtime": 5.211651366204023,
+        "solve_fps": 179.5390744982433,
+        "solve_runtime": 0.8911709077656269,
+        "target_setup_runtime": 0.01244828850030899
       },
       "solver_iterations": {
         "status": "ok",
@@ -516,16 +516,16 @@
         "value": 14.271998329495917
       },
       "runtime_seconds": {
-        "bvh_load_runtime": 0.8094449564814568,
-        "compile_profile": 0.04239780828356743,
-        "metric_runtime": 0.3333534486591816,
+        "bvh_load_runtime": 0.822701022028923,
+        "compile_profile": 0.04173603653907776,
+        "metric_runtime": 0.33746667206287384,
         "motion_count": 2,
-        "motion_runtime": 4.210176073014736,
+        "motion_runtime": 4.198000643402338,
         "output_frame_count": 160,
-        "pipeline_construct_runtime": 4.285484913736582,
-        "solve_fps": 40.32767186160706,
-        "solve_runtime": 3.967499054968357,
-        "target_setup_runtime": 0.2426770180463791
+        "pipeline_construct_runtime": 4.317706558853388,
+        "solve_fps": 40.46703150336695,
+        "solve_runtime": 3.953835852444172,
+        "target_setup_runtime": 0.24416479095816612
       },
       "solver_iterations": {
         "status": "ok",
@@ -560,26 +560,72 @@
   },
   "compare_runtime_seconds": {
     "legacy": {
-      "bvh_load_runtime": 0.938154973089695,
-      "metric_runtime": 0.33639349788427353,
+      "bvh_load_runtime": 0.8222734145820141,
+      "metric_runtime": 0.34068844094872475,
       "motion_count": 2,
-      "motion_runtime": 0.869784876704216,
+      "motion_runtime": 0.9036191962659359,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 5.183255769312382,
-      "solve_fps": 186.59963695993034,
-      "solve_runtime": 0.857450757175684,
-      "target_setup_runtime": 0.012334119528532028
+      "pipeline_construct_runtime": 5.211651366204023,
+      "solve_fps": 179.5390744982433,
+      "solve_runtime": 0.8911709077656269,
+      "target_setup_runtime": 0.01244828850030899
     },
     "v2": {
-      "bvh_load_runtime": 0.8094449564814568,
-      "metric_runtime": 0.3333534486591816,
+      "bvh_load_runtime": 0.822701022028923,
+      "metric_runtime": 0.33746667206287384,
       "motion_count": 2,
-      "motion_runtime": 4.210176073014736,
+      "motion_runtime": 4.198000643402338,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 4.285484913736582,
-      "solve_fps": 40.32767186160706,
-      "solve_runtime": 3.967499054968357,
-      "target_setup_runtime": 0.2426770180463791
+      "pipeline_construct_runtime": 4.317706558853388,
+      "solve_fps": 40.46703150336695,
+      "solve_runtime": 3.953835852444172,
+      "target_setup_runtime": 0.24416479095816612
+    }
+  },
+  "compare_solver_objectives": {
+    "legacy": {
+      "active_objectives": 30,
+      "autodiff_sparse_residual_dim": 0,
+      "batch_size": 2,
+      "collision": 0,
+      "contact": 0,
+      "direction": 0,
+      "direction_analytic": 0,
+      "direction_autodiff": 0,
+      "ground_barrier": 0,
+      "ik_iterations": 24,
+      "joint_limit": 1,
+      "pole_vector": 0,
+      "pole_vector_analytic": 0,
+      "pole_vector_autodiff": 0,
+      "position": 14,
+      "rotation": 14,
+      "smooth_joint_filter": 1,
+      "sparse_residual_dim": 84,
+      "temporal_acceleration": 0,
+      "temporal_velocity": 0
+    },
+    "v2": {
+      "active_objectives": 24,
+      "autodiff_sparse_residual_dim": 48,
+      "batch_size": 2,
+      "collision": 0,
+      "contact": 0,
+      "direction": 8,
+      "direction_analytic": 0,
+      "direction_autodiff": 8,
+      "ground_barrier": 0,
+      "ik_iterations": 4,
+      "joint_limit": 1,
+      "pole_vector": 8,
+      "pole_vector_analytic": 0,
+      "pole_vector_autodiff": 8,
+      "position": 5,
+      "rotation": 1,
+      "smooth_joint_filter": 1,
+      "sparse_residual_dim": 66,
+      "temporal_acceleration": 0,
+      "temporal_velocity": 0
     }
   },
   "compiler_version": "2.1.3",
@@ -607,15 +653,15 @@
       "v2_value": 0.42721127474522513
     },
     {
-      "allowed_max": 1.08723109588027,
-      "delta": 3.34039119631052,
-      "legacy_value": 0.869784876704216,
+      "allowed_max": 1.1295239953324199,
+      "delta": 3.294381447136402,
+      "legacy_value": 0.9036191962659359,
       "metric": "runtime_seconds.motion_runtime",
       "rule": "relative_not_worse",
       "status": "failed",
       "tolerance": 0.25,
       "unit": "s",
-      "v2_value": 4.210176073014736
+      "v2_value": 4.198000643402338
     }
   ],
   "failure_type": "benchmark_gate",

@@ -1246,6 +1246,11 @@ def write_gate_failure_payloads(
                 for mode, payload in (result.get("compare_results") or {}).items()
                 if isinstance(payload, dict)
             },
+            "compare_solver_objectives": {
+                mode: (payload.get("motion_benchmark") or {}).get("solver_objectives", {})
+                for mode, payload in (result.get("compare_results") or {}).items()
+                if isinstance(payload, dict)
+            },
         }
         _write_json(output_dir / "failures" / f"{robot}_gates.json", payload)
         written.append({"robot": robot, "path": f"failures/{robot}_gates.json", "failed_count": len(failed_gates)})
@@ -1356,6 +1361,7 @@ def _run_runtime_benchmark(
             "solve_fps": (output_frame_count / solve_elapsed) if solve_elapsed > 0.0 else None,
         },
         "priority_guard": getattr(pipeline, "priority_guard_report", {}),
+        "solver_objectives": getattr(pipeline, "ik_objective_summary", {}),
         "metrics": {
             **_aggregate_motion_metrics(motion_payloads),
             "fallback_counts": {

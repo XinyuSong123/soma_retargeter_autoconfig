@@ -403,6 +403,43 @@ class NewtonPipeline:
             if self.temporal_acceleration_weight > 0.0:
                 ik_solver_active_objectives.append(temporal_acceleration_objective)
 
+            direction_analytic = sum(1 for *_, analytic in self.mapped_body_link_direction_data if analytic)
+            pole_analytic = sum(1 for *_, analytic in self.mapped_body_link_pole_vector_data if analytic)
+            self.ik_objective_summary = {
+                "batch_size": int(num_envs),
+                "ik_iterations": int(self.ik_iterations),
+                "position": int(len(position_objectives)),
+                "rotation": int(len(rotation_objectives)),
+                "direction": int(len(direction_objectives)),
+                "direction_analytic": int(direction_analytic),
+                "direction_autodiff": int(len(direction_objectives) - direction_analytic),
+                "pole_vector": int(len(pole_vector_objectives)),
+                "pole_vector_analytic": int(pole_analytic),
+                "pole_vector_autodiff": int(len(pole_vector_objectives) - pole_analytic),
+                "ground_barrier": int(len(ground_barrier_objectives)),
+                "collision": int(len(collision_objectives)),
+                "contact": int(len(contact_objectives)),
+                "joint_limit": int(self.joint_limit_weight > 0.0),
+                "smooth_joint_filter": int(self.smooth_joint_filter_weight > 0.0),
+                "temporal_velocity": int(self.temporal_velocity_weight > 0.0),
+                "temporal_acceleration": int(self.temporal_acceleration_weight > 0.0),
+                "active_objectives": int(len(ik_solver_active_objectives)),
+                "sparse_residual_dim": int(
+                    3 * (
+                        len(position_objectives)
+                        + len(rotation_objectives)
+                        + len(direction_objectives)
+                        + len(pole_vector_objectives)
+                    )
+                ),
+                "autodiff_sparse_residual_dim": int(
+                    3 * (
+                        (len(direction_objectives) - direction_analytic)
+                        + (len(pole_vector_objectives) - pole_analytic)
+                    )
+                ),
+            }
+
             ik_solver = ik.IKSolver(
                 model=self.ik_model,
                 n_problems=num_envs,
