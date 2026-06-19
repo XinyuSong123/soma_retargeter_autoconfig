@@ -1069,6 +1069,47 @@ def validate_compiled_retarget_profile(profile: dict[str, Any]) -> list[dict[str
                 length = _finite_float(raw_length)
                 if length is None or length < 0.0:
                     diagnostics.append({"code": "invalid_segment_length", "semantic": semantic, "index": idx, "value": raw_length})
+        for base_name in ("Arm", "ForeArm", "Hand", "Leg", "Shin", "Foot"):
+            left_name = f"Left{base_name}"
+            right_name = f"Right{base_name}"
+            left_chain = chains.get(left_name)
+            right_chain = chains.get(right_name)
+            if not isinstance(left_chain, dict) or not isinstance(right_chain, dict):
+                continue
+            left_total = _finite_float(left_chain.get("total_length"))
+            right_total = _finite_float(right_chain.get("total_length"))
+            if left_total is not None and right_total is not None and max(abs(left_total), abs(right_total)) > 1.0e-8:
+                mismatch = abs(left_total - right_total) / max(abs(left_total), abs(right_total))
+                if mismatch > 0.02:
+                    diagnostics.append({
+                        "code": "symmetric_chain_length_mismatch",
+                        "left": left_name,
+                        "right": right_name,
+                        "left_total_length": left_total,
+                        "right_total_length": right_total,
+                        "relative_mismatch": mismatch,
+                        "maximum": 0.02,
+                    })
+            left_segments = left_chain.get("segment_lengths", [])
+            right_segments = right_chain.get("segment_lengths", [])
+            if isinstance(left_segments, list) and isinstance(right_segments, list) and len(left_segments) == len(right_segments):
+                for idx, (raw_left, raw_right) in enumerate(zip(left_segments, right_segments)):
+                    left_segment = _finite_float(raw_left)
+                    right_segment = _finite_float(raw_right)
+                    if left_segment is None or right_segment is None or max(abs(left_segment), abs(right_segment)) <= 1.0e-8:
+                        continue
+                    mismatch = abs(left_segment - right_segment) / max(abs(left_segment), abs(right_segment))
+                    if mismatch > 0.02:
+                        diagnostics.append({
+                            "code": "symmetric_segment_length_mismatch",
+                            "left": left_name,
+                            "right": right_name,
+                            "segment_index": idx,
+                            "left_segment_length": left_segment,
+                            "right_segment_length": right_segment,
+                            "relative_mismatch": mismatch,
+                            "maximum": 0.02,
+                        })
 
     collision = profile.get("collision", {})
     if isinstance(collision, dict):

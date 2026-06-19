@@ -117,6 +117,10 @@ class TestContactConfig(unittest.TestCase):
         profile["collision"]["margin"] = -0.1
         profile["collision"]["proxies"][0]["radius"] = 0.0
         profile["rest_frame_alignment"]["root_motion"]["horizontal_scale"] = float("inf")
+        profile["chains"]["LeftHand"]["total_length"] = 1.0
+        profile["chains"]["RightHand"]["total_length"] = 0.5
+        profile["chains"]["LeftHand"]["segment_lengths"] = [1.0]
+        profile["chains"]["RightHand"]["segment_lengths"] = [0.5]
         diagnostics = validate_compiled_retarget_profile(profile)
         codes = {item["code"] for item in diagnostics}
         self.assertIn("non_unit_site_quaternion", codes)
@@ -126,6 +130,8 @@ class TestContactConfig(unittest.TestCase):
         self.assertIn("invalid_collision_proxy_radius", codes)
         self.assertIn("invalid_root_motion_value", codes)
         self.assertIn("non_finite_profile_value", codes)
+        self.assertIn("symmetric_chain_length_mismatch", codes)
+        self.assertIn("symmetric_segment_length_mismatch", codes)
 
     def test_priority_band_validation_reports_small_adjacent_ratio(self):
         bands, diagnostics = _resolve_priority_weight_bands(
