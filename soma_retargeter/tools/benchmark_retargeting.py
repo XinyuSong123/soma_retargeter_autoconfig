@@ -568,6 +568,20 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["pole_vector_tasks"] = []
         config["benchmark_compare_mode"] = compare_mode
         return config
+    if compare_mode.startswith("v2_iter"):
+        try:
+            ik_iterations = int(compare_mode.removeprefix("v2_iter"))
+        except ValueError as exc:
+            raise ValueError(f"Invalid IK iteration count in compare mode {compare_mode!r}") from exc
+        if ik_iterations <= 0:
+            raise ValueError(f"Invalid IK iteration count in compare mode {compare_mode!r}")
+        raw_path = get_profile_path(robot, "retargeter_config")
+        if raw_path is None:
+            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        config["ik_iterations"] = ik_iterations
+        config["benchmark_compare_mode"] = compare_mode
+        return config
     pole_analytic_weight_scale = 1.0
     if compare_mode.startswith("v2_pole_analytic_w"):
         try:
@@ -589,7 +603,7 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["benchmark_compare_mode"] = compare_mode if pole_analytic_weight_scale == 1.0 else f"{compare_mode}_w{pole_analytic_weight_scale:g}"
         return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', or 'v2_pole_analytic'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_iter<N>', or 'v2_pole_analytic'."
     )
 
 
@@ -1516,7 +1530,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--motions", nargs="+", default=[])
     parser.add_argument("--max-motions", type=int, default=1)
     parser.add_argument("--max-frames", type=int, default=120)
-    parser.add_argument("--compare", nargs="+", default=["legacy", "v2"], help="Compare modes: legacy, v2, or v2_pole_analytic.")
+    parser.add_argument(
+        "--compare",
+        nargs="+",
+        default=["legacy", "v2"],
+        help="Compare modes: legacy, v2, v2_no_pole, v2_iter<N>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
+    )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--force", action="store_true")

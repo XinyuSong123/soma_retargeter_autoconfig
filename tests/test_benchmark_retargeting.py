@@ -54,6 +54,16 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["pole_vector_tasks"], [])
         self.assertTrue(cfg["direction_tasks"])
 
+    def test_iteration_compare_mode_changes_only_iteration_count(self):
+        baseline = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic")
+        cfg = _runtime_retargeter_config("unitree_g1", "v2_iter4")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_iter4")
+        self.assertEqual(cfg["ik_iterations"], 4)
+        self.assertTrue(cfg["direction_tasks"])
+        self.assertTrue(cfg["pole_vector_tasks"])
+        self.assertFalse(all(task["analytic_jacobian"] for task in cfg["pole_vector_tasks"]))
+        self.assertEqual(cfg["pole_vector_tasks"][0]["weight"], baseline["pole_vector_tasks"][0]["weight"])
+
     def test_weighted_pole_analytic_compare_mode_scales_pole_weights(self):
         baseline = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic")
         scaled = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic_w0.25")
