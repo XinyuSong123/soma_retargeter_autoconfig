@@ -69,6 +69,11 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(left_arm_direction["target_site"], "LeftArm")
         self.assertEqual(left_arm_direction["weight"], 10.0)
         self.assertGreater(left_arm_direction["characteristic_length"], 0.0)
+        left_forearm_pole = next(task for task in cfg["pole_vector_tasks"] if task["name"] == "LeftForeArm_pole_vector")
+        self.assertEqual(left_forearm_pole["reference_site"], "LeftArm")
+        self.assertEqual(left_forearm_pole["source_semantic"], "LeftForeArm")
+        self.assertEqual(left_forearm_pole["target_site"], "LeftHand")
+        self.assertEqual(left_forearm_pole["weight"], 10.0)
 
     def test_compiled_profile_registry_path_and_validation(self):
         path = get_profile_path("roboparty_rpo", "compiled_retarget_profile")

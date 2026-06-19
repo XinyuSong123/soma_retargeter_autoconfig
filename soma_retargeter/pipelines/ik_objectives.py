@@ -218,6 +218,41 @@ def _direction_residuals(
 
 
 @wp.kernel
+def _pole_vector_residuals(
+    body_q: wp.array2d(dtype=wp.transform),
+    target_normals: wp.array1d(dtype=wp.vec3),
+    parent_link_index: int,
+    middle_link_index: int,
+    child_link_index: int,
+    weight: wp.float32,
+    start_idx: int,
+    problem_idx_map: wp.array1d(dtype=wp.int32),
+    residuals: wp.array2d(dtype=wp.float32),
+):
+    row = wp.tid()
+    base = problem_idx_map[row]
+
+    parent_tf = body_q[row, parent_link_index]
+    middle_tf = body_q[row, middle_link_index]
+    child_tf = body_q[row, child_link_index]
+    parent_pos = wp.vec3(parent_tf[0], parent_tf[1], parent_tf[2])
+    middle_pos = wp.vec3(middle_tf[0], middle_tf[1], middle_tf[2])
+    child_pos = wp.vec3(child_tf[0], child_tf[1], child_tf[2])
+
+    normal = wp.cross(middle_pos - parent_pos, child_pos - middle_pos)
+    length = wp.length(normal)
+    current = wp.vec3(0.0, 0.0, 0.0)
+    if length > 1.0e-6:
+        current = normal / length
+
+    target = target_normals[base]
+    error = target - current
+    residuals[row, start_idx + 0] = weight * error[0]
+    residuals[row, start_idx + 1] = weight * error[1]
+    residuals[row, start_idx + 2] = weight * error[2]
+
+
+@wp.kernel
 def _autodiff_jac_fill(
     q_grad: wp.array2d(dtype=wp.float32),
     n_dofs: int,
@@ -457,6 +492,78 @@ class IKObjectiveDirection(ik.IKObjective):
         self._require_batch_layout()
         if self.e_arrays is None:
             raise RuntimeError("IKObjectiveDirection buffers are not initialized")
+        n_dofs = model.joint_dof_count
+        for component in range(3):
+            tape.backward(grads={tape.outputs[0]: self.e_arrays[component].flatten()})
+            q_grad = tape.gradients[dq_dof]
+            wp.launch(
+                _autodiff_jac_fill,
+                dim=[self.n_batch, n_dofs],
+                inputs=[q_grad, n_dofs, start_idx, component],
+                outputs=[jacobian],
+                device=self.device,
+            )
+            tape.zero()
+
+
+class IKObjectivePoleVector(ik.IKObjective):
+    """Bend-plane normal objective for parent-middle-child robot body triplets."""
+
+    def __init__(self, parent_link_index, middle_link_index, child_link_index, target_normals, weight=1.0):
+        super().__init__()
+        self.parent_link_index = parent_link_index
+        self.middle_link_index = middle_link_index
+        self.child_link_index = child_link_index
+        self.target_normals = target_normals
+        self.weight = float(weight)
+        self.e_arrays = None
+
+    def init_buffers(self, model, jacobian_mode):
+        self._require_batch_layout()
+        if jacobian_mode != IKJacobianType.AUTODIFF:
+            raise NotImplementedError("IKObjectivePoleVector requires autodiff Jacobian mode")
+        self.e_arrays = []
+        for component in range(3):
+            e = np.zeros((self.n_batch, self.total_residuals), dtype=np.float32)
+            for prob_idx in range(self.n_batch):
+                e[prob_idx, self.residual_offset + component] = 1.0
+            self.e_arrays.append(wp.array(e.flatten(), dtype=wp.float32, device=self.device))
+
+    def residual_dim(self):
+        return 3
+
+    def set_target_normal(self, problem_idx, new_normal):
+        self._require_batch_layout()
+        wp.launch(
+            _update_position_target_at_index,
+            dim=1,
+            inputs=[problem_idx, new_normal],
+            outputs=[self.target_normals],
+            device=self.device,
+        )
+
+    def compute_residuals(self, body_q, joint_q, model, residuals, start_idx, problem_idx):
+        wp.launch(
+            _pole_vector_residuals,
+            dim=body_q.shape[0],
+            inputs=[
+                body_q,
+                self.target_normals,
+                self.parent_link_index,
+                self.middle_link_index,
+                self.child_link_index,
+                self.weight,
+                start_idx,
+                problem_idx,
+            ],
+            outputs=[residuals],
+            device=self.device,
+        )
+
+    def compute_jacobian_autodiff(self, tape, model, jacobian, start_idx, dq_dof):
+        self._require_batch_layout()
+        if self.e_arrays is None:
+            raise RuntimeError("IKObjectivePoleVector buffers are not initialized")
         n_dofs = model.joint_dof_count
         for component in range(3):
             tape.backward(grads={tape.outputs[0]: self.e_arrays[component].flatten()})

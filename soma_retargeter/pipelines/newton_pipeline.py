@@ -13,6 +13,7 @@ import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
 from soma_retargeter.pipelines.ik_objectives import (
     IKObjectiveDirection,
+    IKObjectivePoleVector,
     IKObjectivePerEnvWeightedPosition,
     IKRangeNormalizedJointLimitBarrier,
 )
@@ -283,12 +284,19 @@ class NewtonPipeline:
                 position_objectives,
                 rotation_objectives,
                 direction_objectives,
+                pole_vector_objectives,
                 joint_limit_objective,
                 smooth_joint_filter_objective,
                 contact_objectives,
             ) = self._create_ik_objectives(num_envs, model, state)
 
-            ik_solver_active_objectives = [*position_objectives, *rotation_objectives, *direction_objectives, *contact_objectives]
+            ik_solver_active_objectives = [
+                *position_objectives,
+                *rotation_objectives,
+                *direction_objectives,
+                *pole_vector_objectives,
+                *contact_objectives,
+            ]
             if self.joint_limit_weight > 0.0:
                 ik_solver_active_objectives.append(joint_limit_objective)
             if self.smooth_joint_filter_weight > 0.0:
@@ -299,7 +307,7 @@ class NewtonPipeline:
                 n_problems=num_envs,
                 objectives=ik_solver_active_objectives,
                 lambda_initial=0.1,
-                jacobian_mode=ik.IKJacobianType.MIXED if direction_objectives else ik.IKJacobianType.ANALYTIC,
+                jacobian_mode=ik.IKJacobianType.MIXED if direction_objectives or pole_vector_objectives else ik.IKJacobianType.ANALYTIC,
             )
 
             joint_q = wp.empty(shape=(num_envs, self.ik_model.joint_coord_count))
@@ -344,6 +352,18 @@ class NewtonPipeline:
                     for i, (reference_idx, target_idx, _, _, _, _) in enumerate(self.mapped_body_link_direction_data):
                         target_direction = self._direction_between_targets(frame_targets[reference_idx], frame_targets[target_idx])
                         direction_objectives[i].set_target_direction(env, wp.vec3(*target_direction))
+                    for i, (reference_idx, middle_idx, target_idx, _, _, _, _, _) in enumerate(self.mapped_body_link_pole_vector_data):
+                        target_normal, used_fallback = self._pole_normal_between_targets(
+                            frame_targets[reference_idx],
+                            frame_targets[middle_idx],
+                            frame_targets[target_idx],
+                            self.pole_vector_last_normals[env, i],
+                        )
+                        if used_fallback:
+                            self.pole_vector_fallback_counts[i] += 1
+                        else:
+                            self.pole_vector_last_normals[env, i] = target_normal
+                        pole_vector_objectives[i].set_target_normal(env, wp.vec3(*target_normal))
 
                     if self.contact_aware_foot_ik_enabled and env < len(self.input_contact_scores):
                         self._update_contact_objectives_for_frame(env, frame, frame_targets, contact_objectives)
@@ -437,6 +457,7 @@ class NewtonPipeline:
         mapped_body_link_pos_data = []
         mapped_body_link_rot_data = []
         mapped_body_link_direction_data = []
+        mapped_body_link_pole_vector_data = []
         mapped_body_link_by_joint = {}
         body_names = [newton_utils.get_name_from_label(label) for label in self.robot_builder.body_label]
         for joint, mapping_data in retargeter_config["ik_map"].items():
@@ -481,6 +502,38 @@ class NewtonPipeline:
             )
         self.mapped_body_link_direction_data = mapped_body_link_direction_data
 
+        for task in retargeter_config.get("pole_vector_tasks", []):
+            if not isinstance(task, dict):
+                continue
+            reference_site = task.get("reference_site")
+            middle_site = task.get("source_semantic")
+            target_site = task.get("target_site")
+            if (
+                reference_site not in mapped_body_link_by_joint
+                or middle_site not in mapped_body_link_by_joint
+                or target_site not in mapped_body_link_by_joint
+            ):
+                continue
+            try:
+                weight = float(task.get("weight", 0.0))
+            except (TypeError, ValueError):
+                continue
+            if weight <= 0.0:
+                continue
+            mapped_body_link_pole_vector_data.append(
+                (
+                    mapped_joints.index(reference_site),
+                    mapped_joints.index(middle_site),
+                    mapped_joints.index(target_site),
+                    mapped_body_link_by_joint[reference_site],
+                    mapped_body_link_by_joint[middle_site],
+                    mapped_body_link_by_joint[target_site],
+                    weight,
+                    str(task.get("name") or f"{middle_site}_pole_vector"),
+                )
+            )
+        self.mapped_body_link_pole_vector_data = mapped_body_link_pole_vector_data
+
         return (
             mapped_joints,
             mapped_joint_indices,
@@ -496,9 +549,11 @@ class NewtonPipeline:
         num_body_link_pos = len(self.mapped_body_link_pos_data)
         num_body_link_rot = len(self.mapped_body_link_rot_data)
         num_body_link_dir = len(self.mapped_body_link_direction_data)
+        num_body_link_pole = len(self.mapped_body_link_pole_vector_data)
         pos_targets = np.zeros((num_envs, num_body_link_pos), dtype=wp.vec3)
         rot_targets = np.zeros((num_envs, num_body_link_rot), dtype=wp.quat)
         dir_targets = np.zeros((num_envs, num_body_link_dir), dtype=wp.vec3)
+        pole_targets = np.zeros((num_envs, num_body_link_pole), dtype=wp.vec3)
 
         body_q = state.body_q.numpy()
         for env in range(num_envs):
@@ -516,11 +571,20 @@ class NewtonPipeline:
                         body_q[base + child_link_idx][0:3],
                     )
                 )
+            for ee_idx, (_, _, _, parent_link_idx, middle_link_idx, child_link_idx, _, _) in enumerate(self.mapped_body_link_pole_vector_data):
+                pole_targets[env, ee_idx] = wp.vec3(
+                    *self._pole_normal_between_positions(
+                        body_q[base + parent_link_idx][0:3],
+                        body_q[base + middle_link_idx][0:3],
+                        body_q[base + child_link_idx][0:3],
+                    )[0]
+                )
 
         pos_num_ees = len(self.mapped_body_link_pos_data)
         rot_num_ees = len(self.mapped_body_link_rot_data)
         dir_num_ees = len(self.mapped_body_link_direction_data)
-        pos_target_arrays, rot_target_arrays, dir_target_arrays = [], [], []
+        pole_num_ees = len(self.mapped_body_link_pole_vector_data)
+        pos_target_arrays, rot_target_arrays, dir_target_arrays, pole_target_arrays = [], [], [], []
         for ee_idx in range(pos_num_ees):
             pos_wp = wp.array(pos_targets[:, ee_idx], dtype=wp.vec3)
             pos_target_arrays.append(pos_wp)
@@ -532,6 +596,13 @@ class NewtonPipeline:
         for ee_idx in range(dir_num_ees):
             dir_wp = wp.array(dir_targets[:, ee_idx], dtype=wp.vec3)
             dir_target_arrays.append(dir_wp)
+
+        for ee_idx in range(pole_num_ees):
+            pole_wp = wp.array(pole_targets[:, ee_idx], dtype=wp.vec3)
+            pole_target_arrays.append(pole_wp)
+
+        self.pole_vector_last_normals = pole_targets.astype(np.float32)
+        self.pole_vector_fallback_counts = np.zeros(pole_num_ees, dtype=np.int64)
 
         position_objectives = []
         for i, (_, link_idx, w) in enumerate(self.mapped_body_link_pos_data):
@@ -560,6 +631,16 @@ class NewtonPipeline:
                 weight=w)
             direction_objectives.append(objective)
 
+        pole_vector_objectives = []
+        for i, (_, _, _, parent_link_idx, middle_link_idx, child_link_idx, w, _) in enumerate(self.mapped_body_link_pole_vector_data):
+            objective = IKObjectivePoleVector(
+                parent_link_index=parent_link_idx,
+                middle_link_index=middle_link_idx,
+                child_link_index=child_link_idx,
+                target_normals=pole_target_arrays[i],
+                weight=w)
+            pole_vector_objectives.append(objective)
+
         joint_limit_objective = ik.IKObjectiveJointLimit(
             joint_limit_lower=self.ik_model.joint_limit_lower,
             joint_limit_upper=self.ik_model.joint_limit_upper,
@@ -574,7 +655,15 @@ class NewtonPipeline:
             coord_masks=self.smooth_joint_filter_coord_masks)
 
         contact_objectives = self._create_contact_aware_objectives(num_envs, pos_target_arrays)
-        return position_objectives, rotation_objectives, direction_objectives, joint_limit_objective, smooth_joint_limiter_objective, contact_objectives
+        return (
+            position_objectives,
+            rotation_objectives,
+            direction_objectives,
+            pole_vector_objectives,
+            joint_limit_objective,
+            smooth_joint_limiter_objective,
+            contact_objectives,
+        )
 
     @staticmethod
     def _normalize_rotation_basis(raw_basis):
@@ -605,6 +694,27 @@ class NewtonPipeline:
     @staticmethod
     def _direction_between_targets(reference_target, target_target):
         return NewtonPipeline._direction_between_positions(reference_target[0:3], target_target[0:3])
+
+    @staticmethod
+    def _pole_normal_between_positions(reference_pos, middle_pos, target_pos, fallback=None):
+        a = np.asarray(middle_pos, dtype=np.float64) - np.asarray(reference_pos, dtype=np.float64)
+        b = np.asarray(target_pos, dtype=np.float64) - np.asarray(middle_pos, dtype=np.float64)
+        normal = np.cross(a, b)
+        length = float(np.linalg.norm(normal))
+        if length <= 1.0e-6:
+            if fallback is None:
+                return np.zeros(3, dtype=np.float32), True
+            return np.asarray(fallback, dtype=np.float32), True
+        return (normal / length).astype(np.float32), False
+
+    @staticmethod
+    def _pole_normal_between_targets(reference_target, middle_target, target_target, fallback=None):
+        return NewtonPipeline._pole_normal_between_positions(
+            reference_target[0:3],
+            middle_target[0:3],
+            target_target[0:3],
+            fallback,
+        )
 
     def _create_contact_aware_objectives(self, num_envs, pos_target_arrays):
         if not self.contact_aware_foot_ik_enabled:

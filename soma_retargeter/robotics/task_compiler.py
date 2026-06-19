@@ -39,6 +39,7 @@ _SEMANTIC_PARENTS = {
     "LeftFoot": "LeftShin",
     "RightFoot": "RightShin",
 }
+_SEMANTIC_CHILDREN = {parent: child for child, parent in _SEMANTIC_PARENTS.items()}
 
 
 def _semantic_confidence(semantic: str, body: str, morphology: MorphologyAnalysis) -> float:
@@ -117,6 +118,41 @@ def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> T
         robust_loss="none" if site.semantic_name in {"LeftFoot", "RightFoot"} else "huber",
         enabled=site.confidence >= 0.7 and site.semantic_name in _END_EFFECTOR_SEMANTICS,
         reason="end-effector position task" if site.semantic_name in _END_EFFECTOR_SEMANTICS else "non-endpoint absolute position disabled",
+    )
+
+
+def _pole_task_for_site(
+    site: SemanticSite,
+    semantic_sites: dict[str, SemanticSite],
+    chain: KinematicChainProfile | None,
+) -> TaskSpec | None:
+    if site.semantic_name not in _MIDDLE_LIMB_SEMANTICS:
+        return None
+    reference_site = _SEMANTIC_PARENTS.get(site.semantic_name)
+    target_site = _SEMANTIC_CHILDREN.get(site.semantic_name)
+    if reference_site is None or target_site is None:
+        return None
+    enabled = (
+        site.confidence >= 0.7
+        and reference_site in semantic_sites
+        and target_site in semantic_sites
+        and semantic_sites[reference_site].confidence >= 0.7
+        and semantic_sites[target_site].confidence >= 0.7
+    )
+    return TaskSpec(
+        name=f"{site.semantic_name}_pole_vector",
+        task_type="pole_vector",
+        source_semantic=site.semantic_name,
+        target_site=target_site,
+        reference_site=reference_site,
+        priority=3,
+        position_mask_or_basis=None,
+        rotation_mask_or_basis=None,
+        normalized_weight=10.0,
+        characteristic_length=chain.total_length if chain is not None else 1.0,
+        robust_loss="huber",
+        enabled=enabled,
+        reason="bend plane normal from parent-middle-child semantics" if enabled else "disabled: pole-vector triplet incomplete or low confidence",
     )
 
 
@@ -233,6 +269,10 @@ def compile_retarget_profile(
         warnings.extend(chain_warnings)
 
     tasks = [_task_for_site(site, chains.get(site.semantic_name)) for _, site in sorted(semantic_sites.items())]
+    for _, site in sorted(semantic_sites.items()):
+        pole_task = _pole_task_for_site(site, semantic_sites, chains.get(site.semantic_name))
+        if pole_task is not None:
+            tasks.append(pole_task)
 
     confidences = [site.confidence for site in semantic_sites.values()]
     profile_confidence = float(min(confidences)) if confidences else 0.0

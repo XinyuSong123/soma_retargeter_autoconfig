@@ -782,6 +782,7 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         if compiled_profile_path.exists():
             compiled_profile = io_utils.load_json(compiled_profile_path)
             runtime_config["direction_tasks"] = _extract_compiled_profile_direction_tasks(compiled_profile)
+            runtime_config["pole_vector_tasks"] = _extract_compiled_profile_pole_vector_tasks(compiled_profile)
 
     ik_map = {}
     for joint_name, entry in _extract_user_ik_map(raw_config).items():
@@ -859,6 +860,14 @@ def _apply_compiled_profile_tasks_to_ik_map(
 
 
 def _extract_compiled_profile_direction_tasks(compiled_profile: dict[str, Any]) -> list[dict[str, Any]]:
+    return _extract_compiled_profile_link_tasks(compiled_profile, "direction")
+
+
+def _extract_compiled_profile_pole_vector_tasks(compiled_profile: dict[str, Any]) -> list[dict[str, Any]]:
+    return _extract_compiled_profile_link_tasks(compiled_profile, "pole_vector")
+
+
+def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_type: str) -> list[dict[str, Any]]:
     if compiled_profile.get("schema_version") != 2:
         return []
 
@@ -866,7 +875,7 @@ def _extract_compiled_profile_direction_tasks(compiled_profile: dict[str, Any]) 
     for task in compiled_profile.get("tasks", []):
         if not isinstance(task, dict) or not task.get("enabled", False):
             continue
-        if task.get("task_type") != "direction":
+        if task.get("task_type") != task_type:
             continue
         target_site = task.get("target_site") or task.get("source_semantic")
         reference_site = task.get("reference_site")
@@ -882,7 +891,7 @@ def _extract_compiled_profile_direction_tasks(compiled_profile: dict[str, Any]) 
             continue
         out.append(
             {
-                "name": str(task.get("name") or f"{target_site}_direction"),
+                "name": str(task.get("name") or f"{target_site}_{task_type}"),
                 "reference_site": reference_site,
                 "target_site": target_site,
                 "source_semantic": str(task.get("source_semantic") or target_site),

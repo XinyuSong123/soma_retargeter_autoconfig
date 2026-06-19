@@ -87,6 +87,38 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertEqual(profile.tasks[0].reference_site, "LeftArm")
         self.assertIsNone(profile.tasks[0].position_mask_or_basis)
 
+    def test_middle_limb_triplet_generates_pole_vector_task(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="left_arm">
+              <body name="left_forearm" pos="1 0 0">
+                <body name="left_hand" pos="0 1 0"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {
+                "ik_map": {
+                    "LeftArm": "left_arm",
+                    "LeftForeArm": "left_forearm",
+                    "LeftHand": "left_hand",
+                }
+            }
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        pole = next(task for task in profile.tasks if task.name == "LeftForeArm_pole_vector")
+        self.assertEqual(pole.task_type, "pole_vector")
+        self.assertEqual(pole.reference_site, "LeftArm")
+        self.assertEqual(pole.source_semantic, "LeftForeArm")
+        self.assertEqual(pole.target_site, "LeftHand")
+        self.assertTrue(pole.enabled)
+
 
 if __name__ == "__main__":
     unittest.main()

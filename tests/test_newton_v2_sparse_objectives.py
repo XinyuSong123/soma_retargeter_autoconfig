@@ -64,6 +64,38 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
             [(1, 2, 1, 2, 10.0, "LeftArm_direction")],
         )
 
+    def test_build_target_mapping_extracts_v2_pole_vector_tasks(self):
+        pipe = NewtonPipeline.__new__(NewtonPipeline)
+        pipe.robot_builder = type("B", (), {"body_label": ["upper", "forearm", "hand"]})()
+
+        class Skeleton:
+            def joint_index(self, name):
+                return {"LeftArm": 0, "LeftForeArm": 1, "LeftHand": 2}[name]
+
+        cfg = {
+            "ik_map": {
+                "LeftArm": {"t_body": "upper", "r_body": "upper", "t_weight": 0.0, "r_weight": 0.0},
+                "LeftForeArm": {"t_body": "forearm", "r_body": "forearm", "t_weight": 0.0, "r_weight": 0.0},
+                "LeftHand": {"t_body": "hand", "r_body": "hand", "t_weight": 1.0, "r_weight": 0.0},
+            },
+            "pole_vector_tasks": [
+                {
+                    "name": "LeftForeArm_pole_vector",
+                    "reference_site": "LeftArm",
+                    "source_semantic": "LeftForeArm",
+                    "target_site": "LeftHand",
+                    "weight": 10.0,
+                }
+            ],
+        }
+
+        pipe._build_target_mapping(None, Skeleton(), cfg)
+
+        self.assertEqual(
+            pipe.mapped_body_link_pole_vector_data,
+            [(0, 1, 2, 0, 1, 2, 10.0, "LeftForeArm_pole_vector")],
+        )
+
     def test_rotation_target_projection_drops_unreachable_components(self):
         source = rotation_vector_to_quat_xyzw(np.array([0.25, -0.5, 0.75]))
         projected = NewtonPipeline._project_rotation_target(source, np.array([[0.0], [0.0], [1.0]]))
@@ -84,6 +116,25 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
                 [0.0, 0.0, 0.0],
             )
         )
+
+    def test_pole_vector_target_uses_bend_plane_normal_with_fallback(self):
+        normal, used_fallback = NewtonPipeline._pole_normal_between_positions(
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+        )
+        self.assertFalse(used_fallback)
+        self.assertTrue(np.allclose(normal, [0.0, 0.0, 1.0]))
+
+        fallback = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+        normal, used_fallback = NewtonPipeline._pole_normal_between_positions(
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            fallback,
+        )
+        self.assertTrue(used_fallback)
+        self.assertTrue(np.allclose(normal, fallback))
 
 
 if __name__ == "__main__":
