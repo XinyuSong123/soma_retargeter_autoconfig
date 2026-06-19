@@ -113,11 +113,60 @@ class HumanToRobotScaler:
         self.mapped_joint_indices = wp.array([self.skeleton.joint_index(name) for name in self.mapped_joints], dtype=wp.int32)
         self.mapped_joint_scales = wp.array([joint_scales[name] for name in self.mapped_joints], dtype=wp.float32)
         self.mapped_joint_offsets = wp.array([joint_offsets[name] for name in self.mapped_joints], dtype=wp.transform)
+        self.mapped_joint_offsets_np = self.mapped_joint_offsets.numpy()
 
         joint_parents = config['joint_parents']
         self.mapped_joint_parents = [
             -1 if joint_parents[name] == "" else self.mapped_joints.index(joint_parents[name])
             for name in self.mapped_joints]
+        self.mode = str(config.get("mode", "legacy"))
+        self.segment_local_builder: SegmentLocalTargetBuilder | None = None
+        self.source_reference_segment_lengths = self._compute_source_reference_segment_lengths()
+
+    def _compute_source_reference_segment_lengths(self) -> np.ndarray:
+        global_reference = pose_utils.compute_global_pose(
+            self.skeleton,
+            self.skeleton.reference_local_transforms,
+            wp.transform_identity(),
+        )
+        mapped_positions = np.asarray(
+            [global_reference[self.skeleton.joint_index(name)][0:3] for name in self.mapped_joints],
+            dtype=np.float64,
+        )
+        lengths = np.zeros(len(self.mapped_joints), dtype=np.float64)
+        for idx, parent in enumerate(self.mapped_joint_parents):
+            if parent == -1:
+                continue
+            lengths[idx] = max(float(np.linalg.norm(mapped_positions[idx] - mapped_positions[parent])), 1e-6)
+        return lengths
+
+    def enable_segment_local_from_profile(self, compiled_profile_file):
+        profile = io_utils.load_json(compiled_profile_file)
+        if profile.get("schema_version") != 2:
+            raise ValueError(f"Compiled retarget profile must have schema_version=2: {compiled_profile_file}")
+
+        chains = profile.get("chains", {})
+        segment_lengths = np.zeros(len(self.mapped_joints), dtype=np.float64)
+        for idx, joint_name in enumerate(self.mapped_joints):
+            parent = self.mapped_joint_parents[idx]
+            if parent == -1:
+                continue
+            chain = chains.get(joint_name, {})
+            total_length = chain.get("total_length") if isinstance(chain, dict) else None
+            try:
+                length = float(total_length)
+            except (TypeError, ValueError):
+                length = self.source_reference_segment_lengths[idx]
+            if not np.isfinite(length) or length <= 1e-6:
+                length = self.source_reference_segment_lengths[idx]
+            segment_lengths[idx] = max(length, 1e-6)
+
+        self.segment_local_builder = SegmentLocalTargetBuilder(
+            joint_names=list(self.mapped_joints),
+            parent_indices=list(self.mapped_joint_parents),
+            segment_lengths=segment_lengths,
+        )
+        self.mode = "segment_local"
 
     def effector_names(self):
         """
@@ -185,6 +234,9 @@ class HumanToRobotScaler:
                 wp.array(skeleton_instance.parent_indices, dtype=wp.int32),
                 wp.array(skeleton_instance.local_transforms, dtype=wp.transform)],
                 outputs=[wp_global_pose])
+
+        if self.mode == "segment_local":
+            return self._compute_segment_local_effectors(wp_global_pose.numpy())
 
         wp_effectors = wp.array([wp.transform_identity()] * len(self.mapped_joint_indices), dtype=wp.transform)
         wp.launch(
@@ -263,6 +315,9 @@ class HumanToRobotScaler:
                 wp.array2d(animation_buffer.local_transforms, dtype=wp.transform)],
                 outputs=[wp_global_poses])
 
+        if self.mode == "segment_local":
+            return self._compute_segment_local_effectors_batch(wp_global_poses.numpy())
+
         wp_effectors = wp.empty(shape=(animation_buffer.num_frames, len(self.mapped_joint_indices)), dtype=wp.transform)
         wp.launch(
             batched_compute_scaled_effectors_2d_kernel,
@@ -278,6 +333,54 @@ class HumanToRobotScaler:
             outputs=[wp_effectors])
 
         return wp_effectors.numpy()
+
+    @staticmethod
+    def _quat_mul_xyzw(lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
+        x1, y1, z1, w1 = lhs
+        x2, y2, z2, w2 = rhs
+        out = np.array(
+            [
+                w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+                w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+                w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
+                w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
+            ],
+            dtype=np.float64,
+        )
+        norm = float(np.linalg.norm(out))
+        return out / norm if norm > 1e-12 else np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+
+    @staticmethod
+    def _quat_rotate_xyzw(quat: np.ndarray, vec: np.ndarray) -> np.ndarray:
+        q_vec = np.asarray(quat[0:3], dtype=np.float64)
+        w = float(quat[3])
+        vec = np.asarray(vec, dtype=np.float64)
+        uv = np.cross(q_vec, vec)
+        uuv = np.cross(q_vec, uv)
+        return vec + 2.0 * (w * uv + uuv)
+
+    def _apply_offsets_np(self, mapped_transforms: np.ndarray) -> np.ndarray:
+        out = np.array(mapped_transforms, copy=True, dtype=np.float64)
+        for idx, offset in enumerate(self.mapped_joint_offsets_np):
+            q = self._quat_mul_xyzw(out[idx, 3:7], offset[3:7])
+            out[idx, 3:7] = q
+            out[idx, 0:3] = out[idx, 0:3] + self._quat_rotate_xyzw(q, offset[0:3])
+        return out.astype(np.float32)
+
+    def _compute_segment_local_effectors(self, global_pose: np.ndarray) -> np.ndarray:
+        if self.segment_local_builder is None:
+            raise RuntimeError("segment_local mode requires segment_local_builder")
+        mapped = np.asarray([global_pose[idx] for idx in self.mapped_joint_indices.numpy()], dtype=np.float64)
+        mapped = self.segment_local_builder.compute_transforms(mapped)
+        return self._apply_offsets_np(mapped)
+
+    def _compute_segment_local_effectors_batch(self, global_poses: np.ndarray) -> np.ndarray:
+        if self.segment_local_builder is None:
+            raise RuntimeError("segment_local mode requires segment_local_builder")
+        indices = self.mapped_joint_indices.numpy()
+        mapped = np.asarray(global_poses[:, indices, :], dtype=np.float64)
+        mapped = self.segment_local_builder.compute_transforms_batch(mapped)
+        return np.stack([self._apply_offsets_np(frame) for frame in mapped], axis=0)
 
     def create_scaled_skeleton(self, skeleton_instance: SkeletonInstance):
         """

@@ -89,6 +89,9 @@ class NewtonPipeline:
 
         self.human_robot_scaler = HumanToRobotScaler(
             skeleton, retargeter_config['model_height'], io_utils.get_config_file(retargeter_config['human_robot_scaler_config']))
+        compiled_profile = retargeter_config.get("compiled_retarget_profile")
+        if compiled_profile:
+            self.human_robot_scaler.enable_segment_local_from_profile(io_utils.get_config_file(compiled_profile))
 
         self.num_body_count = self.robot_builder.body_count
         self.num_dofs = self.robot_builder.joint_dof_count

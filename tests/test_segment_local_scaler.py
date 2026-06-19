@@ -1,7 +1,12 @@
 import unittest
+import json
+import tempfile
+from pathlib import Path
 
 import numpy as np
+import warp as wp
 
+from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.robotics.human_to_robot_scaler import (
     HumanToRobotScaler,
     LegacyHumanToRobotScaler,
@@ -74,6 +79,56 @@ class TestSegmentLocalTargetBuilder(unittest.TestCase):
         out = builder.compute_transforms(transforms)
         self.assertTrue(np.allclose(out[:, 3:7], transforms[:, 3:7]))
         self.assertTrue(np.allclose(out[1, 0:3], [1.0, 0.0, 0.0]))
+
+    def test_human_to_robot_scaler_uses_segment_local_profile_mode(self):
+        identity = [0.0, 0.0, 0.0, 1.0]
+        skeleton = Skeleton(
+            3,
+            ["Hips", "Chest", "LeftHand"],
+            [-1, 0, 1],
+            np.array(
+                [
+                    [10.0, 0.0, 0.0, *identity],
+                    [1.0, 0.0, 0.0, *identity],
+                    [0.0, 3.0, 0.0, *identity],
+                ],
+                dtype=np.float32,
+            ),
+        )
+        instance = SkeletonInstance(skeleton, wp.vec3(1.0, 1.0, 1.0), wp.transform_identity())
+
+        with tempfile.TemporaryDirectory() as td:
+            config_path = Path(td) / "scaler.json"
+            profile_path = Path(td) / "profile.json"
+            config_path.write_text(json.dumps({
+                "robot_type": "fixture",
+                "human_height_assumption": 1.0,
+                "joint_scales": {"Hips": 1.0, "Chest": 10.0, "LeftHand": 10.0},
+                "joint_parents": {"Hips": "", "Chest": "Hips", "LeftHand": "Chest"},
+                "joint_offsets": {
+                    "Hips": [[0.0, 0.0, 0.0], identity],
+                    "Chest": [[0.0, 0.0, 0.0], identity],
+                    "LeftHand": [[0.0, 0.0, 0.0], identity],
+                    "LeftToe": [[0.0, 0.0, 0.0], identity],
+                    "RightToe": [[0.0, 0.0, 0.0], identity],
+                },
+            }))
+            profile_path.write_text(json.dumps({
+                "schema_version": 2,
+                "chains": {
+                    "Chest": {"total_length": 2.0},
+                    "LeftHand": {"total_length": 1.0},
+                },
+            }))
+
+            scaler = HumanToRobotScaler(skeleton, 1.0, config_path)
+            scaler.enable_segment_local_from_profile(profile_path)
+            out = scaler.compute_effectors_from_skeleton(instance, True)
+
+        self.assertEqual(scaler.mode, "segment_local")
+        self.assertTrue(np.allclose(out[0, 0:3], [10.0, 0.0, 0.0]))
+        self.assertTrue(np.allclose(out[1, 0:3], [12.0, 0.0, 0.0]))
+        self.assertTrue(np.allclose(out[2, 0:3], [12.0, 1.0, 0.0]))
 
 
 if __name__ == "__main__":
