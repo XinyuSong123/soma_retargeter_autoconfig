@@ -87,20 +87,21 @@ def _task_for_site(site: SemanticSite, chain: KinematicChainProfile | None) -> T
             reason="projected to reachable torso rotational basis" if chain is not None and chain.rotational_rank > 0 else "disabled: no reachable torso rotation basis",
         )
     if site.semantic_name in _MIDDLE_LIMB_SEMANTICS:
+        reference_site = _SEMANTIC_PARENTS.get(site.semantic_name)
         return TaskSpec(
             name=f"{site.semantic_name}_direction",
             task_type="direction",
             source_semantic=site.semantic_name,
             target_site=site.semantic_name,
-            reference_site=None,
+            reference_site=reference_site,
             priority=3,
             position_mask_or_basis=None,
             rotation_mask_or_basis=None,
             normalized_weight=10.0,
             characteristic_length=chain.total_length if chain is not None else 1.0,
             robust_loss="huber",
-            enabled=site.confidence >= 0.7,
-            reason="middle semantic uses direction rather than absolute link position",
+            enabled=site.confidence >= 0.7 and reference_site is not None,
+            reason="middle semantic uses parent-to-child direction rather than absolute link position",
         )
     return TaskSpec(
         name=f"{site.semantic_name}_position",

@@ -64,6 +64,11 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["LeftArm"]["r_weight"], 0.0)
         self.assertGreater(cfg["ik_map"]["LeftHand"]["t_weight"], 0.0)
         self.assertEqual(cfg["ik_map"]["LeftHand"]["r_weight"], 0.0)
+        left_arm_direction = next(task for task in cfg["direction_tasks"] if task["name"] == "LeftArm_direction")
+        self.assertEqual(left_arm_direction["reference_site"], "Chest")
+        self.assertEqual(left_arm_direction["target_site"], "LeftArm")
+        self.assertEqual(left_arm_direction["weight"], 10.0)
+        self.assertGreater(left_arm_direction["characteristic_length"], 0.0)
 
     def test_compiled_profile_registry_path_and_validation(self):
         path = get_profile_path("roboparty_rpo", "compiled_retarget_profile")

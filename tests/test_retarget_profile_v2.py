@@ -84,6 +84,7 @@ class TestRetargetProfileV2(unittest.TestCase):
         raw = {"ik_map": {"LeftForeArm": "left_forearm"}}
         profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
         self.assertEqual(profile.tasks[0].task_type, "direction")
+        self.assertEqual(profile.tasks[0].reference_site, "LeftArm")
         self.assertIsNone(profile.tasks[0].position_mask_or_basis)
 
 
