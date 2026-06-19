@@ -152,10 +152,11 @@ def _profiles_from_flat_registries(module: ModuleType) -> dict[str, dict[str, An
     robot_xml = _as_dict(module, "ROBOT_XML_DICT")
     robot_urdf = _as_dict(module, "ROBOT_URDF_DICT")
     retargeter_configs = _as_dict(module, "RETARGETER_CONFIG_DICT")
+    compiled_profiles = _as_dict(module, "COMPILED_RETARGET_PROFILE_DICT")
     pose_pairs_by_robot = _as_dict(module, "POSE_PAIR_JSON_DICT")
 
     robot_names = set()
-    for registry in (robot_xml, robot_urdf, retargeter_configs, pose_pairs_by_robot):
+    for registry in (robot_xml, robot_urdf, retargeter_configs, compiled_profiles, pose_pairs_by_robot):
         robot_names.update(str(name) for name in registry.keys())
 
     profiles = {}
@@ -167,6 +168,7 @@ def _profiles_from_flat_registries(module: ModuleType) -> dict[str, dict[str, An
             "mjcf_path": _normalize_path(robot_xml.get(robot_name)),
             "urdf_path": _normalize_path(robot_urdf.get(robot_name)),
             "retargeter_config": _normalize_path(retargeter_configs.get(robot_name)),
+            "compiled_retarget_profile": _normalize_path(compiled_profiles.get(robot_name)),
             "source_reference_bvh": str(_HARDCODED_SOURCE_REFERENCE_BVH),
             "pose_pairs": pose_pairs,
             "human_pose_files": {
@@ -286,6 +288,10 @@ def _derive_converter_filename(robot_name: str) -> str:
     return f"{robot_name}_bvh_to_csv_converter_config.json"
 
 
+def _derive_compiled_profile_filename(robot_name: str) -> str:
+    return f"{robot_name}_compiled_retarget_profile_v2.json"
+
+
 def get_generated_scaler_config_path(robot_name: str | None) -> Path | None:
     robot_name = resolve_robot_name(robot_name)
     config_dir = get_robot_config_dir(robot_name)
@@ -301,6 +307,17 @@ def get_generated_converter_config_path(robot_name: str | None) -> Path | None:
     if config_dir is None:
         return None
     return config_dir / _derive_converter_filename(robot_name)
+
+
+def get_generated_compiled_profile_path(robot_name: str | None) -> Path | None:
+    robot_name = resolve_robot_name(robot_name)
+    explicit_path = _get_raw_profile_path(robot_name, "compiled_retarget_profile")
+    if explicit_path is not None:
+        return explicit_path
+    config_dir = get_robot_config_dir(robot_name)
+    if config_dir is None:
+        return None
+    return config_dir / _derive_compiled_profile_filename(robot_name)
 
 
 def get_generated_report_path(robot_name: str | None) -> Path | None:
@@ -745,6 +762,7 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
             "Please register RETARGETER_CONFIG_DICT in params.py."
         )
     scaler_reference = make_config_reference(scaler_path)
+    compiled_profile_path = ensure_compiled_retarget_profile(robot_name)
 
     runtime_config = {
         "initialization_pose": "soma/soma_zero_frame0.bvh",
@@ -758,6 +776,9 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         "collision_weight": _DEFAULT_COLLISION_WEIGHT,
         "enable_post_processing": False,
     }
+    if compiled_profile_path is not None:
+        runtime_config["compiled_retarget_profile"] = make_config_reference(compiled_profile_path)
+        runtime_config["compiled_retarget_profile_schema_version"] = 2
 
     ik_map = {}
     for joint_name, entry in _extract_user_ik_map(raw_config).items():
@@ -811,6 +832,35 @@ def load_retargeter_config(
     raw_config = io_utils.load_json(path)
     resolved_robot_name = robot_name or infer_robot_name_from_retargeter_config_path(path) or raw_config.get("robot_type")
     return build_runtime_retargeter_config(resolved_robot_name, raw_config)
+
+
+def validate_compiled_retarget_profile(profile: dict[str, Any]) -> list[dict[str, Any]]:
+    diagnostics: list[dict[str, Any]] = []
+    if profile.get("schema_version") != 2:
+        diagnostics.append({"code": "invalid_schema_version", "expected": 2, "actual": profile.get("schema_version")})
+    if profile.get("quaternion_order") != "xyzw":
+        diagnostics.append({"code": "invalid_quaternion_order", "expected": "xyzw", "actual": profile.get("quaternion_order")})
+    for key in ("robot_fingerprint", "source_skeleton_fingerprint", "semantic_sites", "chains", "tasks", "solver"):
+        if key not in profile:
+            diagnostics.append({"code": "missing_profile_key", "key": key})
+    if not isinstance(profile.get("semantic_sites", {}), dict):
+        diagnostics.append({"code": "invalid_semantic_sites"})
+    if not isinstance(profile.get("chains", {}), dict):
+        diagnostics.append({"code": "invalid_chains"})
+    if not isinstance(profile.get("tasks", []), list):
+        diagnostics.append({"code": "invalid_tasks"})
+    return diagnostics
+
+
+def load_compiled_retarget_profile(robot_name: str | None, *, require_valid: bool = True) -> dict[str, Any] | None:
+    path = get_profile_path(robot_name, "compiled_retarget_profile")
+    if path is None or not path.exists():
+        return None
+    profile = io_utils.load_json(path)
+    diagnostics = validate_compiled_retarget_profile(profile)
+    if require_valid and diagnostics:
+        raise ValueError(f"Invalid compiled retarget profile {path}: {diagnostics}")
+    return profile
 
 
 def make_config_reference(path: str | Path) -> str:
@@ -870,10 +920,44 @@ def ensure_generated_converter_config(robot_name: str | None, *, force: bool = F
     return converter_path
 
 
+def ensure_compiled_retarget_profile(robot_name: str | None, *, force: bool = False) -> Path | None:
+    robot_name = resolve_robot_name(robot_name)
+    output_path = get_generated_compiled_profile_path(robot_name)
+    if output_path is None:
+        return None
+    if output_path.exists() and not force:
+        diagnostics = validate_compiled_retarget_profile(io_utils.load_json(output_path))
+        if not diagnostics:
+            return output_path
+
+    profile = get_robot_profile(robot_name)
+    if profile is None:
+        return None
+    raw_config_path = profile.get("retargeter_config")
+    if not raw_config_path:
+        return None
+
+    from soma_retargeter.robotics.morphology import analyze_mjcf_morphology
+    from soma_retargeter.robotics.retarget_profile import write_profile_json
+    from soma_retargeter.robotics.task_compiler import compile_retarget_profile
+
+    raw_config = io_utils.load_json(raw_config_path)
+    morphology = analyze_mjcf_morphology(profile.get("mjcf_path"))
+    compiled = compile_retarget_profile(
+        robot_name=robot_name,
+        raw_config=raw_config,
+        morphology=morphology,
+        source_config_path=raw_config_path,
+    )
+    write_profile_json(compiled, output_path)
+    return output_path
+
+
 def ensure_generated_runtime_configs(robot_name: str | None, *, force: bool = False) -> dict[str, Path | None]:
     return {
         "scaler_config": ensure_generated_scaler_config(robot_name, force=force),
         "bvh_converter_config": ensure_generated_converter_config(robot_name, force=force),
+        "compiled_retarget_profile": ensure_compiled_retarget_profile(robot_name, force=force),
     }
 
 
@@ -886,6 +970,8 @@ def get_profile_path(robot_name: str | None, key: str) -> Path | None:
         return ensure_generated_scaler_config(robot_name)
     if key == "bvh_converter_config":
         return ensure_generated_converter_config(robot_name)
+    if key == "compiled_retarget_profile":
+        return ensure_compiled_retarget_profile(robot_name)
     if key == "paired_pose_report":
         return get_generated_report_path(robot_name)
     if key == "paired_pose_artifact":
@@ -969,12 +1055,14 @@ def get_robot_setup_status(robot_name: str | None) -> list[str]:
     retargeter_path = get_profile_path(robot_name, "retargeter_config")
     scaler_path = get_generated_scaler_config_path(robot_name)
     converter_path = get_generated_converter_config_path(robot_name)
+    compiled_profile_path = get_generated_compiled_profile_path(robot_name)
 
     lines.append(_prepared_line("MJCF/XML", bool(mjcf_path and mjcf_path.exists())))
     lines.append(_prepared_line("URDF", bool(urdf_path and urdf_path.exists()), "可选参考文件"))
     lines.append(_prepared_line("Retargeter link map", bool(retargeter_path and retargeter_path.exists())))
     lines.append(_prepared_line("Scaler config", bool(scaler_path and scaler_path.exists()), "自动生成"))
     lines.append(_prepared_line("BVH converter config", bool(converter_path and converter_path.exists()), "自动生成"))
+    lines.append(_prepared_line("Compiled retarget profile v2", bool(compiled_profile_path and compiled_profile_path.exists()), "自动生成"))
 
     human_ready = sum(1 for path in _STANDARD_HUMAN_POSE_FILES.values() if path.exists())
     robot_pose_files = get_profile_pose_files(robot_name, "robot_pose_files")
@@ -1010,7 +1098,7 @@ def get_hardcoded_source_reference_bvh() -> Path:
 
 def apply_profile_to_converter_config(config: dict[str, Any], robot_name: str | None = None) -> dict[str, Any]:
     robot_name = resolve_robot_name(robot_name or config.get("retarget_target"))
-    ensure_generated_scaler_config(robot_name)
+    ensure_generated_runtime_configs(robot_name)
 
     config.setdefault("retargeter", _DEFAULT_RETARGETER_NAME)
     config.setdefault("retarget_source", _DEFAULT_RETARGET_SOURCE)

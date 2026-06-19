@@ -132,6 +132,8 @@ python -m soma_retargeter.tools.autoconfigure_robot --robot roboparty_rpo --forc
 
 The compiler writes a schema v2 profile with deterministic JSON, explicit `xyzw` quaternion order, robot/source fingerprints, semantic sites, chain reachability placeholders, task specs, contact settings, confidence, and structured warnings. Low-confidence semantic mappings return exit code `2`; invalid model/config input returns exit code `3`.
 
+Generated runtime configs now include a `compiled_retarget_profile` reference. Advanced users can override its path with `COMPILED_RETARGET_PROFILE_DICT` in `params.py`; otherwise the registry uses `<robot>_compiled_retarget_profile_v2.json` beside the retargeter config.
+
 ### Config optimizer
 
 Register the robot files in `params.py`, then launch the optimizer:

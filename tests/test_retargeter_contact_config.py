@@ -1,5 +1,10 @@
 import unittest
-from soma_retargeter.robot_registry_parser import build_runtime_retargeter_config
+from soma_retargeter.robot_registry_parser import (
+    build_runtime_retargeter_config,
+    get_profile_path,
+    load_compiled_retarget_profile,
+    validate_compiled_retarget_profile,
+)
 
 
 class TestContactConfig(unittest.TestCase):
@@ -34,6 +39,25 @@ class TestContactConfig(unittest.TestCase):
         cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}, "teacher_refinement": {}, "g1_teacher_refined": True})
         self.assertNotIn("teacher_refinement", cfg)
         self.assertNotIn("g1_teacher_refined", cfg)
+
+    def test_runtime_config_references_compiled_v2_profile(self):
+        cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}})
+        self.assertEqual(cfg["compiled_retarget_profile_schema_version"], 2)
+        self.assertTrue(cfg["compiled_retarget_profile"].endswith("roboparty_rpo_compiled_retarget_profile_v2.json"))
+
+    def test_compiled_profile_registry_path_and_validation(self):
+        path = get_profile_path("roboparty_rpo", "compiled_retarget_profile")
+        self.assertIsNotNone(path)
+        self.assertTrue(path.exists())
+
+        profile = load_compiled_retarget_profile("roboparty_rpo")
+        self.assertEqual(profile["schema_version"], 2)
+        self.assertEqual(profile["quaternion_order"], "xyzw")
+        self.assertEqual(validate_compiled_retarget_profile(profile), [])
+
+        diagnostics = validate_compiled_retarget_profile({"schema_version": 1})
+        self.assertTrue(any(item["code"] == "invalid_schema_version" for item in diagnostics))
+        self.assertTrue(any(item["code"] == "missing_profile_key" for item in diagnostics))
 
 
 if __name__ == "__main__":
