@@ -307,7 +307,12 @@ class NewtonPipeline:
         try:
             model = self._build_model(num_envs)
             state = model.state()
-            default_joint_q = model.joint_q.numpy().astype(np.float32)
+            default_joint_q_raw = model.joint_q.numpy().astype(np.float32)
+            coord_count = self.ik_model.joint_coord_count
+            if default_joint_q_raw.size == num_envs * coord_count:
+                default_joint_q = default_joint_q_raw.reshape(num_envs, coord_count)
+            else:
+                default_joint_q = np.tile(default_joint_q_raw[:coord_count], (num_envs, 1))
             temporal_velocity_scales, temporal_acceleration_scales, temporal_coord_masks = self._build_temporal_scale_matrices(
                 model,
                 num_envs,

@@ -24,7 +24,7 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 
 ## Generated Artifacts
 
-`soma_retargeter.tools.benchmark_retargeting` currently generates reproducible compile-level benchmark artifacts:
+`soma_retargeter.tools.benchmark_retargeting` currently generates reproducible compile-level and bounded runtime-smoke benchmark artifacts:
 
 - `benchmark_summary.json`
 - `benchmark_frames.csv`
@@ -33,4 +33,4 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 - `per_robot/<robot>.json`
 - `failures/<robot>.json` on failure
 
-Motion-level runtime metrics are intentionally marked `not_run` until the runtime benchmark loop is implemented.
+When `--motions` is provided, the benchmark expands BVH files, runs a capped NewtonPipeline rollout, and records runtime metrics in `motion_benchmark` plus aggregate `metrics`. Full legacy/v2 runtime comparison and per-objective residual extraction are still future work.

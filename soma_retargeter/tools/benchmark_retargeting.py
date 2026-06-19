@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import warp as wp
 
 import soma_retargeter.utils.io_utils as io_utils
 from soma_retargeter.robot_registry_parser import (
@@ -43,6 +44,19 @@ METRIC_NAMES = (
     "fallback_counts",
     "confidence",
     "warnings",
+)
+
+_RUNTIME_METRIC_NAMES = (
+    "joint_limit_margin",
+    "foot_slide",
+    "penetration",
+    "root_tilt",
+    "hand_position_rmse",
+    "foot_position_rmse",
+    "velocity_p95",
+    "acceleration_p95",
+    "runtime_seconds",
+    "fallback_counts",
 )
 
 
@@ -169,7 +183,53 @@ def _root_ground_summary(profile: dict[str, Any]) -> dict[str, Any]:
     return {key: root_motion.get(key) for key in keys}
 
 
-def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[str, Any]:
+def _not_run_metrics(task_summary: dict[str, Any], elapsed_s: float) -> dict[str, Any]:
+    return {
+        "task_residual_by_type_priority": {
+            "status": "not_run",
+            "reason": "motion runtime benchmark was not requested",
+            "compiled_task_counts": task_summary["by_type_priority"],
+        },
+        "joint_limit_margin": {"status": "not_run"},
+        "foot_slide": {"status": "not_run"},
+        "penetration": {"status": "not_run"},
+        "root_tilt": {"status": "not_run"},
+        "torso_reachable_residual": {"status": "not_run"},
+        "torso_unreachable_residual": {"status": "not_run"},
+        "hand_position_rmse": {"status": "not_run"},
+        "foot_position_rmse": {"status": "not_run"},
+        "velocity_p95": {"status": "not_run"},
+        "acceleration_p95": {"status": "not_run"},
+        "solver_iterations": {"status": "not_run"},
+        "runtime_seconds": {"compile_profile": elapsed_s},
+        "fallback_counts": {"status": "not_run"},
+        "confidence": 0.0,
+        "warnings": 0,
+    }
+
+
+def _merge_runtime_metrics(metrics: dict[str, Any], runtime: dict[str, Any] | None) -> None:
+    if runtime is None:
+        return
+    for name in ("task_residual_by_type_priority", "torso_reachable_residual", "torso_unreachable_residual"):
+        if metrics.get(name, {}).get("status") == "not_run":
+            payload = dict(metrics[name])
+            payload["status"] = "unavailable"
+            payload["reason"] = "runtime rollout ran, but this residual metric is not implemented yet"
+            metrics[name] = payload
+    for name, payload in runtime.get("metrics", {}).items():
+        metrics[name] = payload
+    runtime_seconds = dict(metrics.get("runtime_seconds", {}))
+    runtime_seconds.update(runtime.get("runtime_seconds", {}))
+    metrics["runtime_seconds"] = runtime_seconds
+
+
+def summarize_profile(
+    robot: str,
+    profile_path: Path,
+    elapsed_s: float,
+    runtime: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     profile = io_utils.load_json(profile_path)
     diagnostics = validate_compiled_retarget_profile(profile)
     warnings = list(profile.get("warnings", [])) + diagnostics
@@ -177,6 +237,10 @@ def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[
     chain_summary = _chain_summary(profile)
     collision_summary = _collision_summary(profile)
     root_ground_summary = _root_ground_summary(profile)
+    metrics = _not_run_metrics(task_summary, elapsed_s)
+    metrics["confidence"] = float(profile.get("confidence", 0.0))
+    metrics["warnings"] = len(warnings)
+    _merge_runtime_metrics(metrics, runtime)
     return {
         "robot": robot,
         "status": "ok" if not diagnostics else "diagnostics",
@@ -192,28 +256,8 @@ def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[
         "chain_summary": chain_summary,
         "collision_summary": collision_summary,
         "root_ground_summary": root_ground_summary,
-        "metrics": {
-            "task_residual_by_type_priority": {
-                "status": "not_run",
-                "reason": "motion runtime benchmark is not implemented yet",
-                "compiled_task_counts": task_summary["by_type_priority"],
-            },
-            "joint_limit_margin": {"status": "not_run"},
-            "foot_slide": {"status": "not_run"},
-            "penetration": {"status": "not_run"},
-            "root_tilt": {"status": "not_run"},
-            "torso_reachable_residual": {"status": "not_run"},
-            "torso_unreachable_residual": {"status": "not_run"},
-            "hand_position_rmse": {"status": "not_run"},
-            "foot_position_rmse": {"status": "not_run"},
-            "velocity_p95": {"status": "not_run"},
-            "acceleration_p95": {"status": "not_run"},
-            "solver_iterations": {"status": "not_run"},
-            "runtime_seconds": {"compile_profile": elapsed_s},
-            "fallback_counts": {"status": "not_run"},
-            "confidence": float(profile.get("confidence", 0.0)),
-            "warnings": len(warnings),
-        },
+        "motion_benchmark": runtime,
+        "metrics": metrics,
     }
 
 
@@ -233,7 +277,294 @@ def _failure_payload(robot: str, command: str, exc: BaseException) -> dict[str, 
     }
 
 
-def run_robot(robot_arg: str, output_dir: Path, force: bool, command: str) -> dict[str, Any]:
+def _resolve_motion_paths(raw_paths: list[str], max_motions: int | None = None) -> list[Path]:
+    paths: list[Path] = []
+    for raw in raw_paths:
+        path = Path(raw)
+        if not path.is_absolute():
+            path = io_utils.get_repo_root() / path
+        if path.is_dir():
+            paths.extend(sorted(p for p in path.rglob("*.bvh") if p.is_file()))
+        elif path.is_file() and path.suffix.lower() == ".bvh":
+            paths.append(path)
+    deduped = list(dict.fromkeys(paths))
+    if max_motions is not None and max_motions > 0:
+        return deduped[:max_motions]
+    return deduped
+
+
+def _metric_payload(value: float | int | None, **extra: Any) -> dict[str, Any]:
+    if value is None or not np.isfinite(float(value)):
+        return {"status": "unavailable", **extra}
+    return {"status": "ok", "value": float(value), **extra}
+
+
+def _percentile_metric(values: np.ndarray, percentile: float = 95.0) -> float | None:
+    values = np.asarray(values, dtype=np.float64)
+    values = values[np.isfinite(values)]
+    if values.size == 0:
+        return None
+    return float(np.percentile(values, percentile))
+
+
+def _quat_rotate_xyzw(quat_xyzw: np.ndarray, point: np.ndarray) -> np.ndarray:
+    quat = np.asarray(quat_xyzw, dtype=np.float64)
+    norm = float(np.linalg.norm(quat))
+    if norm <= 1.0e-12:
+        quat = np.asarray([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+    else:
+        quat = quat / norm
+    q_vec = quat[0:3]
+    point = np.asarray(point, dtype=np.float64)
+    t = 2.0 * np.cross(q_vec, point)
+    return point + quat[3] * t + np.cross(q_vec, t)
+
+
+def _transform_point_xyzw(transform_values: np.ndarray, local_point: np.ndarray) -> np.ndarray:
+    transform_values = np.asarray(transform_values, dtype=np.float64)
+    return transform_values[0:3] + _quat_rotate_xyzw(transform_values[3:7], local_point)
+
+
+def _joint_limit_margin(model: Any, frames: np.ndarray) -> float | None:
+    if frames.size == 0:
+        return None
+    q_start = model.joint_q_start.numpy()
+    qd_start = model.joint_qd_start.numpy()
+    joint_dof_dim = model.joint_dof_dim.numpy()
+    lower = model.joint_limit_lower.numpy().astype(np.float64)
+    upper = model.joint_limit_upper.numpy().astype(np.float64)
+    margins: list[float] = []
+    for joint_idx in range(model.joint_count):
+        coord0 = int(q_start[joint_idx])
+        dof0 = int(qd_start[joint_idx])
+        lin, ang = joint_dof_dim[joint_idx]
+        for k in range(int(lin + ang)):
+            coord_idx = coord0 + k
+            dof_idx = dof0 + k
+            if coord_idx < 7 or coord_idx >= frames.shape[1] or dof_idx >= len(lower):
+                continue
+            span = float(upper[dof_idx] - lower[dof_idx])
+            if not np.isfinite(span) or span <= 1.0e-8 or span >= 1.0e8:
+                continue
+            values = frames[:, coord_idx].astype(np.float64)
+            margins.extend(np.minimum(values - lower[dof_idx], upper[dof_idx] - values) / span)
+    return float(np.min(margins)) if margins else None
+
+
+def _root_tilt_p95(frames: np.ndarray) -> float | None:
+    if frames.size == 0 or frames.shape[1] < 7:
+        return None
+    tilts = []
+    world_up = np.asarray([0.0, 0.0, 1.0], dtype=np.float64)
+    for row in frames:
+        root_up = _quat_rotate_xyzw(row[3:7], world_up)
+        cos_angle = float(np.clip(np.dot(root_up, world_up) / max(np.linalg.norm(root_up), 1.0e-12), -1.0, 1.0))
+        tilts.append(float(np.arccos(cos_angle)))
+    return _percentile_metric(np.asarray(tilts, dtype=np.float64))
+
+
+def _trajectory_velocity_metrics(frames: np.ndarray, sample_rate: float) -> tuple[float | None, float | None]:
+    if frames.shape[0] < 2:
+        return None, None
+    dt = 1.0 / max(float(sample_rate), 1.0e-6)
+    velocities = np.diff(frames.astype(np.float64), axis=0) / dt
+    velocity_norms = np.linalg.norm(velocities, axis=1)
+    if frames.shape[0] < 3:
+        return _percentile_metric(velocity_norms), None
+    accelerations = np.diff(velocities, axis=0) / dt
+    acceleration_norms = np.linalg.norm(accelerations, axis=1)
+    return _percentile_metric(velocity_norms), _percentile_metric(acceleration_norms)
+
+
+def _semantic_body_indices(profile: dict[str, Any], pipeline: Any, semantics: tuple[str, ...]) -> dict[str, tuple[int, np.ndarray]]:
+    labels = {
+        str(label).split("/")[-1]: index
+        for index, label in enumerate(getattr(pipeline.robot_builder, "body_label", []))
+    }
+    sites = profile.get("semantic_sites", {})
+    out: dict[str, tuple[int, np.ndarray]] = {}
+    for semantic in semantics:
+        site = sites.get(semantic)
+        if not isinstance(site, dict):
+            continue
+        body_name = site.get("body_name")
+        if body_name not in labels:
+            continue
+        out[semantic] = (labels[body_name], np.asarray(site.get("local_position", [0.0, 0.0, 0.0]), dtype=np.float64))
+    return out
+
+
+def _body_site_trajectories(pipeline: Any, profile: dict[str, Any], frames: np.ndarray, semantics: tuple[str, ...]) -> dict[str, np.ndarray]:
+    import newton
+
+    sites = _semantic_body_indices(profile, pipeline, semantics)
+    if not sites or frames.size == 0:
+        return {}
+    model = pipeline.ik_model
+    state = model.state()
+    trajectories = {semantic: [] for semantic in sites}
+    for row in frames:
+        wp.copy(model.joint_q, wp.array(row.astype(np.float32), dtype=wp.float32))
+        newton.eval_fk(model, model.joint_q, model.joint_qd, state)
+        body_q = state.body_q.numpy()
+        for semantic, (body_idx, local_position) in sites.items():
+            trajectories[semantic].append(_transform_point_xyzw(body_q[body_idx], local_position))
+    return {semantic: np.asarray(points, dtype=np.float64) for semantic, points in trajectories.items()}
+
+
+def _tracking_rmse(targets: np.ndarray, actual: np.ndarray) -> float | None:
+    count = min(len(targets), len(actual))
+    if count == 0:
+        return None
+    residuals = np.asarray(actual[:count], dtype=np.float64) - np.asarray(targets[:count], dtype=np.float64)
+    return float(np.sqrt(np.mean(np.sum(residuals * residuals, axis=1))))
+
+
+def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_index: int, buffer: Any) -> dict[str, Any]:
+    frames = np.asarray(buffer.data, dtype=np.float32)
+    sample_rate = float(buffer.sample_rate)
+    velocity_p95, acceleration_p95 = _trajectory_velocity_metrics(frames, sample_rate)
+    metrics = {
+        "joint_limit_margin": _metric_payload(_joint_limit_margin(pipeline.ik_model, frames), unit="normalized_margin"),
+        "root_tilt": _metric_payload(_root_tilt_p95(frames), unit="rad", statistic="p95"),
+        "velocity_p95": _metric_payload(velocity_p95, unit="joint_coord_per_s", statistic="p95"),
+        "acceleration_p95": _metric_payload(acceleration_p95, unit="joint_coord_per_s2", statistic="p95"),
+    }
+
+    ground_height = profile.get("rest_frame_alignment", {}).get("root_motion", {}).get("ground_height_m", 0.0)
+    try:
+        ground_height = float(ground_height)
+    except (TypeError, ValueError):
+        ground_height = 0.0
+    semantic_traj = _body_site_trajectories(pipeline, profile, frames, ("LeftFoot", "RightFoot", "LeftHand", "RightHand"))
+    foot_points = [semantic_traj[name] for name in ("LeftFoot", "RightFoot") if name in semantic_traj]
+    if foot_points:
+        all_foot = np.concatenate(foot_points, axis=0)
+        penetration = float(max(0.0, ground_height - float(np.min(all_foot[:, 2]))))
+        slide_speeds = []
+        dt = 1.0 / max(sample_rate, 1.0e-6)
+        for points in foot_points:
+            if len(points) < 2:
+                continue
+            near_ground = points[:-1, 2] <= ground_height + 0.03
+            speeds = np.linalg.norm(np.diff(points[:, 0:2], axis=0), axis=1) / dt
+            slide_speeds.extend(speeds[near_ground].tolist())
+        metrics["penetration"] = _metric_payload(penetration, unit="m", statistic="max")
+        metrics["foot_slide"] = _metric_payload(_percentile_metric(np.asarray(slide_speeds)), unit="m_per_s", statistic="p95")
+    else:
+        metrics["penetration"] = {"status": "unavailable", "reason": "semantic foot sites unavailable"}
+        metrics["foot_slide"] = {"status": "unavailable", "reason": "semantic foot sites unavailable"}
+
+    input_targets = getattr(pipeline, "input_targets", [])
+    mapped_joints = list(getattr(pipeline, "mapped_joints", []))
+    if motion_index < len(input_targets):
+        target_frames = np.asarray(input_targets[motion_index], dtype=np.float64)
+        for metric_name, semantics in (
+            ("hand_position_rmse", ("LeftHand", "RightHand")),
+            ("foot_position_rmse", ("LeftFoot", "RightFoot")),
+        ):
+            values = []
+            for semantic in semantics:
+                if semantic not in semantic_traj or semantic not in mapped_joints:
+                    continue
+                target_idx = mapped_joints.index(semantic)
+                values.append(_tracking_rmse(target_frames[:, target_idx, 0:3], semantic_traj[semantic]))
+            metrics[metric_name] = _metric_payload(float(np.mean(values)) if values else None, unit="m", statistic="rmse")
+    return metrics
+
+
+def _aggregate_motion_metrics(motion_payloads: list[dict[str, Any]]) -> dict[str, Any]:
+    aggregated: dict[str, Any] = {}
+    for metric_name in _RUNTIME_METRIC_NAMES:
+        values = []
+        seen_payloads = []
+        for motion in motion_payloads:
+            payload = motion.get("metrics", {}).get(metric_name)
+            if isinstance(payload, dict):
+                seen_payloads.append(payload)
+            if isinstance(payload, dict) and payload.get("status") == "ok" and "value" in payload:
+                values.append(float(payload["value"]))
+        if values:
+            aggregated[metric_name] = {
+                "status": "ok",
+                "value": float(np.mean(values)),
+                "motion_count": len(values),
+                "aggregation": "mean",
+            }
+        elif seen_payloads:
+            reasons = sorted({str(payload.get("reason", payload.get("status", "unavailable"))) for payload in seen_payloads})
+            aggregated[metric_name] = {
+                "status": "unavailable",
+                "motion_count": len(seen_payloads),
+                "reason": "; ".join(reasons),
+            }
+    return aggregated
+
+
+def _run_runtime_benchmark(robot: str, profile_path: Path, motion_paths: list[Path], max_frames: int) -> dict[str, Any] | None:
+    if not motion_paths:
+        return None
+    import soma_retargeter.assets.bvh as bvh_utils
+    from soma_retargeter.animation.animation_buffer import AnimationBuffer
+    from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
+
+    profile = io_utils.load_json(profile_path)
+    first_skeleton = None
+    animations = []
+    used_paths = []
+    for path in motion_paths:
+        skeleton, animation = bvh_utils.load_bvh(str(path), first_skeleton)
+        if first_skeleton is None:
+            first_skeleton = skeleton
+        if max_frames > 0 and animation.num_frames > max_frames:
+            animation = AnimationBuffer(
+                animation.skeleton,
+                max_frames,
+                animation.sample_rate,
+                np.array(animation.local_transforms[:max_frames], copy=True),
+            )
+        animations.append(animation)
+        used_paths.append(path)
+    if first_skeleton is None or not animations:
+        return None
+
+    pipeline = NewtonPipeline(first_skeleton, "soma", robot)
+    started = time.perf_counter()
+    pipeline.add_input_motions(animations, [wp.transform_identity()] * len(animations), True)
+    output_buffers = pipeline.execute()
+    elapsed = time.perf_counter() - started
+    motion_payloads = []
+    for idx, buffer in enumerate(output_buffers or []):
+        motion_payloads.append(
+            {
+                "motion": str(used_paths[idx]),
+                "frames": int(buffer.num_frames),
+                "sample_rate": float(buffer.sample_rate),
+                "metrics": _runtime_metrics_for_buffer(profile, pipeline, idx, buffer),
+            }
+        )
+    return {
+        "status": "ok",
+        "motions": motion_payloads,
+        "runtime_seconds": {
+            "motion_runtime": elapsed,
+            "motion_count": len(motion_payloads),
+        },
+        "metrics": {
+            **_aggregate_motion_metrics(motion_payloads),
+            "fallback_counts": {
+                "status": "ok",
+                "pole_vector": getattr(getattr(pipeline, "pole_vector_fallback_counts", np.asarray([], dtype=np.int64)), "tolist", lambda: [])(),
+            },
+            "solver_iterations": {
+                "status": "ok",
+                "value": float(getattr(pipeline, "ik_iterations", 0)),
+            },
+        },
+    }
+
+
+def run_robot(robot_arg: str, output_dir: Path, force: bool, command: str, args: argparse.Namespace) -> dict[str, Any]:
     robot = resolve_robot_name(robot_arg)
     started = time.perf_counter()
     try:
@@ -241,7 +572,21 @@ def run_robot(robot_arg: str, output_dir: Path, force: bool, command: str) -> di
         if profile_path is None:
             raise ValueError(f"No compiled profile path available for robot {robot!r}")
         elapsed = time.perf_counter() - started
-        result = summarize_profile(robot, profile_path, elapsed)
+        runtime = None
+        motion_paths = _resolve_motion_paths(args.motions, args.max_motions)
+        if motion_paths:
+            try:
+                runtime = _run_runtime_benchmark(robot, profile_path, motion_paths, args.max_frames)
+            except Exception as exc:
+                runtime = {
+                    "status": "failed",
+                    "exception": type(exc).__name__,
+                    "message": str(exc),
+                    "stack": traceback.format_exc(),
+                    "runtime_seconds": {},
+                    "metrics": {name: {"status": "failed", "reason": str(exc)} for name in _RUNTIME_METRIC_NAMES},
+                }
+        result = summarize_profile(robot, profile_path, elapsed, runtime=runtime)
         _write_json(output_dir / "per_robot" / f"{robot}.json", result)
         return result
     except Exception as exc:
@@ -263,14 +608,30 @@ def _write_frames_csv(path: Path, results: list[dict[str, Any]]) -> None:
                 for metric in METRIC_NAMES:
                     metric_payload = result.get("metrics", {}).get(metric, {})
                     metric_status = metric_payload.get("status", result.get("status")) if isinstance(metric_payload, dict) else result.get("status")
+                    metric_value = metric_payload.get("value", "") if isinstance(metric_payload, dict) else ""
                     writer.writerow(
                         {
                             "robot": result.get("robot"),
                             "compare_mode": compare_mode,
                             "frame": "",
                             "metric": metric,
-                            "value": "",
+                            "value": metric_value,
                             "status": metric_status,
+                        }
+                    )
+            motion_benchmark = result.get("motion_benchmark", {})
+            if not isinstance(motion_benchmark, dict):
+                continue
+            for motion_idx, motion in enumerate(motion_benchmark.get("motions", [])):
+                for metric, metric_payload in motion.get("metrics", {}).items():
+                    writer.writerow(
+                        {
+                            "robot": result.get("robot"),
+                            "compare_mode": "runtime",
+                            "frame": motion_idx,
+                            "metric": metric,
+                            "value": metric_payload.get("value", "") if isinstance(metric_payload, dict) else "",
+                            "status": metric_payload.get("status", result.get("status")) if isinstance(metric_payload, dict) else result.get("status"),
                         }
                     )
 
@@ -279,6 +640,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run reproducible SOMA retargeting v2 benchmark artifact generation.")
     parser.add_argument("--robots", nargs="+", required=True)
     parser.add_argument("--motions", nargs="+", default=[])
+    parser.add_argument("--max-motions", type=int, default=1)
+    parser.add_argument("--max-frames", type=int, default=120)
     parser.add_argument("--compare", nargs="+", default=["legacy", "v2"])
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)
@@ -296,7 +659,7 @@ def main(argv: list[str] | None = None) -> int:
 
     results = []
     for robot in args.robots:
-        result = run_robot(robot, output_dir, args.force, command)
+        result = run_robot(robot, output_dir, args.force, command, args)
         result["compare_modes"] = list(args.compare)
         results.append(result)
 

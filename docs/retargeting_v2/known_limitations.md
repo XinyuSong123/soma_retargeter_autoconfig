@@ -1,6 +1,6 @@
 # Retargeting v2 Known Limitations
 
-- Runtime motion benchmark metrics are not implemented yet. Current artifacts are compile-level profile checks with runtime metrics marked `not_run`.
+- Runtime benchmark artifacts now include bounded smoke rollouts when BVH motions are provided, but full-motion legacy/v2 comparison and per-objective residual extraction are not implemented yet.
 - Profile validation now covers numeric health gates and left/right chain length mismatch thresholds, but true symmetry tying is still compile-time reporting rather than a separate constrained optimizer.
 - Self-collision runtime barriers are optional and disabled by default through `collision_weight=0.0`; motion-level evidence is still needed before making them a default feasibility term.
 - E3 v2 and OLI are not registered in the current workspace, so benchmark artifacts cover only `roboparty_rpo` and `unitree_g1`.
