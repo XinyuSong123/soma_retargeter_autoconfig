@@ -1,8 +1,9 @@
 import unittest
 
 import numpy as np
+import warp as wp
 
-from soma_retargeter.pipelines.ik_objectives import IKObjectiveSphereCollisionBarrier
+from soma_retargeter.pipelines.ik_objectives import IKObjectivePoleVector, IKObjectiveSphereCollisionBarrier
 from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
 from soma_retargeter.robotics.reachability import quat_xyzw_to_rotation_vector, rotation_vector_to_quat_xyzw
 
@@ -152,6 +153,45 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
         )
         self.assertTrue(used_fallback)
         self.assertTrue(np.allclose(normal, fallback))
+
+    def test_pole_vector_analytic_jacobian_matches_finite_difference_for_simple_rotation(self):
+        objective = IKObjectivePoleVector(0, 1, 2, None, weight=2.0, analytic_jacobian=True)
+        objective.bind_device(wp.get_device())
+        objective.affects_parent_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+        objective.affects_middle_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+        objective.affects_child_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+
+        parent = np.array([1.0, 0.0, 0.0])
+        middle = np.array([0.0, 1.0, 0.0])
+        child = np.array([0.0, 1.0, 1.0])
+        body_q = wp.array(
+            [[
+                wp.transform(wp.vec3(*parent), wp.quat_identity()),
+                wp.transform(wp.vec3(*middle), wp.quat_identity()),
+                wp.transform(wp.vec3(*child), wp.quat_identity()),
+            ]],
+            dtype=wp.transform,
+        )
+        joint_s = wp.array([[wp.spatial_vector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)]], dtype=wp.spatial_vector)
+        jacobian = wp.zeros((1, 3, 1), dtype=wp.float32)
+        model = type("M", (), {"joint_dof_count": 1})()
+
+        objective.compute_jacobian_analytic(body_q, None, model, jacobian, joint_s, 0)
+        wp.synchronize()
+
+        def residual(theta):
+            c, s = np.cos(theta), np.sin(theta)
+            rotation = np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+            p = rotation @ parent
+            m = rotation @ middle
+            ch = rotation @ child
+            current = np.cross(m - p, ch - m)
+            current = current / np.linalg.norm(current)
+            return -2.0 * current
+
+        eps = 1.0e-5
+        finite_difference = (residual(eps) - residual(-eps)) / (2.0 * eps)
+        self.assertTrue(np.allclose(jacobian.numpy()[0, :, 0], finite_difference, atol=1.0e-5))
 
     def test_collision_objectives_are_created_from_compiled_pairs_when_weighted(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)
