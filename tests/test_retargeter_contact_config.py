@@ -160,6 +160,11 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(left_forearm_pole["source_semantic"], "LeftForeArm")
         self.assertEqual(left_forearm_pole["target_site"], "LeftHand")
         self.assertEqual(left_forearm_pole["weight"], 10.0)
+        self.assertFalse(left_forearm_pole["analytic_jacobian"])
+        self.assertEqual(
+            left_forearm_pole["jacobian_schedule_reason"],
+            "disabled pending finite-difference validation of pole-vector analytic Jacobian",
+        )
         self.assertEqual(left_forearm_pole["priority_weight_band"], 10.0)
 
     def test_compiled_profile_registry_path_and_validation(self):

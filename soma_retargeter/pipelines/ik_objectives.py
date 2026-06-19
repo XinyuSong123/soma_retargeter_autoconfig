@@ -300,6 +300,67 @@ def _pole_vector_residuals(
 
 
 @wp.kernel
+def _pole_vector_jac_analytic(
+    parent_link_index: int,
+    middle_link_index: int,
+    child_link_index: int,
+    affects_parent_dof: wp.array1d(dtype=wp.uint8),
+    affects_middle_dof: wp.array1d(dtype=wp.uint8),
+    affects_child_dof: wp.array1d(dtype=wp.uint8),
+    body_q: wp.array2d(dtype=wp.transform),
+    joint_S_s: wp.array2d(dtype=wp.spatial_vector),
+    weight: wp.float32,
+    start_idx: int,
+    n_dofs: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem_idx, dof_idx = wp.tid()
+
+    affects_parent = affects_parent_dof[dof_idx] != 0
+    affects_middle = affects_middle_dof[dof_idx] != 0
+    affects_child = affects_child_dof[dof_idx] != 0
+    if not affects_parent and not affects_middle and not affects_child:
+        return
+
+    parent_tf = body_q[problem_idx, parent_link_index]
+    middle_tf = body_q[problem_idx, middle_link_index]
+    child_tf = body_q[problem_idx, child_link_index]
+    parent_pos = wp.vec3(parent_tf[0], parent_tf[1], parent_tf[2])
+    middle_pos = wp.vec3(middle_tf[0], middle_tf[1], middle_tf[2])
+    child_pos = wp.vec3(child_tf[0], child_tf[1], child_tf[2])
+
+    a = middle_pos - parent_pos
+    b = child_pos - middle_pos
+    normal = wp.cross(a, b)
+    length = wp.length(normal)
+    if length <= 1.0e-6:
+        return
+
+    current = normal / length
+    S = joint_S_s[problem_idx, dof_idx]
+    v_orig = wp.vec3(S[0], S[1], S[2])
+    omega = wp.vec3(S[3], S[4], S[5])
+    v_parent = wp.vec3(0.0, 0.0, 0.0)
+    v_middle = wp.vec3(0.0, 0.0, 0.0)
+    v_child = wp.vec3(0.0, 0.0, 0.0)
+    if affects_parent:
+        v_parent = v_orig + wp.cross(omega, parent_pos)
+    if affects_middle:
+        v_middle = v_orig + wp.cross(omega, middle_pos)
+    if affects_child:
+        v_child = v_orig + wp.cross(omega, child_pos)
+
+    da = v_middle - v_parent
+    db = v_child - v_middle
+    d_normal = wp.cross(da, b) + wp.cross(a, db)
+    projected = (d_normal - current * wp.dot(current, d_normal)) / length
+
+    jacobian[problem_idx, start_idx + 0, dof_idx] = -weight * projected[0]
+    jacobian[problem_idx, start_idx + 1, dof_idx] = -weight * projected[1]
+    jacobian[problem_idx, start_idx + 2, dof_idx] = -weight * projected[2]
+
+
+@wp.kernel
 def _autodiff_jac_fill(
     q_grad: wp.array2d(dtype=wp.float32),
     n_dofs: int,
@@ -982,25 +1043,68 @@ class IKObjectiveDirection(ik.IKObjective):
 class IKObjectivePoleVector(ik.IKObjective):
     """Bend-plane normal objective for parent-middle-child robot body triplets."""
 
-    def __init__(self, parent_link_index, middle_link_index, child_link_index, target_normals, weight=1.0):
+    def __init__(
+        self,
+        parent_link_index,
+        middle_link_index,
+        child_link_index,
+        target_normals,
+        weight=1.0,
+        analytic_jacobian=False,
+    ):
         super().__init__()
         self.parent_link_index = parent_link_index
         self.middle_link_index = middle_link_index
         self.child_link_index = child_link_index
         self.target_normals = target_normals
         self.weight = float(weight)
+        self.analytic_jacobian = bool(analytic_jacobian)
+        self.affects_parent_dof = None
+        self.affects_middle_dof = None
+        self.affects_child_dof = None
         self.e_arrays = None
 
     def init_buffers(self, model, jacobian_mode):
         self._require_batch_layout()
-        if jacobian_mode != IKJacobianType.AUTODIFF:
-            raise NotImplementedError("IKObjectivePoleVector requires autodiff Jacobian mode")
-        self.e_arrays = []
-        for component in range(3):
-            e = np.zeros((self.n_batch, self.total_residuals), dtype=np.float32)
-            for prob_idx in range(self.n_batch):
-                e[prob_idx, self.residual_offset + component] = 1.0
-            self.e_arrays.append(wp.array(e.flatten(), dtype=wp.float32, device=self.device))
+        use_analytic = self.analytic_jacobian and jacobian_mode in (IKJacobianType.ANALYTIC, IKJacobianType.MIXED)
+        if use_analytic:
+            joint_qd_start_np = model.joint_qd_start.numpy()
+            dof_to_joint_np = np.empty(joint_qd_start_np[-1], dtype=np.int32)
+            for j in range(len(joint_qd_start_np) - 1):
+                dof_to_joint_np[joint_qd_start_np[j]:joint_qd_start_np[j + 1]] = j
+
+            joint_child_np = model.joint_child.numpy()
+            body_to_joint_np = np.full(model.body_count, -1, np.int32)
+            for j in range(model.joint_count):
+                child = joint_child_np[j]
+                if child != -1:
+                    body_to_joint_np[child] = j
+
+            joint_parent_np = model.joint_parent.numpy()
+
+            def ancestor_dof_mask(link_index):
+                ancestors = np.zeros(model.joint_count, dtype=bool)
+                body = link_index
+                while body != -1:
+                    j = body_to_joint_np[body]
+                    if j != -1:
+                        ancestors[j] = True
+                    body = joint_parent_np[j] if j != -1 else -1
+                return wp.array(ancestors[dof_to_joint_np].astype(np.uint8), device=self.device)
+
+            self.affects_parent_dof = ancestor_dof_mask(self.parent_link_index)
+            self.affects_middle_dof = ancestor_dof_mask(self.middle_link_index)
+            self.affects_child_dof = ancestor_dof_mask(self.child_link_index)
+        else:
+            self.e_arrays = []
+            for component in range(3):
+                e = np.zeros((self.n_batch, self.total_residuals), dtype=np.float32)
+                for prob_idx in range(self.n_batch):
+                    e[prob_idx, self.residual_offset + component] = 1.0
+                self.e_arrays.append(wp.array(e.flatten(), dtype=wp.float32, device=self.device))
+
+    def supports_analytic(self):
+        return bool(self.analytic_jacobian)
 
     def residual_dim(self):
         return 3
@@ -1049,6 +1153,30 @@ class IKObjectivePoleVector(ik.IKObjective):
                 device=self.device,
             )
             tape.zero()
+
+    def compute_jacobian_analytic(self, body_q, joint_q, model, jacobian, joint_S_s, start_idx):
+        if self.affects_parent_dof is None or self.affects_middle_dof is None or self.affects_child_dof is None:
+            raise RuntimeError("IKObjectivePoleVector analytic buffers are not initialized")
+        n_dofs = model.joint_dof_count
+        wp.launch(
+            _pole_vector_jac_analytic,
+            dim=[body_q.shape[0], n_dofs],
+            inputs=[
+                self.parent_link_index,
+                self.middle_link_index,
+                self.child_link_index,
+                self.affects_parent_dof,
+                self.affects_middle_dof,
+                self.affects_child_dof,
+                body_q,
+                joint_S_s,
+                self.weight,
+                start_idx,
+                n_dofs,
+            ],
+            outputs=[jacobian],
+            device=self.device,
+        )
 
 
 class IKRangeNormalizedJointLimitBarrier(ik.IKObjective):

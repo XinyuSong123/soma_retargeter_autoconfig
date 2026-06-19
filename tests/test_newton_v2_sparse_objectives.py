@@ -101,6 +101,7 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
                     "source_semantic": "LeftForeArm",
                     "target_site": "LeftHand",
                     "weight": 10.0,
+                    "analytic_jacobian": False,
                 }
             ],
         }
@@ -109,7 +110,7 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
 
         self.assertEqual(
             pipe.mapped_body_link_pole_vector_data,
-            [(0, 1, 2, 0, 1, 2, 10.0, "LeftForeArm_pole_vector")],
+            [(0, 1, 2, 0, 1, 2, 10.0, "LeftForeArm_pole_vector", False)],
         )
 
     def test_rotation_target_projection_drops_unreachable_components(self):

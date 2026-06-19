@@ -985,6 +985,9 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
                 if analytic_direction_jacobian
                 else "disabled for single-axis torso profile to preserve bounded tracking"
             )
+        elif task_type == "pole_vector":
+            payload["analytic_jacobian"] = False
+            payload["jacobian_schedule_reason"] = "disabled pending finite-difference validation of pole-vector analytic Jacobian"
         out.append(payload)
     return out
 

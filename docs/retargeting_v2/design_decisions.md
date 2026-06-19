@@ -48,6 +48,18 @@ Risk: single-axis torso profiles still pay the autodiff cost, and pole-vector ob
 
 Verification: sparse-objective tests cover the analytic direction tuple wiring, registry tests assert the torso-rank schedule, and bounded artifacts show Unitree runtime improving while RPO tracking stays consistent with the single-axis baseline.
 
+## Pole Jacobian Gate
+
+Problem: pole-vector objectives still keep v2 on a mixed/autodiff Jacobian path, but enabling an unvalidated analytic pole Jacobian changes optimizer behavior.
+
+Decision: implement pole-vector analytic Jacobian support behind a per-task `analytic_jacobian` flag, and emit compiled runtime configs with the flag disabled by default.
+
+Reason: a bounded benchmark experiment showed direct analytic pole enablement lowered runtime substantially but regressed RPO and Unitree hand/foot/root gates. Preserving tracking correctness is more important than using the faster path before finite-difference validation.
+
+Risk: runtime remains above the report-only acceptance gate while pole objectives use autodiff.
+
+Verification: sparse-objective tests cover the pole task flag wiring, registry tests assert the disabled reason, and bounded artifacts record pole tasks as disabled pending finite-difference validation.
+
 ## Per-Environment Contact Weight
 
 Problem: shared contact weights break multi-env parity.
