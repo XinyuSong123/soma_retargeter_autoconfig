@@ -111,6 +111,39 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(metrics["velocity_p95"]["unit"], "actuated_joint_coord_per_s")
         self.assertEqual(metrics["root_velocity_p95"]["unit"], "root_coord_per_s")
 
+    def test_runtime_tracking_metrics_skip_initialization_and_stabilization_targets(self):
+        frames = np.zeros((2, 7), dtype=np.float32)
+        frames[:, 3:7] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+        buffer = type("B", (), {"data": frames, "sample_rate": 30.0})()
+        actual_positions = np.asarray([[1.0, 2.0, 3.0], [1.5, 2.0, 3.0]], dtype=np.float64)
+        target = np.zeros((4, 1, 7), dtype=np.float64)
+        target[:, :, 3:7] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+        target[0:2, 0, 0:3] = np.asarray([[20.0, 0.0, 0.0], [30.0, 0.0, 0.0]], dtype=np.float64)
+        target[2:, 0, 0:3] = actual_positions
+        pipeline = type(
+            "P",
+            (),
+            {
+                "ik_model": None,
+                "input_targets": [target],
+                "mapped_joints": ["LeftHand"],
+                "num_initialization_frames": 1,
+                "num_stabilization_frames": 1,
+            },
+        )()
+
+        with (
+            mock.patch("soma_retargeter.tools.benchmark_retargeting._joint_limit_margin", return_value=0.0),
+            mock.patch(
+                "soma_retargeter.tools.benchmark_retargeting._body_site_pose_trajectories",
+                return_value={"LeftHand": {"position": actual_positions}},
+            ),
+        ):
+            metrics = _runtime_metrics_for_buffer({"semantic_sites": {}}, pipeline, 0, buffer)
+
+        self.assertEqual(metrics["hand_position_rmse"]["status"], "ok")
+        self.assertAlmostEqual(metrics["hand_position_rmse"]["value"], 0.0)
+
     def test_registry_coverage_report_marks_missing_and_incomplete_targets(self):
         report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "e3_v2", "oli"))
         by_name = {entry["requested_name"]: entry for entry in report["robots"]}

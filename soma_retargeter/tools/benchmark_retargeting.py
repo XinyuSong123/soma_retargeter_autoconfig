@@ -706,6 +706,17 @@ def _tracking_rmse(targets: np.ndarray, actual: np.ndarray) -> float | None:
     return float(np.sqrt(np.mean(np.sum(residuals * residuals, axis=1))))
 
 
+def _aligned_runtime_target_frames(pipeline: Any, motion_index: int) -> np.ndarray | None:
+    input_targets = getattr(pipeline, "input_targets", [])
+    if motion_index >= len(input_targets):
+        return None
+    target_frames = np.asarray(input_targets[motion_index], dtype=np.float64)
+    leading_frames = int(getattr(pipeline, "num_initialization_frames", 0) or 0) + int(getattr(pipeline, "num_stabilization_frames", 0) or 0)
+    if leading_frames <= 0:
+        return target_frames
+    return target_frames[min(leading_frames, len(target_frames)) :]
+
+
 def _series_payload(values: list[float], *, unit: str, statistic: str = "p95", **extra: Any) -> dict[str, Any]:
     if not values:
         return {"status": "unavailable", **extra}
@@ -731,11 +742,10 @@ def _profile_runtime_residual_metrics(
     motion_index: int,
     semantic_pose: dict[str, dict[str, np.ndarray]],
 ) -> dict[str, Any]:
-    input_targets = getattr(pipeline, "input_targets", [])
     mapped_joints = list(getattr(pipeline, "mapped_joints", []))
-    if motion_index >= len(input_targets):
+    target_frames = _aligned_runtime_target_frames(pipeline, motion_index)
+    if target_frames is None:
         return {}
-    target_frames = np.asarray(input_targets[motion_index], dtype=np.float64)
 
     def target_position(semantic: str) -> np.ndarray | None:
         if semantic not in mapped_joints:
@@ -889,10 +899,9 @@ def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_i
         metrics["penetration"] = {"status": "unavailable", "reason": "semantic foot sites unavailable"}
         metrics["foot_slide"] = {"status": "unavailable", "reason": "semantic foot sites unavailable"}
 
-    input_targets = getattr(pipeline, "input_targets", [])
     mapped_joints = list(getattr(pipeline, "mapped_joints", []))
-    if motion_index < len(input_targets):
-        target_frames = np.asarray(input_targets[motion_index], dtype=np.float64)
+    target_frames = _aligned_runtime_target_frames(pipeline, motion_index)
+    if target_frames is not None:
         for metric_name, semantics in (
             ("hand_position_rmse", ("LeftHand", "RightHand")),
             ("foot_position_rmse", ("LeftFoot", "RightFoot")),
