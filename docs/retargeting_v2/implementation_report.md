@@ -52,7 +52,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest verified result: `76 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest verified result: `77 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 
@@ -66,11 +66,11 @@ Current artifact scope includes compile-level validation plus bounded runtime ro
 
 RoboParty RPO currently compiles with schema v2, `xyzw` quaternion order, confidence `1.0`, enabled sparse tasks, mesh-derived hand/foot virtual sites, virtual-foot-site root/ground metadata, mesh-derived self-collision metadata, morphology site-count metadata, matching cache fingerprints, and separated legacy/v2 bounded runtime metrics with profile task residuals, torso leakage residuals, and zero measured v2 penetration in the bounded sample.
 
-Unitree G1 currently produces a v2 artifact and separated legacy/v2 bounded runtime metrics. Generic `unitree_g1` now uses Newton's built-in 29DoF MJCF fallback when no local XML is registered, so its compiled profile has real morphology fingerprints, non-placeholder chain lengths, reachable chain ranks, and available torso residual metrics. The bounded sample still needs runtime acceptance work because v2 output remains static under full priority-guard rollback.
+Unitree G1 currently produces a v2 artifact and separated legacy/v2 bounded runtime metrics. Generic `unitree_g1` now uses Newton's built-in 29DoF MJCF fallback when no local XML is registered, so its compiled profile has real morphology fingerprints, non-placeholder chain lengths, reachable chain ranks, and available torso residual metrics. The bounded sample still needs runtime acceptance work because v2 output now moves but overshoots tracking and smoothness gates.
 
 Registry coverage currently reports RoboParty RPO and generic `unitree_g1` as `ready`; `unitree_g1_23dof`, `unitree_g1_29dof`, `e3_v2`, and `oli` remain `missing_registration`.
 
-Current bounded gate status is `failed`: RoboParty RPO and generic Unitree G1 pass the bounded tracking, penetration, and residual availability gates on the selected high-motion windows, but both still fail runtime-overhead gates. RPO v2 and Unitree G1 v2 both record full priority-guard rollback on the bounded run (`rollback_count=40` for 20 checked frames across two environments), explaining their static output.
+Current bounded gate status is `failed`: RoboParty RPO and generic Unitree G1 pass penetration and residual availability gates on the selected high-motion windows, and both now record zero priority-guard rollbacks while protecting hard joint-limit penetration. RPO v2 and Unitree G1 v2 still fail hand/foot tracking, velocity, acceleration, and runtime-overhead gates, so the next acceptance work is motion stabilization rather than static-output rollback.
 
 ## Remaining Work
 

@@ -151,6 +151,22 @@ class TestTemporalObjectives(unittest.TestCase):
         self.assertAlmostEqual(float(costs[0]), 0.0)
         self.assertGreater(float(costs[1]), 0.0)
 
+    def test_priority_guard_zero_margin_tracks_hard_limit_penetration_only(self):
+        costs = NewtonPipeline._joint_limit_guard_costs(
+            _GuardModel(),
+            np.array(
+                [
+                    [99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 0.99],
+                    [99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 99.0, 1.1],
+                ],
+                dtype=np.float32,
+            ),
+            margin_fraction=0.0,
+        )
+
+        self.assertAlmostEqual(float(costs[0]), 0.0)
+        self.assertGreater(float(costs[1]), 0.0)
+
     def test_priority_guard_rolls_back_only_when_protected_cost_regresses(self):
         self.assertTrue(
             np.array_equal(

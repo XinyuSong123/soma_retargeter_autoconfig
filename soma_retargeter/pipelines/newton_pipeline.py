@@ -90,7 +90,7 @@ class NewtonPipeline:
         )
         self.priority_residual_guard_tolerance = float(retargeter_config.get("priority_residual_guard_tolerance", 0.05))
         self.priority_residual_guard_absolute_tolerance = float(retargeter_config.get("priority_residual_guard_absolute_tolerance", 1.0e-5))
-        self.priority_residual_guard_margin_fraction = float(retargeter_config.get("priority_residual_guard_margin_fraction", 0.08))
+        self.priority_residual_guard_margin_fraction = float(retargeter_config.get("priority_residual_guard_margin_fraction", 0.0))
         self.post_processing_enabled = retargeter_config.get('enable_post_processing', True)
         self.virtual_foot_grounding_enabled = retargeter_config.get('enable_virtual_foot_grounding', True)
         self.virtual_foot_grounding_smooth_window = max(
@@ -325,7 +325,7 @@ class NewtonPipeline:
             self.priority_guard_report = {
                 "enabled": bool(self.priority_residual_guard_enabled),
                 "protected_priority": 0,
-                "protected_residual": "joint_limit_margin",
+                "protected_residual": "joint_limit_margin" if self.priority_residual_guard_margin_fraction > 0.0 else "joint_limit_penetration",
                 "rollback_count": 0,
                 "checked_frames": 0,
                 "max_allowed": 0.0,
@@ -456,6 +456,11 @@ class NewtonPipeline:
                     single_step()
 
                 if self.priority_residual_guard_enabled:
+                    # Match the guarded state to the state that will be emitted and
+                    # used as the next solve seed. The IK step can overshoot limits
+                    # transiently; final joint-limit clamping is the runtime safety
+                    # boundary.
+                    self.joint_limit_clamper.apply(joint_q)
                     guard_after_q = joint_q.numpy()
                     guard_after_cost = self._joint_limit_guard_costs(
                         self.ik_model,
@@ -895,12 +900,22 @@ class NewtonPipeline:
                 if coord_idx >= n_coords or dof_idx >= len(lower):
                     continue
                 for env in range(n_envs):
-                    residuals[env, coord_idx] = range_normalized_joint_limit_barrier(
-                        joint_q_frames[env, coord_idx],
-                        lower[dof_idx],
-                        upper[dof_idx],
-                        margin_fraction,
-                    )[0]
+                    if margin_fraction <= 0.0:
+                        span = float(upper[dof_idx] - lower[dof_idx])
+                        if not np.isfinite(span) or span <= 1.0e-8 or span > 1.0e5:
+                            continue
+                        q = float(joint_q_frames[env, coord_idx])
+                        if q < float(lower[dof_idx]):
+                            residuals[env, coord_idx] = (q - float(lower[dof_idx])) / span
+                        elif q > float(upper[dof_idx]):
+                            residuals[env, coord_idx] = (q - float(upper[dof_idx])) / span
+                    else:
+                        residuals[env, coord_idx] = range_normalized_joint_limit_barrier(
+                            joint_q_frames[env, coord_idx],
+                            lower[dof_idx],
+                            upper[dof_idx],
+                            margin_fraction,
+                        )[0]
         residuals[:, : min(7, n_coords)] = 0.0
         return residuals
 
