@@ -20,6 +20,7 @@ RPO_POSE_PAIR_ROOT = CONFIG_ROOT / "roboparty_rpo" / "pose_pairs"
 
 # xml路径
 ROBOT_XML_DICT = {
+    "e3_v2": ROBOT_ROOT / "e3_v2_synthetic" / "mjcf" / "e3_v2_synthetic.xml",
     "roboparty_rpo": ROBOT_ROOT / "atom01" / "mjcf" / "atom01.xml",
     # unitree_g1 can use Newton's built-in asset when left unregistered here.
 }
@@ -31,6 +32,7 @@ ROBOT_URDF_DICT = {
 
 # 重定向配置路径，把骨架的不同部位映射到机器人对应的link
 RETARGETER_CONFIG_DICT = {
+    "e3_v2": CONFIG_ROOT / "e3_v2" / "soma_to_e3_v2_retargeter_config.json",
     "unitree_g1": CONFIG_ROOT / "unitree_g1" / "soma_to_g1_retargeter_config.json",
     "unitree_g1_23dof": CONFIG_ROOT / "unitree_g1_23dof" / "soma_to_g1_23dof_retargeter_config.json",
     "roboparty_rpo": CONFIG_ROOT / "roboparty_rpo" / "soma_to_rpo_retargeter_config.json",
@@ -48,6 +50,7 @@ POSE_PAIR_JSON_DICT["my_robot"] = {
 可以先只注册T-pose，然后测试一下重定向效果，效果不好再多注册一些其他姿态对。
 '''
 POSE_PAIR_JSON_DICT = {
+    "e3_v2": {},
     "unitree_g1": {},
     "unitree_g1_23dof": {},
     "roboparty_rpo": {

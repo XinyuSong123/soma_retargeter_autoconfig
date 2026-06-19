@@ -262,6 +262,14 @@ def _coverage_entry(robot_name: str) -> dict[str, Any]:
         },
         "compiled_profile": compiled_payload,
     }
+    if registered and retargeter_path is not None and retargeter_path.exists():
+        try:
+            raw_config = json.loads(retargeter_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            raw_config = {}
+        if isinstance(raw_config, dict) and raw_config.get("synthetic_fixture"):
+            entry["asset_kind"] = "synthetic_fixture"
+            entry["asset_note"] = str(raw_config.get("synthetic_fixture_reason", "synthetic capability fixture"))
     if not registered:
         entry["onboarding_report"] = _missing_robot_onboarding_report(robot_name)
     return entry

@@ -83,15 +83,15 @@
             "v2_value": 578.4852183018215
           },
           {
-            "allowed_max": 1.0845086025074124,
-            "delta": 3.45319951698184,
-            "legacy_value": 0.86760688200593,
+            "allowed_max": 1.2494037067517638,
+            "delta": 3.232555363327265,
+            "legacy_value": 0.9995229654014111,
             "metric": "runtime_seconds.motion_runtime",
             "rule": "relative_not_worse",
             "status": "failed",
             "tolerance": 0.25,
             "unit": "s",
-            "v2_value": 4.32080639898777
+            "v2_value": 4.232078328728676
           }
         ],
         "passed_count": 5,
@@ -180,19 +180,116 @@
             "v2_value": 863.5041694473578
           },
           {
-            "allowed_max": 1.22951396740973,
-            "delta": 3.7310831248760223,
-            "legacy_value": 0.983611173927784,
+            "allowed_max": 1.2192869512364268,
+            "delta": 3.69606713950634,
+            "legacy_value": 0.9754295609891415,
             "metric": "runtime_seconds.motion_runtime",
             "rule": "relative_not_worse",
             "status": "failed",
             "tolerance": 0.25,
             "unit": "s",
-            "v2_value": 4.714694298803806
+            "v2_value": 4.6714967004954815
           }
         ],
         "passed_count": 7,
         "robot": "unitree_g1",
+        "status": "failed",
+        "unavailable_count": 0
+      },
+      {
+        "failed_count": 2,
+        "gates": [
+          {
+            "allowed_max": 0.17553922604967082,
+            "delta": -0.17552920697618446,
+            "legacy_value": 0.1755292260496708,
+            "metric": "penetration",
+            "rule": "not_increase",
+            "status": "passed",
+            "tolerance": 1e-05,
+            "unit": "m",
+            "v2_value": 1.907348634588857e-08
+          },
+          {
+            "allowed_max": 1.1448061222689025,
+            "delta": -0.30144660188033,
+            "legacy_value": 1.1448061222689025,
+            "metric": "root_tilt",
+            "rule": "not_increase",
+            "status": "passed",
+            "tolerance": 0.0,
+            "unit": "rad",
+            "v2_value": 0.8433595203885725
+          },
+          {
+            "allowed_max": 1.089121637278894,
+            "delta": -0.619322596239088,
+            "legacy_value": 1.089121637278894,
+            "metric": "torso_unreachable_residual",
+            "rule": "not_increase",
+            "status": "passed",
+            "tolerance": 0.0,
+            "unit": "rad",
+            "v2_value": 0.469799041039806
+          },
+          {
+            "allowed_max": 0.6194535046390992,
+            "delta": 0.6055135029718304,
+            "legacy_value": 0.589955718703904,
+            "metric": "hand_position_rmse",
+            "rule": "relative_not_worse",
+            "status": "failed",
+            "tolerance": 0.05,
+            "unit": "m",
+            "v2_value": 1.1954692216757343
+          },
+          {
+            "allowed_max": 0.4431383410432749,
+            "delta": -0.0016312160369379436,
+            "legacy_value": 0.4220365152793094,
+            "metric": "foot_position_rmse",
+            "rule": "relative_not_worse",
+            "status": "passed",
+            "tolerance": 0.05,
+            "unit": "m",
+            "v2_value": 0.42040529924237147
+          },
+          {
+            "allowed_max": 32.72635661874438,
+            "delta": -23.48001247303705,
+            "legacy_value": 32.72635661874438,
+            "metric": "velocity_p95",
+            "rule": "not_increase",
+            "status": "passed",
+            "tolerance": 0.0,
+            "unit": "actuated_joint_coord_per_s",
+            "v2_value": 9.246344145707335
+          },
+          {
+            "allowed_max": 3424.279990475161,
+            "delta": -3148.277470086608,
+            "legacy_value": 3424.279990475161,
+            "metric": "acceleration_p95",
+            "rule": "not_increase",
+            "status": "passed",
+            "tolerance": 0.0,
+            "unit": "actuated_joint_coord_per_s2",
+            "v2_value": 276.00252038855285
+          },
+          {
+            "allowed_max": 0.834819758310914,
+            "delta": 3.160288479179144,
+            "legacy_value": 0.6678558066487312,
+            "metric": "runtime_seconds.motion_runtime",
+            "rule": "relative_not_worse",
+            "status": "failed",
+            "tolerance": 0.25,
+            "unit": "s",
+            "v2_value": 3.828144285827875
+          }
+        ],
+        "passed_count": 6,
+        "robot": "e3_v2",
         "status": "failed",
         "unavailable_count": 0
       }
@@ -200,7 +297,7 @@
     "schema_version": 1,
     "status": "failed",
     "status_counts": {
-      "failed": 2
+      "failed": 3
     },
     "strict": false
   },
@@ -219,6 +316,11 @@
       "failed_count": 1,
       "path": "failures/unitree_g1_gates.json",
       "robot": "unitree_g1"
+    },
+    {
+      "failed_count": 2,
+      "path": "failures/e3_v2_gates.json",
+      "robot": "e3_v2"
     }
   ],
   "metric_names": [
@@ -246,6 +348,7 @@
   ],
   "registry_coverage": {
     "registered_robots": [
+      "e3_v2",
       "roboparty_rpo",
       "unitree_g1",
       "unitree_g1_23dof"
@@ -372,67 +475,77 @@
         "status": "ready"
       },
       {
-        "blockers": [
-          "missing_registration"
-        ],
+        "asset_kind": "synthetic_fixture",
+        "asset_note": "Capability coverage for E3 v2 minimal-map autoconfig until licensed robot assets are registered.",
+        "blockers": [],
         "compiled_profile": {
-          "compiler_version": null,
+          "compiler_version": "2.1.4",
           "diagnostics": [],
-          "exists": false,
-          "path": null,
-          "robot_fingerprint": null,
-          "schema_version": null,
-          "warnings": []
-        },
-        "onboarding_report": {
-          "minimal_semantic_ik_map_template": {
-            "Chest": "<torso_body>",
-            "Hips": "<pelvis_or_base_body>",
-            "LeftFoot": "<left_foot_or_ankle_body>",
-            "LeftHand": "<left_hand_or_forearm_distal_body>",
-            "RightFoot": "<right_foot_or_ankle_body>",
-            "RightHand": "<right_hand_or_forearm_distal_body>"
-          },
-          "next_commands": [
-            "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --validate-only",
-            "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --force",
-            "python -m soma_retargeter.tools.benchmark_retargeting --robots e3_v2 --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
-          ],
-          "notes": [
-            "Do not fabricate robot assets or download unlicensed files.",
-            "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
-            "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
-          ],
-          "params_py_entries": [
-            "ROBOT_XML_DICT['e3_v2']",
-            "RETARGETER_CONFIG_DICT['e3_v2']",
-            "ROBOT_URDF_DICT['e3_v2'] optional"
-          ],
-          "required_files": {
-            "mjcf_or_xml": "assets/robots/e3_v2/mjcf/<robot>.xml",
-            "retargeter_config": "soma_retargeter/configs/e3_v2/soma_to_e3_v2_retargeter_config.json",
-            "urdf_optional": "assets/robots/e3_v2/urdf/<robot>.urdf"
-          },
-          "status": "missing_assets_or_registration"
+          "exists": true,
+          "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/e3_v2_compiled_retarget_profile_v2.json",
+          "robot_fingerprint": "627f2a31ffd01afd7c82a56153899f05affff922e5e44075091e51264a6ca8d7",
+          "schema_version": 2,
+          "warnings": [
+            {
+              "body": "left_shoulder_pitch_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "LeftArm"
+            },
+            {
+              "body": "left_forearm_distal_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "LeftHand"
+            },
+            {
+              "body": "left_hip_pitch_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "LeftLeg"
+            },
+            {
+              "body": "left_knee_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "LeftShin"
+            },
+            {
+              "body": "right_shoulder_pitch_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "RightArm"
+            },
+            {
+              "body": "right_forearm_distal_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "RightHand"
+            },
+            {
+              "body": "right_hip_pitch_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "RightLeg"
+            },
+            {
+              "body": "right_knee_link",
+              "code": "collision_proxy_from_chain_length",
+              "semantic": "RightShin"
+            }
+          ]
         },
         "paths": {
           "mjcf_path": {
-            "exists": false,
-            "path": null
+            "exists": true,
+            "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/robots/e3_v2_synthetic/mjcf/e3_v2_synthetic.xml"
           },
           "retargeter_config": {
-            "exists": false,
-            "path": null
+            "exists": true,
+            "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_retargeter_config.json"
           },
           "urdf_path": {
             "exists": false,
             "path": null
           }
         },
-        "registered": false,
+        "registered": true,
         "requested_name": "e3_v2",
         "resolved_name": "e3_v2",
-        "status": "missing_registration"
+        "status": "ready"
       },
       {
         "blockers": [
@@ -500,8 +613,8 @@
     ],
     "schema_version": 1,
     "status_counts": {
-      "missing_registration": 2,
-      "ready": 4
+      "missing_registration": 1,
+      "ready": 5
     },
     "targets": [
       "roboparty_rpo",
@@ -783,16 +896,16 @@
               "value": 2.317901325736721
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8282952085137367,
-              "compile_profile": 0.04157435894012451,
-              "metric_runtime": 0.33516252785921097,
+              "bvh_load_runtime": 0.8110932111740112,
+              "compile_profile": 0.04301472008228302,
+              "metric_runtime": 0.39525777846574783,
               "motion_count": 2,
-              "motion_runtime": 0.86760688200593,
+              "motion_runtime": 0.9995229654014111,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 5.124563749879599,
-              "solve_fps": 187.03629570380454,
-              "solve_runtime": 0.8554489351809025,
-              "target_setup_runtime": 0.012157946825027466
+              "pipeline_construct_runtime": 5.172520067542791,
+              "solve_fps": 162.13508106844094,
+              "solve_runtime": 0.9868314675986767,
+              "target_setup_runtime": 0.012691497802734375
             },
             "solver_iterations": {
               "status": "ok",
@@ -1637,15 +1750,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8282952085137367,
-              "metric_runtime": 0.33516252785921097,
+              "bvh_load_runtime": 0.8110932111740112,
+              "metric_runtime": 0.39525777846574783,
               "motion_count": 2,
-              "motion_runtime": 0.86760688200593,
+              "motion_runtime": 0.9995229654014111,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 5.124563749879599,
-              "solve_fps": 187.03629570380454,
-              "solve_runtime": 0.8554489351809025,
-              "target_setup_runtime": 0.012157946825027466
+              "pipeline_construct_runtime": 5.172520067542791,
+              "solve_fps": 162.13508106844094,
+              "solve_runtime": 0.9868314675986767,
+              "target_setup_runtime": 0.012691497802734375
             },
             "solver_objectives": {
               "active_objectives": 30,
@@ -1898,16 +2011,16 @@
               "value": 12.469712330145324
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.781804796308279,
-              "compile_profile": 0.04157435894012451,
-              "metric_runtime": 0.3470854088664055,
+              "bvh_load_runtime": 1.0519085638225079,
+              "compile_profile": 0.04301472008228302,
+              "metric_runtime": 0.3267487958073616,
               "motion_count": 2,
-              "motion_runtime": 4.32080639898777,
+              "motion_runtime": 4.232078328728676,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.379288822412491,
-              "solve_fps": 39.30256779631327,
-              "solve_runtime": 4.070980828255415,
-              "target_setup_runtime": 0.24982557073235512
+              "pipeline_construct_runtime": 4.534568067640066,
+              "solve_fps": 40.16691067385637,
+              "solve_runtime": 3.983378291130066,
+              "target_setup_runtime": 0.24870003759860992
             },
             "solver_iterations": {
               "status": "ok",
@@ -2761,15 +2874,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.781804796308279,
-              "metric_runtime": 0.3470854088664055,
+              "bvh_load_runtime": 1.0519085638225079,
+              "metric_runtime": 0.3267487958073616,
               "motion_count": 2,
-              "motion_runtime": 4.32080639898777,
+              "motion_runtime": 4.232078328728676,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.379288822412491,
-              "solve_fps": 39.30256779631327,
-              "solve_runtime": 4.070980828255415,
-              "target_setup_runtime": 0.24982557073235512
+              "pipeline_construct_runtime": 4.534568067640066,
+              "solve_fps": 40.16691067385637,
+              "solve_runtime": 3.983378291130066,
+              "target_setup_runtime": 0.24870003759860992
             },
             "solver_objectives": {
               "active_objectives": 24,
@@ -3022,16 +3135,16 @@
               "value": 11.469572832184026
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8302604742348194,
-              "compile_profile": 0.04157435894012451,
-              "metric_runtime": 0.3486339636147022,
+              "bvh_load_runtime": 0.866933099925518,
+              "compile_profile": 0.04301472008228302,
+              "metric_runtime": 0.32653922960162163,
               "motion_count": 2,
-              "motion_runtime": 2.408014427870512,
+              "motion_runtime": 2.3641564585268497,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.3614935502409935,
-              "solve_fps": 73.84863548605092,
-              "solve_runtime": 2.1665938571095467,
-              "target_setup_runtime": 0.24142057076096535
+              "pipeline_construct_runtime": 4.2909956350922585,
+              "solve_fps": 75.22991419475139,
+              "solve_runtime": 2.1268135383725166,
+              "target_setup_runtime": 0.23734292015433311
             },
             "solver_iterations": {
               "status": "ok",
@@ -3885,15 +3998,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8302604742348194,
-              "metric_runtime": 0.3486339636147022,
+              "bvh_load_runtime": 0.866933099925518,
+              "metric_runtime": 0.32653922960162163,
               "motion_count": 2,
-              "motion_runtime": 2.408014427870512,
+              "motion_runtime": 2.3641564585268497,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.3614935502409935,
-              "solve_fps": 73.84863548605092,
-              "solve_runtime": 2.1665938571095467,
-              "target_setup_runtime": 0.24142057076096535
+              "pipeline_construct_runtime": 4.2909956350922585,
+              "solve_fps": 75.22991419475139,
+              "solve_runtime": 2.1268135383725166,
+              "target_setup_runtime": 0.23734292015433311
             },
             "solver_objectives": {
               "active_objectives": 24,
@@ -4148,16 +4261,16 @@
           "value": 12.469712330145324
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.781804796308279,
-          "compile_profile": 0.04157435894012451,
-          "metric_runtime": 0.3470854088664055,
+          "bvh_load_runtime": 1.0519085638225079,
+          "compile_profile": 0.04301472008228302,
+          "metric_runtime": 0.3267487958073616,
           "motion_count": 2,
-          "motion_runtime": 4.32080639898777,
+          "motion_runtime": 4.232078328728676,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.379288822412491,
-          "solve_fps": 39.30256779631327,
-          "solve_runtime": 4.070980828255415,
-          "target_setup_runtime": 0.24982557073235512
+          "pipeline_construct_runtime": 4.534568067640066,
+          "solve_fps": 40.16691067385637,
+          "solve_runtime": 3.983378291130066,
+          "target_setup_runtime": 0.24870003759860992
         },
         "solver_iterations": {
           "status": "ok",
@@ -5011,15 +5124,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.781804796308279,
-          "metric_runtime": 0.3470854088664055,
+          "bvh_load_runtime": 1.0519085638225079,
+          "metric_runtime": 0.3267487958073616,
           "motion_count": 2,
-          "motion_runtime": 4.32080639898777,
+          "motion_runtime": 4.232078328728676,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.379288822412491,
-          "solve_fps": 39.30256779631327,
-          "solve_runtime": 4.070980828255415,
-          "target_setup_runtime": 0.24982557073235512
+          "pipeline_construct_runtime": 4.534568067640066,
+          "solve_fps": 40.16691067385637,
+          "solve_runtime": 3.983378291130066,
+          "target_setup_runtime": 0.24870003759860992
         },
         "solver_objectives": {
           "active_objectives": 24,
@@ -5343,16 +5456,16 @@
               "value": 2.532490246215586
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8356500901281834,
-              "compile_profile": 0.0396394245326519,
-              "metric_runtime": 0.34641971811652184,
+              "bvh_load_runtime": 0.8665009364485741,
+              "compile_profile": 0.0393790528178215,
+              "metric_runtime": 0.3475511968135834,
               "motion_count": 2,
-              "motion_runtime": 0.983611173927784,
+              "motion_runtime": 0.9754295609891415,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.489309370517731,
-              "solve_fps": 164.1513455284405,
-              "solve_runtime": 0.9747102558612823,
-              "target_setup_runtime": 0.008900918066501617
+              "pipeline_construct_runtime": 4.583951972424984,
+              "solve_fps": 165.5978798899137,
+              "solve_runtime": 0.9661959446966648,
+              "target_setup_runtime": 0.009233616292476654
             },
             "solver_iterations": {
               "status": "ok",
@@ -6197,15 +6310,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.8356500901281834,
-              "metric_runtime": 0.34641971811652184,
+              "bvh_load_runtime": 0.8665009364485741,
+              "metric_runtime": 0.3475511968135834,
               "motion_count": 2,
-              "motion_runtime": 0.983611173927784,
+              "motion_runtime": 0.9754295609891415,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.489309370517731,
-              "solve_fps": 164.1513455284405,
-              "solve_runtime": 0.9747102558612823,
-              "target_setup_runtime": 0.008900918066501617
+              "pipeline_construct_runtime": 4.583951972424984,
+              "solve_fps": 165.5978798899137,
+              "solve_runtime": 0.9661959446966648,
+              "target_setup_runtime": 0.009233616292476654
             },
             "solver_objectives": {
               "active_objectives": 30,
@@ -6458,16 +6571,16 @@
               "value": 8.111093106011701
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.9241093993186951,
-              "compile_profile": 0.0396394245326519,
-              "metric_runtime": 0.337958924472332,
+              "bvh_load_runtime": 0.9664144515991211,
+              "compile_profile": 0.0393790528178215,
+              "metric_runtime": 0.3467966839671135,
               "motion_count": 2,
-              "motion_runtime": 4.714694298803806,
+              "motion_runtime": 4.6714967004954815,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.1923237182199955,
-              "solve_fps": 35.81158231600428,
-              "solve_runtime": 4.467828273773193,
-              "target_setup_runtime": 0.24686602503061295
+              "pipeline_construct_runtime": 4.2470324113965034,
+              "solve_fps": 36.07062992512824,
+              "solve_runtime": 4.435741774737835,
+              "target_setup_runtime": 0.23575492575764656
             },
             "solver_iterations": {
               "status": "ok",
@@ -7321,15 +7434,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.9241093993186951,
-              "metric_runtime": 0.337958924472332,
+              "bvh_load_runtime": 0.9664144515991211,
+              "metric_runtime": 0.3467966839671135,
               "motion_count": 2,
-              "motion_runtime": 4.714694298803806,
+              "motion_runtime": 4.6714967004954815,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.1923237182199955,
-              "solve_fps": 35.81158231600428,
-              "solve_runtime": 4.467828273773193,
-              "target_setup_runtime": 0.24686602503061295
+              "pipeline_construct_runtime": 4.2470324113965034,
+              "solve_fps": 36.07062992512824,
+              "solve_runtime": 4.435741774737835,
+              "target_setup_runtime": 0.23575492575764656
             },
             "solver_objectives": {
               "active_objectives": 24,
@@ -7583,16 +7696,16 @@
               "value": 71.6230293275954
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.9725765623152256,
-              "compile_profile": 0.0396394245326519,
-              "metric_runtime": 0.3372002877295017,
+              "bvh_load_runtime": 1.0171420648694038,
+              "compile_profile": 0.0393790528178215,
+              "metric_runtime": 0.33345748856663704,
               "motion_count": 2,
-              "motion_runtime": 1.0403793640434742,
+              "motion_runtime": 0.9274798631668091,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.23494454100728,
-              "solve_fps": 206.87067070154404,
-              "solve_runtime": 0.7734300829470158,
-              "target_setup_runtime": 0.26694928109645844
+              "pipeline_construct_runtime": 4.083603873848915,
+              "solve_fps": 231.56549511120542,
+              "solve_runtime": 0.6909492276608944,
+              "target_setup_runtime": 0.2365306355059147
             },
             "solver_iterations": {
               "status": "ok",
@@ -8448,15 +8561,15 @@
               "rollback_count": 0
             },
             "runtime_seconds": {
-              "bvh_load_runtime": 0.9725765623152256,
-              "metric_runtime": 0.3372002877295017,
+              "bvh_load_runtime": 1.0171420648694038,
+              "metric_runtime": 0.33345748856663704,
               "motion_count": 2,
-              "motion_runtime": 1.0403793640434742,
+              "motion_runtime": 0.9274798631668091,
               "output_frame_count": 160,
-              "pipeline_construct_runtime": 4.23494454100728,
-              "solve_fps": 206.87067070154404,
-              "solve_runtime": 0.7734300829470158,
-              "target_setup_runtime": 0.26694928109645844
+              "pipeline_construct_runtime": 4.083603873848915,
+              "solve_fps": 231.56549511120542,
+              "solve_runtime": 0.6909492276608944,
+              "target_setup_runtime": 0.2365306355059147
             },
             "solver_objectives": {
               "active_objectives": 24,
@@ -8711,16 +8824,16 @@
           "value": 8.111093106011701
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.9241093993186951,
-          "compile_profile": 0.0396394245326519,
-          "metric_runtime": 0.337958924472332,
+          "bvh_load_runtime": 0.9664144515991211,
+          "compile_profile": 0.0393790528178215,
+          "metric_runtime": 0.3467966839671135,
           "motion_count": 2,
-          "motion_runtime": 4.714694298803806,
+          "motion_runtime": 4.6714967004954815,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.1923237182199955,
-          "solve_fps": 35.81158231600428,
-          "solve_runtime": 4.467828273773193,
-          "target_setup_runtime": 0.24686602503061295
+          "pipeline_construct_runtime": 4.2470324113965034,
+          "solve_fps": 36.07062992512824,
+          "solve_runtime": 4.435741774737835,
+          "target_setup_runtime": 0.23575492575764656
         },
         "solver_iterations": {
           "status": "ok",
@@ -9574,15 +9687,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.9241093993186951,
-          "metric_runtime": 0.337958924472332,
+          "bvh_load_runtime": 0.9664144515991211,
+          "metric_runtime": 0.3467966839671135,
           "motion_count": 2,
-          "motion_runtime": 4.714694298803806,
+          "motion_runtime": 4.6714967004954815,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.1923237182199955,
-          "solve_fps": 35.81158231600428,
-          "solve_runtime": 4.467828273773193,
-          "target_setup_runtime": 0.24686602503061295
+          "pipeline_construct_runtime": 4.2470324113965034,
+          "solve_fps": 36.07062992512824,
+          "solve_runtime": 4.435741774737835,
+          "target_setup_runtime": 0.23575492575764656
         },
         "solver_objectives": {
           "active_objectives": 24,
@@ -9639,11 +9752,4625 @@
         "enabled": 22
       },
       "warnings": []
+    },
+    {
+      "chain_summary": {
+        "count": 14,
+        "max_total_length": 0.4280073525436772,
+        "min_total_length": 1e-06,
+        "rotational_ranks": {
+          "Chest": 2,
+          "Hips": 0,
+          "LeftArm": 1,
+          "LeftFoot": 1,
+          "LeftForeArm": 2,
+          "LeftHand": 0,
+          "LeftLeg": 1,
+          "LeftShin": 1,
+          "RightArm": 1,
+          "RightFoot": 1,
+          "RightForeArm": 2,
+          "RightHand": 0,
+          "RightLeg": 1,
+          "RightShin": 1
+        },
+        "translational_ranks": {
+          "Chest": 0,
+          "Hips": 0,
+          "LeftArm": 0,
+          "LeftFoot": 1,
+          "LeftForeArm": 0,
+          "LeftHand": 0,
+          "LeftLeg": 0,
+          "LeftShin": 0,
+          "RightArm": 0,
+          "RightFoot": 1,
+          "RightForeArm": 0,
+          "RightHand": 0,
+          "RightLeg": 0,
+          "RightShin": 0
+        }
+      },
+      "collision_summary": {
+        "enabled": true,
+        "margin": 0.03,
+        "pair_count": 17,
+        "proxy_count": 11,
+        "runtime_barrier": "sphere_pair_optional"
+      },
+      "compare_modes": [
+        "legacy",
+        "v2",
+        "v2_pole_analytic"
+      ],
+      "compare_results": {
+        "legacy": {
+          "metrics": {
+            "acceleration_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 3424.279990475161
+            },
+            "confidence": 1.0,
+            "fallback_counts": {
+              "pole_vector": [],
+              "status": "ok"
+            },
+            "foot_position_rmse": {
+              "aggregation": "mean",
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.2622069778862647,
+                0.21853935403706407,
+                0.20475284658867468
+              ],
+              "by_semantic": {
+                "LeftFoot": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.26458219103672087,
+                    0.35197164891882504,
+                    0.2033110749709921
+                  ],
+                  "mean_error": [
+                    -0.21101154417074933,
+                    0.29358501241326035,
+                    0.0695797701298454
+                  ],
+                  "p95_abs_error": [
+                    0.4402967512257252,
+                    0.5159305533836921,
+                    0.35354876941896674
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.5001682754384656
+                },
+                "RightFoot": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.25983176473580843,
+                    0.08510705915530309,
+                    0.2061946182063573
+                  ],
+                  "mean_error": [
+                    -0.14351562586166935,
+                    0.07448242122737846,
+                    -0.17287983782324273
+                  ],
+                  "p95_abs_error": [
+                    0.30911913115571643,
+                    0.12015032182339798,
+                    0.3640309974425072
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.343904755120153
+                }
+              },
+              "mean_error": [
+                -0.17726358501620934,
+                0.1840337168203194,
+                -0.051650033846698674
+              ],
+              "motion_count": 2,
+              "p95_abs_error": [
+                0.3747079411907208,
+                0.31804043760354506,
+                0.358789883430737
+              ],
+              "sample_count": 320,
+              "status": "ok",
+              "value": 0.4220365152793094
+            },
+            "foot_slide": {
+              "aggregation": "mean",
+              "motion_count": 1,
+              "status": "ok",
+              "value": 3.0066713047801867
+            },
+            "hand_position_rmse": {
+              "aggregation": "mean",
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.2660961285471387,
+                0.2808514897773667,
+                0.4009478362425975
+              ],
+              "by_semantic": {
+                "LeftHand": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.23922470783452998,
+                    0.11870775545208165,
+                    0.44488128429961316
+                  ],
+                  "mean_error": [
+                    -0.016437957622637812,
+                    -0.07315160338724919,
+                    0.3826201572871981
+                  ],
+                  "p95_abs_error": [
+                    0.3522120904697142,
+                    0.2133274965821444,
+                    0.5822689413359396
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.5393518133981883
+                },
+                "RightHand": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.2929675492597474,
+                    0.4429952241026518,
+                    0.35701438818558195
+                  ],
+                  "mean_error": [
+                    0.2649615163354845,
+                    0.015775383072030524,
+                    -0.1550747170426713
+                  ],
+                  "p95_abs_error": [
+                    0.40111327840098276,
+                    0.6236743205950162,
+                    0.5886266689486161
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.6405596240096196
+                }
+              },
+              "mean_error": [
+                0.12426177935642331,
+                -0.028688110157609324,
+                0.1137727201222634
+              ],
+              "motion_count": 2,
+              "p95_abs_error": [
+                0.37666268443534845,
+                0.41850090858858024,
+                0.5854478051422779
+              ],
+              "sample_count": 320,
+              "status": "ok",
+              "value": 0.589955718703904
+            },
+            "joint_limit_margin": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.0792688570579266
+            },
+            "penetration": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.1755292260496708
+            },
+            "root_acceleration_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 164.89395838418895
+            },
+            "root_tilt": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 1.1448061222689025
+            },
+            "root_velocity_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 2.4539144879958434
+            },
+            "runtime_seconds": {
+              "bvh_load_runtime": 0.9296321235597134,
+              "compile_profile": 0.010335680097341537,
+              "metric_runtime": 0.3267280273139477,
+              "motion_count": 2,
+              "motion_runtime": 0.6678558066487312,
+              "output_frame_count": 160,
+              "pipeline_construct_runtime": 0.03975178673863411,
+              "solve_fps": 242.9710841276955,
+              "solve_runtime": 0.6585145741701126,
+              "target_setup_runtime": 0.009341232478618622
+            },
+            "solver_iterations": {
+              "status": "ok",
+              "value": 24.0
+            },
+            "task_residual_by_type_priority": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 1.8517574693229903
+            },
+            "torso_reachable_residual": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.7285562243354115
+            },
+            "torso_unreachable_residual": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 1.089121637278894
+            },
+            "velocity_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 32.72635661874438
+            },
+            "warnings": 8
+          },
+          "motion_benchmark": {
+            "compare_mode": "legacy",
+            "metrics": {
+              "acceleration_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 3424.279990475161
+              },
+              "fallback_counts": {
+                "pole_vector": [],
+                "status": "ok"
+              },
+              "foot_position_rmse": {
+                "aggregation": "mean",
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.2622069778862647,
+                  0.21853935403706407,
+                  0.20475284658867468
+                ],
+                "by_semantic": {
+                  "LeftFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.26458219103672087,
+                      0.35197164891882504,
+                      0.2033110749709921
+                    ],
+                    "mean_error": [
+                      -0.21101154417074933,
+                      0.29358501241326035,
+                      0.0695797701298454
+                    ],
+                    "p95_abs_error": [
+                      0.4402967512257252,
+                      0.5159305533836921,
+                      0.35354876941896674
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5001682754384656
+                  },
+                  "RightFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.25983176473580843,
+                      0.08510705915530309,
+                      0.2061946182063573
+                    ],
+                    "mean_error": [
+                      -0.14351562586166935,
+                      0.07448242122737846,
+                      -0.17287983782324273
+                    ],
+                    "p95_abs_error": [
+                      0.30911913115571643,
+                      0.12015032182339798,
+                      0.3640309974425072
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.343904755120153
+                  }
+                },
+                "mean_error": [
+                  -0.17726358501620934,
+                  0.1840337168203194,
+                  -0.051650033846698674
+                ],
+                "motion_count": 2,
+                "p95_abs_error": [
+                  0.3747079411907208,
+                  0.31804043760354506,
+                  0.358789883430737
+                ],
+                "sample_count": 320,
+                "status": "ok",
+                "value": 0.4220365152793094
+              },
+              "foot_slide": {
+                "aggregation": "mean",
+                "motion_count": 1,
+                "status": "ok",
+                "value": 3.0066713047801867
+              },
+              "hand_position_rmse": {
+                "aggregation": "mean",
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.2660961285471387,
+                  0.2808514897773667,
+                  0.4009478362425975
+                ],
+                "by_semantic": {
+                  "LeftHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.23922470783452998,
+                      0.11870775545208165,
+                      0.44488128429961316
+                    ],
+                    "mean_error": [
+                      -0.016437957622637812,
+                      -0.07315160338724919,
+                      0.3826201572871981
+                    ],
+                    "p95_abs_error": [
+                      0.3522120904697142,
+                      0.2133274965821444,
+                      0.5822689413359396
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5393518133981883
+                  },
+                  "RightHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.2929675492597474,
+                      0.4429952241026518,
+                      0.35701438818558195
+                    ],
+                    "mean_error": [
+                      0.2649615163354845,
+                      0.015775383072030524,
+                      -0.1550747170426713
+                    ],
+                    "p95_abs_error": [
+                      0.40111327840098276,
+                      0.6236743205950162,
+                      0.5886266689486161
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.6405596240096196
+                  }
+                },
+                "mean_error": [
+                  0.12426177935642331,
+                  -0.028688110157609324,
+                  0.1137727201222634
+                ],
+                "motion_count": 2,
+                "p95_abs_error": [
+                  0.37666268443534845,
+                  0.41850090858858024,
+                  0.5854478051422779
+                ],
+                "sample_count": 320,
+                "status": "ok",
+                "value": 0.589955718703904
+              },
+              "joint_limit_margin": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.0792688570579266
+              },
+              "penetration": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.1755292260496708
+              },
+              "root_acceleration_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 164.89395838418895
+              },
+              "root_tilt": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 1.1448061222689025
+              },
+              "root_velocity_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 2.4539144879958434
+              },
+              "solver_iterations": {
+                "status": "ok",
+                "value": 24.0
+              },
+              "task_residual_by_type_priority": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 1.8517574693229903
+              },
+              "torso_reachable_residual": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.7285562243354115
+              },
+              "torso_unreachable_residual": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 1.089121637278894
+              },
+              "velocity_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 32.72635661874438
+              }
+            },
+            "motions": [
+              {
+                "frame_selection": "max_motion_window",
+                "frames": 80,
+                "metrics": {
+                  "acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s2",
+                    "value": 5970.00734151812
+                  },
+                  "foot_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.2739604849561651,
+                      0.20671229690640985,
+                      0.11838682402382043
+                    ],
+                    "by_semantic": {
+                      "LeftFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.33051330794627465,
+                          0.33464201550063494,
+                          0.10001200080369661
+                        ],
+                        "mean_error": [
+                          -0.3003157047428025,
+                          0.28288889246428933,
+                          0.03117826786742923
+                        ],
+                        "p95_abs_error": [
+                          0.4502362059971474,
+                          0.5244946182175032,
+                          0.15522185977097663
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.4808604013356422
+                      },
+                      "RightFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.21740766196605557,
+                          0.07878257831218476,
+                          0.13676164724394427
+                        ],
+                        "mean_error": [
+                          0.014375650532688624,
+                          0.06245010332417141,
+                          -0.12737235878356185
+                        ],
+                        "p95_abs_error": [
+                          0.28867283841387714,
+                          0.11676601413186617,
+                          0.21193195426770775
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.26865690812621823
+                      }
+                    },
+                    "mean_error": [
+                      -0.14297002710505693,
+                      0.1726694978942304,
+                      -0.0480970454580663
+                    ],
+                    "p95_abs_error": [
+                      0.3694545222055123,
+                      0.32063031617468474,
+                      0.1835769070193422
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.3747586547309302
+                  },
+                  "foot_slide": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "m_per_s",
+                    "value": 3.0066713047801867
+                  },
+                  "hand_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.3031228443939057,
+                      0.3323007913688706,
+                      0.354881813993163
+                    ],
+                    "by_semantic": {
+                      "LeftHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.3258893427961201,
+                          0.19091653807760886,
+                          0.34665445654365024
+                        ],
+                        "mean_error": [
+                          -0.17675779234457872,
+                          -0.12466226686845978,
+                          0.2242906327153124
+                        ],
+                        "p95_abs_error": [
+                          0.5004880236847751,
+                          0.3320369321763337,
+                          0.581302442271069
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.5126619748930085
+                      },
+                      "RightHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.28035634599169124,
+                          0.47368504466013234,
+                          0.3631091714426756
+                        ],
+                        "mean_error": [
+                          0.22815350955489447,
+                          -0.35494326323202907,
+                          -0.01289100060875759
+                        ],
+                        "p95_abs_error": [
+                          0.4077331281679211,
+                          0.6631198472860812,
+                          0.6804941814607123
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.6594129758036846
+                      }
+                    },
+                    "mean_error": [
+                      0.025697858605157876,
+                      -0.23980276505024442,
+                      0.10569981605327741
+                    ],
+                    "p95_abs_error": [
+                      0.45411057592634807,
+                      0.49757838973120744,
+                      0.6308983118658906
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5860374753483466
+                  },
+                  "joint_limit_margin": {
+                    "status": "ok",
+                    "unit": "normalized_margin",
+                    "value": 0.07932156459470416
+                  },
+                  "penetration": {
+                    "statistic": "max",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.3510584520993416
+                  },
+                  "root_acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s2",
+                    "value": 268.93922801391415
+                  },
+                  "root_tilt": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.2482551072335213
+                  },
+                  "root_velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s",
+                    "value": 3.0095274149769007
+                  },
+                  "task_residual_by_type_priority": {
+                    "count": 1360,
+                    "groups": {
+                      "direction:p3": {
+                        "count": 640,
+                        "max": 1.7577276650038178,
+                        "mean": 1.129760116667985,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.7381173220485318
+                      },
+                      "pole_vector:p3": {
+                        "count": 640,
+                        "max": 1.9040500901281718,
+                        "mean": 1.4745577691399365,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.8791426958737185
+                      },
+                      "projected_relative_rotation:p2": {
+                        "count": 80,
+                        "max": 1.0965253873757683,
+                        "mean": 0.5394503140125976,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.0466487101607314
+                      }
+                    },
+                    "max": 1.9040500901281718,
+                    "mean": 1.2572937294397628,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.8698836133994368
+                  },
+                  "torso_reachable_residual": {
+                    "count": 80,
+                    "max": 1.0965253873757683,
+                    "mean": 0.5394503140125976,
+                    "source_unreachable_p95": 1.7182428318383978,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.0466487101607314
+                  },
+                  "torso_unreachable_residual": {
+                    "count": 80,
+                    "max": 1.6336985888153361,
+                    "mean": 0.7795587936456556,
+                    "meaning": "actual_unreachable_leakage",
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.2874412281632306
+                  },
+                  "velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s",
+                    "value": 52.41310883542954
+                  }
+                },
+                "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_throw_ball_001__A057.bvh",
+                "sample_rate": 120.0,
+                "source_frame_start": 92
+              },
+              {
+                "frame_selection": "max_motion_window",
+                "frames": 80,
+                "metrics": {
+                  "acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s2",
+                    "value": 878.5526394322022
+                  },
+                  "foot_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.2504534708163642,
+                      0.23036641116771825,
+                      0.29111886915352897
+                    ],
+                    "by_semantic": {
+                      "LeftFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.19865107412716707,
+                          0.3693012823370151,
+                          0.3066101491382876
+                        ],
+                        "mean_error": [
+                          -0.12170738359869619,
+                          0.30428113236223137,
+                          0.10798127239226156
+                        ],
+                        "p95_abs_error": [
+                          0.43035729645430293,
+                          0.507366488549881,
+                          0.5518756790669568
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.5194761495412893
+                      },
+                      "RightFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.30225586750556127,
+                          0.09143153999842142,
+                          0.27562758916877034
+                        ],
+                        "mean_error": [
+                          -0.30140690225602734,
+                          0.08651473913058551,
+                          -0.21838731686292365
+                        ],
+                        "p95_abs_error": [
+                          0.3295654238975557,
+                          0.12353462951492977,
+                          0.5161300406173067
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.41915260211408784
+                      }
+                    },
+                    "mean_error": [
+                      -0.21155714292736177,
+                      0.19539793574640846,
+                      -0.055203022235331044
+                    ],
+                    "p95_abs_error": [
+                      0.37996136017592935,
+                      0.3154505590324054,
+                      0.5340028598421318
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.4693143758276886
+                  },
+                  "foot_slide": {
+                    "statistic": "p95",
+                    "status": "unavailable",
+                    "unit": "m_per_s"
+                  },
+                  "hand_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.22906941270037176,
+                      0.22940218818586278,
+                      0.4470138584920321
+                    ],
+                    "by_semantic": {
+                      "LeftHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.1525600728729399,
+                          0.04649897282655443,
+                          0.5431081120555762
+                        ],
+                        "mean_error": [
+                          0.14388187709930308,
+                          -0.021640939906038593,
+                          0.5409496818590839
+                        ],
+                        "p95_abs_error": [
+                          0.2039361572546533,
+                          0.0946180609879551,
+                          0.5832354404008102
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.5660416519033681
+                      },
+                      "RightHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.3055787525278036,
+                          0.41230540354517115,
+                          0.35091960492848817
+                        ],
+                        "mean_error": [
+                          0.30176952311607447,
+                          0.3864940293760901,
+                          -0.297258433476585
+                        ],
+                        "p95_abs_error": [
+                          0.3944934286340443,
+                          0.5842287939039511,
+                          0.4967591564365201
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.6217062722155546
+                      }
+                    },
+                    "mean_error": [
+                      0.22282570010768876,
+                      0.1824265447350258,
+                      0.12184562419124942
+                    ],
+                    "p95_abs_error": [
+                      0.29921479294434883,
+                      0.3394234274459531,
+                      0.5399972984186652
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5938739620594614
+                  },
+                  "joint_limit_margin": {
+                    "status": "ok",
+                    "unit": "normalized_margin",
+                    "value": 0.07921614952114905
+                  },
+                  "penetration": {
+                    "statistic": "max",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.0
+                  },
+                  "root_acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s2",
+                    "value": 60.84868875446377
+                  },
+                  "root_tilt": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.041357137304284
+                  },
+                  "root_velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s",
+                    "value": 1.8983015610147862
+                  },
+                  "task_residual_by_type_priority": {
+                    "count": 1360,
+                    "groups": {
+                      "direction:p3": {
+                        "count": 640,
+                        "max": 1.829789831912609,
+                        "mean": 1.3163528180307478,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.8106357736213976
+                      },
+                      "pole_vector:p3": {
+                        "count": 640,
+                        "max": 1.9652863729167271,
+                        "mean": 1.502464600001352,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.896019866360326
+                      },
+                      "projected_relative_rotation:p2": {
+                        "count": 80,
+                        "max": 0.4233271853873357,
+                        "mean": 0.3589687011052495,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 0.41046373851009155
+                      }
+                    },
+                    "max": 1.9652863729167271,
+                    "mean": 1.3476181203154145,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.8336313252465437
+                  },
+                  "torso_reachable_residual": {
+                    "count": 80,
+                    "max": 0.4233271853873357,
+                    "mean": 0.3589687011052495,
+                    "source_unreachable_p95": 1.2139059967068802,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 0.41046373851009155
+                  },
+                  "torso_unreachable_residual": {
+                    "count": 80,
+                    "max": 0.8990299402243487,
+                    "mean": 0.8374670965117724,
+                    "meaning": "actual_unreachable_leakage",
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 0.8908020463945575
+                  },
+                  "velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s",
+                    "value": 13.039604402059222
+                  }
+                },
+                "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_walk_forward_002__A057.bvh",
+                "sample_rate": 120.0,
+                "source_frame_start": 445
+              }
+            ],
+            "priority_guard": {
+              "checked_frames": 0,
+              "enabled": false,
+              "max_after": 0.0,
+              "max_allowed": 0.0,
+              "protected_priority": 0,
+              "protected_residual": "joint_limit_penetration",
+              "rollback_count": 0
+            },
+            "runtime_seconds": {
+              "bvh_load_runtime": 0.9296321235597134,
+              "metric_runtime": 0.3267280273139477,
+              "motion_count": 2,
+              "motion_runtime": 0.6678558066487312,
+              "output_frame_count": 160,
+              "pipeline_construct_runtime": 0.03975178673863411,
+              "solve_fps": 242.9710841276955,
+              "solve_runtime": 0.6585145741701126,
+              "target_setup_runtime": 0.009341232478618622
+            },
+            "solver_objectives": {
+              "active_objectives": 30,
+              "autodiff_sparse_residual_dim": 0,
+              "batch_size": 2,
+              "collision": 0,
+              "contact": 0,
+              "direction": 0,
+              "direction_analytic": 0,
+              "direction_autodiff": 0,
+              "ground_barrier": 0,
+              "ik_iterations": 24,
+              "jacobian_mode": "analytic",
+              "joint_limit": 1,
+              "pole_vector": 0,
+              "pole_vector_analytic": 0,
+              "pole_vector_autodiff": 0,
+              "position": 14,
+              "rotation": 14,
+              "smooth_joint_filter": 1,
+              "sparse_residual_dim": 84,
+              "temporal_acceleration": 0,
+              "temporal_velocity": 0
+            },
+            "status": "ok"
+          },
+          "status": "ok"
+        },
+        "v2": {
+          "metrics": {
+            "acceleration_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 276.00252038855285
+            },
+            "confidence": 1.0,
+            "fallback_counts": {
+              "pole_vector": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "status": "ok"
+            },
+            "foot_position_rmse": {
+              "aggregation": "mean",
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.224764310757472,
+                0.22694054787960294,
+                0.2549620879862295
+              ],
+              "by_semantic": {
+                "LeftFoot": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.20013501028908975,
+                    0.19550823761955113,
+                    0.28728215559382464
+                  ],
+                  "mean_error": [
+                    -0.16242826783567174,
+                    0.06615955529695575,
+                    -0.2629548290475866
+                  ],
+                  "p95_abs_error": [
+                    0.3188880266385108,
+                    0.41340056784558393,
+                    0.4200082545196196
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.4147074591522563
+                },
+                "RightFoot": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.24939361122585427,
+                    0.25837285813965466,
+                    0.22264202037863434
+                  ],
+                  "mean_error": [
+                    -0.04149640512400038,
+                    -0.03025033440625775,
+                    0.0913180604359208
+                  ],
+                  "p95_abs_error": [
+                    0.47600481653635784,
+                    0.4459022346770155,
+                    0.45402747703943425
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.42610313933248667
+                }
+              },
+              "mean_error": [
+                -0.10196233647983606,
+                0.017954610445348997,
+                -0.08581838430583288
+              ],
+              "motion_count": 2,
+              "p95_abs_error": [
+                0.39744642158743426,
+                0.4296514012612997,
+                0.4370178657795269
+              ],
+              "sample_count": 320,
+              "status": "ok",
+              "value": 0.42040529924237147
+            },
+            "foot_slide": {
+              "aggregation": "mean",
+              "motion_count": 1,
+              "status": "ok",
+              "value": 0.0
+            },
+            "hand_position_rmse": {
+              "aggregation": "mean",
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.39983780383786377,
+                0.8277647212922629,
+                0.728930690865339
+              ],
+              "by_semantic": {
+                "LeftHand": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.3762395160583711,
+                    0.6314878910165447,
+                    0.5318513158595923
+                  ],
+                  "mean_error": [
+                    0.13185559721933834,
+                    -0.5225579077997484,
+                    0.4745367050451497
+                  ],
+                  "p95_abs_error": [
+                    0.6999284349282069,
+                    0.8129948475034834,
+                    0.730826715487182
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.9195058353103007
+                },
+                "RightHand": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.4234360916173565,
+                    1.0240415515679813,
+                    0.9260100658710856
+                  ],
+                  "mean_error": [
+                    0.3874060149370367,
+                    -0.9847980372631561,
+                    0.5784627772631858
+                  ],
+                  "p95_abs_error": [
+                    0.5701214081306005,
+                    1.1834296290783672,
+                    1.175572425920524
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 1.471432608041168
+                }
+              },
+              "mean_error": [
+                0.2596308060781875,
+                -0.7536779725314522,
+                0.5264997411541679
+              ],
+              "motion_count": 2,
+              "p95_abs_error": [
+                0.6350249215294037,
+                0.9982122382909253,
+                0.9531995707038531
+              ],
+              "sample_count": 320,
+              "status": "ok",
+              "value": 1.1954692216757343
+            },
+            "joint_limit_margin": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.0
+            },
+            "penetration": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 1.907348634588857e-08
+            },
+            "root_acceleration_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 4255.651710817342
+            },
+            "root_tilt": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.8433595203885725
+            },
+            "root_velocity_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 15.183199404074154
+            },
+            "runtime_seconds": {
+              "bvh_load_runtime": 0.6489960066974163,
+              "compile_profile": 0.010335680097341537,
+              "metric_runtime": 0.32646139338612556,
+              "motion_count": 2,
+              "motion_runtime": 3.828144285827875,
+              "output_frame_count": 160,
+              "pipeline_construct_runtime": 0.050023674964904785,
+              "solve_fps": 44.525937360484114,
+              "solve_runtime": 3.5934111550450325,
+              "target_setup_runtime": 0.23473313078284264
+            },
+            "solver_iterations": {
+              "status": "ok",
+              "value": 8.0
+            },
+            "task_residual_by_type_priority": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 1.9552515144356968
+            },
+            "torso_reachable_residual": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 2.165194730127032
+            },
+            "torso_unreachable_residual": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.469799041039806
+            },
+            "velocity_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 9.246344145707335
+            },
+            "warnings": 8
+          },
+          "motion_benchmark": {
+            "compare_mode": "v2",
+            "metrics": {
+              "acceleration_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 276.00252038855285
+              },
+              "fallback_counts": {
+                "pole_vector": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "status": "ok"
+              },
+              "foot_position_rmse": {
+                "aggregation": "mean",
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.224764310757472,
+                  0.22694054787960294,
+                  0.2549620879862295
+                ],
+                "by_semantic": {
+                  "LeftFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.20013501028908975,
+                      0.19550823761955113,
+                      0.28728215559382464
+                    ],
+                    "mean_error": [
+                      -0.16242826783567174,
+                      0.06615955529695575,
+                      -0.2629548290475866
+                    ],
+                    "p95_abs_error": [
+                      0.3188880266385108,
+                      0.41340056784558393,
+                      0.4200082545196196
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.4147074591522563
+                  },
+                  "RightFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.24939361122585427,
+                      0.25837285813965466,
+                      0.22264202037863434
+                    ],
+                    "mean_error": [
+                      -0.04149640512400038,
+                      -0.03025033440625775,
+                      0.0913180604359208
+                    ],
+                    "p95_abs_error": [
+                      0.47600481653635784,
+                      0.4459022346770155,
+                      0.45402747703943425
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.42610313933248667
+                  }
+                },
+                "mean_error": [
+                  -0.10196233647983606,
+                  0.017954610445348997,
+                  -0.08581838430583288
+                ],
+                "motion_count": 2,
+                "p95_abs_error": [
+                  0.39744642158743426,
+                  0.4296514012612997,
+                  0.4370178657795269
+                ],
+                "sample_count": 320,
+                "status": "ok",
+                "value": 0.42040529924237147
+              },
+              "foot_slide": {
+                "aggregation": "mean",
+                "motion_count": 1,
+                "status": "ok",
+                "value": 0.0
+              },
+              "hand_position_rmse": {
+                "aggregation": "mean",
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.39983780383786377,
+                  0.8277647212922629,
+                  0.728930690865339
+                ],
+                "by_semantic": {
+                  "LeftHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.3762395160583711,
+                      0.6314878910165447,
+                      0.5318513158595923
+                    ],
+                    "mean_error": [
+                      0.13185559721933834,
+                      -0.5225579077997484,
+                      0.4745367050451497
+                    ],
+                    "p95_abs_error": [
+                      0.6999284349282069,
+                      0.8129948475034834,
+                      0.730826715487182
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.9195058353103007
+                  },
+                  "RightHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.4234360916173565,
+                      1.0240415515679813,
+                      0.9260100658710856
+                    ],
+                    "mean_error": [
+                      0.3874060149370367,
+                      -0.9847980372631561,
+                      0.5784627772631858
+                    ],
+                    "p95_abs_error": [
+                      0.5701214081306005,
+                      1.1834296290783672,
+                      1.175572425920524
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 1.471432608041168
+                  }
+                },
+                "mean_error": [
+                  0.2596308060781875,
+                  -0.7536779725314522,
+                  0.5264997411541679
+                ],
+                "motion_count": 2,
+                "p95_abs_error": [
+                  0.6350249215294037,
+                  0.9982122382909253,
+                  0.9531995707038531
+                ],
+                "sample_count": 320,
+                "status": "ok",
+                "value": 1.1954692216757343
+              },
+              "joint_limit_margin": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.0
+              },
+              "penetration": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 1.907348634588857e-08
+              },
+              "root_acceleration_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 4255.651710817342
+              },
+              "root_tilt": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.8433595203885725
+              },
+              "root_velocity_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 15.183199404074154
+              },
+              "solver_iterations": {
+                "status": "ok",
+                "value": 8.0
+              },
+              "task_residual_by_type_priority": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 1.9552515144356968
+              },
+              "torso_reachable_residual": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 2.165194730127032
+              },
+              "torso_unreachable_residual": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.469799041039806
+              },
+              "velocity_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 9.246344145707335
+              }
+            },
+            "motions": [
+              {
+                "frame_selection": "max_motion_window",
+                "frames": 80,
+                "metrics": {
+                  "acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s2",
+                    "value": 0.0
+                  },
+                  "foot_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.18313389298729743,
+                      0.150281420673591,
+                      0.17563826782011685
+                    ],
+                    "by_semantic": {
+                      "LeftFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.222459127352113,
+                          0.07620584579312198,
+                          0.1983924536218615
+                        ],
+                        "mean_error": [
+                          -0.22203884836286353,
+                          -0.0699037354439497,
+                          -0.1953290929272769
+                        ],
+                        "p95_abs_error": [
+                          0.2415601423382759,
+                          0.10461230650544166,
+                          0.24863311007618905
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.3076604620834649
+                      },
+                      "RightFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.14380865862248188,
+                          0.22435699555406,
+                          0.1528840820183722
+                        ],
+                        "mean_error": [
+                          0.1346284963749348,
+                          -0.22036194046959282,
+                          0.15168970169499535
+                        ],
+                        "p95_abs_error": [
+                          0.23444384425878526,
+                          0.2963921010494232,
+                          0.17185741037130356
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.3072304253869438
+                      }
+                    },
+                    "mean_error": [
+                      -0.04370517599396436,
+                      -0.14513283795677126,
+                      -0.021819695616140767
+                    ],
+                    "p95_abs_error": [
+                      0.23800199329853058,
+                      0.20050220377743244,
+                      0.2102452602237463
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.3074454437352044
+                  },
+                  "foot_slide": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "m_per_s",
+                    "value": 0.0
+                  },
+                  "hand_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.5669759810031788,
+                      1.4815460887462166,
+                      1.180509190988067
+                    ],
+                    "by_semantic": {
+                      "LeftHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.5384494836810507,
+                          1.1087602892539155,
+                          0.9242305255998717
+                        ],
+                        "mean_error": [
+                          0.42254467768594567,
+                          -1.0874341860413552,
+                          0.9105165902059525
+                        ],
+                        "p95_abs_error": [
+                          0.9978059089183808,
+                          1.3806213974952697,
+                          1.2004188530147075
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 1.5406100382489498
+                      },
+                      "RightHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.595502478325307,
+                          1.8543318882385178,
+                          1.4367878563762622
+                        ],
+                        "mean_error": [
+                          0.5822171168570643,
+                          -1.8457663267850877,
+                          1.3862683134386315
+                        ],
+                        "p95_abs_error": [
+                          0.75790790528059,
+                          2.0800409078598023,
+                          1.6740681678056717
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 2.420233314715774
+                      }
+                    },
+                    "mean_error": [
+                      0.502380897271505,
+                      -1.4666002564132214,
+                      1.148392451822292
+                    ],
+                    "p95_abs_error": [
+                      0.8778569070994855,
+                      1.730331152677536,
+                      1.4372435104101897
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 1.980421676482362
+                  },
+                  "joint_limit_margin": {
+                    "status": "ok",
+                    "unit": "normalized_margin",
+                    "value": 0.0
+                  },
+                  "penetration": {
+                    "statistic": "max",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 3.814697269177714e-08
+                  },
+                  "root_acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s2",
+                    "value": 0.0
+                  },
+                  "root_tilt": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 0.0
+                  },
+                  "root_velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s",
+                    "value": 0.0
+                  },
+                  "task_residual_by_type_priority": {
+                    "count": 1360,
+                    "groups": {
+                      "direction:p3": {
+                        "count": 640,
+                        "max": 1.9982319780970264,
+                        "mean": 1.3622758696582746,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.9728558965347263
+                      },
+                      "pole_vector:p3": {
+                        "count": 640,
+                        "max": 1.998756637446246,
+                        "mean": 1.41476689969721,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.964332079797134
+                      },
+                      "projected_relative_rotation:p2": {
+                        "count": 80,
+                        "max": 1.7083449257917347,
+                        "mean": 1.616181162988952,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.7071987175904357
+                      }
+                    },
+                    "max": 1.998756637446246,
+                    "mean": 1.4019131363431077,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.967331954308043
+                  },
+                  "torso_reachable_residual": {
+                    "count": 80,
+                    "max": 1.7083449257917347,
+                    "mean": 1.616181162988952,
+                    "source_unreachable_p95": 1.7182428318383978,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.7071987175904357
+                  },
+                  "torso_unreachable_residual": {
+                    "count": 80,
+                    "max": 0.0,
+                    "mean": 0.0,
+                    "meaning": "actual_unreachable_leakage",
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 0.0
+                  },
+                  "velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s",
+                    "value": 0.0
+                  }
+                },
+                "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_throw_ball_001__A057.bvh",
+                "sample_rate": 120.0,
+                "source_frame_start": 92
+              },
+              {
+                "frame_selection": "max_motion_window",
+                "frames": 80,
+                "metrics": {
+                  "acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s2",
+                    "value": 552.0050407771057
+                  },
+                  "foot_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.26639472852764656,
+                      0.30359967508561486,
+                      0.33428590815234216
+                    ],
+                    "by_semantic": {
+                      "LeftFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.1778108932260665,
+                          0.3148106294459803,
+                          0.37617185756578775
+                        ],
+                        "mean_error": [
+                          -0.10281768730847998,
+                          0.20222284603786117,
+                          -0.33058056516789625
+                        ],
+                        "p95_abs_error": [
+                          0.39621591093874564,
+                          0.7221888291857262,
+                          0.5913833989630503
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.5217544562210478
+                      },
+                      "RightFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.35497856382922666,
+                          0.2923887207252494,
+                          0.2923999587388965
+                        ],
+                        "mean_error": [
+                          -0.21762130662293555,
+                          0.1598612716570773,
+                          0.030946419176846252
+                        ],
+                        "p95_abs_error": [
+                          0.7175657888139304,
+                          0.5954123683046079,
+                          0.736197543707565
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.5449758532780296
+                      }
+                    },
+                    "mean_error": [
+                      -0.16021949696570775,
+                      0.18104205884746924,
+                      -0.149817072995525
+                    ],
+                    "p95_abs_error": [
+                      0.556890849876338,
+                      0.658800598745167,
+                      0.6637904713353076
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5333651547495386
+                  },
+                  "foot_slide": {
+                    "statistic": "p95",
+                    "status": "unavailable",
+                    "unit": "m_per_s"
+                  },
+                  "hand_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.23269962667254873,
+                      0.17398335383830932,
+                      0.27735219074261097
+                    ],
+                    "by_semantic": {
+                      "LeftHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.21402954843569147,
+                          0.15421549277917398,
+                          0.13947210611931296
+                        ],
+                        "mean_error": [
+                          -0.15883348324726898,
+                          0.04231837044185829,
+                          0.03855681988434697
+                        ],
+                        "p95_abs_error": [
+                          0.40205096093803294,
+                          0.24536829751169684,
+                          0.2612345779596565
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.2984016323716517
+                      },
+                      "RightHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.25136970490940597,
+                          0.19375121489744465,
+                          0.41523227536590906
+                        ],
+                        "mean_error": [
+                          0.192594913017009,
+                          -0.12382974774122442,
+                          -0.22934275891225991
+                        ],
+                        "p95_abs_error": [
+                          0.3823349109806109,
+                          0.2868183502969325,
+                          0.6770766840353766
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.522631901366562
+                      }
+                    },
+                    "mean_error": [
+                      0.01688071488487002,
+                      -0.04075568864968306,
+                      -0.09539296951395645
+                    ],
+                    "p95_abs_error": [
+                      0.392192935959322,
+                      0.26609332390431467,
+                      0.4691556309975165
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.4105167668691069
+                  },
+                  "joint_limit_margin": {
+                    "status": "ok",
+                    "unit": "normalized_margin",
+                    "value": 0.0
+                  },
+                  "penetration": {
+                    "statistic": "max",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.0
+                  },
+                  "root_acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s2",
+                    "value": 8511.303421634684
+                  },
+                  "root_tilt": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.686719040777145
+                  },
+                  "root_velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s",
+                    "value": 30.366398808148308
+                  },
+                  "task_residual_by_type_priority": {
+                    "count": 1360,
+                    "groups": {
+                      "direction:p3": {
+                        "count": 640,
+                        "max": 1.829241003879444,
+                        "mean": 0.8209826997935927,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.7201024780583565
+                      },
+                      "pole_vector:p3": {
+                        "count": 640,
+                        "max": 1.9984195886883718,
+                        "mean": 1.1529558811082474,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.9496861460748307
+                      },
+                      "projected_relative_rotation:p2": {
+                        "count": 80,
+                        "max": 2.6769125399197438,
+                        "mean": 1.3340526970317999,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 2.6231907426636276
+                      }
+                    },
+                    "max": 2.6769125399197438,
+                    "mean": 1.0073859614262657,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.9431710745633508
+                  },
+                  "torso_reachable_residual": {
+                    "count": 80,
+                    "max": 2.6769125399197438,
+                    "mean": 1.3340526970317999,
+                    "source_unreachable_p95": 1.2139059961216079,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 2.6231907426636276
+                  },
+                  "torso_unreachable_residual": {
+                    "count": 80,
+                    "max": 1.0113224613263647,
+                    "mean": 0.29259206062579884,
+                    "meaning": "actual_unreachable_leakage",
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 0.939598082079612
+                  },
+                  "velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s",
+                    "value": 18.49268829141467
+                  }
+                },
+                "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_walk_forward_002__A057.bvh",
+                "sample_rate": 120.0,
+                "source_frame_start": 445
+              }
+            ],
+            "priority_guard": {
+              "checked_frames": 95,
+              "enabled": true,
+              "max_after": 0.0,
+              "max_allowed": 1e-05,
+              "protected_priority": 0,
+              "protected_residual": "joint_limit_penetration",
+              "rollback_count": 0
+            },
+            "runtime_seconds": {
+              "bvh_load_runtime": 0.6489960066974163,
+              "metric_runtime": 0.32646139338612556,
+              "motion_count": 2,
+              "motion_runtime": 3.828144285827875,
+              "output_frame_count": 160,
+              "pipeline_construct_runtime": 0.050023674964904785,
+              "solve_fps": 44.525937360484114,
+              "solve_runtime": 3.5934111550450325,
+              "target_setup_runtime": 0.23473313078284264
+            },
+            "solver_objectives": {
+              "active_objectives": 24,
+              "autodiff_sparse_residual_dim": 24,
+              "batch_size": 2,
+              "collision": 0,
+              "contact": 0,
+              "direction": 8,
+              "direction_analytic": 8,
+              "direction_autodiff": 0,
+              "ground_barrier": 0,
+              "ik_iterations": 8,
+              "jacobian_mode": "mixed",
+              "joint_limit": 1,
+              "pole_vector": 8,
+              "pole_vector_analytic": 0,
+              "pole_vector_autodiff": 8,
+              "position": 5,
+              "rotation": 1,
+              "smooth_joint_filter": 1,
+              "sparse_residual_dim": 66,
+              "temporal_acceleration": 0,
+              "temporal_velocity": 0
+            },
+            "status": "ok"
+          },
+          "status": "ok"
+        },
+        "v2_pole_analytic": {
+          "metrics": {
+            "acceleration_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 225.05206289311744
+            },
+            "confidence": 1.0,
+            "fallback_counts": {
+              "pole_vector": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "status": "ok"
+            },
+            "foot_position_rmse": {
+              "aggregation": "mean",
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.2624925981624845,
+                0.19486761587439777,
+                0.31448220604628724
+              ],
+              "by_semantic": {
+                "LeftFoot": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.28388962154916814,
+                    0.1575610446114482,
+                    0.4152399469476268
+                  ],
+                  "mean_error": [
+                    -0.18591669612350742,
+                    -0.05413870368824795,
+                    -0.34829971763824175
+                  ],
+                  "p95_abs_error": [
+                    0.3714264459367661,
+                    0.260672517594799,
+                    0.5931044617514148
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.5332579204190857
+                },
+                "RightFoot": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.24109557477580087,
+                    0.23217418713734736,
+                    0.21372446514494775
+                  ],
+                  "mean_error": [
+                    0.19669597268285677,
+                    -0.057056839816495654,
+                    -0.02972254425284131
+                  ],
+                  "p95_abs_error": [
+                    0.47535986459223867,
+                    0.31179744572720536,
+                    0.29333315115478953
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 0.4023542465894366
+                }
+              },
+              "mean_error": [
+                0.005389638279674686,
+                -0.055597771752371794,
+                -0.1890111309455415
+              ],
+              "motion_count": 2,
+              "p95_abs_error": [
+                0.4233931552645024,
+                0.2862349816610022,
+                0.44321880645310213
+              ],
+              "sample_count": 320,
+              "status": "ok",
+              "value": 0.4678060835042611
+            },
+            "foot_slide": {
+              "aggregation": "mean",
+              "motion_count": 1,
+              "status": "ok",
+              "value": 0.0
+            },
+            "hand_position_rmse": {
+              "aggregation": "mean",
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.4671736264742258,
+                0.918628940311897,
+                0.7824382775129601
+              ],
+              "by_semantic": {
+                "LeftHand": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.38942711968736915,
+                    0.766904195491579,
+                    0.5499875236022279
+                  ],
+                  "mean_error": [
+                    0.10750175942506127,
+                    -0.6012946518716188,
+                    0.5055123405626606
+                  ],
+                  "p95_abs_error": [
+                    0.6993640342693973,
+                    0.9794258131969762,
+                    0.7353132704320591
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 1.0297980210618096
+                },
+                "RightHand": {
+                  "axis_order": [
+                    "x",
+                    "y",
+                    "z"
+                  ],
+                  "axis_rmse": [
+                    0.5449201332610825,
+                    1.0703536851322153,
+                    1.0148890314236925
+                  ],
+                  "mean_error": [
+                    0.4866450000729821,
+                    -0.8425537985945859,
+                    0.8896671325120156
+                  ],
+                  "p95_abs_error": [
+                    0.7913279114025231,
+                    1.2673341135520708,
+                    1.3324379996224098
+                  ],
+                  "sample_count": 160,
+                  "statistic": "rmse",
+                  "status": "ok",
+                  "unit": "m",
+                  "value": 1.6218259451191663
+                }
+              },
+              "mean_error": [
+                0.2970733797490217,
+                -0.7219242252331023,
+                0.6975897365373381
+              ],
+              "motion_count": 2,
+              "p95_abs_error": [
+                0.7453459728359603,
+                1.1233799633745236,
+                1.0338756350272345
+              ],
+              "sample_count": 320,
+              "status": "ok",
+              "value": 1.325811983090488
+            },
+            "joint_limit_margin": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.0
+            },
+            "penetration": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 1.907348634588857e-08
+            },
+            "root_acceleration_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 6688.799952736276
+            },
+            "root_tilt": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.6367313148331704
+            },
+            "root_velocity_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 5.471676053376174
+            },
+            "runtime_seconds": {
+              "bvh_load_runtime": 0.9833325929939747,
+              "compile_profile": 0.010335680097341537,
+              "metric_runtime": 0.3253335542976856,
+              "motion_count": 2,
+              "motion_runtime": 0.7285161577165127,
+              "output_frame_count": 160,
+              "pipeline_construct_runtime": 0.0454978421330452,
+              "solve_fps": 324.72082196379677,
+              "solve_runtime": 0.4927309527993202,
+              "target_setup_runtime": 0.23578520491719246
+            },
+            "solver_iterations": {
+              "status": "ok",
+              "value": 8.0
+            },
+            "task_residual_by_type_priority": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 1.9722904430407668
+            },
+            "torso_reachable_residual": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 2.1121455016462027
+            },
+            "torso_unreachable_residual": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 0.5043025583452315
+            },
+            "velocity_p95": {
+              "aggregation": "mean",
+              "motion_count": 2,
+              "status": "ok",
+              "value": 8.739759706725106
+            },
+            "warnings": 8
+          },
+          "motion_benchmark": {
+            "compare_mode": "v2_pole_analytic",
+            "metrics": {
+              "acceleration_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 225.05206289311744
+              },
+              "fallback_counts": {
+                "pole_vector": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "status": "ok"
+              },
+              "foot_position_rmse": {
+                "aggregation": "mean",
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.2624925981624845,
+                  0.19486761587439777,
+                  0.31448220604628724
+                ],
+                "by_semantic": {
+                  "LeftFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.28388962154916814,
+                      0.1575610446114482,
+                      0.4152399469476268
+                    ],
+                    "mean_error": [
+                      -0.18591669612350742,
+                      -0.05413870368824795,
+                      -0.34829971763824175
+                    ],
+                    "p95_abs_error": [
+                      0.3714264459367661,
+                      0.260672517594799,
+                      0.5931044617514148
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5332579204190857
+                  },
+                  "RightFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.24109557477580087,
+                      0.23217418713734736,
+                      0.21372446514494775
+                    ],
+                    "mean_error": [
+                      0.19669597268285677,
+                      -0.057056839816495654,
+                      -0.02972254425284131
+                    ],
+                    "p95_abs_error": [
+                      0.47535986459223867,
+                      0.31179744572720536,
+                      0.29333315115478953
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.4023542465894366
+                  }
+                },
+                "mean_error": [
+                  0.005389638279674686,
+                  -0.055597771752371794,
+                  -0.1890111309455415
+                ],
+                "motion_count": 2,
+                "p95_abs_error": [
+                  0.4233931552645024,
+                  0.2862349816610022,
+                  0.44321880645310213
+                ],
+                "sample_count": 320,
+                "status": "ok",
+                "value": 0.4678060835042611
+              },
+              "foot_slide": {
+                "aggregation": "mean",
+                "motion_count": 1,
+                "status": "ok",
+                "value": 0.0
+              },
+              "hand_position_rmse": {
+                "aggregation": "mean",
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.4671736264742258,
+                  0.918628940311897,
+                  0.7824382775129601
+                ],
+                "by_semantic": {
+                  "LeftHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.38942711968736915,
+                      0.766904195491579,
+                      0.5499875236022279
+                    ],
+                    "mean_error": [
+                      0.10750175942506127,
+                      -0.6012946518716188,
+                      0.5055123405626606
+                    ],
+                    "p95_abs_error": [
+                      0.6993640342693973,
+                      0.9794258131969762,
+                      0.7353132704320591
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 1.0297980210618096
+                  },
+                  "RightHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.5449201332610825,
+                      1.0703536851322153,
+                      1.0148890314236925
+                    ],
+                    "mean_error": [
+                      0.4866450000729821,
+                      -0.8425537985945859,
+                      0.8896671325120156
+                    ],
+                    "p95_abs_error": [
+                      0.7913279114025231,
+                      1.2673341135520708,
+                      1.3324379996224098
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 1.6218259451191663
+                  }
+                },
+                "mean_error": [
+                  0.2970733797490217,
+                  -0.7219242252331023,
+                  0.6975897365373381
+                ],
+                "motion_count": 2,
+                "p95_abs_error": [
+                  0.7453459728359603,
+                  1.1233799633745236,
+                  1.0338756350272345
+                ],
+                "sample_count": 320,
+                "status": "ok",
+                "value": 1.325811983090488
+              },
+              "joint_limit_margin": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.0
+              },
+              "penetration": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 1.907348634588857e-08
+              },
+              "root_acceleration_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 6688.799952736276
+              },
+              "root_tilt": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.6367313148331704
+              },
+              "root_velocity_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 5.471676053376174
+              },
+              "solver_iterations": {
+                "status": "ok",
+                "value": 8.0
+              },
+              "task_residual_by_type_priority": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 1.9722904430407668
+              },
+              "torso_reachable_residual": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 2.1121455016462027
+              },
+              "torso_unreachable_residual": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 0.5043025583452315
+              },
+              "velocity_p95": {
+                "aggregation": "mean",
+                "motion_count": 2,
+                "status": "ok",
+                "value": 8.739759706725106
+              }
+            },
+            "motions": [
+              {
+                "frame_selection": "max_motion_window",
+                "frames": 80,
+                "metrics": {
+                  "acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s2",
+                    "value": 0.0
+                  },
+                  "foot_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.18313389298729743,
+                      0.150281420673591,
+                      0.17563826782011685
+                    ],
+                    "by_semantic": {
+                      "LeftFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.222459127352113,
+                          0.07620584579312198,
+                          0.1983924536218615
+                        ],
+                        "mean_error": [
+                          -0.22203884836286353,
+                          -0.0699037354439497,
+                          -0.1953290929272769
+                        ],
+                        "p95_abs_error": [
+                          0.2415601423382759,
+                          0.10461230650544166,
+                          0.24863311007618905
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.3076604620834649
+                      },
+                      "RightFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.14380865862248188,
+                          0.22435699555406,
+                          0.1528840820183722
+                        ],
+                        "mean_error": [
+                          0.1346284963749348,
+                          -0.22036194046959282,
+                          0.15168970169499535
+                        ],
+                        "p95_abs_error": [
+                          0.23444384425878526,
+                          0.2963921010494232,
+                          0.17185741037130356
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.3072304253869438
+                      }
+                    },
+                    "mean_error": [
+                      -0.04370517599396436,
+                      -0.14513283795677126,
+                      -0.021819695616140767
+                    ],
+                    "p95_abs_error": [
+                      0.23800199329853058,
+                      0.20050220377743244,
+                      0.2102452602237463
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.3074454437352044
+                  },
+                  "foot_slide": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "m_per_s",
+                    "value": 0.0
+                  },
+                  "hand_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.5669759810031788,
+                      1.4815460887462166,
+                      1.180509190988067
+                    ],
+                    "by_semantic": {
+                      "LeftHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.5384494836810507,
+                          1.1087602892539155,
+                          0.9242305255998717
+                        ],
+                        "mean_error": [
+                          0.42254467768594567,
+                          -1.0874341860413552,
+                          0.9105165902059525
+                        ],
+                        "p95_abs_error": [
+                          0.9978059089183808,
+                          1.3806213974952697,
+                          1.2004188530147075
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 1.5406100382489498
+                      },
+                      "RightHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.595502478325307,
+                          1.8543318882385178,
+                          1.4367878563762622
+                        ],
+                        "mean_error": [
+                          0.5822171168570643,
+                          -1.8457663267850877,
+                          1.3862683134386315
+                        ],
+                        "p95_abs_error": [
+                          0.75790790528059,
+                          2.0800409078598023,
+                          1.6740681678056717
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 2.420233314715774
+                      }
+                    },
+                    "mean_error": [
+                      0.502380897271505,
+                      -1.4666002564132214,
+                      1.148392451822292
+                    ],
+                    "p95_abs_error": [
+                      0.8778569070994855,
+                      1.730331152677536,
+                      1.4372435104101897
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 1.980421676482362
+                  },
+                  "joint_limit_margin": {
+                    "status": "ok",
+                    "unit": "normalized_margin",
+                    "value": 0.0
+                  },
+                  "penetration": {
+                    "statistic": "max",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 3.814697269177714e-08
+                  },
+                  "root_acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s2",
+                    "value": 0.0
+                  },
+                  "root_tilt": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 0.0
+                  },
+                  "root_velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s",
+                    "value": 0.0
+                  },
+                  "task_residual_by_type_priority": {
+                    "count": 1360,
+                    "groups": {
+                      "direction:p3": {
+                        "count": 640,
+                        "max": 1.9982319780970264,
+                        "mean": 1.3622758696582746,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.9728558965347263
+                      },
+                      "pole_vector:p3": {
+                        "count": 640,
+                        "max": 1.998756637446246,
+                        "mean": 1.41476689969721,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.964332079797134
+                      },
+                      "projected_relative_rotation:p2": {
+                        "count": 80,
+                        "max": 1.7083449257917347,
+                        "mean": 1.616181162988952,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.7071987175904357
+                      }
+                    },
+                    "max": 1.998756637446246,
+                    "mean": 1.4019131363431077,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.967331954308043
+                  },
+                  "torso_reachable_residual": {
+                    "count": 80,
+                    "max": 1.7083449257917347,
+                    "mean": 1.616181162988952,
+                    "source_unreachable_p95": 1.7182428318383978,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.7071987175904357
+                  },
+                  "torso_unreachable_residual": {
+                    "count": 80,
+                    "max": 0.0,
+                    "mean": 0.0,
+                    "meaning": "actual_unreachable_leakage",
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 0.0
+                  },
+                  "velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s",
+                    "value": 0.0
+                  }
+                },
+                "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_throw_ball_001__A057.bvh",
+                "sample_rate": 120.0,
+                "source_frame_start": 92
+              },
+              {
+                "frame_selection": "max_motion_window",
+                "frames": 80,
+                "metrics": {
+                  "acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s2",
+                    "value": 450.1041257862349
+                  },
+                  "foot_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.34185130333767155,
+                      0.23945381107520455,
+                      0.45332614427245765
+                    ],
+                    "by_semantic": {
+                      "LeftFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.3453201157462233,
+                          0.2389162434297744,
+                          0.632087440273392
+                        ],
+                        "mean_error": [
+                          -0.1497945438841513,
+                          -0.03837367193254619,
+                          -0.5012703423492065
+                        ],
+                        "p95_abs_error": [
+                          0.5012927495352563,
+                          0.41673272868415634,
+                          0.9375758134266405
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.7588553787547065
+                      },
+                      "RightFoot": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.3383824909291199,
+                          0.23999137872063475,
+                          0.2745648482715233
+                        ],
+                        "mean_error": [
+                          0.25876344899077874,
+                          0.10624826083660151,
+                          -0.211134790200678
+                        ],
+                        "p95_abs_error": [
+                          0.7162758849256922,
+                          0.32720279040498756,
+                          0.4148088919382754
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.49747806779192943
+                      }
+                    },
+                    "mean_error": [
+                      0.05448445255331373,
+                      0.03393729445202766,
+                      -0.3562025662749423
+                    ],
+                    "p95_abs_error": [
+                      0.6087843172304742,
+                      0.37196775954457195,
+                      0.676192352682458
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.6281667232733179
+                  },
+                  "foot_slide": {
+                    "statistic": "p95",
+                    "status": "unavailable",
+                    "unit": "m_per_s"
+                  },
+                  "hand_position_rmse": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.36737127194527275,
+                      0.3557117918775775,
+                      0.38436736403785343
+                    ],
+                    "by_semantic": {
+                      "LeftHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.24040475569368752,
+                          0.4250481017292426,
+                          0.1757445216045841
+                        ],
+                        "mean_error": [
+                          -0.20754115883582314,
+                          -0.11515511770188239,
+                          0.10050809091936867
+                        ],
+                        "p95_abs_error": [
+                          0.4009221596204137,
+                          0.5782302288986826,
+                          0.27020768784941057
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.5189860038746694
+                      },
+                      "RightHand": {
+                        "axis_order": [
+                          "x",
+                          "y",
+                          "z"
+                        ],
+                        "axis_rmse": [
+                          0.494337788196858,
+                          0.2863754820259124,
+                          0.5929902064711228
+                        ],
+                        "mean_error": [
+                          0.39107288328889983,
+                          0.16065872959591587,
+                          0.3930659515853998
+                        ],
+                        "p95_abs_error": [
+                          0.8247479175244562,
+                          0.45462731924433936,
+                          0.990807831439148
+                        ],
+                        "sample_count": 80,
+                        "statistic": "rmse",
+                        "status": "ok",
+                        "unit": "m",
+                        "value": 0.8234185755225589
+                      }
+                    },
+                    "mean_error": [
+                      0.09176586222653835,
+                      0.022751805947016746,
+                      0.24678702125238425
+                    ],
+                    "p95_abs_error": [
+                      0.6128350385724349,
+                      0.516428774071511,
+                      0.6305077596442793
+                    ],
+                    "sample_count": 160,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.6712022896986142
+                  },
+                  "joint_limit_margin": {
+                    "status": "ok",
+                    "unit": "normalized_margin",
+                    "value": 0.0
+                  },
+                  "penetration": {
+                    "statistic": "max",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.0
+                  },
+                  "root_acceleration_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s2",
+                    "value": 13377.599905472553
+                  },
+                  "root_tilt": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.2734626296663407
+                  },
+                  "root_velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "root_coord_per_s",
+                    "value": 10.943352106752348
+                  },
+                  "task_residual_by_type_priority": {
+                    "count": 1360,
+                    "groups": {
+                      "direction:p3": {
+                        "count": 640,
+                        "max": 1.9985337543878603,
+                        "mean": 1.3827904901952857,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.887181887313251
+                      },
+                      "pole_vector:p3": {
+                        "count": 640,
+                        "max": 1.999401867406829,
+                        "mean": 1.4262740475288518,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 1.9797627334775414
+                      },
+                      "projected_relative_rotation:p2": {
+                        "count": 80,
+                        "max": 2.593969010038657,
+                        "mean": 1.26311284485405,
+                        "statistic": "p95",
+                        "status": "ok",
+                        "unit": "residual",
+                        "value": 2.5170922857019695
+                      }
+                    },
+                    "max": 2.593969010038657,
+                    "mean": 1.3962134792145382,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.9772489317734907
+                  },
+                  "torso_reachable_residual": {
+                    "count": 80,
+                    "max": 2.593969010038657,
+                    "mean": 1.26311284485405,
+                    "source_unreachable_p95": 1.2139059961216079,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 2.5170922857019695
+                  },
+                  "torso_unreachable_residual": {
+                    "count": 80,
+                    "max": 1.0378353421039397,
+                    "mean": 0.619489183935032,
+                    "meaning": "actual_unreachable_leakage",
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "rad",
+                    "value": 1.008605116690463
+                  },
+                  "velocity_p95": {
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "actuated_joint_coord_per_s",
+                    "value": 17.479519413450213
+                  }
+                },
+                "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_walk_forward_002__A057.bvh",
+                "sample_rate": 120.0,
+                "source_frame_start": 445
+              }
+            ],
+            "priority_guard": {
+              "checked_frames": 95,
+              "enabled": true,
+              "max_after": 0.0,
+              "max_allowed": 1e-05,
+              "protected_priority": 0,
+              "protected_residual": "joint_limit_penetration",
+              "rollback_count": 0
+            },
+            "runtime_seconds": {
+              "bvh_load_runtime": 0.9833325929939747,
+              "metric_runtime": 0.3253335542976856,
+              "motion_count": 2,
+              "motion_runtime": 0.7285161577165127,
+              "output_frame_count": 160,
+              "pipeline_construct_runtime": 0.0454978421330452,
+              "solve_fps": 324.72082196379677,
+              "solve_runtime": 0.4927309527993202,
+              "target_setup_runtime": 0.23578520491719246
+            },
+            "solver_objectives": {
+              "active_objectives": 24,
+              "autodiff_sparse_residual_dim": 0,
+              "batch_size": 2,
+              "collision": 0,
+              "contact": 0,
+              "direction": 8,
+              "direction_analytic": 8,
+              "direction_autodiff": 0,
+              "ground_barrier": 0,
+              "ik_iterations": 8,
+              "jacobian_mode": "analytic",
+              "joint_limit": 1,
+              "pole_vector": 8,
+              "pole_vector_analytic": 8,
+              "pole_vector_autodiff": 0,
+              "position": 5,
+              "rotation": 1,
+              "smooth_joint_filter": 1,
+              "sparse_residual_dim": 66,
+              "temporal_acceleration": 0,
+              "temporal_velocity": 0
+            },
+            "status": "ok"
+          },
+          "status": "ok"
+        }
+      },
+      "compiler_version": "2.1.4",
+      "confidence": 1.0,
+      "metrics": {
+        "acceleration_p95": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 276.00252038855285
+        },
+        "confidence": 1.0,
+        "fallback_counts": {
+          "pole_vector": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "status": "ok"
+        },
+        "foot_position_rmse": {
+          "aggregation": "mean",
+          "axis_order": [
+            "x",
+            "y",
+            "z"
+          ],
+          "axis_rmse": [
+            0.224764310757472,
+            0.22694054787960294,
+            0.2549620879862295
+          ],
+          "by_semantic": {
+            "LeftFoot": {
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.20013501028908975,
+                0.19550823761955113,
+                0.28728215559382464
+              ],
+              "mean_error": [
+                -0.16242826783567174,
+                0.06615955529695575,
+                -0.2629548290475866
+              ],
+              "p95_abs_error": [
+                0.3188880266385108,
+                0.41340056784558393,
+                0.4200082545196196
+              ],
+              "sample_count": 160,
+              "statistic": "rmse",
+              "status": "ok",
+              "unit": "m",
+              "value": 0.4147074591522563
+            },
+            "RightFoot": {
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.24939361122585427,
+                0.25837285813965466,
+                0.22264202037863434
+              ],
+              "mean_error": [
+                -0.04149640512400038,
+                -0.03025033440625775,
+                0.0913180604359208
+              ],
+              "p95_abs_error": [
+                0.47600481653635784,
+                0.4459022346770155,
+                0.45402747703943425
+              ],
+              "sample_count": 160,
+              "statistic": "rmse",
+              "status": "ok",
+              "unit": "m",
+              "value": 0.42610313933248667
+            }
+          },
+          "mean_error": [
+            -0.10196233647983606,
+            0.017954610445348997,
+            -0.08581838430583288
+          ],
+          "motion_count": 2,
+          "p95_abs_error": [
+            0.39744642158743426,
+            0.4296514012612997,
+            0.4370178657795269
+          ],
+          "sample_count": 320,
+          "status": "ok",
+          "value": 0.42040529924237147
+        },
+        "foot_slide": {
+          "aggregation": "mean",
+          "motion_count": 1,
+          "status": "ok",
+          "value": 0.0
+        },
+        "hand_position_rmse": {
+          "aggregation": "mean",
+          "axis_order": [
+            "x",
+            "y",
+            "z"
+          ],
+          "axis_rmse": [
+            0.39983780383786377,
+            0.8277647212922629,
+            0.728930690865339
+          ],
+          "by_semantic": {
+            "LeftHand": {
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.3762395160583711,
+                0.6314878910165447,
+                0.5318513158595923
+              ],
+              "mean_error": [
+                0.13185559721933834,
+                -0.5225579077997484,
+                0.4745367050451497
+              ],
+              "p95_abs_error": [
+                0.6999284349282069,
+                0.8129948475034834,
+                0.730826715487182
+              ],
+              "sample_count": 160,
+              "statistic": "rmse",
+              "status": "ok",
+              "unit": "m",
+              "value": 0.9195058353103007
+            },
+            "RightHand": {
+              "axis_order": [
+                "x",
+                "y",
+                "z"
+              ],
+              "axis_rmse": [
+                0.4234360916173565,
+                1.0240415515679813,
+                0.9260100658710856
+              ],
+              "mean_error": [
+                0.3874060149370367,
+                -0.9847980372631561,
+                0.5784627772631858
+              ],
+              "p95_abs_error": [
+                0.5701214081306005,
+                1.1834296290783672,
+                1.175572425920524
+              ],
+              "sample_count": 160,
+              "statistic": "rmse",
+              "status": "ok",
+              "unit": "m",
+              "value": 1.471432608041168
+            }
+          },
+          "mean_error": [
+            0.2596308060781875,
+            -0.7536779725314522,
+            0.5264997411541679
+          ],
+          "motion_count": 2,
+          "p95_abs_error": [
+            0.6350249215294037,
+            0.9982122382909253,
+            0.9531995707038531
+          ],
+          "sample_count": 320,
+          "status": "ok",
+          "value": 1.1954692216757343
+        },
+        "joint_limit_margin": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 0.0
+        },
+        "penetration": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 1.907348634588857e-08
+        },
+        "root_acceleration_p95": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 4255.651710817342
+        },
+        "root_tilt": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 0.8433595203885725
+        },
+        "root_velocity_p95": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 15.183199404074154
+        },
+        "runtime_seconds": {
+          "bvh_load_runtime": 0.6489960066974163,
+          "compile_profile": 0.010335680097341537,
+          "metric_runtime": 0.32646139338612556,
+          "motion_count": 2,
+          "motion_runtime": 3.828144285827875,
+          "output_frame_count": 160,
+          "pipeline_construct_runtime": 0.050023674964904785,
+          "solve_fps": 44.525937360484114,
+          "solve_runtime": 3.5934111550450325,
+          "target_setup_runtime": 0.23473313078284264
+        },
+        "solver_iterations": {
+          "status": "ok",
+          "value": 8.0
+        },
+        "task_residual_by_type_priority": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 1.9552515144356968
+        },
+        "torso_reachable_residual": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 2.165194730127032
+        },
+        "torso_unreachable_residual": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 0.469799041039806
+        },
+        "velocity_p95": {
+          "aggregation": "mean",
+          "motion_count": 2,
+          "status": "ok",
+          "value": 9.246344145707335
+        },
+        "warnings": 8
+      },
+      "motion_benchmark": {
+        "compare_mode": "v2",
+        "metrics": {
+          "acceleration_p95": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 276.00252038855285
+          },
+          "fallback_counts": {
+            "pole_vector": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "status": "ok"
+          },
+          "foot_position_rmse": {
+            "aggregation": "mean",
+            "axis_order": [
+              "x",
+              "y",
+              "z"
+            ],
+            "axis_rmse": [
+              0.224764310757472,
+              0.22694054787960294,
+              0.2549620879862295
+            ],
+            "by_semantic": {
+              "LeftFoot": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.20013501028908975,
+                  0.19550823761955113,
+                  0.28728215559382464
+                ],
+                "mean_error": [
+                  -0.16242826783567174,
+                  0.06615955529695575,
+                  -0.2629548290475866
+                ],
+                "p95_abs_error": [
+                  0.3188880266385108,
+                  0.41340056784558393,
+                  0.4200082545196196
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 0.4147074591522563
+              },
+              "RightFoot": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.24939361122585427,
+                  0.25837285813965466,
+                  0.22264202037863434
+                ],
+                "mean_error": [
+                  -0.04149640512400038,
+                  -0.03025033440625775,
+                  0.0913180604359208
+                ],
+                "p95_abs_error": [
+                  0.47600481653635784,
+                  0.4459022346770155,
+                  0.45402747703943425
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 0.42610313933248667
+              }
+            },
+            "mean_error": [
+              -0.10196233647983606,
+              0.017954610445348997,
+              -0.08581838430583288
+            ],
+            "motion_count": 2,
+            "p95_abs_error": [
+              0.39744642158743426,
+              0.4296514012612997,
+              0.4370178657795269
+            ],
+            "sample_count": 320,
+            "status": "ok",
+            "value": 0.42040529924237147
+          },
+          "foot_slide": {
+            "aggregation": "mean",
+            "motion_count": 1,
+            "status": "ok",
+            "value": 0.0
+          },
+          "hand_position_rmse": {
+            "aggregation": "mean",
+            "axis_order": [
+              "x",
+              "y",
+              "z"
+            ],
+            "axis_rmse": [
+              0.39983780383786377,
+              0.8277647212922629,
+              0.728930690865339
+            ],
+            "by_semantic": {
+              "LeftHand": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.3762395160583711,
+                  0.6314878910165447,
+                  0.5318513158595923
+                ],
+                "mean_error": [
+                  0.13185559721933834,
+                  -0.5225579077997484,
+                  0.4745367050451497
+                ],
+                "p95_abs_error": [
+                  0.6999284349282069,
+                  0.8129948475034834,
+                  0.730826715487182
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 0.9195058353103007
+              },
+              "RightHand": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.4234360916173565,
+                  1.0240415515679813,
+                  0.9260100658710856
+                ],
+                "mean_error": [
+                  0.3874060149370367,
+                  -0.9847980372631561,
+                  0.5784627772631858
+                ],
+                "p95_abs_error": [
+                  0.5701214081306005,
+                  1.1834296290783672,
+                  1.175572425920524
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 1.471432608041168
+              }
+            },
+            "mean_error": [
+              0.2596308060781875,
+              -0.7536779725314522,
+              0.5264997411541679
+            ],
+            "motion_count": 2,
+            "p95_abs_error": [
+              0.6350249215294037,
+              0.9982122382909253,
+              0.9531995707038531
+            ],
+            "sample_count": 320,
+            "status": "ok",
+            "value": 1.1954692216757343
+          },
+          "joint_limit_margin": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 0.0
+          },
+          "penetration": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 1.907348634588857e-08
+          },
+          "root_acceleration_p95": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 4255.651710817342
+          },
+          "root_tilt": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 0.8433595203885725
+          },
+          "root_velocity_p95": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 15.183199404074154
+          },
+          "solver_iterations": {
+            "status": "ok",
+            "value": 8.0
+          },
+          "task_residual_by_type_priority": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 1.9552515144356968
+          },
+          "torso_reachable_residual": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 2.165194730127032
+          },
+          "torso_unreachable_residual": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 0.469799041039806
+          },
+          "velocity_p95": {
+            "aggregation": "mean",
+            "motion_count": 2,
+            "status": "ok",
+            "value": 9.246344145707335
+          }
+        },
+        "motions": [
+          {
+            "frame_selection": "max_motion_window",
+            "frames": 80,
+            "metrics": {
+              "acceleration_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "actuated_joint_coord_per_s2",
+                "value": 0.0
+              },
+              "foot_position_rmse": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.18313389298729743,
+                  0.150281420673591,
+                  0.17563826782011685
+                ],
+                "by_semantic": {
+                  "LeftFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.222459127352113,
+                      0.07620584579312198,
+                      0.1983924536218615
+                    ],
+                    "mean_error": [
+                      -0.22203884836286353,
+                      -0.0699037354439497,
+                      -0.1953290929272769
+                    ],
+                    "p95_abs_error": [
+                      0.2415601423382759,
+                      0.10461230650544166,
+                      0.24863311007618905
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.3076604620834649
+                  },
+                  "RightFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.14380865862248188,
+                      0.22435699555406,
+                      0.1528840820183722
+                    ],
+                    "mean_error": [
+                      0.1346284963749348,
+                      -0.22036194046959282,
+                      0.15168970169499535
+                    ],
+                    "p95_abs_error": [
+                      0.23444384425878526,
+                      0.2963921010494232,
+                      0.17185741037130356
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.3072304253869438
+                  }
+                },
+                "mean_error": [
+                  -0.04370517599396436,
+                  -0.14513283795677126,
+                  -0.021819695616140767
+                ],
+                "p95_abs_error": [
+                  0.23800199329853058,
+                  0.20050220377743244,
+                  0.2102452602237463
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 0.3074454437352044
+              },
+              "foot_slide": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "m_per_s",
+                "value": 0.0
+              },
+              "hand_position_rmse": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.5669759810031788,
+                  1.4815460887462166,
+                  1.180509190988067
+                ],
+                "by_semantic": {
+                  "LeftHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.5384494836810507,
+                      1.1087602892539155,
+                      0.9242305255998717
+                    ],
+                    "mean_error": [
+                      0.42254467768594567,
+                      -1.0874341860413552,
+                      0.9105165902059525
+                    ],
+                    "p95_abs_error": [
+                      0.9978059089183808,
+                      1.3806213974952697,
+                      1.2004188530147075
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 1.5406100382489498
+                  },
+                  "RightHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.595502478325307,
+                      1.8543318882385178,
+                      1.4367878563762622
+                    ],
+                    "mean_error": [
+                      0.5822171168570643,
+                      -1.8457663267850877,
+                      1.3862683134386315
+                    ],
+                    "p95_abs_error": [
+                      0.75790790528059,
+                      2.0800409078598023,
+                      1.6740681678056717
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 2.420233314715774
+                  }
+                },
+                "mean_error": [
+                  0.502380897271505,
+                  -1.4666002564132214,
+                  1.148392451822292
+                ],
+                "p95_abs_error": [
+                  0.8778569070994855,
+                  1.730331152677536,
+                  1.4372435104101897
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 1.980421676482362
+              },
+              "joint_limit_margin": {
+                "status": "ok",
+                "unit": "normalized_margin",
+                "value": 0.0
+              },
+              "penetration": {
+                "statistic": "max",
+                "status": "ok",
+                "unit": "m",
+                "value": 3.814697269177714e-08
+              },
+              "root_acceleration_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "root_coord_per_s2",
+                "value": 0.0
+              },
+              "root_tilt": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "rad",
+                "value": 0.0
+              },
+              "root_velocity_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "root_coord_per_s",
+                "value": 0.0
+              },
+              "task_residual_by_type_priority": {
+                "count": 1360,
+                "groups": {
+                  "direction:p3": {
+                    "count": 640,
+                    "max": 1.9982319780970264,
+                    "mean": 1.3622758696582746,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.9728558965347263
+                  },
+                  "pole_vector:p3": {
+                    "count": 640,
+                    "max": 1.998756637446246,
+                    "mean": 1.41476689969721,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.964332079797134
+                  },
+                  "projected_relative_rotation:p2": {
+                    "count": 80,
+                    "max": 1.7083449257917347,
+                    "mean": 1.616181162988952,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.7071987175904357
+                  }
+                },
+                "max": 1.998756637446246,
+                "mean": 1.4019131363431077,
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "residual",
+                "value": 1.967331954308043
+              },
+              "torso_reachable_residual": {
+                "count": 80,
+                "max": 1.7083449257917347,
+                "mean": 1.616181162988952,
+                "source_unreachable_p95": 1.7182428318383978,
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "rad",
+                "value": 1.7071987175904357
+              },
+              "torso_unreachable_residual": {
+                "count": 80,
+                "max": 0.0,
+                "mean": 0.0,
+                "meaning": "actual_unreachable_leakage",
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "rad",
+                "value": 0.0
+              },
+              "velocity_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "actuated_joint_coord_per_s",
+                "value": 0.0
+              }
+            },
+            "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_throw_ball_001__A057.bvh",
+            "sample_rate": 120.0,
+            "source_frame_start": 92
+          },
+          {
+            "frame_selection": "max_motion_window",
+            "frames": 80,
+            "metrics": {
+              "acceleration_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "actuated_joint_coord_per_s2",
+                "value": 552.0050407771057
+              },
+              "foot_position_rmse": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.26639472852764656,
+                  0.30359967508561486,
+                  0.33428590815234216
+                ],
+                "by_semantic": {
+                  "LeftFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.1778108932260665,
+                      0.3148106294459803,
+                      0.37617185756578775
+                    ],
+                    "mean_error": [
+                      -0.10281768730847998,
+                      0.20222284603786117,
+                      -0.33058056516789625
+                    ],
+                    "p95_abs_error": [
+                      0.39621591093874564,
+                      0.7221888291857262,
+                      0.5913833989630503
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5217544562210478
+                  },
+                  "RightFoot": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.35497856382922666,
+                      0.2923887207252494,
+                      0.2923999587388965
+                    ],
+                    "mean_error": [
+                      -0.21762130662293555,
+                      0.1598612716570773,
+                      0.030946419176846252
+                    ],
+                    "p95_abs_error": [
+                      0.7175657888139304,
+                      0.5954123683046079,
+                      0.736197543707565
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.5449758532780296
+                  }
+                },
+                "mean_error": [
+                  -0.16021949696570775,
+                  0.18104205884746924,
+                  -0.149817072995525
+                ],
+                "p95_abs_error": [
+                  0.556890849876338,
+                  0.658800598745167,
+                  0.6637904713353076
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 0.5333651547495386
+              },
+              "foot_slide": {
+                "statistic": "p95",
+                "status": "unavailable",
+                "unit": "m_per_s"
+              },
+              "hand_position_rmse": {
+                "axis_order": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "axis_rmse": [
+                  0.23269962667254873,
+                  0.17398335383830932,
+                  0.27735219074261097
+                ],
+                "by_semantic": {
+                  "LeftHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.21402954843569147,
+                      0.15421549277917398,
+                      0.13947210611931296
+                    ],
+                    "mean_error": [
+                      -0.15883348324726898,
+                      0.04231837044185829,
+                      0.03855681988434697
+                    ],
+                    "p95_abs_error": [
+                      0.40205096093803294,
+                      0.24536829751169684,
+                      0.2612345779596565
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.2984016323716517
+                  },
+                  "RightHand": {
+                    "axis_order": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "axis_rmse": [
+                      0.25136970490940597,
+                      0.19375121489744465,
+                      0.41523227536590906
+                    ],
+                    "mean_error": [
+                      0.192594913017009,
+                      -0.12382974774122442,
+                      -0.22934275891225991
+                    ],
+                    "p95_abs_error": [
+                      0.3823349109806109,
+                      0.2868183502969325,
+                      0.6770766840353766
+                    ],
+                    "sample_count": 80,
+                    "statistic": "rmse",
+                    "status": "ok",
+                    "unit": "m",
+                    "value": 0.522631901366562
+                  }
+                },
+                "mean_error": [
+                  0.01688071488487002,
+                  -0.04075568864968306,
+                  -0.09539296951395645
+                ],
+                "p95_abs_error": [
+                  0.392192935959322,
+                  0.26609332390431467,
+                  0.4691556309975165
+                ],
+                "sample_count": 160,
+                "statistic": "rmse",
+                "status": "ok",
+                "unit": "m",
+                "value": 0.4105167668691069
+              },
+              "joint_limit_margin": {
+                "status": "ok",
+                "unit": "normalized_margin",
+                "value": 0.0
+              },
+              "penetration": {
+                "statistic": "max",
+                "status": "ok",
+                "unit": "m",
+                "value": 0.0
+              },
+              "root_acceleration_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "root_coord_per_s2",
+                "value": 8511.303421634684
+              },
+              "root_tilt": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "rad",
+                "value": 1.686719040777145
+              },
+              "root_velocity_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "root_coord_per_s",
+                "value": 30.366398808148308
+              },
+              "task_residual_by_type_priority": {
+                "count": 1360,
+                "groups": {
+                  "direction:p3": {
+                    "count": 640,
+                    "max": 1.829241003879444,
+                    "mean": 0.8209826997935927,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.7201024780583565
+                  },
+                  "pole_vector:p3": {
+                    "count": 640,
+                    "max": 1.9984195886883718,
+                    "mean": 1.1529558811082474,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 1.9496861460748307
+                  },
+                  "projected_relative_rotation:p2": {
+                    "count": 80,
+                    "max": 2.6769125399197438,
+                    "mean": 1.3340526970317999,
+                    "statistic": "p95",
+                    "status": "ok",
+                    "unit": "residual",
+                    "value": 2.6231907426636276
+                  }
+                },
+                "max": 2.6769125399197438,
+                "mean": 1.0073859614262657,
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "residual",
+                "value": 1.9431710745633508
+              },
+              "torso_reachable_residual": {
+                "count": 80,
+                "max": 2.6769125399197438,
+                "mean": 1.3340526970317999,
+                "source_unreachable_p95": 1.2139059961216079,
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "rad",
+                "value": 2.6231907426636276
+              },
+              "torso_unreachable_residual": {
+                "count": 80,
+                "max": 1.0113224613263647,
+                "mean": 0.29259206062579884,
+                "meaning": "actual_unreachable_leakage",
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "rad",
+                "value": 0.939598082079612
+              },
+              "velocity_p95": {
+                "statistic": "p95",
+                "status": "ok",
+                "unit": "actuated_joint_coord_per_s",
+                "value": 18.49268829141467
+              }
+            },
+            "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_walk_forward_002__A057.bvh",
+            "sample_rate": 120.0,
+            "source_frame_start": 445
+          }
+        ],
+        "priority_guard": {
+          "checked_frames": 95,
+          "enabled": true,
+          "max_after": 0.0,
+          "max_allowed": 1e-05,
+          "protected_priority": 0,
+          "protected_residual": "joint_limit_penetration",
+          "rollback_count": 0
+        },
+        "runtime_seconds": {
+          "bvh_load_runtime": 0.6489960066974163,
+          "metric_runtime": 0.32646139338612556,
+          "motion_count": 2,
+          "motion_runtime": 3.828144285827875,
+          "output_frame_count": 160,
+          "pipeline_construct_runtime": 0.050023674964904785,
+          "solve_fps": 44.525937360484114,
+          "solve_runtime": 3.5934111550450325,
+          "target_setup_runtime": 0.23473313078284264
+        },
+        "solver_objectives": {
+          "active_objectives": 24,
+          "autodiff_sparse_residual_dim": 24,
+          "batch_size": 2,
+          "collision": 0,
+          "contact": 0,
+          "direction": 8,
+          "direction_analytic": 8,
+          "direction_autodiff": 0,
+          "ground_barrier": 0,
+          "ik_iterations": 8,
+          "jacobian_mode": "mixed",
+          "joint_limit": 1,
+          "pole_vector": 8,
+          "pole_vector_analytic": 0,
+          "pole_vector_autodiff": 8,
+          "position": 5,
+          "rotation": 1,
+          "smooth_joint_filter": 1,
+          "sparse_residual_dim": 66,
+          "temporal_acceleration": 0,
+          "temporal_velocity": 0
+        },
+        "status": "ok"
+      },
+      "profile_path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/e3_v2_compiled_retarget_profile_v2.json",
+      "profile_schema_version": 2,
+      "quaternion_order": "xyzw",
+      "robot": "e3_v2",
+      "robot_fingerprint": "627f2a31ffd01afd7c82a56153899f05affff922e5e44075091e51264a6ca8d7",
+      "root_ground_summary": {
+        "confidence": 1.0,
+        "ground_height_m": -0.014999999999999965,
+        "ground_height_source": "semantic_foot_rest_min_z",
+        "horizontal_scale": 1.0176376662413231,
+        "robot_leg_length_m": 0.9158738996171908,
+        "robot_nominal_pelvis_height_m": 0.915,
+        "source": "semantic_hips_feet_rest_pose",
+        "source_leg_length_m": 0.9,
+        "vertical_height_source": "robot_nominal_pelvis_height+stance_foot+ground+crouch_ratio"
+      },
+      "source_skeleton_fingerprint": "soma-v1",
+      "status": "ok",
+      "task_summary": {
+        "by_type_priority": {
+          "direction:p3": 8,
+          "normalized_position:p1": 3,
+          "normalized_position:p2": 2,
+          "pole_vector:p3": 8,
+          "projected_relative_rotation:p2": 1
+        },
+        "disabled": 0,
+        "enabled": 22
+      },
+      "warnings": [
+        {
+          "body": "left_shoulder_pitch_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "LeftArm"
+        },
+        {
+          "body": "left_forearm_distal_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "LeftHand"
+        },
+        {
+          "body": "left_hip_pitch_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "LeftLeg"
+        },
+        {
+          "body": "left_knee_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "LeftShin"
+        },
+        {
+          "body": "right_shoulder_pitch_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "RightArm"
+        },
+        {
+          "body": "right_forearm_distal_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "RightHand"
+        },
+        {
+          "body": "right_hip_pitch_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "RightLeg"
+        },
+        {
+          "body": "right_knee_link",
+          "code": "collision_proxy_from_chain_length",
+          "semantic": "RightShin"
+        }
+      ]
     }
   ],
   "robots": [
     "roboparty_rpo",
-    "unitree_g1"
+    "unitree_g1",
+    "e3_v2"
   ],
   "schema_version": 1,
   "status": "ok"

@@ -60,6 +60,18 @@ Risk: RPO hand/foot gates still fail; this is an incremental improvement, not an
 
 Verification: runtime config tests assert the single-axis hand weight and multi-axis G1 foot weights, compiled profile artifacts record compiler `2.1.4`, and bounded artifacts show RPO hand/foot RMSE improving from roughly `0.40/0.43` to `0.39/0.41` while retaining root/smoothness/penetration passes.
 
+## Synthetic E3 Capability Fixture
+
+Problem: the goal requires E3 v2 integration evidence, but the current workspace does not contain licensed E3 robot assets.
+
+Decision: register a small checked-in `e3_v2` MJCF capability fixture with a minimal semantic map, and mark it as `asset_kind: synthetic_fixture` in registry coverage artifacts.
+
+Reason: this exercises the same autoconfig, deterministic profile, simplified no-wrist hand map, torso rank, runtime benchmark, and failure-artifact paths without fabricating a vendor asset or downloading unlicensed files.
+
+Risk: synthetic benchmark metrics are not hardware acceptance metrics and must be replaced when real E3 assets become available.
+
+Verification: `e3_v2` autoconfig writes a schema v2 profile with valid cache diagnostics, registry coverage reports it as a ready synthetic fixture, and bounded benchmark artifacts include `per_robot/e3_v2.json` plus `failures/e3_v2_gates.json`.
+
 ## Pole Jacobian Gate
 
 Problem: pole-vector objectives still keep v2 on a mixed/autodiff Jacobian path, but enabling an unvalidated analytic pole Jacobian changes optimizer behavior.

@@ -143,8 +143,10 @@ The compiler writes a schema v2 profile with deterministic JSON, explicit `xyzw`
 Compile-level benchmark artifacts can be generated with:
 
 ```bash
-python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2
+python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 e3_v2 --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2
 ```
+
+The checked-in `e3_v2` registration uses a small synthetic capability fixture for compiler/runtime coverage until licensed E3 assets are available; `oli` remains an onboarding-report-only target unless local assets are registered.
 
 Generated runtime configs now include a `compiled_retarget_profile` reference. Advanced users can override its path with `COMPILED_RETARGET_PROFILE_DICT` in `params.py`; otherwise the registry uses `<robot>_compiled_retarget_profile_v2.json` beside the retargeter config.
 

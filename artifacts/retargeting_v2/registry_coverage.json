@@ -1,5 +1,6 @@
 {
   "registered_robots": [
+    "e3_v2",
     "roboparty_rpo",
     "unitree_g1",
     "unitree_g1_23dof"
@@ -126,67 +127,77 @@
       "status": "ready"
     },
     {
-      "blockers": [
-        "missing_registration"
-      ],
+      "asset_kind": "synthetic_fixture",
+      "asset_note": "Capability coverage for E3 v2 minimal-map autoconfig until licensed robot assets are registered.",
+      "blockers": [],
       "compiled_profile": {
-        "compiler_version": null,
+        "compiler_version": "2.1.4",
         "diagnostics": [],
-        "exists": false,
-        "path": null,
-        "robot_fingerprint": null,
-        "schema_version": null,
-        "warnings": []
-      },
-      "onboarding_report": {
-        "minimal_semantic_ik_map_template": {
-          "Chest": "<torso_body>",
-          "Hips": "<pelvis_or_base_body>",
-          "LeftFoot": "<left_foot_or_ankle_body>",
-          "LeftHand": "<left_hand_or_forearm_distal_body>",
-          "RightFoot": "<right_foot_or_ankle_body>",
-          "RightHand": "<right_hand_or_forearm_distal_body>"
-        },
-        "next_commands": [
-          "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --validate-only",
-          "python -m soma_retargeter.tools.autoconfigure_robot --robot e3_v2 --force",
-          "python -m soma_retargeter.tools.benchmark_retargeting --robots e3_v2 --motions assets/motions/bvh --compare legacy v2 --output artifacts/retargeting_v2"
-        ],
-        "notes": [
-          "Do not fabricate robot assets or download unlicensed files.",
-          "If only a higher-DoF model is available, use an explicit alias or a small locked-DoF fixture for capability coverage.",
-          "Pose-pair files are optional bounded refinement inputs after the compiled profile validates."
-        ],
-        "params_py_entries": [
-          "ROBOT_XML_DICT['e3_v2']",
-          "RETARGETER_CONFIG_DICT['e3_v2']",
-          "ROBOT_URDF_DICT['e3_v2'] optional"
-        ],
-        "required_files": {
-          "mjcf_or_xml": "assets/robots/e3_v2/mjcf/<robot>.xml",
-          "retargeter_config": "soma_retargeter/configs/e3_v2/soma_to_e3_v2_retargeter_config.json",
-          "urdf_optional": "assets/robots/e3_v2/urdf/<robot>.urdf"
-        },
-        "status": "missing_assets_or_registration"
+        "exists": true,
+        "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/e3_v2_compiled_retarget_profile_v2.json",
+        "robot_fingerprint": "627f2a31ffd01afd7c82a56153899f05affff922e5e44075091e51264a6ca8d7",
+        "schema_version": 2,
+        "warnings": [
+          {
+            "body": "left_shoulder_pitch_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "LeftArm"
+          },
+          {
+            "body": "left_forearm_distal_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "LeftHand"
+          },
+          {
+            "body": "left_hip_pitch_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "LeftLeg"
+          },
+          {
+            "body": "left_knee_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "LeftShin"
+          },
+          {
+            "body": "right_shoulder_pitch_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "RightArm"
+          },
+          {
+            "body": "right_forearm_distal_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "RightHand"
+          },
+          {
+            "body": "right_hip_pitch_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "RightLeg"
+          },
+          {
+            "body": "right_knee_link",
+            "code": "collision_proxy_from_chain_length",
+            "semantic": "RightShin"
+          }
+        ]
       },
       "paths": {
         "mjcf_path": {
-          "exists": false,
-          "path": null
+          "exists": true,
+          "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/robots/e3_v2_synthetic/mjcf/e3_v2_synthetic.xml"
         },
         "retargeter_config": {
-          "exists": false,
-          "path": null
+          "exists": true,
+          "path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/soma_to_e3_v2_retargeter_config.json"
         },
         "urdf_path": {
           "exists": false,
           "path": null
         }
       },
-      "registered": false,
+      "registered": true,
       "requested_name": "e3_v2",
       "resolved_name": "e3_v2",
-      "status": "missing_registration"
+      "status": "ready"
     },
     {
       "blockers": [
@@ -254,8 +265,8 @@
   ],
   "schema_version": 1,
   "status_counts": {
-    "missing_registration": 2,
-    "ready": 4
+    "missing_registration": 1,
+    "ready": 5
   },
   "targets": [
     "roboparty_rpo",

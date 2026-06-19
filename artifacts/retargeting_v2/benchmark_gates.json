@@ -81,15 +81,15 @@
           "v2_value": 578.4852183018215
         },
         {
-          "allowed_max": 1.0845086025074124,
-          "delta": 3.45319951698184,
-          "legacy_value": 0.86760688200593,
+          "allowed_max": 1.2494037067517638,
+          "delta": 3.232555363327265,
+          "legacy_value": 0.9995229654014111,
           "metric": "runtime_seconds.motion_runtime",
           "rule": "relative_not_worse",
           "status": "failed",
           "tolerance": 0.25,
           "unit": "s",
-          "v2_value": 4.32080639898777
+          "v2_value": 4.232078328728676
         }
       ],
       "passed_count": 5,
@@ -178,19 +178,116 @@
           "v2_value": 863.5041694473578
         },
         {
-          "allowed_max": 1.22951396740973,
-          "delta": 3.7310831248760223,
-          "legacy_value": 0.983611173927784,
+          "allowed_max": 1.2192869512364268,
+          "delta": 3.69606713950634,
+          "legacy_value": 0.9754295609891415,
           "metric": "runtime_seconds.motion_runtime",
           "rule": "relative_not_worse",
           "status": "failed",
           "tolerance": 0.25,
           "unit": "s",
-          "v2_value": 4.714694298803806
+          "v2_value": 4.6714967004954815
         }
       ],
       "passed_count": 7,
       "robot": "unitree_g1",
+      "status": "failed",
+      "unavailable_count": 0
+    },
+    {
+      "failed_count": 2,
+      "gates": [
+        {
+          "allowed_max": 0.17553922604967082,
+          "delta": -0.17552920697618446,
+          "legacy_value": 0.1755292260496708,
+          "metric": "penetration",
+          "rule": "not_increase",
+          "status": "passed",
+          "tolerance": 1e-05,
+          "unit": "m",
+          "v2_value": 1.907348634588857e-08
+        },
+        {
+          "allowed_max": 1.1448061222689025,
+          "delta": -0.30144660188033,
+          "legacy_value": 1.1448061222689025,
+          "metric": "root_tilt",
+          "rule": "not_increase",
+          "status": "passed",
+          "tolerance": 0.0,
+          "unit": "rad",
+          "v2_value": 0.8433595203885725
+        },
+        {
+          "allowed_max": 1.089121637278894,
+          "delta": -0.619322596239088,
+          "legacy_value": 1.089121637278894,
+          "metric": "torso_unreachable_residual",
+          "rule": "not_increase",
+          "status": "passed",
+          "tolerance": 0.0,
+          "unit": "rad",
+          "v2_value": 0.469799041039806
+        },
+        {
+          "allowed_max": 0.6194535046390992,
+          "delta": 0.6055135029718304,
+          "legacy_value": 0.589955718703904,
+          "metric": "hand_position_rmse",
+          "rule": "relative_not_worse",
+          "status": "failed",
+          "tolerance": 0.05,
+          "unit": "m",
+          "v2_value": 1.1954692216757343
+        },
+        {
+          "allowed_max": 0.4431383410432749,
+          "delta": -0.0016312160369379436,
+          "legacy_value": 0.4220365152793094,
+          "metric": "foot_position_rmse",
+          "rule": "relative_not_worse",
+          "status": "passed",
+          "tolerance": 0.05,
+          "unit": "m",
+          "v2_value": 0.42040529924237147
+        },
+        {
+          "allowed_max": 32.72635661874438,
+          "delta": -23.48001247303705,
+          "legacy_value": 32.72635661874438,
+          "metric": "velocity_p95",
+          "rule": "not_increase",
+          "status": "passed",
+          "tolerance": 0.0,
+          "unit": "actuated_joint_coord_per_s",
+          "v2_value": 9.246344145707335
+        },
+        {
+          "allowed_max": 3424.279990475161,
+          "delta": -3148.277470086608,
+          "legacy_value": 3424.279990475161,
+          "metric": "acceleration_p95",
+          "rule": "not_increase",
+          "status": "passed",
+          "tolerance": 0.0,
+          "unit": "actuated_joint_coord_per_s2",
+          "v2_value": 276.00252038855285
+        },
+        {
+          "allowed_max": 0.834819758310914,
+          "delta": 3.160288479179144,
+          "legacy_value": 0.6678558066487312,
+          "metric": "runtime_seconds.motion_runtime",
+          "rule": "relative_not_worse",
+          "status": "failed",
+          "tolerance": 0.25,
+          "unit": "s",
+          "v2_value": 3.828144285827875
+        }
+      ],
+      "passed_count": 6,
+      "robot": "e3_v2",
       "status": "failed",
       "unavailable_count": 0
     }
@@ -198,7 +295,7 @@
   "schema_version": 1,
   "status": "failed",
   "status_counts": {
-    "failed": 2
+    "failed": 3
   },
   "strict": false
 }

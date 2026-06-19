@@ -1,39 +1,39 @@
 {
   "chain_summary": {
     "count": 14,
-    "max_total_length": 0.35491919842883485,
+    "max_total_length": 0.4280073525436772,
     "min_total_length": 1e-06,
     "rotational_ranks": {
-      "Chest": 1,
+      "Chest": 2,
       "Hips": 0,
-      "LeftArm": 2,
-      "LeftFoot": 2,
+      "LeftArm": 1,
+      "LeftFoot": 1,
       "LeftForeArm": 2,
       "LeftHand": 0,
-      "LeftLeg": 2,
+      "LeftLeg": 1,
       "LeftShin": 1,
-      "RightArm": 2,
-      "RightFoot": 2,
+      "RightArm": 1,
+      "RightFoot": 1,
       "RightForeArm": 2,
       "RightHand": 0,
-      "RightLeg": 2,
+      "RightLeg": 1,
       "RightShin": 1
     },
     "translational_ranks": {
       "Chest": 0,
       "Hips": 0,
-      "LeftArm": 1,
-      "LeftFoot": 2,
-      "LeftForeArm": 1,
-      "LeftHand": 1,
-      "LeftLeg": 1,
-      "LeftShin": 1,
-      "RightArm": 1,
-      "RightFoot": 2,
-      "RightForeArm": 1,
-      "RightHand": 1,
-      "RightLeg": 1,
-      "RightShin": 1
+      "LeftArm": 0,
+      "LeftFoot": 1,
+      "LeftForeArm": 0,
+      "LeftHand": 0,
+      "LeftLeg": 0,
+      "LeftShin": 0,
+      "RightArm": 0,
+      "RightFoot": 1,
+      "RightForeArm": 0,
+      "RightHand": 0,
+      "RightLeg": 0,
+      "RightShin": 0
     }
   },
   "command": "python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 e3_v2 --motions assets/motions/bvh --max-motions 2 --max-frames 80 --compare legacy v2 v2_pole_analytic --output artifacts/retargeting_v2 --force",
@@ -43,7 +43,7 @@
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1626.8865551606784
+        "value": 3424.279990475161
       },
       "confidence": 1.0,
       "fallback_counts": {
@@ -58,9 +58,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.055146189353399544,
-          0.06765783372483196,
-          0.13650680130517173
+          0.2622069778862647,
+          0.21853935403706407,
+          0.20475284658867468
         ],
         "by_semantic": {
           "LeftFoot": {
@@ -70,25 +70,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.06169137608094336,
-              0.05505592789900741,
-              0.1555113312233793
+              0.26458219103672087,
+              0.35197164891882504,
+              0.2033110749709921
             ],
             "mean_error": [
-              0.04935227876075449,
-              -0.052870862651154246,
-              0.13837747119168115
+              -0.21101154417074933,
+              0.29358501241326035,
+              0.0695797701298454
             ],
             "p95_abs_error": [
-              0.10997083659005406,
-              0.07613995951967381,
-              0.19938694463342455
+              0.4402967512257252,
+              0.5159305533836921,
+              0.35354876941896674
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.19105006053696877
+            "value": 0.5001682754384656
           },
           "RightFoot": {
             "axis_order": [
@@ -97,46 +97,47 @@
               "z"
             ],
             "axis_rmse": [
-              0.048601002625855746,
-              0.08025973955065652,
-              0.1175022713869642
+              0.25983176473580843,
+              0.08510705915530309,
+              0.2061946182063573
             ],
             "mean_error": [
-              -0.046205319336298234,
-              -0.0765661646295228,
-              0.10987707570356349
+              -0.14351562586166935,
+              0.07448242122737846,
+              -0.17287983782324273
             ],
             "p95_abs_error": [
-              0.06617415014971526,
-              0.10181140829217998,
-              0.12813821414051518
+              0.30911913115571643,
+              0.12015032182339798,
+              0.3640309974425072
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.16304030809709902
+            "value": 0.343904755120153
           }
         },
         "mean_error": [
-          0.0015734797122281263,
-          -0.06471851364033852,
-          0.12412727344762234
+          -0.17726358501620934,
+          0.1840337168203194,
+          -0.051650033846698674
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.08807249336988467,
-          0.08897568390592689,
-          0.16376257938696986
+          0.3747079411907208,
+          0.31804043760354506,
+          0.358789883430737
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.17704518431703392
+        "value": 0.4220365152793094
       },
       "foot_slide": {
-        "motion_count": 2,
-        "reason": "unavailable",
-        "status": "unavailable"
+        "aggregation": "mean",
+        "motion_count": 1,
+        "status": "ok",
+        "value": 3.0066713047801867
       },
       "hand_position_rmse": {
         "aggregation": "mean",
@@ -146,9 +147,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.0628647388504026,
-          0.07342591250731603,
-          0.17763811329455795
+          0.2660961285471387,
+          0.2808514897773667,
+          0.4009478362425975
         ],
         "by_semantic": {
           "LeftHand": {
@@ -158,25 +159,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.04682724944782058,
-              0.07685038961223305,
-              0.208946035825407
+              0.23922470783452998,
+              0.11870775545208165,
+              0.44488128429961316
             ],
             "mean_error": [
-              0.017272602407139046,
-              -0.06762010963458978,
-              0.18091326547463657
+              -0.016437957622637812,
+              -0.07315160338724919,
+              0.3826201572871981
             ],
             "p95_abs_error": [
-              0.07714424864592422,
-              0.10003511571464312,
-              0.2786576640116377
+              0.3522120904697142,
+              0.2133274965821444,
+              0.5822689413359396
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.24597861154056028
+            "value": 0.5393518133981883
           },
           "RightHand": {
             "axis_order": [
@@ -185,83 +186,83 @@
               "z"
             ],
             "axis_rmse": [
-              0.07890222825298462,
-              0.070001435402399,
-              0.1463301907637089
+              0.2929675492597474,
+              0.4429952241026518,
+              0.35701438818558195
             ],
             "mean_error": [
-              0.023919404211480547,
-              0.005372291606344196,
-              0.07812696451996996
+              0.2649615163354845,
+              0.015775383072030524,
+              -0.1550747170426713
             ],
             "p95_abs_error": [
-              0.12892110941508053,
-              0.11098553173235533,
-              0.19064233343262818
+              0.40111327840098276,
+              0.6236743205950162,
+              0.5886266689486161
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.18465279658696335
+            "value": 0.6405596240096196
           }
         },
         "mean_error": [
-          0.020596003309309795,
-          -0.031123909014122784,
-          0.12952011499730326
+          0.12426177935642331,
+          -0.028688110157609324,
+          0.1137727201222634
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.10303267903050237,
-          0.10551032372349922,
-          0.23464999872213294
+          0.37666268443534845,
+          0.41850090858858024,
+          0.5854478051422779
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.2153157040637618
+        "value": 0.589955718703904
       },
       "joint_limit_margin": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 0.07983410593144716
+        "value": 0.0792688570579266
       },
       "penetration": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 0.0
+        "value": 0.1755292260496708
       },
       "root_acceleration_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 25.723300730398975
+        "value": 164.89395838418895
       },
       "root_tilt": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.672693338283243
+        "value": 1.1448061222689025
       },
       "root_velocity_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 2.317901325736721
+        "value": 2.4539144879958434
       },
       "runtime_seconds": {
-        "bvh_load_runtime": 0.8110932111740112,
-        "compile_profile": 0.04301472008228302,
-        "metric_runtime": 0.39525777846574783,
+        "bvh_load_runtime": 0.9296321235597134,
+        "compile_profile": 0.010335680097341537,
+        "metric_runtime": 0.3267280273139477,
         "motion_count": 2,
-        "motion_runtime": 0.9995229654014111,
+        "motion_runtime": 0.6678558066487312,
         "output_frame_count": 160,
-        "pipeline_construct_runtime": 5.172520067542791,
-        "solve_fps": 162.13508106844094,
-        "solve_runtime": 0.9868314675986767,
-        "target_setup_runtime": 0.012691497802734375
+        "pipeline_construct_runtime": 0.03975178673863411,
+        "solve_fps": 242.9710841276955,
+        "solve_runtime": 0.6585145741701126,
+        "target_setup_runtime": 0.009341232478618622
       },
       "solver_iterations": {
         "status": "ok",
@@ -271,34 +272,34 @@
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.0547285013395111
+        "value": 1.8517574693229903
       },
       "torso_reachable_residual": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 0.6988551664063445
+        "value": 0.7285562243354115
       },
       "torso_unreachable_residual": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 2.044353169900234
+        "value": 1.089121637278894
       },
       "velocity_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 28.91357033356593
+        "value": 32.72635661874438
       },
-      "warnings": 0
+      "warnings": 8
     },
     "v2": {
       "acceleration_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 578.4852183018215
+        "value": 276.00252038855285
       },
       "confidence": 1.0,
       "fallback_counts": {
@@ -322,9 +323,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.16217416317833605,
-          0.27908540342665755,
-          0.2270043192864375
+          0.224764310757472,
+          0.22694054787960294,
+          0.2549620879862295
         ],
         "by_semantic": {
           "LeftFoot": {
@@ -334,25 +335,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.2019131156302878,
-              0.31512116206503366,
-              0.17650133148813923
+              0.20013501028908975,
+              0.19550823761955113,
+              0.28728215559382464
             ],
             "mean_error": [
-              -0.17024226939991668,
-              0.29453184182650893,
-              -0.14957623985793528
+              -0.16242826783567174,
+              0.06615955529695575,
+              -0.2629548290475866
             ],
             "p95_abs_error": [
-              0.29485941957347384,
-              0.41935626171787516,
-              0.28460608647038665
+              0.3188880266385108,
+              0.41340056784558393,
+              0.4200082545196196
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.43052263629165904
+            "value": 0.4147074591522563
           },
           "RightFoot": {
             "axis_order": [
@@ -361,46 +362,47 @@
               "z"
             ],
             "axis_rmse": [
-              0.12243521072638427,
-              0.2430496447882815,
-              0.2775073070847357
+              0.24939361122585427,
+              0.25837285813965466,
+              0.22264202037863434
             ],
             "mean_error": [
-              0.031031620287858643,
-              0.21930196032434696,
-              0.16548540993178001
+              -0.04149640512400038,
+              -0.03025033440625775,
+              0.0913180604359208
             ],
             "p95_abs_error": [
-              0.23315287815292782,
-              0.3216413566858157,
-              0.4251534903444993
+              0.47600481653635784,
+              0.4459022346770155,
+              0.45402747703943425
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.3962892465380201
+            "value": 0.42610313933248667
           }
         },
         "mean_error": [
-          -0.06960532455602902,
-          0.256916901075428,
-          0.007954585036922358
+          -0.10196233647983606,
+          0.017954610445348997,
+          -0.08581838430583288
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.26400614886320084,
-          0.37049880920184547,
-          0.354879788407443
+          0.39744642158743426,
+          0.4296514012612997,
+          0.4370178657795269
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.4134059414148396
+        "value": 0.42040529924237147
       },
       "foot_slide": {
-        "motion_count": 2,
-        "reason": "unavailable",
-        "status": "unavailable"
+        "aggregation": "mean",
+        "motion_count": 1,
+        "status": "ok",
+        "value": 0.0
       },
       "hand_position_rmse": {
         "aggregation": "mean",
@@ -410,9 +412,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.16905972039727474,
-          0.209275477243669,
-          0.2517068160235162
+          0.39983780383786377,
+          0.8277647212922629,
+          0.728930690865339
         ],
         "by_semantic": {
           "LeftHand": {
@@ -422,25 +424,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.2291456107329754,
-              0.13991451409714456,
-              0.18899144698487985
+              0.3762395160583711,
+              0.6314878910165447,
+              0.5318513158595923
             ],
             "mean_error": [
-              -0.0759831764086428,
-              0.03306032486109764,
-              -0.12147927089713288
+              0.13185559721933834,
+              -0.5225579077997484,
+              0.4745367050451497
             ],
             "p95_abs_error": [
-              0.3386454945131174,
-              0.24688633823454875,
-              0.3132311232173538
+              0.6999284349282069,
+              0.8129948475034834,
+              0.730826715487182
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.33278939113146083
+            "value": 0.9195058353103007
           },
           "RightHand": {
             "axis_order": [
@@ -449,41 +451,41 @@
               "z"
             ],
             "axis_rmse": [
-              0.10897383006157405,
-              0.2786364403901934,
-              0.3144221850621525
+              0.4234360916173565,
+              1.0240415515679813,
+              0.9260100658710856
             ],
             "mean_error": [
-              -0.04611365348882977,
-              -0.24948802227340114,
-              -0.007204544230173781
+              0.3874060149370367,
+              -0.9847980372631561,
+              0.5784627772631858
             ],
             "p95_abs_error": [
-              0.2038583726125423,
-              0.3979570968953231,
-              0.44256988692403426
+              0.5701214081306005,
+              1.1834296290783672,
+              1.175572425920524
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.4481668004856809
+            "value": 1.471432608041168
           }
         },
         "mean_error": [
-          -0.06104841494873629,
-          -0.10821384870615174,
-          -0.06434190756365332
+          0.2596308060781875,
+          -0.7536779725314522,
+          0.5264997411541679
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.27125193356282984,
-          0.32242171756493593,
-          0.37790050507069406
+          0.6350249215294037,
+          0.9982122382909253,
+          0.9531995707038531
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.39047809580857085
+        "value": 1.1954692216757343
       },
       "joint_limit_margin": {
         "aggregation": "mean",
@@ -495,74 +497,74 @@
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 0.0
+        "value": 1.907348634588857e-08
       },
       "root_acceleration_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 2123.5673503387034
+        "value": 4255.651710817342
       },
       "root_tilt": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.669392193365933
+        "value": 0.8433595203885725
       },
       "root_velocity_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 12.469712330145324
+        "value": 15.183199404074154
       },
       "runtime_seconds": {
-        "bvh_load_runtime": 1.0519085638225079,
-        "compile_profile": 0.04301472008228302,
-        "metric_runtime": 0.3267487958073616,
+        "bvh_load_runtime": 0.6489960066974163,
+        "compile_profile": 0.010335680097341537,
+        "metric_runtime": 0.32646139338612556,
         "motion_count": 2,
-        "motion_runtime": 4.232078328728676,
+        "motion_runtime": 3.828144285827875,
         "output_frame_count": 160,
-        "pipeline_construct_runtime": 4.534568067640066,
-        "solve_fps": 40.16691067385637,
-        "solve_runtime": 3.983378291130066,
-        "target_setup_runtime": 0.24870003759860992
+        "pipeline_construct_runtime": 0.050023674964904785,
+        "solve_fps": 44.525937360484114,
+        "solve_runtime": 3.5934111550450325,
+        "target_setup_runtime": 0.23473313078284264
       },
       "solver_iterations": {
         "status": "ok",
-        "value": 4.0
+        "value": 8.0
       },
       "task_residual_by_type_priority": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.713226760207602
+        "value": 1.9552515144356968
       },
       "torso_reachable_residual": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.4058095910128507
+        "value": 2.165194730127032
       },
       "torso_unreachable_residual": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.8221961045041135
+        "value": 0.469799041039806
       },
       "velocity_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 21.869567999821825
+        "value": 9.246344145707335
       },
-      "warnings": 0
+      "warnings": 8
     },
     "v2_pole_analytic": {
       "acceleration_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 554.0395301256865
+        "value": 225.05206289311744
       },
       "confidence": 1.0,
       "fallback_counts": {
@@ -586,9 +588,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.1874053349487397,
-          0.28268873656897253,
-          0.24977171650374305
+          0.2624925981624845,
+          0.19486761587439777,
+          0.31448220604628724
         ],
         "by_semantic": {
           "LeftFoot": {
@@ -598,25 +600,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.21740006613637758,
-              0.32229870830028523,
-              0.23307568081663382
+              0.28388962154916814,
+              0.1575610446114482,
+              0.4152399469476268
             ],
             "mean_error": [
-              -0.16242783097387886,
-              0.2896198834435788,
-              -0.2096613313241781
+              -0.18591669612350742,
+              -0.05413870368824795,
+              -0.34829971763824175
             ],
             "p95_abs_error": [
-              0.3763518715198421,
-              0.4761862789859407,
-              0.3737218093525049
+              0.3714264459367661,
+              0.260672517594799,
+              0.5931044617514148
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.4849992565476196
+            "value": 0.5332579204190857
           },
           "RightFoot": {
             "axis_order": [
@@ -625,46 +627,47 @@
               "z"
             ],
             "axis_rmse": [
-              0.15741060376110177,
-              0.24307876483765986,
-              0.26646775219085234
+              0.24109557477580087,
+              0.23217418713734736,
+              0.21372446514494775
             ],
             "mean_error": [
-              0.007199833448780802,
-              0.21615168065542703,
-              0.1465870672681273
+              0.19669597268285677,
+              -0.057056839816495654,
+              -0.02972254425284131
             ],
             "p95_abs_error": [
-              0.26813184841202115,
-              0.31753735736601785,
-              0.42999822466365245
+              0.47535986459223867,
+              0.31179744572720536,
+              0.29333315115478953
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.4068635648573961
+            "value": 0.4023542465894366
           }
         },
         "mean_error": [
-          -0.07761399876254903,
-          0.2528857820495029,
-          -0.031537132028025376
+          0.005389638279674686,
+          -0.055597771752371794,
+          -0.1890111309455415
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.3222418599659317,
-          0.3968618181759793,
-          0.4018600170080786
+          0.4233931552645024,
+          0.2862349816610022,
+          0.44321880645310213
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.44593141070250786
+        "value": 0.4678060835042611
       },
       "foot_slide": {
-        "motion_count": 2,
-        "reason": "unavailable",
-        "status": "unavailable"
+        "aggregation": "mean",
+        "motion_count": 1,
+        "status": "ok",
+        "value": 0.0
       },
       "hand_position_rmse": {
         "aggregation": "mean",
@@ -674,9 +677,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.18984383777919686,
-          0.24726518399680675,
-          0.2585688296847931
+          0.4671736264742258,
+          0.918628940311897,
+          0.7824382775129601
         ],
         "by_semantic": {
           "LeftHand": {
@@ -686,25 +689,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.25161617862683705,
-              0.22547245125446888,
-              0.1965976207824661
+              0.38942711968736915,
+              0.766904195491579,
+              0.5499875236022279
             ],
             "mean_error": [
-              -0.10784395507001321,
-              0.13757720906182772,
-              -0.1179296730753352
+              0.10750175942506127,
+              -0.6012946518716188,
+              0.5055123405626606
             ],
             "p95_abs_error": [
-              0.34357766972266746,
-              0.3296115561793467,
-              0.3460239829499347
+              0.6993640342693973,
+              0.9794258131969762,
+              0.7353132704320591
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.40603706313157273
+            "value": 1.0297980210618096
           },
           "RightHand": {
             "axis_order": [
@@ -713,41 +716,41 @@
               "z"
             ],
             "axis_rmse": [
-              0.12807149693155664,
-              0.26905791673914464,
-              0.3205400385871202
+              0.5449201332610825,
+              1.0703536851322153,
+              1.0148890314236925
             ],
             "mean_error": [
-              -0.045064928659560174,
-              -0.2294107724836973,
-              -0.012062244238622644
+              0.4866450000729821,
+              -0.8425537985945859,
+              0.8896671325120156
             ],
             "p95_abs_error": [
-              0.2400681579521792,
-              0.3844579796634003,
-              0.46164993036622193
+              0.7913279114025231,
+              1.2673341135520708,
+              1.3324379996224098
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.4595628941110174
+            "value": 1.6218259451191663
           }
         },
         "mean_error": [
-          -0.0764544418647867,
-          -0.045916781710934794,
-          -0.06499595865697891
+          0.2970733797490217,
+          -0.7219242252331023,
+          0.6975897365373381
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.2918229138374233,
-          0.3570347679213735,
-          0.40383695665807834
+          0.7453459728359603,
+          1.1233799633745236,
+          1.0338756350272345
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.43279997862129505
+        "value": 1.325811983090488
       },
       "joint_limit_margin": {
         "aggregation": "mean",
@@ -759,102 +762,102 @@
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 0.0
+        "value": 1.907348634588857e-08
       },
       "root_acceleration_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1560.5436553764869
+        "value": 6688.799952736276
       },
       "root_tilt": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.5040414476942052
+        "value": 0.6367313148331704
       },
       "root_velocity_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 11.469572832184026
+        "value": 5.471676053376174
       },
       "runtime_seconds": {
-        "bvh_load_runtime": 0.866933099925518,
-        "compile_profile": 0.04301472008228302,
-        "metric_runtime": 0.32653922960162163,
+        "bvh_load_runtime": 0.9833325929939747,
+        "compile_profile": 0.010335680097341537,
+        "metric_runtime": 0.3253335542976856,
         "motion_count": 2,
-        "motion_runtime": 2.3641564585268497,
+        "motion_runtime": 0.7285161577165127,
         "output_frame_count": 160,
-        "pipeline_construct_runtime": 4.2909956350922585,
-        "solve_fps": 75.22991419475139,
-        "solve_runtime": 2.1268135383725166,
-        "target_setup_runtime": 0.23734292015433311
+        "pipeline_construct_runtime": 0.0454978421330452,
+        "solve_fps": 324.72082196379677,
+        "solve_runtime": 0.4927309527993202,
+        "target_setup_runtime": 0.23578520491719246
       },
       "solver_iterations": {
         "status": "ok",
-        "value": 4.0
+        "value": 8.0
       },
       "task_residual_by_type_priority": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.7657333791309016
+        "value": 1.9722904430407668
       },
       "torso_reachable_residual": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.5209838060508714
+        "value": 2.1121455016462027
       },
       "torso_unreachable_residual": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.7249834692187278
+        "value": 0.5043025583452315
       },
       "velocity_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 20.842520427461917
+        "value": 8.739759706725106
       },
-      "warnings": 0
+      "warnings": 8
     }
   },
   "compare_runtime_seconds": {
     "legacy": {
-      "bvh_load_runtime": 0.8110932111740112,
-      "metric_runtime": 0.39525777846574783,
+      "bvh_load_runtime": 0.9296321235597134,
+      "metric_runtime": 0.3267280273139477,
       "motion_count": 2,
-      "motion_runtime": 0.9995229654014111,
+      "motion_runtime": 0.6678558066487312,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 5.172520067542791,
-      "solve_fps": 162.13508106844094,
-      "solve_runtime": 0.9868314675986767,
-      "target_setup_runtime": 0.012691497802734375
+      "pipeline_construct_runtime": 0.03975178673863411,
+      "solve_fps": 242.9710841276955,
+      "solve_runtime": 0.6585145741701126,
+      "target_setup_runtime": 0.009341232478618622
     },
     "v2": {
-      "bvh_load_runtime": 1.0519085638225079,
-      "metric_runtime": 0.3267487958073616,
+      "bvh_load_runtime": 0.6489960066974163,
+      "metric_runtime": 0.32646139338612556,
       "motion_count": 2,
-      "motion_runtime": 4.232078328728676,
+      "motion_runtime": 3.828144285827875,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 4.534568067640066,
-      "solve_fps": 40.16691067385637,
-      "solve_runtime": 3.983378291130066,
-      "target_setup_runtime": 0.24870003759860992
+      "pipeline_construct_runtime": 0.050023674964904785,
+      "solve_fps": 44.525937360484114,
+      "solve_runtime": 3.5934111550450325,
+      "target_setup_runtime": 0.23473313078284264
     },
     "v2_pole_analytic": {
-      "bvh_load_runtime": 0.866933099925518,
-      "metric_runtime": 0.32653922960162163,
+      "bvh_load_runtime": 0.9833325929939747,
+      "metric_runtime": 0.3253335542976856,
       "motion_count": 2,
-      "motion_runtime": 2.3641564585268497,
+      "motion_runtime": 0.7285161577165127,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 4.2909956350922585,
-      "solve_fps": 75.22991419475139,
-      "solve_runtime": 2.1268135383725166,
-      "target_setup_runtime": 0.23734292015433311
+      "pipeline_construct_runtime": 0.0454978421330452,
+      "solve_fps": 324.72082196379677,
+      "solve_runtime": 0.4927309527993202,
+      "target_setup_runtime": 0.23578520491719246
     }
   },
   "compare_solver_objectives": {
@@ -883,15 +886,15 @@
     },
     "v2": {
       "active_objectives": 24,
-      "autodiff_sparse_residual_dim": 48,
+      "autodiff_sparse_residual_dim": 24,
       "batch_size": 2,
       "collision": 0,
       "contact": 0,
       "direction": 8,
-      "direction_analytic": 0,
-      "direction_autodiff": 8,
+      "direction_analytic": 8,
+      "direction_autodiff": 0,
       "ground_barrier": 0,
-      "ik_iterations": 4,
+      "ik_iterations": 8,
       "jacobian_mode": "mixed",
       "joint_limit": 1,
       "pole_vector": 8,
@@ -906,16 +909,16 @@
     },
     "v2_pole_analytic": {
       "active_objectives": 24,
-      "autodiff_sparse_residual_dim": 24,
+      "autodiff_sparse_residual_dim": 0,
       "batch_size": 2,
       "collision": 0,
       "contact": 0,
       "direction": 8,
-      "direction_analytic": 0,
-      "direction_autodiff": 8,
+      "direction_analytic": 8,
+      "direction_autodiff": 0,
       "ground_barrier": 0,
-      "ik_iterations": 4,
-      "jacobian_mode": "mixed",
+      "ik_iterations": 8,
+      "jacobian_mode": "analytic",
       "joint_limit": 1,
       "pole_vector": 8,
       "pole_vector_analytic": 8,
@@ -931,53 +934,42 @@
   "compiler_version": "2.1.4",
   "failed_gates": [
     {
-      "allowed_max": 0.2260814892669499,
-      "delta": 0.17516239174480905,
-      "legacy_value": 0.2153157040637618,
+      "allowed_max": 0.6194535046390992,
+      "delta": 0.6055135029718304,
+      "legacy_value": 0.589955718703904,
       "metric": "hand_position_rmse",
       "rule": "relative_not_worse",
       "status": "failed",
       "tolerance": 0.05,
       "unit": "m",
-      "v2_value": 0.39047809580857085
+      "v2_value": 1.1954692216757343
     },
     {
-      "allowed_max": 0.18589744353288562,
-      "delta": 0.23636075709780568,
-      "legacy_value": 0.17704518431703392,
-      "metric": "foot_position_rmse",
-      "rule": "relative_not_worse",
-      "status": "failed",
-      "tolerance": 0.05,
-      "unit": "m",
-      "v2_value": 0.4134059414148396
-    },
-    {
-      "allowed_max": 1.2494037067517638,
-      "delta": 3.232555363327265,
-      "legacy_value": 0.9995229654014111,
+      "allowed_max": 0.834819758310914,
+      "delta": 3.160288479179144,
+      "legacy_value": 0.6678558066487312,
       "metric": "runtime_seconds.motion_runtime",
       "rule": "relative_not_worse",
       "status": "failed",
       "tolerance": 0.25,
       "unit": "s",
-      "v2_value": 4.232078328728676
+      "v2_value": 3.828144285827875
     }
   ],
   "failure_type": "benchmark_gate",
-  "per_robot_artifact": "per_robot/roboparty_rpo.json",
-  "profile_path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/roboparty_rpo/roboparty_rpo_compiled_retarget_profile_v2.json",
+  "per_robot_artifact": "per_robot/e3_v2.json",
+  "profile_path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/e3_v2_compiled_retarget_profile_v2.json",
   "profile_schema_version": 2,
   "reproduction_command": "python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 e3_v2 --motions assets/motions/bvh --max-motions 2 --max-frames 80 --compare legacy v2 v2_pole_analytic --output artifacts/retargeting_v2 --force",
-  "robot": "roboparty_rpo",
-  "robot_fingerprint": "637bec2bba6f210319792b3e8c0bdf529b16d0c56e7af462e0c3c8bd21bb5f5f",
+  "robot": "e3_v2",
+  "robot_fingerprint": "627f2a31ffd01afd7c82a56153899f05affff922e5e44075091e51264a6ca8d7",
   "root_ground_summary": {
     "confidence": 1.0,
-    "ground_height_m": -0.006648306848862404,
+    "ground_height_m": -0.014999999999999965,
     "ground_height_source": "semantic_foot_rest_min_z",
-    "horizontal_scale": 0.8407275905952332,
-    "robot_leg_length_m": 0.7566548315357099,
-    "robot_nominal_pelvis_height_m": 0.7566483068488624,
+    "horizontal_scale": 1.0176376662413231,
+    "robot_leg_length_m": 0.9158738996171908,
+    "robot_nominal_pelvis_height_m": 0.915,
     "source": "semantic_hips_feet_rest_pose",
     "source_leg_length_m": 0.9,
     "vertical_height_source": "robot_nominal_pelvis_height+stance_foot+ground+crouch_ratio"
@@ -996,5 +988,46 @@
     "enabled": 22
   },
   "unavailable_gates": [],
-  "warnings": []
+  "warnings": [
+    {
+      "body": "left_shoulder_pitch_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftArm"
+    },
+    {
+      "body": "left_forearm_distal_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftHand"
+    },
+    {
+      "body": "left_hip_pitch_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftLeg"
+    },
+    {
+      "body": "left_knee_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "LeftShin"
+    },
+    {
+      "body": "right_shoulder_pitch_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightArm"
+    },
+    {
+      "body": "right_forearm_distal_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightHand"
+    },
+    {
+      "body": "right_hip_pitch_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightLeg"
+    },
+    {
+      "body": "right_knee_link",
+      "code": "collision_proxy_from_chain_length",
+      "semantic": "RightShin"
+    }
+  ]
 }
