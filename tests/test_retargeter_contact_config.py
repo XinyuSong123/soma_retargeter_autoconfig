@@ -64,6 +64,26 @@ class TestContactConfig(unittest.TestCase):
         cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}, "ik_iterations": 24})
         self.assertEqual(cfg["ik_iterations"], 24)
 
+    def test_compiled_v2_runtime_enables_joint_motion_limiter(self):
+        cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}})
+        self.assertTrue(cfg["joint_motion_limit_enabled"])
+        self.assertEqual(cfg["joint_velocity_limit_fraction_per_second"], 2.0)
+        self.assertEqual(cfg["joint_acceleration_limit_fraction_per_second2"], 40.0)
+
+    def test_explicit_joint_motion_limiter_options_override_compiled_v2_default(self):
+        cfg = build_runtime_retargeter_config(
+            "roboparty_rpo",
+            {
+                "ik_map": {},
+                "joint_motion_limit_enabled": False,
+                "joint_velocity_limit_fraction_per_second": 1.5,
+                "joint_acceleration_limit_fraction_per_second2": 12.0,
+            },
+        )
+        self.assertFalse(cfg["joint_motion_limit_enabled"])
+        self.assertEqual(cfg["joint_velocity_limit_fraction_per_second"], 1.5)
+        self.assertEqual(cfg["joint_acceleration_limit_fraction_per_second2"], 12.0)
+
     def test_compiled_v2_tasks_disable_unreachable_legacy_objectives(self):
         raw = {
             "ik_map": {

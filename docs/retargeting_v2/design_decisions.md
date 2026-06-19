@@ -16,13 +16,25 @@ Verification: reachability projection unit tests remove unreachable pitch/roll f
 
 Problem: weighted least squares can let low-priority tracking damage joint safety.
 
-Decision: use compiled priority weight bands plus a high-priority residual guard for priority-0 joint-limit margin residuals.
+Decision: use compiled priority weight bands plus a high-priority residual guard for priority-0 hard joint-limit penetration.
 
 Reason: it is implementable with the current Newton API and provides a concrete rollback mechanism without waiting for full HQP/nullspace support.
 
-Risk: guard currently protects joint-limit margin, not every priority-0 residual.
+Risk: guard currently protects hard joint-limit penetration, not every priority-0 residual.
 
 Verification: priority band validation and rollback helper tests.
+
+## Actuated Joint Motion Limiter
+
+Problem: v2 IK can jump between equivalent local solutions on a small number of frames, creating extreme actuated joint velocity and acceleration even when most frames are static.
+
+Decision: compiled v2 runtime configs enable a range-normalized exported joint motion limiter for finite actuated coordinates. The limiter bounds per-frame delta and delta-change by each joint range and clip sample rate, while floating root coordinates remain outside the actuated q smoothness gate and are reported through separate root diagnostics.
+
+Reason: small temporal objective weights were insufficiently predictable and large weights made runtime and tracking worse. A command-space limiter directly bounds the exported trajectory without changing legacy configs.
+
+Risk: limiting can increase hand/foot tracking error when the IK solution jumps far from the previous command; tracking gates therefore remain active and still fail in the current bounded artifacts.
+
+Verification: unit tests cover root masking and range/dt delta limiting, and bounded benchmark artifacts show RPO and generic Unitree G1 actuated velocity/acceleration gates passing while tracking/runtime gates remain report-only failures.
 
 ## Per-Environment Contact Weight
 

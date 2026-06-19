@@ -11,6 +11,7 @@ from soma_retargeter.robotics.reachability import rotation_vector_to_quat_xyzw
 from soma_retargeter.tools.benchmark_retargeting import (
     _legacy_runtime_retargeter_config,
     _profile_runtime_residual_metrics,
+    _runtime_metrics_for_buffer,
     _select_motion_window,
     build_benchmark_gate_report,
     build_registry_coverage_report,
@@ -88,6 +89,27 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         start, count, mode = _select_motion_window(animation, 3)
 
         self.assertEqual((start, count, mode), (3, 3, "max_motion_window"))
+
+    def test_runtime_smoothness_metrics_split_root_from_actuated_joints(self):
+        frames = np.zeros((3, 9), dtype=np.float32)
+        frames[:, 3:7] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+        frames[1, 0] = 10.0
+        frames[2, 0] = 20.0
+        frames[1, 7] = 0.1
+        frames[2, 7] = 0.2
+        buffer = type("B", (), {"data": frames, "sample_rate": 10.0})()
+        pipeline = type("P", (), {"ik_model": None})()
+
+        with (
+            mock.patch("soma_retargeter.tools.benchmark_retargeting._joint_limit_margin", return_value=0.0),
+            mock.patch("soma_retargeter.tools.benchmark_retargeting._body_site_pose_trajectories", return_value={}),
+        ):
+            metrics = _runtime_metrics_for_buffer({"semantic_sites": {}}, pipeline, 0, buffer)
+
+        self.assertAlmostEqual(metrics["velocity_p95"]["value"], 1.0)
+        self.assertAlmostEqual(metrics["root_velocity_p95"]["value"], 100.0)
+        self.assertEqual(metrics["velocity_p95"]["unit"], "actuated_joint_coord_per_s")
+        self.assertEqual(metrics["root_velocity_p95"]["unit"], "root_coord_per_s")
 
     def test_registry_coverage_report_marks_missing_and_incomplete_targets(self):
         report = build_registry_coverage_report(("roboparty_rpo", "unitree_g1", "e3_v2", "oli"))

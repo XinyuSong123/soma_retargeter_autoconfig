@@ -49,6 +49,8 @@ METRIC_NAMES = (
     "foot_position_rmse",
     "velocity_p95",
     "acceleration_p95",
+    "root_velocity_p95",
+    "root_acceleration_p95",
     "solver_iterations",
     "runtime_seconds",
     "fallback_counts",
@@ -68,6 +70,8 @@ _RUNTIME_METRIC_NAMES = (
     "foot_position_rmse",
     "velocity_p95",
     "acceleration_p95",
+    "root_velocity_p95",
+    "root_acceleration_p95",
     "runtime_seconds",
     "fallback_counts",
 )
@@ -87,8 +91,8 @@ _BENCHMARK_GATE_SPECS = (
     ("torso_unreachable_residual", "not_increase", 0.0, "rad"),
     ("hand_position_rmse", "relative_not_worse", 0.05, "m"),
     ("foot_position_rmse", "relative_not_worse", 0.05, "m"),
-    ("velocity_p95", "not_increase", 0.0, "joint_coord_per_s"),
-    ("acceleration_p95", "not_increase", 0.0, "joint_coord_per_s2"),
+    ("velocity_p95", "not_increase", 0.0, "actuated_joint_coord_per_s"),
+    ("acceleration_p95", "not_increase", 0.0, "actuated_joint_coord_per_s2"),
     ("runtime_seconds.motion_runtime", "relative_not_worse", 0.25, "s"),
 )
 
@@ -624,8 +628,17 @@ def _root_tilt_p95(frames: np.ndarray) -> float | None:
     return _percentile_metric(np.asarray(tilts, dtype=np.float64))
 
 
-def _trajectory_velocity_metrics(frames: np.ndarray, sample_rate: float) -> tuple[float | None, float | None]:
+def _trajectory_velocity_metrics(
+    frames: np.ndarray,
+    sample_rate: float,
+    *,
+    coord_slice: slice | None = None,
+) -> tuple[float | None, float | None]:
     if frames.shape[0] < 2:
+        return None, None
+    if coord_slice is not None:
+        frames = frames[:, coord_slice]
+    if frames.shape[1] == 0:
         return None, None
     dt = 1.0 / max(float(sample_rate), 1.0e-6)
     velocities = np.diff(frames.astype(np.float64), axis=0) / dt
@@ -840,12 +853,15 @@ def _profile_runtime_residual_metrics(
 def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_index: int, buffer: Any) -> dict[str, Any]:
     frames = np.asarray(buffer.data, dtype=np.float32)
     sample_rate = float(buffer.sample_rate)
-    velocity_p95, acceleration_p95 = _trajectory_velocity_metrics(frames, sample_rate)
+    velocity_p95, acceleration_p95 = _trajectory_velocity_metrics(frames, sample_rate, coord_slice=slice(7, None))
+    root_velocity_p95, root_acceleration_p95 = _trajectory_velocity_metrics(frames, sample_rate, coord_slice=slice(0, 7))
     metrics = {
         "joint_limit_margin": _metric_payload(_joint_limit_margin(pipeline.ik_model, frames), unit="normalized_margin"),
         "root_tilt": _metric_payload(_root_tilt_p95(frames), unit="rad", statistic="p95"),
-        "velocity_p95": _metric_payload(velocity_p95, unit="joint_coord_per_s", statistic="p95"),
-        "acceleration_p95": _metric_payload(acceleration_p95, unit="joint_coord_per_s2", statistic="p95"),
+        "velocity_p95": _metric_payload(velocity_p95, unit="actuated_joint_coord_per_s", statistic="p95"),
+        "acceleration_p95": _metric_payload(acceleration_p95, unit="actuated_joint_coord_per_s2", statistic="p95"),
+        "root_velocity_p95": _metric_payload(root_velocity_p95, unit="root_coord_per_s", statistic="p95"),
+        "root_acceleration_p95": _metric_payload(root_acceleration_p95, unit="root_coord_per_s2", statistic="p95"),
     }
 
     ground_height = profile.get("rest_frame_alignment", {}).get("root_motion", {}).get("ground_height_m", 0.0)

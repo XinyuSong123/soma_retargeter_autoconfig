@@ -39,6 +39,9 @@ _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT = 10.0
 _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT = 5.5
 _DEFAULT_TEMPORAL_VELOCITY_WEIGHT = 0.0
 _DEFAULT_TEMPORAL_ACCELERATION_WEIGHT = 0.0
+_DEFAULT_JOINT_MOTION_LIMIT_ENABLED = False
+_DEFAULT_JOINT_VELOCITY_LIMIT_FRACTION_PER_SECOND = 2.0
+_DEFAULT_JOINT_ACCELERATION_LIMIT_FRACTION_PER_SECOND2 = 40.0
 _DEFAULT_NUM_INITIALIZATION_FRAMES = 10
 _DEFAULT_NUM_STABILIZATION_FRAMES = 5
 
@@ -84,6 +87,21 @@ class NewtonPipeline:
         self.smooth_joint_filter_weight = retargeter_config.get('smooth_joint_filter_weight', _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT)
         self.temporal_velocity_weight = retargeter_config.get('temporal_velocity_weight', _DEFAULT_TEMPORAL_VELOCITY_WEIGHT)
         self.temporal_acceleration_weight = retargeter_config.get('temporal_acceleration_weight', _DEFAULT_TEMPORAL_ACCELERATION_WEIGHT)
+        self.joint_motion_limit_enabled = bool(
+            retargeter_config.get('joint_motion_limit_enabled', _DEFAULT_JOINT_MOTION_LIMIT_ENABLED)
+        )
+        self.joint_velocity_limit_fraction_per_second = float(
+            retargeter_config.get(
+                'joint_velocity_limit_fraction_per_second',
+                _DEFAULT_JOINT_VELOCITY_LIMIT_FRACTION_PER_SECOND,
+            )
+        )
+        self.joint_acceleration_limit_fraction_per_second2 = float(
+            retargeter_config.get(
+                'joint_acceleration_limit_fraction_per_second2',
+                _DEFAULT_JOINT_ACCELERATION_LIMIT_FRACTION_PER_SECOND2,
+            )
+        )
         self.collision_weight = float(retargeter_config.get("collision_weight", 0.0))
         self.priority_residual_guard_enabled = bool(
             retargeter_config.get("priority_residual_guard_enabled", bool(retargeter_config.get("compiled_retarget_profile")))
@@ -285,6 +303,19 @@ class NewtonPipeline:
         self.smooth_joint_filter_weight = max(0.0, self.smooth_joint_filter_weight)
         self.temporal_velocity_weight = max(0.0, float(self.temporal_velocity_weight))
         self.temporal_acceleration_weight = max(0.0, float(self.temporal_acceleration_weight))
+        self.joint_velocity_limit_fraction_per_second = max(
+            0.0,
+            float(self.joint_velocity_limit_fraction_per_second),
+        )
+        self.joint_acceleration_limit_fraction_per_second2 = max(
+            0.0,
+            float(self.joint_acceleration_limit_fraction_per_second2),
+        )
+        self.joint_motion_limit_enabled = bool(
+            self.joint_motion_limit_enabled
+            and self.joint_velocity_limit_fraction_per_second > 0.0
+            and self.joint_acceleration_limit_fraction_per_second2 > 0.0
+        )
         self.priority_residual_guard_tolerance = max(0.0, float(self.priority_residual_guard_tolerance))
         self.priority_residual_guard_absolute_tolerance = max(0.0, float(self.priority_residual_guard_absolute_tolerance))
         self.priority_residual_guard_margin_fraction = max(0.0, float(self.priority_residual_guard_margin_fraction))
@@ -301,6 +332,7 @@ class NewtonPipeline:
         print(f"[INFO]\t  Smooth Joint Filter Objective Weight: {self.smooth_joint_filter_weight}")
         print(f"[INFO]\t  Temporal Velocity Weight: {self.temporal_velocity_weight}")
         print(f"[INFO]\t  Temporal Acceleration Weight: {self.temporal_acceleration_weight}")
+        print(f"[INFO]\t  Joint Motion Limit Enabled: {self.joint_motion_limit_enabled}")
         print(f"[INFO]\t  Priority Residual Guard Enabled: {self.priority_residual_guard_enabled}")
 
         restore_contact_aware = self.contact_aware_foot_ik_enabled
@@ -322,6 +354,9 @@ class NewtonPipeline:
             self.temporal_velocity_scales = temporal_velocity_scales
             self.temporal_acceleration_scales = temporal_acceleration_scales
             self.temporal_coord_masks = temporal_coord_masks
+            self.joint_motion_limit_ranges, self.joint_motion_limit_masks = self._joint_coord_ranges_and_temporal_mask(
+                self.ik_model,
+            )
             self.priority_guard_report = {
                 "enabled": bool(self.priority_residual_guard_enabled),
                 "protected_priority": 0,
@@ -401,6 +436,9 @@ class NewtonPipeline:
                 np.zeros((len(self.input_targets[i]), self.ik_model.joint_coord_count), dtype=np.float32)
                 for i in range(num_envs)
             ]
+            motion_limit_prev_q = np.zeros((num_envs, self.ik_model.joint_coord_count), dtype=np.float32)
+            motion_limit_prev_delta = np.zeros((num_envs, self.ik_model.joint_coord_count), dtype=np.float32)
+            motion_limit_has_prev = np.zeros(num_envs, dtype=bool)
 
             for frame in trange(self.max_frames, desc="[INFO] Retargeting Motions"):
                 if num_frames_to_remove > 0 and frame <= num_frames_to_remove:
@@ -514,6 +552,32 @@ class NewtonPipeline:
                     data = self.joint_limit_clamper.apply(self.feet_stabilizer.current_state()).numpy()
                 else:
                     data = self.joint_limit_clamper.apply(joint_q).numpy()
+
+                if self.joint_motion_limit_enabled:
+                    limited_data = np.array(data, dtype=np.float32, copy=True)
+                    for env in range(num_envs):
+                        if frame > (len(self.input_targets[env]) - 1):
+                            continue
+                        if motion_limit_has_prev[env]:
+                            limited_frame, limited_delta = self._apply_joint_motion_limits_to_frame(
+                                limited_data[env],
+                                motion_limit_prev_q[env],
+                                motion_limit_prev_delta[env],
+                                self.joint_motion_limit_ranges,
+                                self.joint_motion_limit_masks,
+                                1.0 / max(float(self.input_sample_rates[env]), 1.0e-6),
+                                self.joint_velocity_limit_fraction_per_second,
+                                self.joint_acceleration_limit_fraction_per_second2,
+                            )
+                            limited_data[env] = limited_frame
+                            motion_limit_prev_delta[env] = limited_delta
+                        else:
+                            motion_limit_prev_delta[env] = 0.0
+                            motion_limit_has_prev[env] = True
+                        motion_limit_prev_q[env] = limited_data[env]
+                    data = self.joint_limit_clamper.apply(
+                        wp.array(limited_data, dtype=wp.float32, device=self.ik_model.device)
+                    ).numpy()
 
                 for env in range(num_envs):
                     if frame > (len(self.input_targets[env]) - 1):
@@ -861,6 +925,43 @@ class NewtonPipeline:
         velocity_scales *= coord_masks[None, :]
         acceleration_scales *= coord_masks[None, :]
         return velocity_scales.astype(np.float32), acceleration_scales.astype(np.float32), coord_masks.astype(np.float32)
+
+    @staticmethod
+    def _apply_joint_motion_limits_to_frame(
+        frame_q,
+        previous_q,
+        previous_delta,
+        coord_ranges,
+        coord_masks,
+        dt,
+        velocity_fraction_per_second,
+        acceleration_fraction_per_second2,
+    ):
+        frame_q = np.asarray(frame_q, dtype=np.float32)
+        previous_q = np.asarray(previous_q, dtype=np.float32)
+        previous_delta = np.asarray(previous_delta, dtype=np.float32)
+        coord_ranges = np.asarray(coord_ranges, dtype=np.float32)
+        coord_masks = np.asarray(coord_masks, dtype=np.float32) > 0.5
+        dt = max(float(dt), 1.0e-6)
+
+        limited = np.array(frame_q, dtype=np.float32, copy=True)
+        delta = limited - previous_q
+        active = coord_masks & (coord_ranges > 1.0e-8)
+        if not np.any(active):
+            return limited, delta.astype(np.float32)
+
+        max_delta = coord_ranges * max(float(velocity_fraction_per_second), 0.0) * dt
+        max_delta2 = coord_ranges * max(float(acceleration_fraction_per_second2), 0.0) * dt * dt
+        delta[active] = np.clip(delta[active], -max_delta[active], max_delta[active])
+        delta_change = delta - previous_delta
+        delta[active] = previous_delta[active] + np.clip(
+            delta_change[active],
+            -max_delta2[active],
+            max_delta2[active],
+        )
+        delta[active] = np.clip(delta[active], -max_delta[active], max_delta[active])
+        limited[active] = previous_q[active] + delta[active]
+        return limited.astype(np.float32), delta.astype(np.float32)
 
     @staticmethod
     def _joint_coord_ranges_and_temporal_mask(model):

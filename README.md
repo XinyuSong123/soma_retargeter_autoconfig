@@ -155,6 +155,7 @@ Compiled profiles record root-motion scale and ground-height provenance from sem
 Joint safety uses a range-normalized margin barrier for the warm-up smooth filter path: finite non-continuous joints have near-zero residual inside the safe margin and monotonic residual growth near either limit; the final clamp remains a numerical safeguard.
 Compiled profiles include lightweight self-collision proxy metadata when body geoms or chain-length fallbacks are available. Runtime sphere-pair collision barriers are optional and enabled with `collision_weight`.
 Temporal velocity and acceleration regularizers are available through `temporal_velocity_weight` and `temporal_acceleration_weight`. They are disabled by default for backward compatibility, and when enabled they normalize actuated joint deltas by joint range and each clip's sample rate while skipping the floating root coordinates.
+Compiled v2 runtime configs also enable a range-normalized actuated joint motion limiter by default. `joint_velocity_limit_fraction_per_second` and `joint_acceleration_limit_fraction_per_second2` bound exported joint-coordinate deltas by each joint's finite range and sample rate, while leaving the floating root to the separate root-motion and grounding metrics.
 
 Optional `ground_barrier` runtime config adds a soft height barrier on configured virtual sole anchors. It uses contact scores to apply stronger stance weights and lighter swing weights, preventing toe/heel anchors from penetrating the explicit ground height without changing legacy configs by default.
 

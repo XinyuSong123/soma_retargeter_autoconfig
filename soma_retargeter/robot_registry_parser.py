@@ -800,6 +800,9 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         runtime_config["compiled_retarget_profile"] = make_config_reference(compiled_profile_path)
         runtime_config["compiled_retarget_profile_schema_version"] = 2
         runtime_config["ik_iterations"] = _DEFAULT_COMPILED_PROFILE_IK_ITERATIONS
+        runtime_config["joint_motion_limit_enabled"] = True
+        runtime_config["joint_velocity_limit_fraction_per_second"] = 2.0
+        runtime_config["joint_acceleration_limit_fraction_per_second2"] = 40.0
         if compiled_profile_path.exists():
             compiled_profile = io_utils.load_json(compiled_profile_path)
             priority_bands, priority_diagnostics = _resolve_priority_weight_bands(compiled_profile)
@@ -823,6 +826,9 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         "smooth_joint_filter_weight",
         "temporal_velocity_weight",
         "temporal_acceleration_weight",
+        "joint_motion_limit_enabled",
+        "joint_velocity_limit_fraction_per_second",
+        "joint_acceleration_limit_fraction_per_second2",
         "priority_residual_guard_enabled",
         "priority_residual_guard_tolerance",
         "priority_residual_guard_absolute_tolerance",

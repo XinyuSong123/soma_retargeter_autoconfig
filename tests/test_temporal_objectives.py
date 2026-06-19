@@ -135,6 +135,24 @@ class TestTemporalObjectives(unittest.TestCase):
         self.assertEqual(cfg["temporal_velocity_weight"], 0.2)
         self.assertEqual(cfg["temporal_acceleration_weight"], 0.05)
 
+    def test_joint_motion_limiter_skips_root_and_limits_delta_change(self):
+        frame, delta = NewtonPipeline._apply_joint_motion_limits_to_frame(
+            np.array([10.0, 10.0, 10.0, 4.0, -4.0], dtype=np.float32),
+            np.zeros(5, dtype=np.float32),
+            np.array([0.0, 0.0, 0.0, 0.3, -0.3], dtype=np.float32),
+            np.array([0.0, 0.0, 0.0, 2.0, 4.0], dtype=np.float32),
+            np.array([0.0, 0.0, 0.0, 1.0, 1.0], dtype=np.float32),
+            0.1,
+            1.0,
+            10.0,
+        )
+
+        self.assertTrue(np.allclose(frame[:3], np.array([10.0, 10.0, 10.0], dtype=np.float32)))
+        self.assertAlmostEqual(float(delta[3]), 0.2)
+        self.assertAlmostEqual(float(delta[4]), -0.4)
+        self.assertAlmostEqual(float(frame[3]), 0.2)
+        self.assertAlmostEqual(float(frame[4]), -0.4)
+
     def test_priority_guard_costs_ignore_root_and_track_joint_limit_margin(self):
         costs = NewtonPipeline._joint_limit_guard_costs(
             _GuardModel(),
