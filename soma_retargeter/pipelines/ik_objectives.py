@@ -8,6 +8,32 @@ import newton.ik as ik
 from newton._src.sim.ik.ik_common import IKJacobianType
 
 
+def range_normalized_joint_limit_barrier(q, lower, upper, margin_fraction=0.08):
+    """Return piecewise-linear residual and derivative for one finite joint coordinate."""
+    q = float(q)
+    lower = float(lower)
+    upper = float(upper)
+    margin_fraction = float(margin_fraction)
+    span = upper - lower
+    if (
+        not np.isfinite(q)
+        or not np.isfinite(lower)
+        or not np.isfinite(upper)
+        or span <= 1.0e-8
+        or span > 1.0e5
+        or margin_fraction <= 0.0
+    ):
+        return 0.0, 0.0
+    margin_width = max(span * min(margin_fraction, 0.49), 1.0e-8)
+    safe_lower = lower + margin_width
+    safe_upper = upper - margin_width
+    if q < safe_lower:
+        return (q - safe_lower) / margin_width, 1.0 / margin_width
+    if q > safe_upper:
+        return (q - safe_upper) / margin_width, 1.0 / margin_width
+    return 0.0, 0.0
+
+
 @wp.func
 def _wp_smooth_joint_filter_func(
     x            : wp.float32,
@@ -58,6 +84,81 @@ def _smooth_joint_filter_residuals(
         residuals[problem, start_idx + dof_idx] = error * smoother * weight[0] * mask
     else:
         residuals[problem, start_idx + dof_idx] = 0.0
+
+
+@wp.kernel
+def _range_normalized_joint_limit_barrier_residuals(
+    joint_q: wp.array2d(dtype=wp.float32),
+    dof_to_coord: wp.array1d(dtype=wp.int32),
+    joint_limit_lower: wp.array1d(dtype=wp.float32),
+    joint_limit_upper: wp.array1d(dtype=wp.float32),
+    coord_masks: wp.array1d(dtype=wp.float32),
+    finite_limit_masks: wp.array1d(dtype=wp.float32),
+    weight: wp.array1d(dtype=wp.float32),
+    margin_fraction: wp.float32,
+    start_idx: int,
+    residuals: wp.array2d(dtype=wp.float32),
+):
+    problem, dof_idx = wp.tid()
+    coord_idx = dof_to_coord[dof_idx]
+    if coord_idx < 0:
+        return
+
+    mask = coord_masks[coord_idx] * finite_limit_masks[dof_idx]
+    if mask <= 0.0:
+        residuals[problem, start_idx + dof_idx] = 0.0
+        return
+
+    lower = joint_limit_lower[dof_idx]
+    upper = joint_limit_upper[dof_idx]
+    span = upper - lower
+    margin = wp.min(margin_fraction, 0.49)
+    margin_width = wp.max(span * margin, 1.0e-8)
+    safe_lower = lower + margin_width
+    safe_upper = upper - margin_width
+    q = joint_q[problem, coord_idx]
+
+    residual = 0.0
+    if q < safe_lower:
+        residual = (q - safe_lower) / margin_width
+    elif q > safe_upper:
+        residual = (q - safe_upper) / margin_width
+    residuals[problem, start_idx + dof_idx] = residual * weight[0] * mask
+
+
+@wp.kernel
+def _range_normalized_joint_limit_barrier_jac_analytic(
+    joint_q: wp.array2d(dtype=wp.float32),
+    dof_to_coord: wp.array1d(dtype=wp.int32),
+    joint_limit_lower: wp.array1d(dtype=wp.float32),
+    joint_limit_upper: wp.array1d(dtype=wp.float32),
+    coord_masks: wp.array1d(dtype=wp.float32),
+    finite_limit_masks: wp.array1d(dtype=wp.float32),
+    margin_fraction: wp.float32,
+    weight: wp.array1d(dtype=wp.float32),
+    start_idx: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem, dof_idx = wp.tid()
+    coord_idx = dof_to_coord[dof_idx]
+    if coord_idx < 0:
+        return
+
+    mask = coord_masks[coord_idx] * finite_limit_masks[dof_idx]
+    if mask <= 0.0:
+        return
+
+    lower = joint_limit_lower[dof_idx]
+    upper = joint_limit_upper[dof_idx]
+    span = upper - lower
+    margin = wp.min(margin_fraction, 0.49)
+    margin_width = wp.max(span * margin, 1.0e-8)
+    safe_lower = lower + margin_width
+    safe_upper = upper - margin_width
+    q = joint_q[problem, coord_idx]
+
+    if q < safe_lower or q > safe_upper:
+        jacobian[problem, start_idx + dof_idx, dof_idx] = weight[0] * mask / margin_width
 
 
 @wp.kernel
@@ -127,6 +228,18 @@ def _autodiff_jac_fill(
     problem_idx, dof_idx = wp.tid()
     if dof_idx < n_dofs:
         jacobian[problem_idx, start_idx + component, dof_idx] = q_grad[problem_idx, dof_idx]
+
+
+@wp.kernel
+def _autodiff_diag_jac_fill(
+    q_grad: wp.array2d(dtype=wp.float32),
+    n_dofs: int,
+    start_idx: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem_idx, dof_idx = wp.tid()
+    if dof_idx < n_dofs:
+        jacobian[problem_idx, start_idx + dof_idx, dof_idx] = q_grad[problem_idx, dof_idx]
 
 
 @wp.kernel
@@ -356,6 +469,139 @@ class IKObjectiveDirection(ik.IKObjective):
                 device=self.device,
             )
             tape.zero()
+
+
+class IKRangeNormalizedJointLimitBarrier(ik.IKObjective):
+    """Range-normalized joint-limit margin barrier with analytic diagonal Jacobian."""
+
+    def __init__(
+        self,
+        joint_limit_lower,
+        joint_limit_upper,
+        weight=0.01,
+        coord_masks=None,
+        margin_fraction=0.08,
+    ):
+        super().__init__()
+        self.joint_limit_lower = joint_limit_lower
+        self.joint_limit_upper = joint_limit_upper
+        self.n_dofs = len(joint_limit_lower)
+        self.dof_to_coord = None
+        self.finite_limit_masks = None
+        self.e_array = None
+        self._weight = wp.array([weight], dtype=wp.float32)
+        self.margin_fraction = float(margin_fraction)
+
+        self.coord_masks = None
+        self.coord_masks_np = None
+        if coord_masks is not None:
+            if isinstance(coord_masks, np.ndarray):
+                self.coord_masks_np = coord_masks.astype(np.float32)
+            elif isinstance(coord_masks, wp.array):
+                self.coord_masks = coord_masks
+
+    def init_buffers(self, model, jacobian_mode):
+        self._require_batch_layout()
+
+        if self.coord_masks_np is not None and len(self.coord_masks_np) == model.joint_coord_count:
+            self.coord_masks = wp.array(self.coord_masks_np, dtype=wp.float32, device=self.device)
+        if self.coord_masks is None:
+            self.coord_masks = wp.ones(shape=model.joint_coord_count, dtype=wp.float32, device=self.device)
+
+        dof_to_coord_np = np.full(self.n_dofs, -1, dtype=np.int32)
+        q_start_np = model.joint_q_start.numpy()
+        qd_start_np = model.joint_qd_start.numpy()
+        joint_dof_dim_np = model.joint_dof_dim.numpy()
+        for j in range(model.joint_count):
+            dof0 = qd_start_np[j]
+            coord0 = q_start_np[j]
+            lin, ang = joint_dof_dim_np[j]
+            for k in range(lin + ang):
+                if dof0 + k < self.n_dofs:
+                    dof_to_coord_np[dof0 + k] = coord0 + k
+        self.dof_to_coord = wp.array(dof_to_coord_np, dtype=wp.int32, device=self.device)
+
+        lower = self.joint_limit_lower.numpy().astype(np.float32)
+        upper = self.joint_limit_upper.numpy().astype(np.float32)
+        span = upper - lower
+        finite = np.isfinite(lower) & np.isfinite(upper) & (span > 1.0e-8) & (span < 1.0e5)
+        self.finite_limit_masks = wp.array(finite.astype(np.float32), dtype=wp.float32, device=self.device)
+
+        if jacobian_mode == IKJacobianType.AUTODIFF:
+            e = np.zeros((self.n_batch, self.total_residuals), dtype=np.float32)
+            for prob_idx in range(self.n_batch):
+                for dof_idx in range(self.n_dofs):
+                    e[prob_idx, self.residual_offset + dof_idx] = 1.0
+            self.e_array = wp.array(e.flatten(), dtype=wp.float32, device=self.device)
+
+    def supports_analytic(self):
+        return True
+
+    def residual_dim(self):
+        return self.n_dofs
+
+    def set_weight(self, value):
+        if self.coord_masks is None:
+            return
+        wp.launch(
+            _update_weight,
+            dim=1,
+            inputs=[value],
+            outputs=[self._weight],
+            device=self.device,
+        )
+
+    def compute_residuals(self, body_q, joint_q, model, residuals, start_idx, problem_idx):
+        count = joint_q.shape[0]
+        wp.launch(
+            _range_normalized_joint_limit_barrier_residuals,
+            dim=[count, self.n_dofs],
+            inputs=[
+                joint_q,
+                self.dof_to_coord,
+                self.joint_limit_lower,
+                self.joint_limit_upper,
+                self.coord_masks,
+                self.finite_limit_masks,
+                self._weight,
+                self.margin_fraction,
+                start_idx,
+            ],
+            outputs=[residuals],
+            device=self.device,
+        )
+
+    def compute_jacobian_autodiff(self, tape, model, jacobian, start_idx, dq_dof):
+        self._require_batch_layout()
+        tape.backward(grads={tape.outputs[0]: self.e_array})
+        q_grad = tape.gradients[dq_dof]
+        wp.launch(
+            _autodiff_diag_jac_fill,
+            dim=[self.n_batch, self.n_dofs],
+            inputs=[q_grad, self.n_dofs, start_idx],
+            outputs=[jacobian],
+            device=self.device,
+        )
+
+    def compute_jacobian_analytic(self, body_q, joint_q, model, jacobian, joint_S_s, start_idx):
+        count = joint_q.shape[0]
+        wp.launch(
+            _range_normalized_joint_limit_barrier_jac_analytic,
+            dim=[count, self.n_dofs],
+            inputs=[
+                joint_q,
+                self.dof_to_coord,
+                self.joint_limit_lower,
+                self.joint_limit_upper,
+                self.coord_masks,
+                self.finite_limit_masks,
+                self.margin_fraction,
+                self._weight,
+                start_idx,
+            ],
+            outputs=[jacobian],
+            device=self.device,
+        )
 
 
 @wp.kernel

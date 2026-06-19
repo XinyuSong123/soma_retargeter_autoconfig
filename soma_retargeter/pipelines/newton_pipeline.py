@@ -11,7 +11,11 @@ import soma_retargeter.assets.bvh as bvh_utils
 import soma_retargeter.utils.newton_utils as newton_utils
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
-from soma_retargeter.pipelines.ik_objectives import IKSmoothJointFilter, IKObjectiveDirection, IKObjectivePerEnvWeightedPosition
+from soma_retargeter.pipelines.ik_objectives import (
+    IKObjectiveDirection,
+    IKObjectivePerEnvWeightedPosition,
+    IKRangeNormalizedJointLimitBarrier,
+)
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
 from soma_retargeter.robotics.human_to_robot_scaler import HumanToRobotScaler
@@ -561,8 +565,9 @@ class NewtonPipeline:
             joint_limit_upper=self.ik_model.joint_limit_upper,
             weight=self.joint_limit_weight)
 
-        # Weight is set to desired value once initialization frames have been processed
-        smooth_joint_limiter_objective = IKSmoothJointFilter(
+        # Weight is set to desired value once initialization frames have been processed.
+        # The legacy config name is kept, but v2 uses a range-normalized margin barrier.
+        smooth_joint_limiter_objective = IKRangeNormalizedJointLimitBarrier(
             joint_limit_lower=self.ik_model.joint_limit_lower,
             joint_limit_upper=self.ik_model.joint_limit_upper,
             weight=0.0,

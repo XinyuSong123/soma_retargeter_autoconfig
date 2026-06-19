@@ -136,7 +136,9 @@ Generated runtime configs now include a `compiled_retarget_profile` reference. A
 
 When a v2 profile is present, runtime mapping is task-driven: disabled or unreachable position/orientation tasks are not instantiated as legacy IK objectives.
 For reachable low-rank rotation tasks, the runtime projects target quaternions into the compiled rotation basis before updating Newton rotation objectives.
+Middle-limb direction tasks are run as unit-vector IK objectives between compiled parent/child robot bodies, with mixed analytic/autodiff Jacobian mode only when those tasks are active.
 The runtime scaler also switches to segment-local target construction from the compiled chain lengths, while the legacy geocentric scaler remains available as `LegacyHumanToRobotScaler`.
+Joint safety uses a range-normalized margin barrier for the warm-up smooth filter path: finite non-continuous joints have near-zero residual inside the safe margin and monotonic residual growth near either limit; the final clamp remains a numerical safeguard.
 
 ### Config optimizer
 
@@ -166,6 +168,7 @@ The optimizer is now an advanced residual calibration path. The default path is 
 | `animation/` | Core data structures for skeletons, animation buffers, IK, and skinned meshes. |
 | `assets/` | File I/O for BVH, CSV, and USD formats. |
 | `pipelines/` | Retargeting pipeline: IK solving, feet stabilization, and joint limit clamping. |
+| `pipelines/ik_objectives.py` | Custom IK objectives for per-env contact anchors, v2 direction tasks, and range-normalized joint-limit barriers. |
 | `robotics/` | Human-to-robot scaling and robot output formatting. |
 | `robotics/human_to_robot_scaler.py` | Legacy v1 scaler plus v2 segment-local target builder. |
 | `robotics/task_compiler.py` | Morphology-aware v2 task/profile compiler. |
