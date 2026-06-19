@@ -119,56 +119,77 @@ class TestBenchmarkRetargeting(unittest.TestCase):
     def test_benchmark_records_runtime_motion_metrics_when_motions_are_requested(self):
         runtime_payload = {
             "status": "ok",
-            "runtime_seconds": {"motion_runtime": 1.25, "motion_count": 1},
+            "runtime_seconds": {"motion_runtime": 1.25, "motion_count": 2},
             "motions": [
                 {
-                    "motion": "/tmp/fixture.bvh",
+                    "motion": "/tmp/fixture_a.bvh",
                     "frames": 4,
                     "sample_rate": 60.0,
                     "metrics": {
                         "velocity_p95": {"status": "ok", "value": 2.5},
                         "penetration": {"status": "ok", "value": 0.0},
                     },
+                },
+                {
+                    "motion": "/tmp/fixture_b.bvh",
+                    "frames": 4,
+                    "sample_rate": 60.0,
+                    "metrics": {
+                        "velocity_p95": {"status": "ok", "value": 3.5},
+                        "penetration": {"status": "ok", "value": 0.0},
+                    },
                 }
             ],
             "metrics": {
-                "velocity_p95": {"status": "ok", "value": 2.5, "motion_count": 1},
-                "penetration": {"status": "ok", "value": 0.0, "motion_count": 1},
+                "velocity_p95": {"status": "ok", "value": 3.0, "motion_count": 2, "aggregation": "mean"},
+                "penetration": {"status": "ok", "value": 0.0, "motion_count": 2, "aggregation": "mean"},
                 "fallback_counts": {"status": "ok", "pole_vector": [0]},
             },
         }
+        captured_motion_counts = []
 
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             motion_dir = root / "motions"
             motion_dir.mkdir()
-            (motion_dir / "fixture.bvh").write_text("HIERARCHY\n", encoding="utf-8")
+            (motion_dir / "fixture_a.bvh").write_text("HIERARCHY\n", encoding="utf-8")
+            (motion_dir / "fixture_b.bvh").write_text("HIERARCHY\n", encoding="utf-8")
+            (motion_dir / "fixture_c.bvh").write_text("HIERARCHY\n", encoding="utf-8")
             out = root / "bench"
 
-            with mock.patch("soma_retargeter.tools.benchmark_retargeting._run_runtime_benchmark", return_value=runtime_payload):
+            def fake_runtime(*args):
+                captured_motion_counts.append(len(args[2]))
+                return runtime_payload
+
+            with mock.patch("soma_retargeter.tools.benchmark_retargeting._run_runtime_benchmark", side_effect=fake_runtime):
                 rc = main([
                     "--robots",
                     "roboparty_rpo",
                     "--motions",
                     str(motion_dir),
+                    "--max-motions",
+                    "2",
                     "--output",
                     str(out),
                 ])
 
             self.assertEqual(rc, 0)
+            self.assertEqual(captured_motion_counts, [2, 2])
+            summary = json.loads((out / "benchmark_summary.json").read_text())
+            self.assertEqual(len(summary["resolved_motions"]), 2)
             per_robot = json.loads((out / "per_robot" / "roboparty_rpo.json").read_text())
             self.assertEqual(per_robot["motion_benchmark"]["status"], "ok")
             self.assertIn("legacy", per_robot["compare_results"])
             self.assertIn("v2", per_robot["compare_results"])
             self.assertEqual(per_robot["metrics"]["velocity_p95"]["status"], "ok")
-            self.assertEqual(per_robot["metrics"]["velocity_p95"]["value"], 2.5)
+            self.assertEqual(per_robot["metrics"]["velocity_p95"]["value"], 3.0)
             self.assertEqual(per_robot["metrics"]["runtime_seconds"]["motion_runtime"], 1.25)
 
             with (out / "benchmark_frames.csv").open(newline="") as handle:
                 rows = list(csv.DictReader(handle))
-            runtime_rows = [row for row in rows if row["frame"] == "0" and row["metric"] == "velocity_p95"]
+            runtime_rows = [row for row in rows if row["motion"] == "/tmp/fixture_b.bvh" and row["metric"] == "velocity_p95"]
             self.assertEqual({row["compare_mode"] for row in runtime_rows}, {"legacy", "v2"})
-            self.assertTrue(all(row["value"] == "2.5" for row in runtime_rows))
+            self.assertTrue(all(row["value"] == "3.5" for row in runtime_rows))
 
     def test_benchmark_persists_failure_payload(self):
         with tempfile.TemporaryDirectory() as td:

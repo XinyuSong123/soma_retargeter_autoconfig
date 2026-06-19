@@ -920,7 +920,7 @@ def _write_frames_csv(path: Path, results: list[dict[str, Any]]) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
             handle,
-            fieldnames=["robot", "compare_mode", "frame", "metric", "value", "status"],
+            fieldnames=["robot", "compare_mode", "motion", "frame", "metric", "value", "status"],
         )
         writer.writeheader()
         for result in results:
@@ -937,6 +937,7 @@ def _write_frames_csv(path: Path, results: list[dict[str, Any]]) -> None:
                         {
                             "robot": result.get("robot"),
                             "compare_mode": compare_mode,
+                            "motion": "",
                             "frame": "",
                             "metric": metric,
                             "value": metric_value,
@@ -953,6 +954,7 @@ def _write_frames_csv(path: Path, results: list[dict[str, Any]]) -> None:
                             {
                                 "robot": result.get("robot"),
                                 "compare_mode": compare_mode,
+                                "motion": motion.get("motion", ""),
                                 "frame": motion_idx,
                                 "metric": metric,
                                 "value": metric_payload.get("value", "") if isinstance(metric_payload, dict) else "",
@@ -981,6 +983,7 @@ def main(argv: list[str] | None = None) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "commands.txt").write_text(command + "\n", encoding="utf-8")
     _write_json(output_dir / "environment.json", collect_environment(args))
+    resolved_motion_paths = _resolve_motion_paths(args.motions, args.max_motions)
 
     results = []
     for robot in args.robots:
@@ -994,6 +997,7 @@ def main(argv: list[str] | None = None) -> int:
         "robots": [result.get("robot") for result in results],
         "compare_modes": list(args.compare),
         "motions": [str(Path(path)) for path in args.motions],
+        "resolved_motions": [str(path) for path in resolved_motion_paths],
         "metric_names": list(METRIC_NAMES),
         "results": results,
     }

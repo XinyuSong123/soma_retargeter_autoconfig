@@ -24,7 +24,7 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 
 ## Generated Artifacts
 
-`soma_retargeter.tools.benchmark_retargeting` currently generates reproducible compile-level and bounded runtime-smoke benchmark artifacts:
+`soma_retargeter.tools.benchmark_retargeting` currently generates reproducible compile-level and bounded runtime benchmark artifacts:
 
 - `benchmark_summary.json`
 - `benchmark_frames.csv`
@@ -33,4 +33,4 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 - `per_robot/<robot>.json`
 - `failures/<robot>.json` on failure
 
-When `--motions` is provided, the benchmark expands BVH files and runs capped NewtonPipeline rollouts for each requested compare mode. Legacy rollouts use the raw configured `ik_map` without the compiled profile; v2 rollouts use the morphology-aware compiled profile. Results are recorded under `compare_results`, with v2 mirrored into top-level `motion_benchmark` and aggregate `metrics` for backward compatibility. The benchmark records profile-task residual summaries when semantic site trajectories are available; full-motion comparison and solver-native residual extraction beyond those summaries are still future work.
+When `--motions` is provided, the benchmark expands BVH files up to `--max-motions` and runs capped NewtonPipeline rollouts for each requested compare mode. Legacy rollouts use the raw configured `ik_map` without the compiled profile; v2 rollouts use the morphology-aware compiled profile. Results are recorded under `compare_results`, with v2 mirrored into top-level `motion_benchmark` and aggregate `metrics` for backward compatibility. Summary artifacts record both requested and resolved motion paths, and CSV rows include per-motion paths for traceability. The benchmark records profile-task residual summaries when semantic site trajectories are available; uncapped full-length comparison and solver-native residual extraction beyond those summaries are still future work.
