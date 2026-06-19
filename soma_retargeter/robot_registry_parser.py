@@ -29,6 +29,9 @@ _BUILTIN_ALIASES = {
     "g1": "unitree_g1",
     "unitree": "unitree_g1",
     "unitree-g1": "unitree_g1",
+    "unitree_g1_29dof": "unitree_g1",
+    "g1_29dof": "unitree_g1",
+    "g1-29dof": "unitree_g1",
     "rpo": "roboparty_rpo",
     "atom01": "roboparty_rpo",
 }
