@@ -75,6 +75,12 @@ _COLLISION_PAIR_SEMANTICS = (
     ("RightHand", "RightShin"),
 )
 _DISTAL_SITE_SEMANTICS = {"LeftHand", "RightHand", "LeftFoot", "RightFoot"}
+_DISTAL_SITE_TOKENS = {
+    "LeftHand": ("left_hand", "lefthand", "hand", "palm"),
+    "RightHand": ("right_hand", "righthand", "hand", "palm"),
+    "LeftFoot": ("left_foot", "leftfoot", "foot", "sole", "toe", "heel"),
+    "RightFoot": ("right_foot", "rightfoot", "foot", "sole", "toe", "heel"),
+}
 
 
 def _semantic_confidence(semantic: str, body: str, morphology: MorphologyAnalysis) -> float:
@@ -103,6 +109,32 @@ def _quat_rotate_wxyz(quat: np.ndarray, vec: np.ndarray) -> np.ndarray:
 def _quat_inverse_rotate_wxyz(quat: np.ndarray, vec: np.ndarray) -> np.ndarray:
     inverse = np.array([quat[0], -quat[1], -quat[2], -quat[3]], dtype=float)
     return _quat_rotate_wxyz(inverse, vec)
+
+
+def _quat_wxyz_to_xyzw(quat: np.ndarray) -> np.ndarray:
+    return np.array([quat[1], quat[2], quat[3], quat[0]], dtype=float)
+
+
+def _normalize_site_token(value: str) -> str:
+    return value.lower().replace("-", "_").replace(" ", "_")
+
+
+def _explicit_site_for_semantic(semantic: str, body: str, morphology: MorphologyAnalysis):
+    if semantic not in _DISTAL_SITE_SEMANTICS:
+        return None
+    sites = morphology.sites_by_body.get(body, [])
+    if not sites:
+        return None
+    semantic_token = _normalize_site_token(semantic)
+    preferred_tokens = (semantic_token, *_DISTAL_SITE_TOKENS.get(semantic, ()))
+    for site in sites:
+        site_name = _normalize_site_token(site.site_name)
+        compact_name = site_name.replace("_", "")
+        if any(token in site_name or token.replace("_", "") in compact_name for token in preferred_tokens):
+            return site
+    if len(sites) == 1:
+        return sites[0]
+    return None
 
 
 def _geom_extent_along_local_direction(geom_type: str, size: np.ndarray, local_direction: np.ndarray) -> float:
@@ -172,13 +204,21 @@ def _make_site(
     morphology: MorphologyAnalysis,
     root_body: str,
 ) -> SemanticSite:
-    local_position, source_override = _distal_site_offset_from_geom_bounds(semantic, body, root_body, morphology)
+    explicit_site = _explicit_site_for_semantic(semantic, body, morphology)
+    if explicit_site is not None:
+        local_position = explicit_site.local_position
+        local_rotation_xyzw = _quat_wxyz_to_xyzw(explicit_site.local_rotation_wxyz)
+        source = "explicit_site"
+    else:
+        local_position, source_override = _distal_site_offset_from_geom_bounds(semantic, body, root_body, morphology)
+        local_rotation_xyzw = np.array([0.0, 0.0, 0.0, 1.0], dtype=float)
+        source = source_override or ("explicit" if confidence >= 1.0 else "explicit_unverified")
     return SemanticSite(
         semantic_name=semantic,
         body_name=body,
         local_position=local_position,
-        local_rotation_xyzw=np.array([0.0, 0.0, 0.0, 1.0], dtype=float),
-        source=source_override or ("explicit" if confidence >= 1.0 else "explicit_unverified"),
+        local_rotation_xyzw=local_rotation_xyzw,
+        source=source,
         confidence=confidence,
         orientation_supported=orientation_supported,
     )

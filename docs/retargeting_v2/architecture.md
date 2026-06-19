@@ -5,8 +5,8 @@ Retargeting v2 adds a morphology-aware compile step before Newton IK. The compil
 ## Pipeline
 
 1. `robot_registry_parser.ensure_compiled_retarget_profile()` resolves the registered robot and generated profile path.
-2. `robotics.morphology.analyze_mjcf_morphology()` extracts body tree, joint axes, limits, rest positions, primitive geom bounds, STL mesh bounds, and model warnings.
-3. `robotics.task_compiler.compile_retarget_profile()` builds semantic sites, mesh/geom distal virtual sites, chain profiles, reachability bases, normalized task specs, contact defaults, solver priority bands, confidence, and warnings.
+2. `robotics.morphology.analyze_mjcf_morphology()` extracts body tree, joint axes, limits, rest positions, explicit MJCF sites, primitive geom bounds, STL mesh bounds, and model warnings.
+3. `robotics.task_compiler.compile_retarget_profile()` builds semantic sites, explicit-site/mesh/geom distal virtual sites, chain profiles, reachability bases, normalized task specs, contact defaults, solver priority bands, confidence, and warnings.
 4. Runtime config loading attaches `compiled_retarget_profile`, priority diagnostics, direction tasks, and pole-vector tasks.
 5. `pipelines.newton_pipeline.NewtonPipeline` uses the compiled profile to instantiate only enabled sparse objectives.
 

@@ -36,12 +36,23 @@ class GeomInfo:
 
 
 @dataclass(frozen=True)
+class SiteInfo:
+    site_name: str
+    body_name: str
+    local_position: np.ndarray
+    world_position: np.ndarray
+    local_rotation_wxyz: np.ndarray
+    world_rotation_wxyz: np.ndarray
+
+
+@dataclass(frozen=True)
 class MorphologyAnalysis:
     mjcf_path: str | None
     robot_fingerprint: str
     body_names: list[str]
     bodies: dict[str, BodyInfo]
     geoms_by_body: dict[str, list[GeomInfo]]
+    sites_by_body: dict[str, list[SiteInfo]]
     joint_dofs: list[JointDofInfo]
     joints_by_body: dict[str, list[JointDofInfo]]
     warnings: list[dict[str, Any]]
@@ -51,6 +62,7 @@ class MorphologyAnalysis:
             "mjcf_path": self.mjcf_path,
             "body_count": len(self.body_names),
             "geom_count": sum(len(items) for items in self.geoms_by_body.values()),
+            "site_count": sum(len(items) for items in self.sites_by_body.values()),
             "movable_joint_count": len(self.joint_dofs),
             "joint_names": [j.joint_name for j in self.joint_dofs],
         }
@@ -232,21 +244,22 @@ def _parse_range(value: str | None, joint_type: str) -> tuple[float, float, bool
 def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
     warnings: list[dict[str, Any]] = []
     if mjcf_path is None:
-        return MorphologyAnalysis(None, "missing-mjcf", [], {}, {}, [], {}, [{"code": "missing_mjcf_path"}])
+        return MorphologyAnalysis(None, "missing-mjcf", [], {}, {}, {}, [], {}, [{"code": "missing_mjcf_path"}])
 
     path = Path(mjcf_path)
     digest = file_sha256(path)
     if digest is None:
-        return MorphologyAnalysis(str(path), "missing-mjcf", [], {}, {}, [], {}, [{"code": "mjcf_not_found", "path": str(path)}])
+        return MorphologyAnalysis(str(path), "missing-mjcf", [], {}, {}, {}, [], {}, [{"code": "mjcf_not_found", "path": str(path)}])
 
     try:
         root = ET.parse(path).getroot()
     except ET.ParseError as exc:
-        return MorphologyAnalysis(str(path), digest, [], {}, {}, [], {}, [{"code": "mjcf_parse_error", "message": str(exc)}])
+        return MorphologyAnalysis(str(path), digest, [], {}, {}, {}, [], {}, [{"code": "mjcf_parse_error", "message": str(exc)}])
 
     body_names: list[str] = []
     bodies: dict[str, BodyInfo] = {}
     geoms_by_body: dict[str, list[GeomInfo]] = {}
+    sites_by_body: dict[str, list[SiteInfo]] = {}
     joint_dofs: list[JointDofInfo] = []
     joints_by_body: dict[str, list[JointDofInfo]] = {}
     mesh_assets: dict[str, tuple[Path, tuple[float, float, float], str | None]] = {}
@@ -292,6 +305,22 @@ def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
         )
         joints_by_body[body_name] = []
         geoms_by_body[body_name] = []
+        sites_by_body[body_name] = []
+        for site_idx, site in enumerate(body.findall("site")):
+            local_site_pos = _as_vec3(site.attrib.get("pos"), (0.0, 0.0, 0.0))
+            local_site_rot = _as_quat_wxyz(site.attrib.get("quat"))
+            world_site_pos = world_pos + _quat_rotate_wxyz(world_rot, local_site_pos)
+            world_site_rot = _quat_mul_wxyz(world_rot, local_site_rot)
+            sites_by_body[body_name].append(
+                SiteInfo(
+                    site_name=site.attrib.get("name", f"{body_name}_site_{site_idx}"),
+                    body_name=body_name,
+                    local_position=local_site_pos,
+                    world_position=world_site_pos,
+                    local_rotation_wxyz=local_site_rot,
+                    world_rotation_wxyz=world_site_rot,
+                )
+            )
         for geom_idx, geom in enumerate(body.findall("geom")):
             geom_type = geom.attrib.get("type", "sphere")
             local_geom_pos = _as_vec3(geom.attrib.get("pos"), (0.0, 0.0, 0.0))
@@ -374,4 +403,14 @@ def analyze_mjcf_morphology(mjcf_path: str | Path | None) -> MorphologyAnalysis:
         for child in worldbody.findall("body"):
             walk(child, None, np.zeros(3, dtype=float), np.array([1.0, 0.0, 0.0, 0.0], dtype=float))
 
-    return MorphologyAnalysis(str(path), robot_fingerprint, body_names, bodies, geoms_by_body, joint_dofs, joints_by_body, warnings)
+    return MorphologyAnalysis(
+        str(path),
+        robot_fingerprint,
+        body_names,
+        bodies,
+        geoms_by_body,
+        sites_by_body,
+        joint_dofs,
+        joints_by_body,
+        warnings,
+    )

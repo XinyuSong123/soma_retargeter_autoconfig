@@ -40,13 +40,13 @@ Verification: contact regression tests cover per-env weight setting, warmup labe
 
 Problem: robots without wrists should not track a full hand orientation at an elbow-yaw link origin.
 
-Decision: compiled profiles mark hand orientation unsupported when no wrist is present and generate hand position tasks instead.
+Decision: compiled profiles mark hand orientation unsupported when no wrist is present, generate hand position tasks, and place distal hand/foot sites from explicit MJCF sites before falling back to geom or mesh bounds.
 
 Reason: sparse task definitions are closer to actual morphology and avoid impossible 6D targets.
 
-Risk: current virtual-site placement is still conservative and mostly uses semantic body origins.
+Risk: virtual-site placement still depends on registered geometry quality; non-STL mesh formats and rotated/fromto primitive bounds are limited.
 
-Verification: RPO profile disables hand orientation and tests assert rotational rank zero for no-wrist hand fixtures.
+Verification: RPO profile disables hand orientation and tests assert rotational rank zero for no-wrist hand fixtures, explicit MJCF site preference, and geom/STL distal bounds.
 
 ## Symmetry Tying
 

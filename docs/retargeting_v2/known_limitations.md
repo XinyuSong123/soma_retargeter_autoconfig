@@ -6,6 +6,6 @@
 - E3 v2 and OLI are not registered in the current workspace, so benchmark artifacts cover only `roboparty_rpo` and `unitree_g1`.
 - Unitree G1 v2 profile currently reports zero chain ranks and placeholder chain lengths, indicating incomplete registry/morphology coverage for that asset path.
 - Semantic auto-detection is still shallow; explicit `ik_map` remains the reliable path.
-- Virtual hand and foot sites now use MJCF primitive geom and STL mesh distal bounds when available, but explicit MJCF site preference, non-STL mesh formats, and rotated/fromto geom bounds are still limited.
+- Virtual hand and foot sites now prefer explicit MJCF sites and then use primitive geom or STL mesh distal bounds when available, but non-STL mesh formats and rotated/fromto geom bounds are still limited.
 - Root/ground metadata is compile-time provenance only; runtime root-height stabilization still needs motion-level acceptance metrics.
 - The priority residual guard currently protects joint-limit margin residuals, not all high-priority feasibility residuals.

@@ -143,6 +143,33 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertTrue(np.allclose(site.local_position, [0.15, 0.0, 0.0]))
         self.assertAlmostEqual(profile.chains["LeftHand"].total_length, 0.55)
 
+    def test_distal_hand_site_prefers_explicit_mjcf_site_over_geom_bounds(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="left_forearm">
+              <body name="left_hand" pos="0.4 0 0">
+                <site name="left_hand_tip" pos="0.3 0.01 0" quat="0.70710678 0 0 0.70710678"/>
+                <geom name="palm" type="box" pos="0.05 0 0" size="0.1 0.03 0.02"/>
+              </body>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {"ik_map": {"LeftForeArm": "left_forearm", "LeftHand": "left_hand"}}
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        self.assertEqual(morphology.summary()["site_count"], 1)
+        site = profile.semantic_sites["LeftHand"]
+        self.assertEqual(site.source, "explicit_site")
+        self.assertTrue(np.allclose(site.local_position, [0.3, 0.01, 0.0]))
+        self.assertTrue(np.allclose(site.local_rotation_xyzw, [0.0, 0.0, 0.70710678, 0.70710678]))
+        self.assertAlmostEqual(profile.chains["LeftHand"].total_length, 0.7001666203960727)
+
     def test_distal_hand_site_uses_mjcf_mesh_bounds_offset(self):
         mesh = """
         solid hand
