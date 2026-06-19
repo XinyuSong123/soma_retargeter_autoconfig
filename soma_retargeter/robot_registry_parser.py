@@ -1009,6 +1009,25 @@ def load_retargeter_config(
 
 def validate_compiled_retarget_profile(profile: dict[str, Any]) -> list[dict[str, Any]]:
     diagnostics: list[dict[str, Any]] = []
+
+    def _finite_float(value: Any) -> float | None:
+        try:
+            out = float(value)
+        except (TypeError, ValueError):
+            return None
+        return out if math.isfinite(out) else None
+
+    def _check_numeric_tree(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                _check_numeric_tree(item, f"{path}.{key}")
+        elif isinstance(value, list):
+            for idx, item in enumerate(value):
+                _check_numeric_tree(item, f"{path}[{idx}]")
+        elif isinstance(value, (int, float)):
+            if not math.isfinite(float(value)):
+                diagnostics.append({"code": "non_finite_profile_value", "path": path, "value": value})
+
     if profile.get("schema_version") != 2:
         diagnostics.append({"code": "invalid_schema_version", "expected": 2, "actual": profile.get("schema_version")})
     if profile.get("quaternion_order") != "xyzw":
@@ -1022,6 +1041,64 @@ def validate_compiled_retarget_profile(profile: dict[str, Any]) -> list[dict[str
         diagnostics.append({"code": "invalid_chains"})
     if not isinstance(profile.get("tasks", []), list):
         diagnostics.append({"code": "invalid_tasks"})
+    _check_numeric_tree(profile, "profile")
+
+    for semantic, site in profile.get("semantic_sites", {}).items() if isinstance(profile.get("semantic_sites", {}), dict) else []:
+        quat = site.get("local_rotation_xyzw") if isinstance(site, dict) else None
+        if not isinstance(quat, list) or len(quat) != 4:
+            diagnostics.append({"code": "invalid_site_quaternion", "semantic": semantic})
+            continue
+        values = [_finite_float(v) for v in quat]
+        if any(v is None for v in values):
+            diagnostics.append({"code": "non_finite_site_quaternion", "semantic": semantic})
+            continue
+        norm = math.sqrt(sum(float(v) * float(v) for v in values))
+        if abs(norm - 1.0) > 1.0e-4:
+            diagnostics.append({"code": "non_unit_site_quaternion", "semantic": semantic, "norm": norm})
+
+    chains = profile.get("chains", {})
+    if isinstance(chains, dict):
+        for semantic, chain in chains.items():
+            if not isinstance(chain, dict):
+                diagnostics.append({"code": "invalid_chain", "semantic": semantic})
+                continue
+            total_length = _finite_float(chain.get("total_length"))
+            if total_length is None or total_length <= 0.0:
+                diagnostics.append({"code": "invalid_chain_total_length", "semantic": semantic, "value": chain.get("total_length")})
+            for idx, raw_length in enumerate(chain.get("segment_lengths", [])):
+                length = _finite_float(raw_length)
+                if length is None or length < 0.0:
+                    diagnostics.append({"code": "invalid_segment_length", "semantic": semantic, "index": idx, "value": raw_length})
+
+    collision = profile.get("collision", {})
+    if isinstance(collision, dict):
+        margin = _finite_float(collision.get("margin", 0.03))
+        if margin is None or margin <= 0.0:
+            diagnostics.append({"code": "invalid_collision_margin", "value": collision.get("margin")})
+        for idx, proxy in enumerate(collision.get("proxies", [])):
+            if not isinstance(proxy, dict):
+                diagnostics.append({"code": "invalid_collision_proxy", "index": idx})
+                continue
+            radius = _finite_float(proxy.get("radius"))
+            if radius is None or radius <= 0.0:
+                diagnostics.append({"code": "invalid_collision_proxy_radius", "index": idx, "value": proxy.get("radius")})
+        for idx, pair in enumerate(collision.get("pairs", [])):
+            if not isinstance(pair, dict):
+                diagnostics.append({"code": "invalid_collision_pair", "index": idx})
+                continue
+            pair_margin = _finite_float(pair.get("margin", margin))
+            if pair_margin is None or pair_margin <= 0.0:
+                diagnostics.append({"code": "invalid_collision_pair_margin", "index": idx, "value": pair.get("margin")})
+
+    root_motion = profile.get("rest_frame_alignment", {}).get("root_motion", {}) if isinstance(profile.get("rest_frame_alignment", {}), dict) else {}
+    if isinstance(root_motion, dict) and root_motion:
+        for key in ("horizontal_scale", "robot_leg_length_m", "source_leg_length_m"):
+            value = _finite_float(root_motion.get(key))
+            if value is None or value <= 0.0:
+                diagnostics.append({"code": "invalid_root_motion_value", "key": key, "value": root_motion.get(key)})
+        ground_height = _finite_float(root_motion.get("ground_height_m", 0.0))
+        if ground_height is None:
+            diagnostics.append({"code": "invalid_ground_height", "value": root_motion.get("ground_height_m")})
     return diagnostics
 
 

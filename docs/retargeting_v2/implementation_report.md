@@ -31,6 +31,7 @@
 - Compile-level benchmark artifact CLI: `soma_retargeter/tools/benchmark_retargeting.py`
 - Compile-level self-collision proxy and high-risk pair metadata: `soma_retargeter/robotics/morphology.py` and `soma_retargeter/robotics/task_compiler.py`
 - Root-motion scale and ground-height provenance metadata: `soma_retargeter/robotics/task_compiler.py`
+- Compiled profile health-gate validation: `soma_retargeter/robot_registry_parser.py`
 
 ## Tests
 
@@ -40,7 +41,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest result before this report update: `58 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest result before this report update: `59 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 

@@ -109,6 +109,24 @@ class TestContactConfig(unittest.TestCase):
         self.assertTrue(any(item["code"] == "invalid_schema_version" for item in diagnostics))
         self.assertTrue(any(item["code"] == "missing_profile_key" for item in diagnostics))
 
+    def test_compiled_profile_validation_reports_health_gate_failures(self):
+        profile = load_compiled_retarget_profile("roboparty_rpo")
+        profile["semantic_sites"]["Hips"]["local_rotation_xyzw"] = [0.0, 0.0, 0.0, 2.0]
+        profile["chains"]["Hips"]["segment_lengths"] = [-0.1]
+        profile["chains"]["Hips"]["total_length"] = 0.0
+        profile["collision"]["margin"] = -0.1
+        profile["collision"]["proxies"][0]["radius"] = 0.0
+        profile["rest_frame_alignment"]["root_motion"]["horizontal_scale"] = float("inf")
+        diagnostics = validate_compiled_retarget_profile(profile)
+        codes = {item["code"] for item in diagnostics}
+        self.assertIn("non_unit_site_quaternion", codes)
+        self.assertIn("invalid_segment_length", codes)
+        self.assertIn("invalid_chain_total_length", codes)
+        self.assertIn("invalid_collision_margin", codes)
+        self.assertIn("invalid_collision_proxy_radius", codes)
+        self.assertIn("invalid_root_motion_value", codes)
+        self.assertIn("non_finite_profile_value", codes)
+
     def test_priority_band_validation_reports_small_adjacent_ratio(self):
         bands, diagnostics = _resolve_priority_weight_bands(
             {"solver": {"priority_weight_bands": {"0": 100.0, "1": 50.0, "2": 10.0, "3": 1.0, "4": 0.1}}}
