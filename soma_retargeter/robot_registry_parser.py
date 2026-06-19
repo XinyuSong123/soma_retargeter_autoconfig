@@ -58,6 +58,7 @@ _DEFAULT_HUMAN_HEIGHT_ASSUMPTION_M = 1.8
 _DEFAULT_HUMAN_ROOT_NAME = "Hips"
 _DEFAULT_IK_ITERATIONS = 24
 _DEFAULT_COMPILED_PROFILE_IK_ITERATIONS = 8
+_SINGLE_AXIS_TORSO_COMPILED_PROFILE_IK_ITERATIONS = 4
 _DEFAULT_JOINT_LIMIT_WEIGHT = 10.0
 _DEFAULT_SMOOTH_JOINT_FILTER_WEIGHT = 5.5
 _DEFAULT_COLLISION_WEIGHT = 0.0
@@ -762,6 +763,19 @@ def _build_contact_aware_foot_ik_from_virtual_anchors(raw_config: dict[str, Any]
     }
 
 
+def _compiled_profile_runtime_ik_iterations(compiled_profile: dict[str, Any]) -> int:
+    chains = compiled_profile.get("chains", {})
+    chest_chain = chains.get("Chest") if isinstance(chains, dict) else None
+    if isinstance(chest_chain, dict):
+        try:
+            rotational_rank = int(chest_chain.get("rotational_rank", 0))
+        except (TypeError, ValueError):
+            rotational_rank = 0
+        if rotational_rank == 1:
+            return _SINGLE_AXIS_TORSO_COMPILED_PROFILE_IK_ITERATIONS
+    return _DEFAULT_COMPILED_PROFILE_IK_ITERATIONS
+
+
 def infer_robot_name_from_retargeter_config_path(path: str | Path) -> str | None:
     path = io_utils.resolve_path(path).resolve()
     for robot_name, profile in get_robot_profiles().items():
@@ -805,6 +819,7 @@ def build_runtime_retargeter_config(robot_name: str | None, raw_config: dict[str
         runtime_config["joint_acceleration_limit_fraction_per_second2"] = 40.0
         if compiled_profile_path.exists():
             compiled_profile = io_utils.load_json(compiled_profile_path)
+            runtime_config["ik_iterations"] = _compiled_profile_runtime_ik_iterations(compiled_profile)
             priority_bands, priority_diagnostics = _resolve_priority_weight_bands(compiled_profile)
             runtime_config["priority_weight_bands"] = priority_bands
             runtime_config["priority_scheduler_diagnostics"] = priority_diagnostics

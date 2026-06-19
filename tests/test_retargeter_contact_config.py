@@ -58,7 +58,9 @@ class TestContactConfig(unittest.TestCase):
 
     def test_compiled_v2_runtime_uses_bounded_iteration_default(self):
         cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}})
-        self.assertEqual(cfg["ik_iterations"], 8)
+        self.assertEqual(cfg["ik_iterations"], 4)
+        g1_cfg = build_runtime_retargeter_config("unitree_g1", {"ik_map": {}})
+        self.assertEqual(g1_cfg["ik_iterations"], 8)
 
     def test_explicit_runtime_iterations_override_compiled_v2_default(self):
         cfg = build_runtime_retargeter_config("roboparty_rpo", {"ik_map": {}, "ik_iterations": 24})
