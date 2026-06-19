@@ -396,6 +396,92 @@ def _compile_collision_config(
     )
 
 
+def _compile_root_ground_metadata(
+    semantic_sites: dict[str, SemanticSite],
+    chains: dict[str, KinematicChainProfile],
+    morphology: MorphologyAnalysis,
+    raw_config: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, float], list[dict[str, Any]]]:
+    warnings: list[dict[str, Any]] = []
+    source_leg_length = 0.9
+    raw_root_motion = raw_config.get("root_motion", {})
+    if isinstance(raw_root_motion, dict):
+        try:
+            source_leg_length = float(raw_root_motion.get("source_leg_length_m", source_leg_length))
+        except (TypeError, ValueError):
+            warnings.append({"code": "invalid_source_leg_length", "value": raw_root_motion.get("source_leg_length_m")})
+            source_leg_length = 0.9
+    if source_leg_length <= 1.0e-6:
+        warnings.append({"code": "invalid_source_leg_length", "value": source_leg_length})
+        source_leg_length = 0.9
+
+    hips_site = semantic_sites.get("Hips")
+    foot_sites = [semantic_sites[name] for name in ("LeftFoot", "RightFoot") if name in semantic_sites]
+    robot_leg_length = 0.0
+    nominal_pelvis_height = None
+    ground_height = 0.0
+    ground_height_source = "default_world_z0"
+    confidence = 0.0
+
+    if hips_site is not None and hips_site.body_name in morphology.bodies and foot_sites:
+        foot_positions = [
+            morphology.bodies[site.body_name].world_position
+            for site in foot_sites
+            if site.body_name in morphology.bodies
+        ]
+        if foot_positions:
+            hips_pos = morphology.bodies[hips_site.body_name].world_position
+            foot_center = np.mean(np.stack(foot_positions, axis=0), axis=0)
+            robot_leg_length = float(np.linalg.norm(hips_pos - foot_center))
+            min_foot_z = float(min(pos[2] for pos in foot_positions))
+            nominal_pelvis_height = float(hips_pos[2] - min_foot_z)
+            ground_height = min_foot_z
+            ground_height_source = "semantic_foot_rest_min_z"
+            confidence = min([hips_site.confidence, *[site.confidence for site in foot_sites]])
+
+    if robot_leg_length <= 1.0e-6:
+        candidate_lengths = [
+            float(chains[name].total_length)
+            for name in ("LeftLeg", "RightLeg", "LeftShin", "RightShin", "LeftFoot", "RightFoot")
+            if name in chains and chains[name].total_length > 1.0e-6
+        ]
+        if candidate_lengths:
+            robot_leg_length = max(candidate_lengths)
+            ground_height_source = "default_world_z0"
+            confidence = min(confidence or 1.0, 0.5)
+            warnings.append({"code": "root_leg_length_from_chain_fallback", "robot_leg_length_m": robot_leg_length})
+        else:
+            robot_leg_length = source_leg_length
+            confidence = 0.0
+            warnings.append({"code": "root_leg_length_unavailable", "fallback_m": robot_leg_length})
+
+    raw_ground_barrier = raw_config.get("ground_barrier", {})
+    if isinstance(raw_ground_barrier, dict) and "ground_height" in raw_ground_barrier:
+        try:
+            ground_height = float(raw_ground_barrier["ground_height"])
+            ground_height_source = "explicit_ground_barrier"
+        except (TypeError, ValueError):
+            warnings.append({"code": "invalid_ground_height", "value": raw_ground_barrier.get("ground_height")})
+
+    horizontal_scale = float(robot_leg_length / source_leg_length)
+    segment_ratios = {
+        "root_horizontal": horizontal_scale,
+        "leg_length": horizontal_scale,
+    }
+    root_motion = {
+        "source": "semantic_hips_feet_rest_pose" if confidence > 0.0 else "fallback",
+        "horizontal_scale": horizontal_scale,
+        "robot_leg_length_m": float(robot_leg_length),
+        "source_leg_length_m": float(source_leg_length),
+        "robot_nominal_pelvis_height_m": nominal_pelvis_height,
+        "vertical_height_source": "robot_nominal_pelvis_height+stance_foot+ground+crouch_ratio",
+        "ground_height_m": float(ground_height),
+        "ground_height_source": ground_height_source,
+        "confidence": float(confidence),
+    }
+    return {"root_motion": root_motion}, segment_ratios, warnings
+
+
 def compile_retarget_profile(
     *,
     robot_name: str,
@@ -441,6 +527,13 @@ def compile_retarget_profile(
             tasks.append(pole_task)
     collision, collision_warnings = _compile_collision_config(semantic_sites, chains, morphology, raw_config)
     warnings.extend(collision_warnings)
+    rest_frame_alignment, segment_ratios, root_warnings = _compile_root_ground_metadata(
+        semantic_sites,
+        chains,
+        morphology,
+        raw_config,
+    )
+    warnings.extend(root_warnings)
 
     confidences = [site.confidence for site in semantic_sites.values()]
     profile_confidence = float(min(confidences)) if confidences else 0.0
@@ -455,8 +548,8 @@ def compile_retarget_profile(
         morphology_summary={"robot_name": robot_name, **morphology.summary()},
         semantic_sites=semantic_sites,
         chains=chains,
-        rest_frame_alignment={},
-        segment_ratios={},
+        rest_frame_alignment=rest_frame_alignment,
+        segment_ratios=segment_ratios,
         tasks=tasks,
         contact=raw_config.get("contact_aware_foot_ik", {}),
         collision=collision,

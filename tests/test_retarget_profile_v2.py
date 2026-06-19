@@ -177,6 +177,47 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertFalse(profile.collision["enabled"])
         self.assertTrue(any(warning["code"] == "collision_proxy_disabled" for warning in profile.warnings))
 
+    def test_root_ground_metadata_records_scale_and_ground_source(self):
+        mjcf = """
+        <mujoco>
+          <worldbody>
+            <body name="pelvis" pos="0 0 1.0">
+              <body name="left_foot" pos="0.1 0.1 -1.0"/>
+              <body name="right_foot" pos="0.1 -0.1 -1.0"/>
+            </body>
+          </worldbody>
+        </mujoco>
+        """
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "robot.xml"
+            path.write_text(mjcf)
+            morphology = analyze_mjcf_morphology(path)
+            raw = {
+                "ik_map": {"Hips": "pelvis", "LeftFoot": "left_foot", "RightFoot": "right_foot"},
+                "root_motion": {"source_leg_length_m": 0.5},
+                "ground_barrier": {"ground_height": -0.02},
+            }
+            profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+
+        root_motion = profile.rest_frame_alignment["root_motion"]
+        self.assertEqual(root_motion["source"], "semantic_hips_feet_rest_pose")
+        self.assertAlmostEqual(root_motion["robot_leg_length_m"], np.sqrt(1.01), places=6)
+        self.assertAlmostEqual(root_motion["source_leg_length_m"], 0.5)
+        self.assertAlmostEqual(root_motion["horizontal_scale"], np.sqrt(1.01) / 0.5, places=6)
+        self.assertAlmostEqual(root_motion["robot_nominal_pelvis_height_m"], 1.0)
+        self.assertAlmostEqual(root_motion["ground_height_m"], -0.02)
+        self.assertEqual(root_motion["ground_height_source"], "explicit_ground_barrier")
+        self.assertAlmostEqual(profile.segment_ratios["leg_length"], root_motion["horizontal_scale"])
+
+    def test_root_ground_metadata_warns_when_leg_length_unavailable(self):
+        morphology = analyze_mjcf_morphology(None)
+        raw = {"ik_map": {"Hips": "pelvis"}}
+        profile = compile_retarget_profile(robot_name="fixture", raw_config=raw, morphology=morphology)
+        root_motion = profile.rest_frame_alignment["root_motion"]
+        self.assertEqual(root_motion["source"], "fallback")
+        self.assertEqual(root_motion["ground_height_source"], "default_world_z0")
+        self.assertTrue(any(warning["code"] == "root_leg_length_unavailable" for warning in profile.warnings))
+
 
 if __name__ == "__main__":
     unittest.main()

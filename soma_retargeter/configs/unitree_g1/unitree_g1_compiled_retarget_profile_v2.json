@@ -343,10 +343,25 @@
     "robot_name": "unitree_g1"
   },
   "quaternion_order": "xyzw",
-  "rest_frame_alignment": {},
+  "rest_frame_alignment": {
+    "root_motion": {
+      "confidence": 0.0,
+      "ground_height_m": 0.0,
+      "ground_height_source": "default_world_z0",
+      "horizontal_scale": 1.0,
+      "robot_leg_length_m": 0.9,
+      "robot_nominal_pelvis_height_m": null,
+      "source": "fallback",
+      "source_leg_length_m": 0.9,
+      "vertical_height_source": "robot_nominal_pelvis_height+stance_foot+ground+crouch_ratio"
+    }
+  },
   "robot_fingerprint": "missing-mjcf",
   "schema_version": 2,
-  "segment_ratios": {},
+  "segment_ratios": {
+    "leg_length": 1.0,
+    "root_horizontal": 1.0
+  },
   "semantic_sites": {
     "Chest": {
       "body_name": "torso_link",
@@ -1256,6 +1271,10 @@
       "pair_count": 0,
       "proxy_count": 0,
       "reason": "no usable non-adjacent proxy pairs"
+    },
+    {
+      "code": "root_leg_length_unavailable",
+      "fallback_m": 0.9
     }
   ]
 }

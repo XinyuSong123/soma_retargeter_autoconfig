@@ -151,6 +151,24 @@ def _collision_summary(profile: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _root_ground_summary(profile: dict[str, Any]) -> dict[str, Any]:
+    root_motion = profile.get("rest_frame_alignment", {}).get("root_motion", {})
+    if not isinstance(root_motion, dict):
+        return {"status": "missing"}
+    keys = (
+        "source",
+        "horizontal_scale",
+        "robot_leg_length_m",
+        "source_leg_length_m",
+        "robot_nominal_pelvis_height_m",
+        "vertical_height_source",
+        "ground_height_m",
+        "ground_height_source",
+        "confidence",
+    )
+    return {key: root_motion.get(key) for key in keys}
+
+
 def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[str, Any]:
     profile = io_utils.load_json(profile_path)
     diagnostics = validate_compiled_retarget_profile(profile)
@@ -158,6 +176,7 @@ def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[
     task_summary = _task_summary(profile)
     chain_summary = _chain_summary(profile)
     collision_summary = _collision_summary(profile)
+    root_ground_summary = _root_ground_summary(profile)
     return {
         "robot": robot,
         "status": "ok" if not diagnostics else "diagnostics",
@@ -172,6 +191,7 @@ def summarize_profile(robot: str, profile_path: Path, elapsed_s: float) -> dict[
         "task_summary": task_summary,
         "chain_summary": chain_summary,
         "collision_summary": collision_summary,
+        "root_ground_summary": root_ground_summary,
         "metrics": {
             "task_residual_by_type_priority": {
                 "status": "not_run",

@@ -103,7 +103,7 @@
           "status": "not_run"
         },
         "runtime_seconds": {
-          "compile_profile": 0.019979208707809448
+          "compile_profile": 0.020168229937553406
         },
         "solver_iterations": {
           "status": "not_run"
@@ -135,6 +135,17 @@
       "quaternion_order": "xyzw",
       "robot": "roboparty_rpo",
       "robot_fingerprint": "d9c91b9cb9e14581975d6a76433c6cbaf5a00e81939e2fbb74c5b31196be1fa1",
+      "root_ground_summary": {
+        "confidence": 1.0,
+        "ground_height_m": 0.04087599999999997,
+        "ground_height_source": "semantic_foot_rest_min_z",
+        "horizontal_scale": 0.7885366543349103,
+        "robot_leg_length_m": 0.7096829889014192,
+        "robot_nominal_pelvis_height_m": 0.7091240000000001,
+        "source": "semantic_hips_feet_rest_pose",
+        "source_leg_length_m": 0.9,
+        "vertical_height_source": "robot_nominal_pelvis_height+stance_foot+ground+crouch_ratio"
+      },
       "source_skeleton_fingerprint": "soma-v1",
       "status": "ok",
       "task_summary": {
@@ -428,7 +439,7 @@
           "status": "not_run"
         },
         "runtime_seconds": {
-          "compile_profile": 0.002467755228281021
+          "compile_profile": 0.0025941655039787292
         },
         "solver_iterations": {
           "status": "not_run"
@@ -453,13 +464,24 @@
         "velocity_p95": {
           "status": "not_run"
         },
-        "warnings": 41
+        "warnings": 42
       },
       "profile_path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/unitree_g1/unitree_g1_compiled_retarget_profile_v2.json",
       "profile_schema_version": 2,
       "quaternion_order": "xyzw",
       "robot": "unitree_g1",
       "robot_fingerprint": "missing-mjcf",
+      "root_ground_summary": {
+        "confidence": 0.0,
+        "ground_height_m": 0.0,
+        "ground_height_source": "default_world_z0",
+        "horizontal_scale": 1.0,
+        "robot_leg_length_m": 0.9,
+        "robot_nominal_pelvis_height_m": null,
+        "source": "fallback",
+        "source_leg_length_m": 0.9,
+        "vertical_height_source": "robot_nominal_pelvis_height+stance_foot+ground+crouch_ratio"
+      },
       "source_skeleton_fingerprint": "soma-v1",
       "status": "ok",
       "task_summary": {
@@ -705,6 +727,10 @@
           "pair_count": 0,
           "proxy_count": 0,
           "reason": "no usable non-adjacent proxy pairs"
+        },
+        {
+          "code": "root_leg_length_unavailable",
+          "fallback_m": 0.9
         }
       ]
     }
