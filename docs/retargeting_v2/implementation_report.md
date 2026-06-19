@@ -30,7 +30,7 @@
 - Autoconfig CLI: `soma_retargeter/tools/autoconfigure_robot.py`
 - Runtime registry integration: `soma_retargeter/robot_registry_parser.py`
 - Segment-local target builder: `soma_retargeter/robotics/human_to_robot_scaler.py`
-- MJCF explicit sites plus primitive and STL mesh bounds for distal virtual sites and collision proxies: `soma_retargeter/robotics/morphology.py` and `soma_retargeter/robotics/task_compiler.py`
+- MJCF explicit sites, distal child anchors, and primitive/STL mesh bounds for distal virtual sites and collision proxies: `soma_retargeter/robotics/morphology.py` and `soma_retargeter/robotics/task_compiler.py`
 - Direction, pole-vector, temporal, joint-limit, contact, and ground-barrier objectives: `soma_retargeter/pipelines/ik_objectives.py`
 - v2 runtime wiring and priority guard: `soma_retargeter/pipelines/newton_pipeline.py`
 - Compile-level benchmark artifact CLI: `soma_retargeter/tools/benchmark_retargeting.py`
@@ -47,7 +47,7 @@ Latest full test command:
 conda run -n soma-retargeter-v2 pytest -q
 ```
 
-Latest result before this report update: `65 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
+Latest result before this report update: `66 passed`. The benchmark CLI tests are in `tests/test_benchmark_retargeting.py`.
 
 ## Benchmark Summary
 

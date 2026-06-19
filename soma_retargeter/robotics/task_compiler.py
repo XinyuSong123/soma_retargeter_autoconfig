@@ -137,6 +137,47 @@ def _explicit_site_for_semantic(semantic: str, body: str, morphology: Morphology
     return None
 
 
+def _child_anchor_for_semantic(semantic: str, body: str, morphology: MorphologyAnalysis) -> tuple[np.ndarray, str | None]:
+    if semantic not in _DISTAL_SITE_SEMANTICS:
+        return np.zeros(3, dtype=float), None
+    children = [
+        child
+        for child in morphology.bodies.values()
+        if child.parent_body_name == body and float(np.linalg.norm(child.local_position)) > 1.0e-8
+    ]
+    if not children:
+        return np.zeros(3, dtype=float), None
+
+    preferred_tokens = _DISTAL_SITE_TOKENS.get(semantic, ())
+    named_children = []
+    for child in children:
+        child_name = _normalize_site_token(child.body_name)
+        compact_name = child_name.replace("_", "")
+        if any(token in child_name or token.replace("_", "") in compact_name for token in preferred_tokens):
+            named_children.append(child)
+    candidates = named_children or (children if len(children) == 1 else [])
+    if not candidates:
+        return np.zeros(3, dtype=float), None
+
+    body_info = morphology.bodies.get(body)
+    if body_info is None:
+        return np.zeros(3, dtype=float), None
+    local_direction = np.zeros(3, dtype=float)
+    if body_info.parent_body_name in morphology.bodies:
+        parent_info = morphology.bodies[body_info.parent_body_name]
+        world_direction = body_info.world_position - parent_info.world_position
+        local_direction = _quat_inverse_rotate_wxyz(body_info.world_rotation_wxyz, world_direction)
+    if float(np.linalg.norm(local_direction)) <= 1.0e-8:
+        local_direction = candidates[0].local_position
+    local_direction = local_direction / max(float(np.linalg.norm(local_direction)), 1.0e-12)
+
+    best_child = max(candidates, key=lambda child: float(np.dot(child.local_position, local_direction)))
+    projection = float(np.dot(best_child.local_position, local_direction))
+    if projection <= 1.0e-8:
+        return np.zeros(3, dtype=float), None
+    return best_child.local_position, "inferred_child"
+
+
 def _geom_extent_along_local_direction(geom_type: str, size: np.ndarray, local_direction: np.ndarray) -> float:
     if len(size) == 0:
         return 0.0
@@ -210,7 +251,9 @@ def _make_site(
         local_rotation_xyzw = _quat_wxyz_to_xyzw(explicit_site.local_rotation_wxyz)
         source = "explicit_site"
     else:
-        local_position, source_override = _distal_site_offset_from_geom_bounds(semantic, body, root_body, morphology)
+        local_position, source_override = _child_anchor_for_semantic(semantic, body, morphology)
+        if source_override is None:
+            local_position, source_override = _distal_site_offset_from_geom_bounds(semantic, body, root_body, morphology)
         local_rotation_xyzw = np.array([0.0, 0.0, 0.0, 1.0], dtype=float)
         source = source_override or ("explicit" if confidence >= 1.0 else "explicit_unverified")
     return SemanticSite(
