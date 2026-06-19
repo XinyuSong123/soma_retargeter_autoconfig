@@ -5,7 +5,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from soma_retargeter.tools.benchmark_retargeting import _legacy_runtime_retargeter_config, main
+import numpy as np
+
+from soma_retargeter.robotics.reachability import rotation_vector_to_quat_xyzw
+from soma_retargeter.tools.benchmark_retargeting import _legacy_runtime_retargeter_config, _profile_runtime_residual_metrics, main
 
 
 class TestBenchmarkRetargeting(unittest.TestCase):
@@ -18,6 +21,54 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 2.0)
         self.assertEqual(cfg["ik_map"]["Chest"]["t_weight"], 0.5)
         self.assertEqual(cfg["ik_map"]["Chest"]["r_weight"], 0.5)
+
+    def test_profile_runtime_residual_metrics_include_torso_leakage(self):
+        profile = {
+            "tasks": [
+                {
+                    "name": "torso_projected_relative_rotation",
+                    "task_type": "projected_relative_rotation",
+                    "target_site": "Chest",
+                    "reference_site": "Hips",
+                    "priority": 2,
+                    "rotation_mask_or_basis": [[0.0], [0.0], [1.0]],
+                    "enabled": True,
+                },
+                {
+                    "name": "LeftHand_position",
+                    "task_type": "position",
+                    "target_site": "LeftHand",
+                    "priority": 3,
+                    "characteristic_length": 2.0,
+                    "enabled": True,
+                },
+            ]
+        }
+        target = np.zeros((1, 3, 7), dtype=np.float64)
+        target[:, :, 3:7] = np.array([0.0, 0.0, 0.0, 1.0])
+        target[0, 1, 3:7] = rotation_vector_to_quat_xyzw(np.array([0.0, 0.0, 0.4]))
+        target[0, 2, 0:3] = np.array([1.0, 0.0, 0.0])
+        pipeline = type("P", (), {"input_targets": [target], "mapped_joints": ["Hips", "Chest", "LeftHand"]})()
+        semantic_pose = {
+            "Chest": {
+                "position": np.zeros((1, 3), dtype=np.float64),
+                "rotation": np.asarray([rotation_vector_to_quat_xyzw(np.array([0.2, 0.0, 0.4]))]),
+            },
+            "LeftHand": {
+                "position": np.asarray([[1.2, 0.0, 0.0]], dtype=np.float64),
+                "rotation": np.asarray([[0.0, 0.0, 0.0, 1.0]], dtype=np.float64),
+            },
+        }
+
+        metrics = _profile_runtime_residual_metrics(profile, pipeline, 0, semantic_pose)
+
+        self.assertEqual(metrics["task_residual_by_type_priority"]["status"], "ok")
+        self.assertIn("position:p3", metrics["task_residual_by_type_priority"]["groups"])
+        self.assertAlmostEqual(metrics["task_residual_by_type_priority"]["groups"]["position:p3"]["value"], 0.1)
+        self.assertEqual(metrics["torso_reachable_residual"]["status"], "ok")
+        self.assertLess(metrics["torso_reachable_residual"]["value"], 0.01)
+        self.assertEqual(metrics["torso_unreachable_residual"]["status"], "ok")
+        self.assertGreater(metrics["torso_unreachable_residual"]["value"], 0.19)
 
     def test_benchmark_writes_required_artifacts(self):
         with tempfile.TemporaryDirectory() as td:

@@ -19,6 +19,11 @@ import numpy as np
 import warp as wp
 
 import soma_retargeter.utils.io_utils as io_utils
+from soma_retargeter.robotics.reachability import (
+    project_relative_rotation_quat_xyzw,
+    project_vector,
+    quat_xyzw_to_rotation_vector,
+)
 from soma_retargeter.robot_registry_parser import (
     ensure_compiled_retarget_profile,
     ensure_generated_scaler_config,
@@ -51,10 +56,13 @@ METRIC_NAMES = (
 )
 
 _RUNTIME_METRIC_NAMES = (
+    "task_residual_by_type_priority",
     "joint_limit_margin",
     "foot_slide",
     "penetration",
     "root_tilt",
+    "torso_reachable_residual",
+    "torso_unreachable_residual",
     "hand_position_rmse",
     "foot_position_rmse",
     "velocity_p95",
@@ -219,7 +227,7 @@ def _merge_runtime_metrics(metrics: dict[str, Any], runtime: dict[str, Any] | No
         if metrics.get(name, {}).get("status") == "not_run":
             payload = dict(metrics[name])
             payload["status"] = "unavailable"
-            payload["reason"] = "runtime rollout ran, but this residual metric is not implemented yet"
+            payload["reason"] = "runtime rollout ran, but no enabled profile task residuals were available"
             metrics[name] = payload
     for name, payload in runtime.get("metrics", {}).items():
         metrics[name] = payload
@@ -414,6 +422,58 @@ def _transform_point_xyzw(transform_values: np.ndarray, local_point: np.ndarray)
     return transform_values[0:3] + _quat_rotate_xyzw(transform_values[3:7], local_point)
 
 
+def _normalize_quat_xyzw(quat_xyzw: np.ndarray) -> np.ndarray:
+    quat = np.asarray(quat_xyzw, dtype=np.float64)
+    norm = float(np.linalg.norm(quat))
+    if norm <= 1.0e-12:
+        return np.asarray([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+    quat = quat / norm
+    return -quat if quat[3] < 0.0 else quat
+
+
+def _quat_mul_xyzw(lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
+    lx, ly, lz, lw = _normalize_quat_xyzw(lhs)
+    rx, ry, rz, rw = _normalize_quat_xyzw(rhs)
+    return _normalize_quat_xyzw(
+        np.asarray(
+            [
+                lw * rx + lx * rw + ly * rz - lz * ry,
+                lw * ry - lx * rz + ly * rw + lz * rx,
+                lw * rz + lx * ry - ly * rx + lz * rw,
+                lw * rw - lx * rx - ly * ry - lz * rz,
+            ],
+            dtype=np.float64,
+        )
+    )
+
+
+def _quat_inverse_xyzw(quat_xyzw: np.ndarray) -> np.ndarray:
+    x, y, z, w = _normalize_quat_xyzw(quat_xyzw)
+    return np.asarray([-x, -y, -z, w], dtype=np.float64)
+
+
+def _quat_error_rotvec_xyzw(actual_xyzw: np.ndarray, target_xyzw: np.ndarray) -> np.ndarray:
+    return quat_xyzw_to_rotation_vector(_quat_mul_xyzw(actual_xyzw, _quat_inverse_xyzw(target_xyzw)))
+
+
+def _direction_between_points(reference: np.ndarray, target: np.ndarray) -> np.ndarray | None:
+    delta = np.asarray(target, dtype=np.float64) - np.asarray(reference, dtype=np.float64)
+    length = float(np.linalg.norm(delta))
+    if length <= 1.0e-8:
+        return None
+    return delta / length
+
+
+def _pole_normal_between_points(reference: np.ndarray, middle: np.ndarray, target: np.ndarray) -> np.ndarray | None:
+    a = np.asarray(middle, dtype=np.float64) - np.asarray(reference, dtype=np.float64)
+    b = np.asarray(target, dtype=np.float64) - np.asarray(middle, dtype=np.float64)
+    normal = np.cross(a, b)
+    length = float(np.linalg.norm(normal))
+    if length <= 1.0e-8:
+        return None
+    return normal / length
+
+
 def _joint_limit_margin(model: Any, frames: np.ndarray) -> float | None:
     if frames.size == 0:
         return None
@@ -465,7 +525,7 @@ def _trajectory_velocity_metrics(frames: np.ndarray, sample_rate: float) -> tupl
     return _percentile_metric(velocity_norms), _percentile_metric(acceleration_norms)
 
 
-def _semantic_body_indices(profile: dict[str, Any], pipeline: Any, semantics: tuple[str, ...]) -> dict[str, tuple[int, np.ndarray]]:
+def _semantic_body_indices(profile: dict[str, Any], pipeline: Any, semantics: tuple[str, ...]) -> dict[str, tuple[int, np.ndarray, np.ndarray]]:
     labels = {
         str(label).split("/")[-1]: index
         for index, label in enumerate(getattr(pipeline.robot_builder, "body_label", []))
@@ -479,11 +539,15 @@ def _semantic_body_indices(profile: dict[str, Any], pipeline: Any, semantics: tu
         body_name = site.get("body_name")
         if body_name not in labels:
             continue
-        out[semantic] = (labels[body_name], np.asarray(site.get("local_position", [0.0, 0.0, 0.0]), dtype=np.float64))
+        out[semantic] = (
+            labels[body_name],
+            np.asarray(site.get("local_position", [0.0, 0.0, 0.0]), dtype=np.float64),
+            _normalize_quat_xyzw(np.asarray(site.get("local_rotation_xyzw", [0.0, 0.0, 0.0, 1.0]), dtype=np.float64)),
+        )
     return out
 
 
-def _body_site_trajectories(pipeline: Any, profile: dict[str, Any], frames: np.ndarray, semantics: tuple[str, ...]) -> dict[str, np.ndarray]:
+def _body_site_pose_trajectories(pipeline: Any, profile: dict[str, Any], frames: np.ndarray, semantics: tuple[str, ...]) -> dict[str, dict[str, np.ndarray]]:
     import newton
 
     sites = _semantic_body_indices(profile, pipeline, semantics)
@@ -491,14 +555,22 @@ def _body_site_trajectories(pipeline: Any, profile: dict[str, Any], frames: np.n
         return {}
     model = pipeline.ik_model
     state = model.state()
-    trajectories = {semantic: [] for semantic in sites}
+    position_trajectories = {semantic: [] for semantic in sites}
+    rotation_trajectories = {semantic: [] for semantic in sites}
     for row in frames:
         wp.copy(model.joint_q, wp.array(row.astype(np.float32), dtype=wp.float32))
         newton.eval_fk(model, model.joint_q, model.joint_qd, state)
         body_q = state.body_q.numpy()
-        for semantic, (body_idx, local_position) in sites.items():
-            trajectories[semantic].append(_transform_point_xyzw(body_q[body_idx], local_position))
-    return {semantic: np.asarray(points, dtype=np.float64) for semantic, points in trajectories.items()}
+        for semantic, (body_idx, local_position, local_rotation) in sites.items():
+            position_trajectories[semantic].append(_transform_point_xyzw(body_q[body_idx], local_position))
+            rotation_trajectories[semantic].append(_quat_mul_xyzw(body_q[body_idx][3:7], local_rotation))
+    return {
+        semantic: {
+            "position": np.asarray(position_trajectories[semantic], dtype=np.float64),
+            "rotation": np.asarray(rotation_trajectories[semantic], dtype=np.float64),
+        }
+        for semantic in sites
+    }
 
 
 def _tracking_rmse(targets: np.ndarray, actual: np.ndarray) -> float | None:
@@ -507,6 +579,150 @@ def _tracking_rmse(targets: np.ndarray, actual: np.ndarray) -> float | None:
         return None
     residuals = np.asarray(actual[:count], dtype=np.float64) - np.asarray(targets[:count], dtype=np.float64)
     return float(np.sqrt(np.mean(np.sum(residuals * residuals, axis=1))))
+
+
+def _series_payload(values: list[float], *, unit: str, statistic: str = "p95", **extra: Any) -> dict[str, Any]:
+    if not values:
+        return {"status": "unavailable", **extra}
+    arr = np.asarray(values, dtype=np.float64)
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return {"status": "unavailable", **extra}
+    return {
+        "status": "ok",
+        "value": float(np.percentile(arr, 95.0)),
+        "mean": float(np.mean(arr)),
+        "max": float(np.max(arr)),
+        "count": int(arr.size),
+        "unit": unit,
+        "statistic": statistic,
+        **extra,
+    }
+
+
+def _profile_runtime_residual_metrics(
+    profile: dict[str, Any],
+    pipeline: Any,
+    motion_index: int,
+    semantic_pose: dict[str, dict[str, np.ndarray]],
+) -> dict[str, Any]:
+    input_targets = getattr(pipeline, "input_targets", [])
+    mapped_joints = list(getattr(pipeline, "mapped_joints", []))
+    if motion_index >= len(input_targets):
+        return {}
+    target_frames = np.asarray(input_targets[motion_index], dtype=np.float64)
+
+    def target_position(semantic: str) -> np.ndarray | None:
+        if semantic not in mapped_joints:
+            return None
+        return target_frames[:, mapped_joints.index(semantic), 0:3]
+
+    def target_rotation(semantic: str) -> np.ndarray | None:
+        if semantic not in mapped_joints:
+            return None
+        return target_frames[:, mapped_joints.index(semantic), 3:7]
+
+    groups: dict[str, list[float]] = {}
+    torso_reachable: list[float] = []
+    torso_unreachable: list[float] = []
+    torso_source_unreachable: list[float] = []
+
+    for task in profile.get("tasks", []):
+        if not isinstance(task, dict) or not task.get("enabled", False):
+            continue
+        task_type = str(task.get("task_type", "unknown"))
+        priority = task.get("priority", "unknown")
+        group_key = f"{task_type}:p{priority}"
+        target_site = task.get("target_site") or task.get("source_semantic")
+        reference_site = task.get("reference_site")
+        source_semantic = task.get("source_semantic") or target_site
+        if not isinstance(target_site, str):
+            continue
+        residuals: list[float] = []
+
+        if task_type == "position":
+            targets = target_position(target_site)
+            actual = semantic_pose.get(target_site, {}).get("position")
+            if targets is not None and actual is not None:
+                count = min(len(targets), len(actual))
+                scale = max(float(task.get("characteristic_length", 1.0) or 1.0), 1.0e-6)
+                residuals = (np.linalg.norm(actual[:count] - targets[:count], axis=1) / scale).tolist()
+
+        elif task_type == "projected_relative_rotation":
+            targets = target_rotation(target_site)
+            actual = semantic_pose.get(target_site, {}).get("rotation")
+            raw_basis = task.get("rotation_mask_or_basis")
+            basis = np.asarray(raw_basis, dtype=np.float64) if raw_basis is not None else None
+            if targets is not None and actual is not None:
+                count = min(len(targets), len(actual))
+                for frame_idx in range(count):
+                    target_quat = _normalize_quat_xyzw(targets[frame_idx])
+                    actual_quat = _normalize_quat_xyzw(actual[frame_idx])
+                    projected_target = (
+                        project_relative_rotation_quat_xyzw(target_quat, basis)
+                        if basis is not None and basis.ndim == 2 and basis.shape[0] == 3 and basis.shape[1] > 0
+                        else target_quat
+                    )
+                    error_rotvec = _quat_error_rotvec_xyzw(actual_quat, projected_target)
+                    if basis is not None and basis.ndim == 2 and basis.shape[0] == 3 and basis.shape[1] > 0:
+                        reachable_error = project_vector(error_rotvec, basis)
+                        residuals.append(float(np.linalg.norm(reachable_error)))
+                        if target_site == "Chest":
+                            actual_rotvec = quat_xyzw_to_rotation_vector(actual_quat)
+                            target_rotvec = quat_xyzw_to_rotation_vector(target_quat)
+                            torso_reachable.append(float(np.linalg.norm(reachable_error)))
+                            torso_unreachable.append(float(np.linalg.norm(actual_rotvec - project_vector(actual_rotvec, basis))))
+                            torso_source_unreachable.append(float(np.linalg.norm(target_rotvec - project_vector(target_rotvec, basis))))
+                    else:
+                        residuals.append(float(np.linalg.norm(error_rotvec)))
+
+        elif task_type == "direction" and isinstance(reference_site, str):
+            target_ref = target_position(reference_site)
+            target_tip = target_position(target_site)
+            actual_ref = semantic_pose.get(reference_site, {}).get("position")
+            actual_tip = semantic_pose.get(target_site, {}).get("position")
+            if target_ref is not None and target_tip is not None and actual_ref is not None and actual_tip is not None:
+                count = min(len(target_ref), len(target_tip), len(actual_ref), len(actual_tip))
+                for frame_idx in range(count):
+                    target_dir = _direction_between_points(target_ref[frame_idx], target_tip[frame_idx])
+                    actual_dir = _direction_between_points(actual_ref[frame_idx], actual_tip[frame_idx])
+                    if target_dir is not None and actual_dir is not None:
+                        residuals.append(float(np.linalg.norm(actual_dir - target_dir)))
+
+        elif task_type == "pole_vector" and isinstance(reference_site, str) and isinstance(source_semantic, str):
+            target_ref = target_position(reference_site)
+            target_middle = target_position(source_semantic)
+            target_tip = target_position(target_site)
+            actual_ref = semantic_pose.get(reference_site, {}).get("position")
+            actual_middle = semantic_pose.get(source_semantic, {}).get("position")
+            actual_tip = semantic_pose.get(target_site, {}).get("position")
+            if all(item is not None for item in (target_ref, target_middle, target_tip, actual_ref, actual_middle, actual_tip)):
+                count = min(len(target_ref), len(target_middle), len(target_tip), len(actual_ref), len(actual_middle), len(actual_tip))
+                for frame_idx in range(count):
+                    target_normal = _pole_normal_between_points(target_ref[frame_idx], target_middle[frame_idx], target_tip[frame_idx])
+                    actual_normal = _pole_normal_between_points(actual_ref[frame_idx], actual_middle[frame_idx], actual_tip[frame_idx])
+                    if target_normal is not None and actual_normal is not None:
+                        residuals.append(float(np.linalg.norm(actual_normal - target_normal)))
+
+        if residuals:
+            groups.setdefault(group_key, []).extend(residuals)
+
+    group_payloads = {
+        key: _series_payload(values, unit="normalized_residual" if ":p" in key and key.startswith("position") else "residual")
+        for key, values in sorted(groups.items())
+    }
+    task_values = [value for values in groups.values() for value in values]
+    metrics = {
+        "task_residual_by_type_priority": {
+            **_series_payload(task_values, unit="residual"),
+            "groups": group_payloads,
+        }
+    }
+    if torso_reachable:
+        metrics["torso_reachable_residual"] = _series_payload(torso_reachable, unit="rad", source_unreachable_p95=float(np.percentile(torso_source_unreachable, 95.0)) if torso_source_unreachable else None)
+    if torso_unreachable:
+        metrics["torso_unreachable_residual"] = _series_payload(torso_unreachable, unit="rad", meaning="actual_unreachable_leakage")
+    return metrics
 
 
 def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_index: int, buffer: Any) -> dict[str, Any]:
@@ -525,8 +741,9 @@ def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_i
         ground_height = float(ground_height)
     except (TypeError, ValueError):
         ground_height = 0.0
-    semantic_traj = _body_site_trajectories(pipeline, profile, frames, ("LeftFoot", "RightFoot", "LeftHand", "RightHand"))
-    foot_points = [semantic_traj[name] for name in ("LeftFoot", "RightFoot") if name in semantic_traj]
+    semantics = tuple(dict.fromkeys(["LeftFoot", "RightFoot", "LeftHand", "RightHand", *getattr(pipeline, "mapped_joints", [])]))
+    semantic_pose = _body_site_pose_trajectories(pipeline, profile, frames, semantics)
+    foot_points = [semantic_pose[name]["position"] for name in ("LeftFoot", "RightFoot") if name in semantic_pose]
     if foot_points:
         all_foot = np.concatenate(foot_points, axis=0)
         penetration = float(max(0.0, ground_height - float(np.min(all_foot[:, 2]))))
@@ -554,11 +771,12 @@ def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_i
         ):
             values = []
             for semantic in semantics:
-                if semantic not in semantic_traj or semantic not in mapped_joints:
+                if semantic not in semantic_pose or semantic not in mapped_joints:
                     continue
                 target_idx = mapped_joints.index(semantic)
-                values.append(_tracking_rmse(target_frames[:, target_idx, 0:3], semantic_traj[semantic]))
+                values.append(_tracking_rmse(target_frames[:, target_idx, 0:3], semantic_pose[semantic]["position"]))
             metrics[metric_name] = _metric_payload(float(np.mean(values)) if values else None, unit="m", statistic="rmse")
+    metrics.update(_profile_runtime_residual_metrics(profile, pipeline, motion_index, semantic_pose))
     return metrics
 
 
