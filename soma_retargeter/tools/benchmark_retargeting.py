@@ -48,7 +48,9 @@ METRIC_NAMES = (
     "torso_reachable_residual",
     "torso_unreachable_residual",
     "hand_position_rmse",
+    "hand_reachable_position_rmse",
     "foot_position_rmse",
+    "foot_reachable_position_rmse",
     "velocity_p95",
     "acceleration_p95",
     "root_velocity_p95",
@@ -69,7 +71,9 @@ _RUNTIME_METRIC_NAMES = (
     "torso_reachable_residual",
     "torso_unreachable_residual",
     "hand_position_rmse",
+    "hand_reachable_position_rmse",
     "foot_position_rmse",
+    "foot_reachable_position_rmse",
     "velocity_p95",
     "acceleration_p95",
     "root_velocity_p95",
@@ -645,6 +649,16 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["ik_iterations"] = ik_iterations
         config["benchmark_compare_mode"] = compare_mode
         return config
+    pole_iter_match = re.fullmatch(r"v2_pole_analytic_iter([0-9]+)", compare_mode)
+    if pole_iter_match:
+        ik_iterations = int(pole_iter_match.group(1))
+        if ik_iterations <= 0:
+            raise ValueError(f"Invalid IK iteration count in compare mode {compare_mode!r}")
+        config = _build_v2_runtime_retargeter_config(robot)
+        _force_analytic_pole_tasks(config, 1.0)
+        config["ik_iterations"] = ik_iterations
+        config["benchmark_compare_mode"] = compare_mode
+        return config
     combined_match = re.fullmatch(r"v2_pole_analytic_w([0-9]+(?:\.[0-9]+)?)_hand_w([0-9]+(?:\.[0-9]+)?)", compare_mode)
     if combined_match:
         pole_analytic_weight_scale = float(combined_match.group(1))
@@ -685,7 +699,7 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["benchmark_compare_mode"] = compare_mode
         return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', 'v2_pole_analytic', 'v2_pole_analytic_w<scale>', 'v2_pole_analytic_w<scale>_hand_w<weight>', or 'v2_pole_tangent_analytic'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_pole_analytic_iter<N>', 'v2_hand_w<weight>', 'v2_pole_analytic', 'v2_pole_analytic_w<scale>', 'v2_pole_analytic_w<scale>_hand_w<weight>', or 'v2_pole_tangent_analytic'."
     )
 
 
@@ -915,7 +929,24 @@ def _tracking_rmse(targets: np.ndarray, actual: np.ndarray) -> float | None:
     return float(np.sqrt(np.mean(np.sum(residuals * residuals, axis=1))))
 
 
-def _tracking_residual_stats(targets: np.ndarray, actual: np.ndarray) -> dict[str, Any] | None:
+def _tracking_projection_basis(profile: dict[str, Any], semantic: str) -> np.ndarray | None:
+    chain = profile.get("chains", {}).get(semantic)
+    if not isinstance(chain, dict):
+        return None
+    basis = chain.get("translational_basis")
+    if not isinstance(basis, list):
+        return None
+    arr = np.asarray(basis, dtype=np.float64)
+    if arr.ndim != 2 or arr.shape[0] != 3:
+        return None
+    if arr.shape[1] == 0:
+        return arr
+    if not np.all(np.isfinite(arr)):
+        return None
+    return arr
+
+
+def _tracking_residual_stats(targets: np.ndarray, actual: np.ndarray, projection_basis: np.ndarray | None = None) -> dict[str, Any] | None:
     count = min(len(targets), len(actual))
     if count == 0:
         return None
@@ -924,14 +955,25 @@ def _tracking_residual_stats(targets: np.ndarray, actual: np.ndarray) -> dict[st
     if not np.any(finite):
         return None
     residuals = residuals[finite]
+    projection_rank = None
+    if projection_basis is not None:
+        basis = np.asarray(projection_basis, dtype=np.float64)
+        projection_rank = int(basis.shape[1]) if basis.ndim == 2 and basis.shape[0] == 3 else None
+        if projection_rank == 0:
+            residuals = np.zeros_like(residuals)
+        elif projection_rank is not None:
+            residuals = (residuals @ basis) @ basis.T
     axis_rmse = np.sqrt(np.mean(residuals * residuals, axis=0))
-    return {
+    payload = {
         "rmse": float(np.sqrt(np.mean(np.sum(residuals * residuals, axis=1)))),
         "axis_rmse": [float(value) for value in axis_rmse],
         "mean_error": [float(value) for value in np.mean(residuals, axis=0)],
         "p95_abs_error": [float(value) for value in np.percentile(np.abs(residuals), 95.0, axis=0)],
         "count": int(len(residuals)),
     }
+    if projection_rank is not None:
+        payload["projection_rank"] = projection_rank
+    return payload
 
 
 def _weighted_tracking_payload(stats: list[dict[str, Any]], *, unit: str = "m") -> dict[str, Any]:
@@ -969,6 +1011,18 @@ def _tracking_metric_payload(stats_by_semantic: dict[str, dict[str, Any]], *, un
         }
         for semantic, stats in sorted(stats_by_semantic.items())
     }
+    projection_ranks = sorted(
+        {
+            int(stats["projection_rank"])
+            for stats in stats_by_semantic.values()
+            if "projection_rank" in stats
+        }
+    )
+    if projection_ranks:
+        payload["projection_ranks"] = projection_ranks
+        for semantic, stats in stats_by_semantic.items():
+            if "projection_rank" in stats and semantic in payload["by_semantic"]:
+                payload["by_semantic"][semantic]["projection_rank"] = int(stats["projection_rank"])
     return payload
 
 
@@ -1168,11 +1222,12 @@ def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_i
     mapped_joints = list(getattr(pipeline, "mapped_joints", []))
     target_frames = _aligned_runtime_target_frames(pipeline, motion_index)
     if target_frames is not None:
-        for metric_name, semantics in (
-            ("hand_position_rmse", ("LeftHand", "RightHand")),
-            ("foot_position_rmse", ("LeftFoot", "RightFoot")),
+        for metric_name, reachable_metric_name, semantics in (
+            ("hand_position_rmse", "hand_reachable_position_rmse", ("LeftHand", "RightHand")),
+            ("foot_position_rmse", "foot_reachable_position_rmse", ("LeftFoot", "RightFoot")),
         ):
             stats_by_semantic = {}
+            reachable_stats_by_semantic = {}
             for semantic in semantics:
                 if semantic not in semantic_pose or semantic not in mapped_joints:
                     continue
@@ -1180,7 +1235,18 @@ def _runtime_metrics_for_buffer(profile: dict[str, Any], pipeline: Any, motion_i
                 stat = _tracking_residual_stats(target_frames[:, target_idx, 0:3], semantic_pose[semantic]["position"])
                 if stat is not None:
                     stats_by_semantic[semantic] = stat
+                projection_basis = _tracking_projection_basis(profile, semantic)
+                if projection_basis is not None:
+                    projected_stat = _tracking_residual_stats(
+                        target_frames[:, target_idx, 0:3],
+                        semantic_pose[semantic]["position"],
+                        projection_basis,
+                    )
+                    if projected_stat is not None:
+                        reachable_stats_by_semantic[semantic] = projected_stat
             metrics[metric_name] = _tracking_metric_payload(stats_by_semantic, unit="m")
+            if reachable_stats_by_semantic:
+                metrics[reachable_metric_name] = _tracking_metric_payload(reachable_stats_by_semantic, unit="m")
     metrics.update(_profile_runtime_residual_metrics(profile, pipeline, motion_index, semantic_pose))
     return metrics
 
@@ -1220,6 +1286,15 @@ def _aggregate_motion_metrics(motion_payloads: list[dict[str, Any]]) -> dict[str
                     aggregated[metric_name][key] = [float(value) for value in np.average(arr, axis=0, weights=weights)]
                 aggregated[metric_name]["axis_order"] = list(tracking_payloads[0].get("axis_order", ["x", "y", "z"]))
                 aggregated[metric_name]["sample_count"] = int(np.sum(weights))
+                projection_ranks = sorted(
+                    {
+                        int(rank)
+                        for payload in tracking_payloads
+                        for rank in payload.get("projection_ranks", [])
+                    }
+                )
+                if projection_ranks:
+                    aggregated[metric_name]["projection_ranks"] = projection_ranks
                 semantic_names = sorted(
                     {
                         str(semantic)
@@ -1262,6 +1337,15 @@ def _aggregate_motion_metrics(motion_payloads: list[dict[str, Any]]) -> dict[str
                         by_semantic[semantic][key] = [
                             float(value) for value in np.average(arr, axis=0, weights=semantic_weights)
                         ]
+                    semantic_projection_ranks = sorted(
+                        {
+                            int(payload["projection_rank"])
+                            for payload in semantic_payloads
+                            if "projection_rank" in payload
+                        }
+                    )
+                    if semantic_projection_ranks:
+                        by_semantic[semantic]["projection_rank"] = semantic_projection_ranks[0]
                 if by_semantic:
                     aggregated[metric_name]["by_semantic"] = by_semantic
         elif seen_payloads:
@@ -1643,7 +1727,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--compare",
         nargs="+",
         default=["legacy", "v2"],
-        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, v2_pole_analytic_w<scale>, v2_pole_analytic_w<scale>_hand_w<weight>, or v2_pole_tangent_analytic.",
+        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_pole_analytic_iter<N>, v2_hand_w<weight>, v2_pole_analytic, v2_pole_analytic_w<scale>, v2_pole_analytic_w<scale>_hand_w<weight>, or v2_pole_tangent_analytic.",
     )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)

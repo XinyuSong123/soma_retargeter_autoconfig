@@ -302,6 +302,41 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             np.allclose(metrics["hand_position_rmse"]["by_semantic"]["LeftHand"]["axis_rmse"], [np.sqrt(2.5), 0.0, 0.0])
         )
 
+    def test_runtime_tracking_metrics_include_reachable_projection_diagnostics(self):
+        frames = np.zeros((2, 7), dtype=np.float32)
+        frames[:, 3:7] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32)
+        buffer = type("B", (), {"data": frames, "sample_rate": 30.0})()
+        actual_positions = np.asarray([[2.0, 1.0, 0.0], [4.0, 1.0, 0.0]], dtype=np.float64)
+        target = np.zeros((2, 1, 7), dtype=np.float64)
+        target[:, :, 3:7] = np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
+        target[:, 0, 0:3] = np.asarray([[1.0, 1.0, 0.0], [2.0, 1.0, 0.0]], dtype=np.float64)
+        pipeline = type("P", (), {"ik_model": None, "input_targets": [target], "mapped_joints": ["LeftHand"]})()
+        profile = {
+            "semantic_sites": {},
+            "chains": {
+                "LeftHand": {
+                    "translational_basis": [[0.0], [1.0], [0.0]],
+                },
+            },
+        }
+
+        with (
+            mock.patch("soma_retargeter.tools.benchmark_retargeting._joint_limit_margin", return_value=0.0),
+            mock.patch(
+                "soma_retargeter.tools.benchmark_retargeting._body_site_pose_trajectories",
+                return_value={"LeftHand": {"position": actual_positions}},
+            ),
+        ):
+            metrics = _runtime_metrics_for_buffer(profile, pipeline, 0, buffer)
+
+        self.assertAlmostEqual(metrics["hand_position_rmse"]["value"], np.sqrt((1.0 + 4.0) / 2.0))
+        reachable = metrics["hand_reachable_position_rmse"]
+        self.assertEqual(reachable["status"], "ok")
+        self.assertEqual(reachable["projection_ranks"], [1])
+        self.assertAlmostEqual(reachable["value"], 0.0)
+        self.assertTrue(np.allclose(reachable["axis_rmse"], [0.0, 0.0, 0.0]))
+        self.assertEqual(reachable["by_semantic"]["LeftHand"]["projection_rank"], 1)
+
     def test_aggregate_motion_metrics_preserves_tracking_axis_diagnostics(self):
         aggregated = _aggregate_motion_metrics(
             [
