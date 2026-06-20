@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "model_id": "roboparty_rpo_local",
+  "expected_capability": "positive",
+  "required_semantics": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+  "required_distal_sites": ["LeftHand", "RightHand", "LeftFoot", "RightFoot", "LeftToe", "RightToe", "LeftHeel", "RightHeel"],
+  "site_gates": {
+    "distal_local_position_norm_min_m": 1e-9,
+    "inferred_confidence_must_be_below": 1.0,
+    "verified_confidence_max": 0.99
+  },
+  "notes": "RPO hands and soles are verified from compiled geometry bounds; body origin alone is not accepted as distal evidence."
+}
