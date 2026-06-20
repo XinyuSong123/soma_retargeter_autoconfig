@@ -8,6 +8,7 @@ import csv
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import time
@@ -561,21 +562,15 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
     if compare_mode == "v2":
         return None
     if compare_mode == "v2_no_pole":
-        raw_path = get_profile_path(robot, "retargeter_config")
-        if raw_path is None:
-            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
-        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        config = _build_v2_runtime_retargeter_config(robot)
         config["pole_vector_tasks"] = []
         config["benchmark_compare_mode"] = compare_mode
         return config
     if compare_mode == "v2_pos_projected":
-        raw_path = get_profile_path(robot, "retargeter_config")
         profile_path = get_profile_path(robot, "compiled_retarget_profile")
-        if raw_path is None:
-            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
         if profile_path is None or not profile_path.exists():
             raise FileNotFoundError(f"Compiled retarget profile is not registered for robot {robot!r}")
-        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        config = _build_v2_runtime_retargeter_config(robot)
         profile = io_utils.load_json(profile_path)
         chains = profile.get("chains", {})
         for semantic, mapping in config.get("ik_map", {}).items():
@@ -601,10 +596,7 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["benchmark_compare_mode"] = compare_mode
         return config
     if compare_mode.startswith("v2_pole_keep_"):
-        raw_path = get_profile_path(robot, "retargeter_config")
-        if raw_path is None:
-            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
-        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        config = _build_v2_runtime_retargeter_config(robot)
         tokens = [token for token in compare_mode.removeprefix("v2_pole_keep_").replace("+", "_").split("_") if token]
         if not tokens:
             raise ValueError(f"Invalid pole keep selector in compare mode {compare_mode!r}")
@@ -649,11 +641,19 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
             raise ValueError(f"Invalid IK iteration count in compare mode {compare_mode!r}") from exc
         if ik_iterations <= 0:
             raise ValueError(f"Invalid IK iteration count in compare mode {compare_mode!r}")
-        raw_path = get_profile_path(robot, "retargeter_config")
-        if raw_path is None:
-            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
-        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        config = _build_v2_runtime_retargeter_config(robot)
         config["ik_iterations"] = ik_iterations
+        config["benchmark_compare_mode"] = compare_mode
+        return config
+    combined_match = re.fullmatch(r"v2_pole_analytic_w([0-9]+(?:\.[0-9]+)?)_hand_w([0-9]+(?:\.[0-9]+)?)", compare_mode)
+    if combined_match:
+        pole_analytic_weight_scale = float(combined_match.group(1))
+        hand_weight = float(combined_match.group(2))
+        if pole_analytic_weight_scale < 0.0 or hand_weight < 0.0:
+            raise ValueError(f"Invalid combined compare mode {compare_mode!r}")
+        config = _build_v2_runtime_retargeter_config(robot)
+        _force_analytic_pole_tasks(config, pole_analytic_weight_scale)
+        _override_hand_position_weights(config, hand_weight)
         config["benchmark_compare_mode"] = compare_mode
         return config
     if compare_mode.startswith("v2_hand_w"):
@@ -663,14 +663,8 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
             raise ValueError(f"Invalid hand weight in compare mode {compare_mode!r}") from exc
         if hand_weight < 0.0:
             raise ValueError(f"Invalid hand weight in compare mode {compare_mode!r}")
-        raw_path = get_profile_path(robot, "retargeter_config")
-        if raw_path is None:
-            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
-        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
-        for semantic in ("LeftHand", "RightHand"):
-            if semantic in config.get("ik_map", {}):
-                config["ik_map"][semantic]["t_weight"] = hand_weight
-                config["ik_map"][semantic]["v2_position_weight_source"] = "benchmark experiment: override hand position weight"
+        config = _build_v2_runtime_retargeter_config(robot)
+        _override_hand_position_weights(config, hand_weight)
         config["benchmark_compare_mode"] = compare_mode
         return config
     pole_analytic_weight_scale = 1.0
@@ -681,21 +675,36 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
             raise ValueError(f"Invalid pole analytic weight scale in compare mode {compare_mode!r}") from exc
         compare_mode = "v2_pole_analytic"
     if compare_mode == "v2_pole_analytic":
-        raw_path = get_profile_path(robot, "retargeter_config")
-        if raw_path is None:
-            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
-        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
-        for task in config.get("pole_vector_tasks", []):
-            if isinstance(task, dict):
-                task["analytic_jacobian"] = True
-                task["weight"] = float(task.get("weight", 0.0)) * pole_analytic_weight_scale
-                task["normalized_weight"] = float(task.get("normalized_weight", 0.0)) * pole_analytic_weight_scale
-                task["jacobian_schedule_reason"] = "benchmark experiment: force analytic pole-vector Jacobian"
+        config = _build_v2_runtime_retargeter_config(robot)
+        _force_analytic_pole_tasks(config, pole_analytic_weight_scale)
         config["benchmark_compare_mode"] = compare_mode if pole_analytic_weight_scale == 1.0 else f"{compare_mode}_w{pole_analytic_weight_scale:g}"
         return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', or 'v2_pole_analytic'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', 'v2_pole_analytic', 'v2_pole_analytic_w<scale>', or 'v2_pole_analytic_w<scale>_hand_w<weight>'."
     )
+
+
+def _build_v2_runtime_retargeter_config(robot: str) -> dict[str, Any]:
+    raw_path = get_profile_path(robot, "retargeter_config")
+    if raw_path is None:
+        raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+    return build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+
+
+def _force_analytic_pole_tasks(config: dict[str, Any], weight_scale: float) -> None:
+    for task in config.get("pole_vector_tasks", []):
+        if isinstance(task, dict):
+            task["analytic_jacobian"] = True
+            task["weight"] = float(task.get("weight", 0.0)) * weight_scale
+            task["normalized_weight"] = float(task.get("normalized_weight", 0.0)) * weight_scale
+            task["jacobian_schedule_reason"] = "benchmark experiment: force analytic pole-vector Jacobian"
+
+
+def _override_hand_position_weights(config: dict[str, Any], hand_weight: float) -> None:
+    for semantic in ("LeftHand", "RightHand"):
+        if semantic in config.get("ik_map", {}):
+            config["ik_map"][semantic]["t_weight"] = hand_weight
+            config["ik_map"][semantic]["v2_position_weight_source"] = "benchmark experiment: override hand position weight"
 
 
 def _metric_payload(value: float | int | None, **extra: Any) -> dict[str, Any]:
@@ -1625,7 +1634,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--compare",
         nargs="+",
         default=["legacy", "v2"],
-        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
+        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, v2_pole_analytic_w<scale>, or v2_pole_analytic_w<scale>_hand_w<weight>.",
     )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)

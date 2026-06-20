@@ -134,6 +134,18 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             baseline["pole_vector_tasks"][0]["normalized_weight"] * 0.25,
         )
 
+    def test_combined_pole_analytic_and_hand_weight_compare_mode(self):
+        cfg = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic_w0.05_hand_w200")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_pole_analytic_w0.05_hand_w200")
+        self.assertTrue(cfg["pole_vector_tasks"])
+        self.assertTrue(all(task["analytic_jacobian"] for task in cfg["pole_vector_tasks"]))
+        self.assertAlmostEqual(cfg["pole_vector_tasks"][0]["weight"], 0.5)
+        self.assertEqual(cfg["ik_map"]["LeftHand"]["t_weight"], 200.0)
+        self.assertEqual(cfg["ik_map"]["RightHand"]["t_weight"], 200.0)
+        self.assertNotEqual(cfg["ik_map"]["LeftFoot"]["t_weight"], 200.0)
+        self.assertIn("force analytic pole-vector", cfg["pole_vector_tasks"][0]["jacobian_schedule_reason"])
+        self.assertIn("override hand position weight", cfg["ik_map"]["LeftHand"]["v2_position_weight_source"])
+
     def test_profile_runtime_residual_metrics_include_torso_leakage(self):
         profile = {
             "tasks": [
