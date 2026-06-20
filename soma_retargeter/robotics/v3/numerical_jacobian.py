@@ -19,6 +19,7 @@ class RelativeJacobian:
     unstable_columns: list[int]
     active_coordinates: list[int]
     epsilon_discrepancies: list[dict[str, float | int | bool]]
+    stability_gate_passed: bool
 
     def to_json(self) -> dict:
         return {
@@ -28,6 +29,7 @@ class RelativeJacobian:
             "unstable_columns": self.unstable_columns,
             "active_coordinates": self.active_coordinates,
             "epsilon_discrepancies": self.epsilon_discrepancies,
+            "stability_gate_passed": self.stability_gate_passed,
         }
 
 
@@ -51,6 +53,7 @@ def numerical_relative_jacobian(
     *,
     stability_rtol: float = 5e-2,
     stability_atol: float = 1e-6,
+    raise_on_unstable: bool = False,
 ) -> RelativeJacobian:
     cols_p = []
     cols_r = []
@@ -94,7 +97,17 @@ def numerical_relative_jacobian(
         jr_mat = np.zeros((3, 0))
     if not np.all(np.isfinite(jp_mat)) or not np.all(np.isfinite(jr_mat)):
         raise FloatingPointError("non-finite numerical Jacobian")
-    return RelativeJacobian(jp_mat, jr_mat, np.asarray(eps), unstable, list(active_coordinates), discrepancies)
+    if unstable and raise_on_unstable:
+        raise FloatingPointError(f"epsilon-halving stability gate failed for velocity coordinates {unstable}")
+    return RelativeJacobian(
+        jp_mat,
+        jr_mat,
+        np.asarray(eps),
+        unstable,
+        list(active_coordinates),
+        discrepancies,
+        stability_gate_passed=not unstable,
+    )
 
 
 def _column(
