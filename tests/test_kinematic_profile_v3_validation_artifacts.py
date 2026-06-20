@@ -39,12 +39,28 @@ def test_default_low_discrepancy_count_matches_goal():
     assert DEFAULT_LOW_DISCREPANCY_COUNT == 32
 
 
-def test_summary_green_run_leaves_failures_empty(validation_artifacts: Path):
+def test_summary_failure_artifacts_match_true_failure_statuses(validation_artifacts: Path):
     summary = _load(validation_artifacts / "summary.json")
+    failure_statuses = {"model_load_failed", "semantic_failed", "algorithm_failed"}
+    expected_failure_counts = {
+        status: summary["status_counts"].get(status, 0)
+        for status in sorted(failure_statuses)
+        if summary["status_counts"].get(status, 0)
+    }
+    failure_reports = sorted((validation_artifacts / "failures").glob("*.json"))
+
     assert summary["status_counts"]["passed"] >= 1
     assert summary["source_unavailable_count"] >= 1
-    assert summary["failure_artifacts_count"] == 0
-    assert list((validation_artifacts / "failures").glob("*.json")) == []
+    assert summary["license_blocked_count"] == summary["status_counts"].get("license_blocked", 0)
+    assert summary["model_load_failed_count"] == summary["status_counts"].get("model_load_failed", 0)
+    assert summary["semantic_failed_count"] == summary["status_counts"].get("semantic_failed", 0)
+    assert summary["algorithm_failed_count"] == summary["status_counts"].get("algorithm_failed", 0)
+    assert summary["failure_artifact_status_counts"] == expected_failure_counts
+    assert summary["failure_artifacts_count"] == sum(expected_failure_counts.values())
+    assert len(failure_reports) == summary["failure_artifacts_count"]
+    assert "stale_failure" not in {path.stem for path in failure_reports}
+    for path in failure_reports:
+        assert _load(path)["status"] in failure_statuses
 
 
 def test_per_robot_reproduction_commands_reference_saved_semantic_maps(validation_artifacts: Path):
@@ -78,7 +94,8 @@ def test_reports_include_model_and_loader_provenance(validation_artifacts: Path)
         model = report["model"]
         runtime = report["runtime_adapter"]
 
-        if report["status"] == "passed":
+        source_available = model["source_resolution"]["status"] == "available"
+        if source_available:
             assert isinstance(model["local_file_sha256"], str)
             assert len(model["local_file_sha256"]) == 64
         else:

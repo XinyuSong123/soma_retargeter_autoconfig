@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "model_id": "unitree_h1_urdf",
+  "expected_capability": "positive",
+  "verification_status": "blocked",
+  "required_semantics": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+  "required_distal_sites": ["LeftHand", "RightHand", "LeftFoot", "RightFoot", "LeftToe", "RightToe", "LeftHeel", "RightHeel"],
+  "site_gates": {
+    "distal_local_position_norm_min_m": 1e-9,
+    "verified_confidence_max": 0.99
+  },
+  "blocker": {
+    "code": "compiled_geometry_unavailable",
+    "source_path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/h1_description/urdf/h1.urdf",
+    "local_file_sha256": "1b692e435b78fc93030bb893be39c0cbcacd1571f37d0e7eb30412bade8cdf97",
+    "observed_loader_error": "MuJoCoRuntimeModelAdapter raises the original package:// mesh-opening failure for package://h1_description/meshes/left_hip_roll_link.dae after its temporary patched load also fails.",
+    "manual_patched_loader_error": "After package:// mesh references are absolutized to the local cache, MuJoCo reports no decoder found for a local DAE mesh such as right_shoulder_yaw_link.dae.",
+    "required_evidence": "compiled bodies/sites/geometry for Hips, Chest, distal Hands, soles, toes, and heels",
+    "evidence": [
+      "resolved_source_available",
+      "source_urdf_sha256:1b692e435b78fc93030bb893be39c0cbcacd1571f37d0e7eb30412bade8cdf97",
+      "local_dae_mesh_files_exist",
+      "adapter_error:package_uri_mesh_open_failed",
+      "manual_patch:package_uri_meshes_absolutized",
+      "manual_patch_error:no_decoder_found_for_local_dae_mesh"
+    ]
+  },
+  "notes": "No verified semantic map is committed for unitree_h1_urdf in this batch because compiled geometry truth could not be inspected through the current local loader."
+}

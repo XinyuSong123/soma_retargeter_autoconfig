@@ -47,6 +47,13 @@ except Exception:
     MANIFEST_MODEL_ID_BY_REPORT_ID = {}
 
 
+_FAILURE_ARTIFACT_STATUSES = {
+    RobotValidationStatus.MODEL_LOAD_FAILED.value,
+    RobotValidationStatus.SEMANTIC_FAILED.value,
+    RobotValidationStatus.ALGORITHM_FAILED.value,
+}
+
+
 def write_validation_artifacts(
     output_dir: str | Path = "artifacts/retargeting_v3_step2",
     *,
@@ -110,12 +117,7 @@ def write_validation_artifacts(
         _write_json(per_robot / f"{entry.id}.json", report)
         full_reports[entry.id] = report
         reports[entry.id] = _summary_entry(report)
-        if report["status"] not in {
-            RobotValidationStatus.PASSED.value,
-            RobotValidationStatus.PARTIAL_PASSED.value,
-            RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
-            RobotValidationStatus.SOURCE_UNAVAILABLE.value,
-        }:
+        if report["status"] in _FAILURE_ARTIFACT_STATUSES:
             _write_json(failures_dir / f"{entry.id}.json", report)
 
     cross_format = _cross_format_report(reports, per_robot)
@@ -147,6 +149,11 @@ def write_validation_artifacts(
     status_counts = Counter(item["status"] for item in reports.values())
     class_counts = Counter(item["robot_class"] for item in reports.values())
     capability_counts = Counter(item["expected_capability"] for item in reports.values())
+    failure_artifact_status_counts = {
+        status: status_counts[status]
+        for status in sorted(_FAILURE_ARTIFACT_STATUSES)
+        if status_counts[status]
+    }
     summary = {
         "schema_version": 4,
         "manifest": {
@@ -168,14 +175,20 @@ def write_validation_artifacts(
             )
         ),
         "source_unavailable_count": status_counts[RobotValidationStatus.SOURCE_UNAVAILABLE.value],
+        "license_blocked_count": status_counts[RobotValidationStatus.LICENSE_BLOCKED.value],
         "model_load_failed_count": status_counts[RobotValidationStatus.MODEL_LOAD_FAILED.value],
-        "failure_artifacts_count": len(list(failures_dir.glob("*.json"))),
+        "semantic_failed_count": status_counts[RobotValidationStatus.SEMANTIC_FAILED.value],
+        "algorithm_failed_count": status_counts[RobotValidationStatus.ALGORITHM_FAILED.value],
+        "failure_artifact_status_counts": failure_artifact_status_counts,
+        "failure_artifacts_count": sum(failure_artifact_status_counts.values()),
         "cross_format": cross_format,
         "validation_checks": validation_checks,
         "deterministic_rerun": deterministic,
         "notes": [
             "compiled is intentionally not a validation status",
             "source_unavailable is counted separately from algorithm pass/fail",
+            "license_blocked is counted separately from failure artifacts",
+            "failure artifacts contain only loader/compile, semantic, or algorithm failures",
         ],
     }
     _write_json(out / "summary.json", summary)
