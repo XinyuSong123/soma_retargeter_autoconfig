@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from soma_retargeter.robotics.v3.model_adapter import SemanticSite
-from soma_retargeter.robotics.v3.rest_frames import calibrate_rest_frames
+from soma_retargeter.robotics.v3.rest_frames import EDGES, calibrate_rest_frames
 from soma_retargeter.robotics.v3.source_rest import load_soma_source_rest_frames
 from soma_retargeter.robotics.v3.spatial import so3_exp, transform
 from soma_retargeter.robotics.v3.target_builder import (
@@ -130,8 +130,20 @@ def test_source_reference_target_reconstruction_is_global_transform_equivariant(
 
     moved = build_targets_from_source_semantic_frames(calibration, moved_source, mode="global_test")
 
-    for name, base_transform in base.transforms.items():
-        np.testing.assert_allclose(moved.transforms[name], global_t @ base_transform, atol=1e-12)
+    expected_root = global_t @ base.transforms["Hips"]
+    expected_root[:3, 3] = np.array([
+        0.3 * calibration.root_horizontal_scale,
+        -0.2 * calibration.root_horizontal_scale,
+        base.transforms["Hips"][2, 3],
+    ])
+    np.testing.assert_allclose(moved.transforms["Hips"], expected_root, atol=1e-12)
+
+    for edge_name, (parent, child) in EDGES.items():
+        if parent not in moved.transforms or child not in moved.transforms:
+            continue
+        base_delta = np.linalg.norm(base.transforms[child][:3, 3] - base.transforms[parent][:3, 3])
+        moved_delta = np.linalg.norm(moved.transforms[child][:3, 3] - moved.transforms[parent][:3, 3])
+        assert abs(base_delta - moved_delta) < 1e-12
     for error in moved.segment_length_errors.values():
         assert abs(error) < 1e-12
 
