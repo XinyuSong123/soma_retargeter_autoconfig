@@ -1,12 +1,23 @@
 {
+  "failure_taxonomy": {
+    "semantic": {
+      "verified_semantic_map": {
+        "classification": "semantic_failed",
+        "kind": "missing_verified_semantic_map",
+        "message": "missing verified semantic map for berkeley_humanoid_urdf",
+        "next_action": "add a verified semantic map with topology/site evidence or classify the model as a structured partial/unsupported case",
+        "status": "failed"
+      }
+    }
+  },
   "failures": [
-    "KeyError: \"unknown body 'world'\""
+    "missing verified semantic map for berkeley_humanoid_urdf"
   ],
   "manifest_entry": {
-    "description_name": "g1_description",
+    "description_name": "berkeley_humanoid_description",
     "expected_capability": "positive",
     "format": "urdf",
-    "id": "unitree_g1_urdf",
+    "id": "berkeley_humanoid_urdf",
     "license": "BSD-3-Clause",
     "notes": "",
     "redistribution": "kinematic_snapshot",
@@ -17,14 +28,14 @@
   "model": {
     "backend": "newton",
     "format": "urdf",
-    "id": "unitree_g1_urdf",
-    "local_file_sha256": "e1dc89366bf96aa33ba4ef211884f6d81320ddd2ac6f8b1ad82986e64008be31",
+    "id": "berkeley_humanoid_urdf",
+    "local_file_sha256": "d92c2fbaa9829f3c122cc2defb59e69bd5b0958209403020f55580031eb27931",
     "manifest": {
       "entry": {
-        "description_name": "g1_description",
+        "description_name": "berkeley_humanoid_description",
         "expected_capability": "positive",
         "format": "urdf",
-        "id": "unitree_g1_urdf",
+        "id": "berkeley_humanoid_urdf",
         "license": "BSD-3-Clause",
         "notes": "",
         "redistribution": "kinematic_snapshot",
@@ -32,22 +43,22 @@
         "robot_class": "humanoid",
         "source_family": "robot_descriptions"
       },
-      "manifest_model_id": "unitree_g1_urdf",
+      "manifest_model_id": "berkeley_humanoid_urdf",
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
       "status": "available"
     },
-    "path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/g1_description/g1_29dof.urdf",
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/berkeley_humanoid_description/urdf/robot.urdf",
     "semantic_map_artifact": {
       "reason": "semantic map was not generated",
       "status": "unavailable"
     },
     "source_resolution": {
       "entry": {
-        "description_name": "g1_description",
+        "description_name": "berkeley_humanoid_description",
         "expected_capability": "positive",
         "format": "urdf",
-        "id": "unitree_g1_urdf",
+        "id": "berkeley_humanoid_urdf",
         "license": "BSD-3-Clause",
         "notes": "",
         "redistribution": "kinematic_snapshot",
@@ -55,18 +66,18 @@
         "robot_class": "humanoid",
         "source_family": "robot_descriptions"
       },
-      "local_file_sha256": "e1dc89366bf96aa33ba4ef211884f6d81320ddd2ac6f8b1ad82986e64008be31",
+      "local_file_sha256": "d92c2fbaa9829f3c122cc2defb59e69bd5b0958209403020f55580031eb27931",
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
-      "module": "robot_descriptions.g1_description",
-      "path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/g1_description/g1_29dof.urdf",
+      "module": "robot_descriptions.berkeley_humanoid_description",
+      "path": "${ROBOT_DESCRIPTIONS_CACHE}/berkeley_humanoid_description/urdf/robot.urdf",
       "path_attr": "URDF_PATH",
       "reason": "",
       "resolver": "robot_descriptions_local_cache",
       "status": "available"
     }
   },
-  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id unitree_g1_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/unitree_g1_urdf.json --low-discrepancy-count 32",
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id berkeley_humanoid_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/berkeley_humanoid_urdf.json --low-discrepancy-count 32",
   "runtime_adapter": {
     "backend": "newton",
     "loader_provenance": {
@@ -88,7 +99,18 @@
     }
   },
   "schema_version": 4,
-  "status": "model_load_failed",
-  "status_reason": "source resolved but runtime model loading or compilation failed",
+  "semantic_map_artifact": {
+    "reason": "verified semantic map was not available",
+    "status": "unavailable"
+  },
+  "semantic_map_resolution": {
+    "path": null,
+    "reason": "positive humanoid validation requires a verified semantic map; body-name inference is diagnostic only and cannot satisfy Step 2 gates",
+    "required": true,
+    "source": "verified_semantic_map",
+    "status": "missing"
+  },
+  "status": "semantic_failed",
+  "status_reason": "semantic_failed",
   "warnings": []
 }

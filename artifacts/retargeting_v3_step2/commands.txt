@@ -45,3 +45,7 @@ python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id talos_ur
 python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id valkyrie_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/valkyrie_urdf.json --low-discrepancy-count 32
 python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id robonaut2_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/robonaut2_urdf.json --low-discrepancy-count 32
 python -m soma_retargeter.tools.validate_kinematic_profile_v3 --manifest ${ROBOT_ZOO_MANIFEST} --output-dir ${RETARGETING_V3_ARTIFACTS} --low-discrepancy-count 32 --deterministic-rerun
+python -m pip install pytest coverage
+python -m coverage run -m pytest tests --junitxml=${RETARGETING_V3_ARTIFACTS}/test_results/junit.xml > ${RETARGETING_V3_ARTIFACTS}/test_results/pytest.txt 2>&1
+python -m coverage json -o ${RETARGETING_V3_ARTIFACTS}/test_results/coverage.json
+python scripts/audit_retargeting_v3_step2.py --artifact-dir ${RETARGETING_V3_ARTIFACTS} --source-root . --output-json ${RETARGETING_V3_ARTIFACTS}/acceptance_ledger.json --junit-xml ${RETARGETING_V3_ARTIFACTS}/test_results/acceptance_audit.junit.xml

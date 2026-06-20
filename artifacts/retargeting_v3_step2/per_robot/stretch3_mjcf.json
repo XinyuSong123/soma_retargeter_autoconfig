@@ -1,7 +1,5 @@
 {
-  "failures": [
-    "ValueError: string is not a file: `/mnt/ssd1/song/.cache/robot_descriptions/mujoco_menagerie/hello_robot_stretch_3/base_link_0.obj`"
-  ],
+  "failures": [],
   "manifest_entry": {
     "description_name": "stretch_3_mj_description",
     "expected_capability": "negative_control",
@@ -66,9 +64,15 @@
       "status": "available"
     }
   },
+  "morphology_classification": {
+    "expected_capability": "negative_control",
+    "humanoid_profile_generated": false,
+    "robot_class": "mobile_manipulator"
+  },
   "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id stretch3_mjcf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/stretch3_mjcf.json --low-discrepancy-count 32",
   "runtime_adapter": {
     "backend": "newton",
+    "body_count": 38,
     "loader_provenance": {
       "backend": "newton",
       "compiled_model_manifest": {
@@ -78,6 +82,8 @@
       "loader": "newton.ModelBuilder.add_mjcf",
       "model_format": "mjcf"
     },
+    "nq": 27,
+    "nv": 26,
     "package_versions": {
       "mujoco": "3.8.1",
       "newton": "1.0.0",
@@ -88,7 +94,9 @@
     }
   },
   "schema_version": 4,
-  "status": "model_load_failed",
-  "status_reason": "source resolved but runtime model loading or compilation failed",
-  "warnings": []
+  "status": "negative_control_passed",
+  "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+  "warnings": [
+    "negative control loaded; humanoid profile compilation intentionally not generated"
+  ]
 }

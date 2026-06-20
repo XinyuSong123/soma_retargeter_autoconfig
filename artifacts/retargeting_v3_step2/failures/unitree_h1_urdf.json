@@ -1,6 +1,17 @@
 {
+  "failure_taxonomy": {
+    "semantic": {
+      "verified_semantic_map": {
+        "classification": "semantic_failed",
+        "kind": "missing_verified_semantic_map",
+        "message": "missing verified semantic map for unitree_h1_urdf",
+        "next_action": "add a verified semantic map with topology/site evidence or classify the model as a structured partial/unsupported case",
+        "status": "failed"
+      }
+    }
+  },
   "failures": [
-    "ImportError: missing `pip install pycollada`"
+    "missing verified semantic map for unitree_h1_urdf"
   ],
   "manifest_entry": {
     "description_name": "h1_description",
@@ -88,7 +99,18 @@
     }
   },
   "schema_version": 4,
-  "status": "model_load_failed",
-  "status_reason": "source resolved but runtime model loading or compilation failed",
+  "semantic_map_artifact": {
+    "reason": "verified semantic map was not available",
+    "status": "unavailable"
+  },
+  "semantic_map_resolution": {
+    "path": null,
+    "reason": "positive humanoid validation requires a verified semantic map; body-name inference is diagnostic only and cannot satisfy Step 2 gates",
+    "required": true,
+    "source": "verified_semantic_map",
+    "status": "missing"
+  },
+  "status": "semantic_failed",
+  "status_reason": "semantic_failed",
   "warnings": []
 }

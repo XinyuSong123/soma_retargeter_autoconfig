@@ -1,21 +1,98 @@
 {
   "gates": {
     "same_source_strict": {
-      "reason": "requires Agent A canonical URDF-to-MJCF conversion artifacts",
-      "status": "not_run"
+      "differences": {},
+      "evidence_incomplete_reasons": {
+        "active_chains": "semantic_sites_unavailable",
+        "canonical_projection": "canonical_projection_reports_not_provided",
+        "rank_summary": "semantic_sites_unavailable",
+        "semantic_fk": "semantic_map_not_provided"
+      },
+      "evidence_statuses": {
+        "active_chains": "unavailable",
+        "canonical_projection": "unavailable",
+        "rank_summary": "unavailable",
+        "semantic_fk": "unavailable"
+      },
+      "gate_a_evidence_complete": false,
+      "gate_a_required_sections": [
+        "semantic_fk",
+        "active_chains",
+        "rank_summary",
+        "canonical_projection"
+      ],
+      "gate_a_status": "incomplete",
+      "generated": "artifacts/retargeting_v3_step2/cross_format/unitree_g1_same_source_canonical.xml",
+      "generated_sha256": "a19c0556fccca06903782868654d727078c0aa8cad11739904d50791f6d6f606",
+      "mode": "same_source_urdf_to_canonical_mjcf",
+      "reason": "same-source conversion was compared, but Gate A semantic/projection evidence is incomplete",
+      "source": "${NEWTON_CACHE}/newton-assets_unitree_g1_308a72cd/unitree_g1/urdf/g1_29dof.urdf",
+      "source_sha256": "95fbf660614e9c9b6fbf10ae8c12aaa8b97b9c25b230098597ef66de98718b51",
+      "status": "incomplete",
+      "strict_equivalent": true,
+      "validation_check": "g1_mjcf_urdf_equivalence",
+      "validation_check_status": "incomplete"
     },
     "variant_compatibility": {
-      "reason": "requires both variants to pass independent algorithm gates first",
-      "status": "not_run"
+      "pair_count": 9,
+      "pair_statuses": {
+        "booster_t1": {
+          "mjcf_status": "algorithm_failed",
+          "status": "not_run",
+          "urdf_status": "algorithm_failed"
+        },
+        "cassie": {
+          "mjcf_status": "negative_control_passed",
+          "status": "not_run",
+          "urdf_status": "source_unavailable"
+        },
+        "elf2": {
+          "mjcf_status": "algorithm_failed",
+          "status": "not_run",
+          "urdf_status": "algorithm_failed"
+        },
+        "fourier_n1": {
+          "mjcf_status": "algorithm_failed",
+          "status": "not_run",
+          "urdf_status": "algorithm_failed"
+        },
+        "jvrc": {
+          "mjcf_status": "passed",
+          "status": "not_run",
+          "urdf_status": "model_load_failed"
+        },
+        "unitree_g1": {
+          "mjcf_status": "passed",
+          "status": "not_run",
+          "urdf_status": "passed"
+        },
+        "unitree_go2": {
+          "mjcf_status": "negative_control_passed",
+          "status": "not_run",
+          "urdf_status": "model_load_failed"
+        },
+        "unitree_h1": {
+          "mjcf_status": "algorithm_failed",
+          "status": "not_run",
+          "urdf_status": "semantic_failed"
+        },
+        "unitree_h1_2": {
+          "mjcf_status": "algorithm_failed",
+          "status": "not_run",
+          "urdf_status": "algorithm_failed"
+        }
+      },
+      "reason": "variant compatibility requires semantic FK, common-chain, rank, DoF-difference, and projection evidence for independently passing variants",
+      "status": "blocked"
     }
   },
   "pairs": {
     "booster_t1": {
       "inputs": {
         "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/booster_t1_mjcf.json",
-        "mjcf_status": "passed",
+        "mjcf_status": "algorithm_failed",
         "urdf_report": "artifacts/retargeting_v3_step2/per_robot/booster_t1_urdf.json",
-        "urdf_status": "model_load_failed"
+        "urdf_status": "algorithm_failed"
       },
       "mjcf": "booster_t1_mjcf",
       "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
@@ -37,9 +114,9 @@
     "elf2": {
       "inputs": {
         "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/elf2_mjcf.json",
-        "mjcf_status": "passed",
+        "mjcf_status": "algorithm_failed",
         "urdf_report": "artifacts/retargeting_v3_step2/per_robot/elf2_urdf.json",
-        "urdf_status": "passed"
+        "urdf_status": "algorithm_failed"
       },
       "mjcf": "elf2_mjcf",
       "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
@@ -49,9 +126,9 @@
     "fourier_n1": {
       "inputs": {
         "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/fourier_n1_mjcf.json",
-        "mjcf_status": "passed",
+        "mjcf_status": "algorithm_failed",
         "urdf_report": "artifacts/retargeting_v3_step2/per_robot/fourier_n1_urdf.json",
-        "urdf_status": "model_load_failed"
+        "urdf_status": "algorithm_failed"
       },
       "mjcf": "fourier_n1_mjcf",
       "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
@@ -61,7 +138,7 @@
     "jvrc": {
       "inputs": {
         "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/jvrc_mjcf.json",
-        "mjcf_status": "model_load_failed",
+        "mjcf_status": "passed",
         "urdf_report": "artifacts/retargeting_v3_step2/per_robot/jvrc_urdf.json",
         "urdf_status": "model_load_failed"
       },
@@ -75,7 +152,7 @@
         "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_g1_mjcf.json",
         "mjcf_status": "passed",
         "urdf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_g1_urdf.json",
-        "urdf_status": "model_load_failed"
+        "urdf_status": "passed"
       },
       "mjcf": "unitree_g1_mjcf",
       "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
@@ -97,9 +174,9 @@
     "unitree_h1": {
       "inputs": {
         "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_mjcf.json",
-        "mjcf_status": "passed",
+        "mjcf_status": "algorithm_failed",
         "urdf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_urdf.json",
-        "urdf_status": "model_load_failed"
+        "urdf_status": "semantic_failed"
       },
       "mjcf": "unitree_h1_mjcf",
       "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
@@ -109,9 +186,9 @@
     "unitree_h1_2": {
       "inputs": {
         "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_2_mjcf.json",
-        "mjcf_status": "passed",
+        "mjcf_status": "algorithm_failed",
         "urdf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_2_urdf.json",
-        "urdf_status": "model_load_failed"
+        "urdf_status": "algorithm_failed"
       },
       "mjcf": "unitree_h1_2_mjcf",
       "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
@@ -119,5 +196,5 @@
       "urdf": "unitree_h1_2_urdf"
     }
   },
-  "schema_version": 1
+  "schema_version": 2
 }

@@ -1,13 +1,70 @@
 {
   "g1_mjcf_urdf_equivalence": {
+    "comparison_schema_version": 2,
     "coordinate_comparison": {
       "failures": [],
       "limit_atol": 1e-05,
       "passed": true
     },
     "differences": {},
+    "evidence": {
+      "active_chains": {
+        "failures": [],
+        "passed": false,
+        "reason": "semantic_sites_unavailable",
+        "status": "unavailable"
+      },
+      "canonical_projection": {
+        "failures": [],
+        "passed": false,
+        "reason": "canonical_projection_reports_not_provided",
+        "status": "unavailable"
+      },
+      "rank_summary": {
+        "failures": [],
+        "passed": false,
+        "reason": "semantic_sites_unavailable",
+        "status": "unavailable"
+      },
+      "semantic_fk": {
+        "failures": [],
+        "passed": false,
+        "reason": "semantic_map_not_provided",
+        "status": "unavailable"
+      }
+    },
+    "evidence_incomplete_reasons": {
+      "active_chains": "semantic_sites_unavailable",
+      "canonical_projection": "canonical_projection_reports_not_provided",
+      "rank_summary": "semantic_sites_unavailable",
+      "semantic_fk": "semantic_map_not_provided"
+    },
+    "evidence_statuses": {
+      "active_chains": "unavailable",
+      "canonical_projection": "unavailable",
+      "rank_summary": "unavailable",
+      "semantic_fk": "unavailable"
+    },
+    "gate_a_evidence_complete": false,
+    "gate_a_required_sections": [
+      "semantic_fk",
+      "active_chains",
+      "rank_summary",
+      "canonical_projection"
+    ],
+    "gate_a_status": "incomplete",
     "generated": "artifacts/retargeting_v3_step2/cross_format/unitree_g1_same_source_canonical.xml",
-    "generated_sha256": "c0e4f14e511138220f7448288fdf4a15d57c689a0d9bd7e502e767a5efa0ad77",
+    "generated_artifact_sanitization": {
+      "path_placeholders": [
+        "${ROBOT_ZOO_CACHE}",
+        "${ROBOT_DESCRIPTIONS_CACHE}",
+        "${NEWTON_CACHE}",
+        "${LOCAL_SOURCE_PATH}"
+      ],
+      "status": "applied"
+    },
+    "generated_runtime_sha256": "c0e4f14e511138220f7448288fdf4a15d57c689a0d9bd7e502e767a5efa0ad77",
+    "generated_sha256": "a19c0556fccca06903782868654d727078c0aa8cad11739904d50791f6d6f606",
     "mode": "same_source_urdf_to_canonical_mjcf",
     "runtime_dimensions": {
       "generated_nq": 29,
@@ -17,10 +74,12 @@
     },
     "source": "${NEWTON_CACHE}/newton-assets_unitree_g1_308a72cd/unitree_g1/urdf/g1_29dof.urdf",
     "source_sha256": "95fbf660614e9c9b6fbf10ae8c12aaa8b97b9c25b230098597ef66de98718b51",
-    "status": "passed",
+    "status": "incomplete",
     "strict_equivalent": true,
     "tolerances": {
       "position_atol": 1e-07,
+      "projection_atol": 1e-09,
+      "rank_singular_value_atol": 1e-06,
       "rotation_atol": 1e-07
     }
   }
