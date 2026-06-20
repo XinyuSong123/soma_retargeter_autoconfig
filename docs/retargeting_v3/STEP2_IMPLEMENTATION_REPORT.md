@@ -27,34 +27,34 @@ core design.
 
 ## Current Result
 
-Final result for this Agent F pass: **BLOCKED** with **116** blocking findings.
+Final result for this Agent F pass: **BLOCKED** with **7** blocking findings.
 
 The acceptance audit explicitly covers all ten false positives listed in
 `goal.md`, including the previously implicit body-name-depth heuristic,
 canonical-target-without-projection evidence, and missing formal six-subagent
 handoff evidence.
 
-Current blocker counts:
+Current blocker counts against `HEAD` `28c51c3`:
 
 | Gate | Count |
 |---|---:|
-| hardcoded zero calibration | 9 |
-| neutral-to-neutral fake projection | 8 |
-| canonical targets without projection | 9 |
-| zero-offset RPO hand/sole | 5 |
+| hardcoded zero calibration | 0 |
+| neutral-to-neutral fake projection | 0 |
+| canonical targets without projection | 1 |
+| zero-offset RPO hand/sole | 0 |
 | body-name depth heuristic | 0 |
-| TALOS proximal foot mapping | 2 |
-| Booster Hips=Chest hiding waist | 1 |
-| arbitrary G1 equivalence | 2 |
+| TALOS proximal foot mapping | 0 |
+| Booster Hips=Chest hiding waist | 0 |
+| arbitrary G1 equivalence | 1 |
 | dirty artifact metadata | 2 |
-| absolute cache paths | 24 |
-| inferred semantics confidence=1 | 46 |
-| rank0 false pass | 3 |
+| absolute cache paths | 0 |
+| inferred semantics confidence=1 | 0 |
+| rank0 false pass | 0 |
 | robot-name special cases | 2 |
 | legacy offsets | 0 |
-| missing formal red-team artifacts | 3 |
+| missing formal red-team artifacts | 1 |
 
-Total: **116**.
+Total: **7**.
 
 Numeric blocker counts are recorded in:
 

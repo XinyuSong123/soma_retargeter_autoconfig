@@ -9,23 +9,23 @@ Audit artifact: `artifacts/retargeting_v3_step2/test_results/acceptance_audit.js
 
 | Gate | Blocking findings | Current result |
 |---|---:|---|
-| hardcoded zero calibration | 9 | BLOCKED |
-| neutral-to-neutral fake projection | 8 | BLOCKED |
-| canonical targets without projection | 9 | BLOCKED |
-| zero-offset RPO hand/sole | 5 | BLOCKED |
+| hardcoded zero calibration | 0 | PASS |
+| neutral-to-neutral fake projection | 0 | PASS |
+| canonical targets without projection | 1 | BLOCKED |
+| zero-offset RPO hand/sole | 0 | PASS |
 | body-name depth heuristic | 0 | PASS |
-| TALOS proximal foot mapping | 2 | BLOCKED |
-| Booster Hips=Chest hiding waist | 1 | BLOCKED |
-| arbitrary G1 equivalence | 2 | BLOCKED |
+| TALOS proximal foot mapping | 0 | PASS |
+| Booster Hips=Chest hiding waist | 0 | PASS |
+| arbitrary G1 equivalence | 1 | BLOCKED |
 | dirty artifact metadata | 2 | BLOCKED |
-| absolute cache paths | 24 | BLOCKED |
-| inferred semantics confidence=1 | 46 | BLOCKED |
-| rank0 false pass | 3 | BLOCKED |
+| absolute cache paths | 0 | PASS |
+| inferred semantics confidence=1 | 0 | PASS |
+| rank0 false pass | 0 | PASS |
 | robot-name special cases | 2 | BLOCKED |
 | legacy offsets | 0 | PASS |
-| missing formal red-team artifacts | 3 | BLOCKED |
+| missing formal red-team artifacts | 1 | BLOCKED |
 
-Total: **116 blocking findings**.
+Total: **7 blocking findings**.
 
 ## Traceability To `goal.md` False Positives
 
@@ -42,21 +42,13 @@ Total: **116 blocking findings**.
 | dirty/old-HEAD artifacts and absolute paths | `dirty_artifact_metadata`, `absolute_cache_paths` |
 | missing pytest/JUnit/report/handoff/red-team evidence | `missing_formal_red_team_artifacts` |
 
-## Evidence Summary
+## Current Blocking Evidence
 
-- All nine per-robot reports record zero calibration errors without independent measurement evidence.
-- Eight reports have top-level `projection_reports` where every task has `desired == projected` and `residual == 0`.
-- Nine reports include canonical target or motion data without per-motion torso/hand/foot projection reports.
-- RPO hand and foot endpoint sites remain body-origin local positions, and `validation_checks.json` treats the zero-offset hand endpoint as `passed_with_documented_scope`.
-- TALOS feet map to `leg_left_1_link` and `leg_right_1_link`.
-- Booster T1 maps both `Hips` and `Chest` to `Trunk`.
-- G1 URDF/MJCF equivalence remains non-strict while `summary.json` reports nine compiled robots and zero failure artifacts.
-- `environment.json` records dirty/HEAD-mismatched metadata.
-- `commands.txt`, per-robot `reproduction_command`, and `model.path` fields contain local absolute paths.
-- Inferred semantic maps are emitted as `explicit_semantic_override` with `confidence: 1.0` in checked-in artifacts.
-- Rank-zero projection entries report zero residual without unreachable-demand evidence.
-- V3 core source still contains robot-name/default semantic special cases.
-- Agent B, C, and D handoff documents are missing.
+- `roboparty_rpo_local` has `canonical_targets` without per-motion torso/hand/foot projection reports.
+- `validation_checks.g1_mjcf_urdf_equivalence` is missing or non-strict, so G1 equivalence is not a pass.
+- `environment.json` records artifacts generated from a dirty worktree and a git head different from the audited checkout.
+- `semantic_sites.py` still contains `default_rpo_semantic_map()` and the RPO-specific verified-map path.
+- Agent B handoff is missing.
 
 ## Commands
 
@@ -68,7 +60,7 @@ python scripts/audit_retargeting_v3_step2.py \
   --junit-xml artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml
 ```
 
-Result: **BLOCKED**, exit code 1, 116 blockers.
+Result: **BLOCKED**, exit code 1, 7 blockers.
 
 ```bash
 python -m pytest tests/v3/test_acceptance_gates_*.py \
