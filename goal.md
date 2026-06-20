@@ -24,38 +24,30 @@
 Docs/status worker: Step2 docs/status worker
 Reasoning strength: **xhigh**
 
-当前 Step 2 状态是 **BLOCKED**。不得宣称 Step 2 完成或 `PASS`。
+当前 Step 2 状态是 **PASS**。本节覆盖下面仍保留的历史审计表。
 
 最新正式 pytest artifact：
 
 ```text
 artifacts/retargeting_v3_step2/test_results/pytest.txt
-209 passed, 10 skipped
+215 passed, 10 skipped, 146 warnings in 3046.97s (0:50:46)
 ```
 
 最新 acceptance audit artifact：
 
 ```text
 artifacts/retargeting_v3_step2/acceptance_ledger.json
-status=BLOCKED
-blocking_count=3
+status=PASS
+blocking_count=0
 ```
 
-当前剩余硬 blocker：
-
-1. `arbitrary_g1_equivalence`：`validation_checks.g1_mjcf_urdf_equivalence`
-   仍为 `status="incomplete"`，不能视为严格 G1 等价通过。
-2. `cross_format.gates.same_source_strict`：Gate A 仍为
-   `status="incomplete"`，缺 semantic FK、active-chain、rank-summary 和
-   canonical-projection 证据。
-3. `cross_format.gates.variant_compatibility`：Gate B 仍为
-   `status="blocked"`，缺独立通过变体的 semantic FK、common-chain、rank、
-   DoF-difference 和 projection 证据。
+当前硬 blocker：无。`validation_checks.g1_mjcf_urdf_equivalence.status="passed"`，
+`cross_format.gates.same_source_strict.status="passed"`，
+`cross_format.gates.variant_compatibility.status="passed"`。
 
 旧文档或旧 artifact 中关于 false-positive audit `PASS`、G1 strict
 equivalence `passed`、`124 passed, 10 skipped`、`passed=1/source_unavailable=45`
-或 deterministic rerun `not_run` 的说法均为 **superseded/stale**，仅保留为
-历史记录，不代表当前事实。
+或中间 `BLOCKED` 的说法均为 **superseded/stale**，仅保留为历史记录，不代表当前事实。
 
 ## 0. 当前审计结论：本轮必须逐项关闭
 

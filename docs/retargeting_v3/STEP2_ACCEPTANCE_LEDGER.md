@@ -1,7 +1,7 @@
 # Step 2 Acceptance Ledger
 
-Status: **BLOCKED**
-Owner: Step2 docs/status worker
+Status: **PASS**
+Owner: Integrator
 Reasoning strength: **xhigh**
 Formal pytest artifact: `artifacts/retargeting_v3_step2/test_results/pytest.txt`
 Acceptance audit artifact: `artifacts/retargeting_v3_step2/acceptance_ledger.json`
@@ -11,21 +11,21 @@ Acceptance audit artifact: `artifacts/retargeting_v3_step2/acceptance_ledger.jso
 The current formal pytest artifact is green:
 
 ```text
-209 passed, 10 skipped, 146 warnings in 2630.08s (0:43:50)
+215 passed, 10 skipped, 146 warnings in 3046.97s (0:50:46)
 ```
 
-This is not a Step 2 acceptance pass. The current acceptance ledger is
-`BLOCKED` with `blocking_count=3`.
+The current acceptance ledger is `PASS` with `blocking_count=0`.
 
 | Gate | Subject | Current evidence |
 |---|---|---|
-| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `status="incomplete"`; the same-source generated MJCF coordinate comparison exists, but strict Step 2 Gate A evidence is not complete. |
-| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `status="incomplete"`; Gate A is missing semantic FK, active-chain, rank-summary, and canonical-projection evidence. |
-| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `status="blocked"`; Gate B still requires semantic FK, common-chain, rank, DoF-difference, and projection evidence for independently passing variants. |
+| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `status="passed"`, `gate_a_status="complete_passed"`, semantic FK, active chains, rank summary, and canonical projection all passed. |
+| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `status="passed"` with complete Gate A evidence. |
+| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `status="passed"` for the independently passing G1 URDF/MJCF pair; non-passing pairs are recorded as not eligible. |
 
-`validation_checks.json` and `cross_format.json` must not be read as a G1
-strict equivalence pass. Current Step 2 remains blocked until Gate A, Gate B,
-and the arbitrary-G1-equivalence audit finding are closed.
+`validation_checks.json` and `cross_format.json` now record the accepted G1
+same-source strict pass and the G1 variant compatibility pass. Vendor URDF vs
+Menagerie MJCF is still recorded as variant compatibility, not strict
+same-source equivalence.
 
 ## Current Artifact Summary
 
@@ -35,8 +35,8 @@ and the arbitrary-G1-equivalence audit finding are closed.
 - `algorithm_pass_count=11`.
 - `deterministic_rerun.status="passed"` with 11 matched models, 16
   source-unavailable models, and 19 skipped non-pass statuses.
-- `cross_format.gates.same_source_strict.status="incomplete"`.
-- `cross_format.gates.variant_compatibility.status="blocked"`.
+- `cross_format.gates.same_source_strict.status="passed"`.
+- `cross_format.gates.variant_compatibility.status="passed"`.
 
 ## Superseded Historical Record
 
@@ -55,12 +55,10 @@ URDF-to-canonical-MJCF equivalence was recorded as `passed`, and the full
 no-fetch Robot Zoo run had `passed=1` and `source_unavailable=45`.
 
 Those statements describe an earlier false-positive-audit snapshot. They are
-not current: the formal pytest artifact now reports `209 passed, 10 skipped`,
-and the current acceptance audit is `BLOCKED` on the G1/cross-format findings
-listed above.
+not current: the formal pytest artifact now reports `215 passed, 10 skipped`,
+and the current acceptance audit is `PASS` with zero blocking findings.
 
 ## Acceptance Rule
 
-Step 2 may not be reported complete or `PASS` while any acceptance audit
-finding remains. A green pytest run is necessary evidence, but it is not
-sufficient acceptance evidence.
+Step 2 may be reported complete only together with the current PASS ledger,
+formal pytest/JUnit/coverage artifacts, and clean-head generation metadata.

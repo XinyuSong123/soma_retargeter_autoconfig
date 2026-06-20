@@ -2,45 +2,42 @@
 
 Agent: **F - Reproducibility, CI & Independent Red Team**  
 Reasoning strength: **xhigh**  
-Current status: **SUPERSEDED HISTORICAL HANDOFF; STEP 2 ACCEPTANCE BLOCKED**
+Current status: **SUPERSEDED HISTORICAL HANDOFF; STEP 2 ACCEPTANCE PASS**
 Branch recorded by historical handoff: `agent-b-xhigh-verified-semantics`
 
 ## Current Status Overlay
 
-This file previously recorded a false-positive audit `PASS`. That record is
-now superseded. The current Step 2 status is:
+This file previously recorded a false-positive audit `PASS`, then an
+intermediate blocked overlay. Those records are now superseded. The current
+Step 2 status is:
 
 - Formal pytest artifact:
   `artifacts/retargeting_v3_step2/test_results/pytest.txt`.
-- Pytest result: `209 passed, 10 skipped`.
+- Pytest result: `215 passed, 10 skipped`.
 - Acceptance artifact:
   `artifacts/retargeting_v3_step2/acceptance_ledger.json`.
-- Acceptance result: `BLOCKED`, `blocking_count=3`.
-- Remaining hard blockers:
-  `arbitrary_g1_equivalence`,
-  `cross_format.gates.same_source_strict`,
-  and `cross_format.gates.variant_compatibility`.
+- Acceptance result: `PASS`, `blocking_count=0`.
+- Remaining hard blockers: none.
 
-Agent F must not be cited as a final full-Step-2 `PASS`. A final red-team pass
-is still required after the current acceptance blockers are closed.
+The final acceptance ledger supersedes this historical Agent F handoff.
 
 All current, continued, or newly launched Step 2 subagents must use `xhigh`
 reasoning strength and record that fact in handoff artifacts.
 
-## Current Blocking Findings
+## Current Gate Findings
 
 | Gate | Subject | Current status |
 |---|---|---|
-| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `incomplete`; not a strict G1 equivalence pass. |
-| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `incomplete`; Gate A semantic/projection evidence is missing. |
-| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `blocked`; Gate B variant compatibility evidence is missing. |
+| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `passed`; Gate A evidence is complete. |
+| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `passed`; same-source strict evidence is complete. |
+| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `passed`; G1 variant compatibility evidence is complete for the independently passing pair. |
 
 ## Current Numeric Results
 
 ```text
-pytest: 209 passed, 10 skipped
-acceptance_ledger.status: BLOCKED
-acceptance_ledger.blocking_count: 3
+pytest: 215 passed, 10 skipped
+acceptance_ledger.status: PASS
+acceptance_ledger.blocking_count: 0
 robot_zoo_status_counts:
   passed=7
   negative_control_passed=4

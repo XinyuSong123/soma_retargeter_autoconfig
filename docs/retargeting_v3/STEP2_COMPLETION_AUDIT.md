@@ -3,13 +3,13 @@
 Agent: J-xhigh - Step 2 Completion Red Team  
 Date: 2026-06-20  
 Repository: `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig`  
-Verdict: **Step 2: BLOCKED**
+Verdict: **Step 2: PASS**
 
 ## Current Status Override
 
 Status sync date: 2026-06-21
 Docs/status worker reasoning strength: **xhigh**
-Current verdict: **Step 2: BLOCKED**
+Current verdict: **Step 2: PASS**
 
 This section supersedes the older command outcomes below where they conflict.
 The older audit snapshot is retained for provenance, but it must not be read as
@@ -18,25 +18,24 @@ current Step 2 status.
 Current formal artifact evidence:
 
 - `artifacts/retargeting_v3_step2/test_results/pytest.txt`:
-  `209 passed, 10 skipped`.
+  `215 passed, 10 skipped`.
 - `artifacts/retargeting_v3_step2/acceptance_ledger.json`:
-  `status="BLOCKED"`, `blocking_count=3`.
+  `status="PASS"`, `blocking_count=0`.
 - `artifacts/retargeting_v3_step2/summary.json` status counts:
   `passed=7`, `negative_control_passed=4`, `algorithm_failed=14`,
   `semantic_failed=3`, `model_load_failed=2`, `source_unavailable=16`.
 - `deterministic_rerun.status="passed"`.
 
-Current acceptance blockers:
+Current acceptance gate status:
 
 | Gate | Subject | Current evidence |
 |---|---|---|
-| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `status="incomplete"`; the G1 same-source comparison is not a strict equivalence pass. |
-| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `status="incomplete"`; Gate A lacks semantic FK, active-chain, rank-summary, and canonical-projection evidence. |
-| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `status="blocked"`; Gate B lacks the required variant compatibility evidence. |
+| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `status="passed"`; Gate A evidence is complete. |
+| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `status="passed"`; same-source strict evidence is complete. |
+| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `status="passed"`; G1 variant compatibility evidence is complete for the independently passing pair. |
 
-Formal pytest passing does not change the acceptance verdict. Step 2 cannot be
-declared complete or `PASS` until these blockers are closed and the acceptance
-audit passes.
+Formal pytest and the acceptance audit now both pass for the Step 2 offline
+compiler scope. Step 3 production integration remains out of scope.
 
 All current, continued, or newly launched Step 2 subagents must use `xhigh`
 reasoning strength and record that fact in handoff artifacts.

@@ -1,46 +1,45 @@
 # Step 2 Implementation Report
 
-Status: **BLOCKED**
+Status: **PASS**
 Formal pytest: **passed**
-Acceptance audit: **BLOCKED**
+Acceptance audit: **PASS**
 Subagent reasoning strength requirement: **xhigh**
 
 ## Summary
 
-The current implementation has a green formal pytest artifact, but Step 2 is
-not complete and must not be reported as `PASS`.
+The current implementation has a green formal pytest artifact and a passing
+acceptance audit generated from a clean-head artifact run.
 
 Current formal test evidence:
 
 ```text
-209 passed, 10 skipped, 146 warnings in 2630.08s (0:43:50)
+215 passed, 10 skipped, 146 warnings in 3046.97s (0:50:46)
 ```
 
 Current acceptance evidence:
 
 - `artifacts/retargeting_v3_step2/acceptance_ledger.json` has
-  `status="BLOCKED"` and `blocking_count=3`.
-- `validation_checks.g1_mjcf_urdf_equivalence.status="incomplete"`.
-- `cross_format.gates.same_source_strict.status="incomplete"`.
-- `cross_format.gates.variant_compatibility.status="blocked"`.
+  `status="PASS"` and `blocking_count=0`.
+- `validation_checks.g1_mjcf_urdf_equivalence.status="passed"`.
+- `cross_format.gates.same_source_strict.status="passed"`.
+- `cross_format.gates.variant_compatibility.status="passed"`.
 
-The remaining hard blockers are the cross-format Gate A evidence gap, the
-cross-format Gate B variant-compatibility gap, and the arbitrary-G1-equivalence
-audit finding. The same-source G1 generated-MJCF comparison is not a strict
-Step 2 pass until semantic FK, active chains, rank summary, and canonical
-projection evidence are present.
+The G1 same-source generated-MJCF comparison now includes semantic FK,
+active-chain, rank-summary, and canonical-projection evidence. The G1 vendor
+URDF versus Menagerie MJCF comparison is recorded as variant compatibility,
+not strict same-source equivalence.
 
 ## Current Results
 
-- `python -m pytest -q`: `209 passed, 10 skipped`.
-- Current acceptance ledger: `BLOCKED`, 3 blocking findings.
+- `python -m coverage run -m pytest tests`: `215 passed, 10 skipped`.
+- Current acceptance ledger: `PASS`, 0 blocking findings.
 - Robot Zoo status counts: `passed=7`, `negative_control_passed=4`,
   `algorithm_failed=14`, `semantic_failed=3`, `model_load_failed=2`,
   `source_unavailable=16`.
 - `algorithm_pass_count=11`.
 - `deterministic_rerun.status="passed"` with 11 matched models.
-- Cross-format Gate A: `incomplete`.
-- Cross-format Gate B: `blocked`.
+- Cross-format Gate A: `passed`.
+- Cross-format Gate B: `passed`.
 
 ## Integrated Work
 
@@ -69,13 +68,8 @@ false-positive audit snapshot and must not be used as current Step 2 status.
 
 ## Remaining Work
 
-- Complete Gate A for same-source G1 URDF to canonical MJCF strict
-  equivalence, including semantic FK, active-chain, rank-summary, and
-  canonical-projection evidence.
-- Complete Gate B for G1 vendor URDF versus Menagerie MJCF variant
-  compatibility, including semantic FK, common-chain, rank, DoF-difference, and
-  projection evidence for independently passing variants.
-- Close the arbitrary-G1-equivalence finding so no limitation or scaffolded
-  comparison is counted as a strict pass.
-- Regenerate and keep final reports in a state where pytest and acceptance
-  audit are both current and passing before any Step 2 completion claim.
+- Step 3 integration remains out of scope: do not connect this offline compiler
+  to production `NewtonPipeline` or whole-body IK here.
+- Public-source limitations remain represented as structured statuses such as
+  `source_unavailable`, `model_load_failed`, `semantic_failed`, or
+  `algorithm_failed`; they are not hidden as passes.
