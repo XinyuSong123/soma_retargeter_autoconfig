@@ -1,0 +1,150 @@
+{
+  "model_id": "pal_talos_mjcf_direct",
+  "resolution": {
+    "path": "assets/robot_zoo/semantic_maps/pal_talos_mjcf_direct.json",
+    "source": "verified_semantic_map",
+    "status": "available"
+  },
+  "schema_version": 1,
+  "semantics": {
+    "Chest": {
+      "body": "torso_2_link",
+      "confidence": 0.99,
+      "evidence": [
+        "name:torso_2_link",
+        "topology:base_link>torso_1_link>torso_2_link",
+        "joint_chain:torso_1_joint/torso_2_joint"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "Hips": {
+      "body": "base_link",
+      "confidence": 0.99,
+      "evidence": [
+        "name:base_link",
+        "topology:floating_root_body",
+        "role:pelvis/base_for_legs_and_torso"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "LeftFoot": {
+      "body": "leg_left_6_link",
+      "confidence": 0.95,
+      "evidence": [
+        "site:left_foot",
+        "name:leg_left_6_link",
+        "side:left",
+        "topology:base_link>leg_left_1_link>leg_left_2_link>leg_left_3_link>leg_left_4_link>leg_left_5_link>leg_left_6_link",
+        "geometry:compiled_site_pos=[0.0,0.0,-0.1]",
+        "geometry:compiled_foot_bounds_min_z=-0.107398",
+        "negative_evidence:not_leg_left_1_link"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        -0.1
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_model_site"
+    },
+    "LeftHand": {
+      "body": "gripper_left_fingertip_3_link",
+      "confidence": 0.9,
+      "evidence": [
+        "site:left_palm",
+        "name:gripper_left_fingertip_3_link",
+        "side:left",
+        "topology:base_link>torso_2_link>arm_left_1_link>arm_left_2_link>arm_left_3_link>arm_left_4_link>arm_left_5_link>arm_left_6_link>arm_left_7_link>gripper_left_inner_single_link>gripper_left_fingertip_3_link",
+        "geometry:compiled_site_pos=[0.0,-0.05,0.0]"
+      ],
+      "local_position": [
+        0.0,
+        -0.05,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_model_site"
+    },
+    "RightFoot": {
+      "body": "leg_right_6_link",
+      "confidence": 0.95,
+      "evidence": [
+        "site:right_foot",
+        "name:leg_right_6_link",
+        "side:right",
+        "topology:base_link>leg_right_1_link>leg_right_2_link>leg_right_3_link>leg_right_4_link>leg_right_5_link>leg_right_6_link",
+        "geometry:compiled_site_pos=[0.0,0.0,-0.1]",
+        "geometry:compiled_foot_bounds_min_z=-0.107398",
+        "negative_evidence:not_leg_right_1_link"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        -0.1
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_model_site"
+    },
+    "RightHand": {
+      "body": "gripper_right_fingertip_2_link",
+      "confidence": 0.9,
+      "evidence": [
+        "site:right_palm",
+        "name:gripper_right_fingertip_2_link",
+        "side:right",
+        "topology:base_link>torso_2_link>arm_right_1_link>arm_right_2_link>arm_right_3_link>arm_right_4_link>arm_right_5_link>arm_right_6_link>arm_right_7_link>gripper_right_inner_double_link>gripper_right_fingertip_2_link",
+        "geometry:compiled_site_pos=[0.0,-0.05,0.0]"
+      ],
+      "local_position": [
+        0.0,
+        -0.05,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_model_site"
+    }
+  },
+  "source": "verified_semantic_map"
+}

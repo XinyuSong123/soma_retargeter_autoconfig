@@ -16,10 +16,7 @@
     "backend": "newton",
     "format": "mjcf",
     "id": "cassie_mjcf",
-    "local_file_sha256": {
-      "reason": "model path is unavailable",
-      "status": "unavailable"
-    },
+    "local_file_sha256": "e289be0d71d1070edf0b44abea6f7ec619d58631b7d3ce2d62809791784d6b3a",
     "manifest": {
       "entry": {
         "description_name": "cassie_mj_description",
@@ -38,7 +35,7 @@
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
       "status": "available"
     },
-    "path": null,
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/mujoco_menagerie/agility_cassie/cassie.xml",
     "semantic_map_artifact": {
       "reason": "semantic map was not generated",
       "status": "unavailable"
@@ -56,19 +53,26 @@
         "robot_class": "biped_no_arms",
         "source_family": "robot_descriptions"
       },
+      "local_file_sha256": "e289be0d71d1070edf0b44abea6f7ec619d58631b7d3ce2d62809791784d6b3a",
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
       "module": "robot_descriptions.cassie_mj_description",
-      "path": null,
+      "path": "${ROBOT_DESCRIPTIONS_CACHE}/mujoco_menagerie/agility_cassie/cassie.xml",
       "path_attr": "MJCF_PATH",
-      "reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
-      "resolver": "robot_descriptions_no_fetch",
-      "status": "source_unavailable"
+      "reason": "",
+      "resolver": "robot_descriptions_local_cache",
+      "status": "available"
     }
   },
-  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id cassie_mjcf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/cassie_mjcf.json --low-discrepancy-count 1",
+  "morphology_classification": {
+    "expected_capability": "negative_control",
+    "humanoid_profile_generated": false,
+    "robot_class": "biped_no_arms"
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id cassie_mjcf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/cassie_mjcf.json --low-discrepancy-count 32",
   "runtime_adapter": {
     "backend": "newton",
+    "body_count": 25,
     "loader_provenance": {
       "backend": "newton",
       "compiled_model_manifest": {
@@ -78,6 +82,8 @@
       "loader": "newton.ModelBuilder.add_mjcf",
       "model_format": "mjcf"
     },
+    "nq": 29,
+    "nv": 28,
     "package_versions": {
       "mujoco": "3.8.1",
       "newton": "1.0.0",
@@ -88,9 +94,9 @@
     }
   },
   "schema_version": 4,
-  "status": "source_unavailable",
-  "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+  "status": "negative_control_passed",
+  "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
   "warnings": [
-    "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+    "negative control loaded; humanoid profile compilation intentionally not generated"
   ]
 }

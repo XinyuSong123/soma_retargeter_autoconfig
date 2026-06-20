@@ -61,12 +61,12 @@
       "module": "robot_descriptions.r2_description",
       "path": null,
       "path_attr": "URDF_PATH",
-      "reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
-      "resolver": "robot_descriptions_no_fetch",
+      "reason": "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/nasa-urdf-robots/r2_description/robots/r2c_sim_full_control.urdf.urdf",
+      "resolver": "robot_descriptions_local_cache",
       "status": "source_unavailable"
     }
   },
-  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id robonaut2_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/robonaut2_urdf.json --low-discrepancy-count 1",
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id robonaut2_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/robonaut2_urdf.json --low-discrepancy-count 32",
   "runtime_adapter": {
     "backend": "newton",
     "loader_provenance": {
@@ -89,8 +89,8 @@
   },
   "schema_version": 4,
   "status": "source_unavailable",
-  "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+  "status_reason": "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/nasa-urdf-robots/r2_description/robots/r2c_sim_full_control.urdf.urdf",
   "warnings": [
-    "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+    "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/nasa-urdf-robots/r2_description/robots/r2c_sim_full_control.urdf.urdf"
   ]
 }
