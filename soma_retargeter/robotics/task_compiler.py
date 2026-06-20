@@ -535,11 +535,18 @@ def _chain_profile_for_site(
         if site_offset_length > 1.0e-8:
             segment_lengths.append(site_offset_length)
     total_length = float(sum(segment_lengths)) if segment_lengths else 0.0
+    semantic_edge_length = total_length
+    parent_semantic = _SEMANTIC_PARENTS.get(semantic)
+    parent_site = semantic_sites.get(parent_semantic) if parent_semantic is not None else None
+    site_pos = _site_world_position(site, morphology)
+    parent_pos = _site_world_position(parent_site, morphology) if parent_site is not None else None
+    if site_pos is not None and parent_pos is not None:
+        semantic_edge_length = float(np.linalg.norm(site_pos - parent_pos))
 
     if joints:
         rotational_j = np.stack([j.axis_world_rest for j in joints], axis=1)
         rotational_basis, singular_rot, rotational_rank = orthonormal_basis_from_jacobian(rotational_j)
-        tip_pos = _site_world_position(site, morphology)
+        tip_pos = site_pos
         if tip_pos is None:
             tip_pos = np.zeros(3)
         translational_cols = []
@@ -569,6 +576,7 @@ def _chain_profile_for_site(
             joint_names=joint_names,
             segment_lengths=segment_lengths,
             total_length=max(total_length, 1e-6),
+            semantic_edge_length=max(semantic_edge_length, 1e-6),
             translational_basis=translational_basis,
             rotational_basis=rotational_basis,
             translational_rank=translational_rank,

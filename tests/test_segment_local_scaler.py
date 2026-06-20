@@ -116,8 +116,8 @@ class TestSegmentLocalTargetBuilder(unittest.TestCase):
             profile_path.write_text(json.dumps({
                 "schema_version": 2,
                 "chains": {
-                    "Chest": {"total_length": 2.0},
-                    "LeftHand": {"total_length": 1.0},
+                    "Chest": {"total_length": 2.0, "semantic_edge_length": 20.0},
+                    "LeftHand": {"total_length": 1.0, "semantic_edge_length": 10.0},
                 },
             }))
 

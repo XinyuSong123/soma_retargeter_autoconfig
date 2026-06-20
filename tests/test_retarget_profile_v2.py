@@ -73,11 +73,13 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertEqual(chest_chain.rotational_rank, 1)
         self.assertTrue(np.allclose(np.abs(chest_chain.rotational_basis[:, 0]), [0.0, 1.0, 0.0]))
         self.assertAlmostEqual(chest_chain.total_length, 0.25)
+        self.assertAlmostEqual(chest_chain.semantic_edge_length, 0.25)
         self.assertEqual(profile.tasks[0].rotation_mask_or_basis, [[0.0], [1.0], [0.0]])
 
         arm_chain = profile.chains["LeftArm"]
         self.assertEqual(arm_chain.joint_names, [])
         self.assertAlmostEqual(arm_chain.total_length, 0.2)
+        self.assertAlmostEqual(arm_chain.semantic_edge_length, 0.2)
 
     def test_semantic_sites_are_inferred_from_humanoid_body_names(self):
         mjcf = """
@@ -236,6 +238,7 @@ class TestRetargetProfileV2(unittest.TestCase):
         self.assertTrue(np.allclose(site.local_position, [0.3, 0.01, 0.0]))
         self.assertTrue(np.allclose(site.local_rotation_xyzw, [0.0, 0.0, 0.70710678, 0.70710678]))
         self.assertAlmostEqual(profile.chains["LeftHand"].total_length, 0.7001666203960727)
+        self.assertAlmostEqual(profile.chains["LeftHand"].semantic_edge_length, 0.7000714249274855)
 
     def test_distal_hand_site_uses_child_anchor_before_geom_bounds(self):
         mjcf = """

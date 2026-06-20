@@ -58,7 +58,7 @@ Reason: bounded RPO experiments showed that high foot weights improve foot RMSE 
 
 Risk: RPO hand/foot gates still fail; this is an incremental improvement, not an acceptance pass.
 
-Verification: runtime config tests assert the low-rank no-wrist hand weight, the single-axis foot weight, and multi-axis G1 foot weights. Compiled profile artifacts record compiler `2.1.5`; bounded artifacts keep RPO hand/foot RMSE at roughly `0.39/0.41`, keep Unitree G1 hand/foot/root gates passing, and keep synthetic E3 foot/root gates passing while hand tracking remains a blocker.
+Verification: runtime config tests assert the low-rank no-wrist hand weight, the single-axis foot weight, and multi-axis G1 foot weights. Compiled profile artifacts record compiler `2.1.6`; bounded artifacts keep RPO hand/foot RMSE at roughly `0.39/0.41`, keep Unitree G1 hand/foot/root gates passing, and keep synthetic E3 foot/root gates passing while hand tracking remains a blocker.
 
 ## Synthetic E3 Capability Fixture
 

@@ -15,7 +15,7 @@ import numpy as np
 
 
 SCHEMA_VERSION = 2
-COMPILER_VERSION = "2.1.5"
+COMPILER_VERSION = "2.1.6"
 QUATERNION_ORDER = "xyzw"
 
 
@@ -54,6 +54,7 @@ class KinematicChainProfile:
     joint_names: list[str]
     segment_lengths: list[float]
     total_length: float
+    semantic_edge_length: float
     translational_basis: np.ndarray
     rotational_basis: np.ndarray
     translational_rank: int

@@ -582,6 +582,23 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["ik_iterations"] = ik_iterations
         config["benchmark_compare_mode"] = compare_mode
         return config
+    if compare_mode.startswith("v2_hand_w"):
+        try:
+            hand_weight = float(compare_mode.removeprefix("v2_hand_w"))
+        except ValueError as exc:
+            raise ValueError(f"Invalid hand weight in compare mode {compare_mode!r}") from exc
+        if hand_weight < 0.0:
+            raise ValueError(f"Invalid hand weight in compare mode {compare_mode!r}")
+        raw_path = get_profile_path(robot, "retargeter_config")
+        if raw_path is None:
+            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        for semantic in ("LeftHand", "RightHand"):
+            if semantic in config.get("ik_map", {}):
+                config["ik_map"][semantic]["t_weight"] = hand_weight
+                config["ik_map"][semantic]["v2_position_weight_source"] = "benchmark experiment: override hand position weight"
+        config["benchmark_compare_mode"] = compare_mode
+        return config
     pole_analytic_weight_scale = 1.0
     if compare_mode.startswith("v2_pole_analytic_w"):
         try:
@@ -603,7 +620,7 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["benchmark_compare_mode"] = compare_mode if pole_analytic_weight_scale == 1.0 else f"{compare_mode}_w{pole_analytic_weight_scale:g}"
         return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_iter<N>', or 'v2_pole_analytic'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_iter<N>', 'v2_hand_w<weight>', or 'v2_pole_analytic'."
     )
 
 
@@ -1534,7 +1551,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--compare",
         nargs="+",
         default=["legacy", "v2"],
-        help="Compare modes: legacy, v2, v2_no_pole, v2_iter<N>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
+        help="Compare modes: legacy, v2, v2_no_pole, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
     )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)

@@ -64,6 +64,14 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertFalse(all(task["analytic_jacobian"] for task in cfg["pole_vector_tasks"]))
         self.assertEqual(cfg["pole_vector_tasks"][0]["weight"], baseline["pole_vector_tasks"][0]["weight"])
 
+    def test_hand_weight_compare_mode_overrides_only_hand_position_weights(self):
+        cfg = _runtime_retargeter_config("e3_v2", "v2_hand_w200")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_hand_w200")
+        self.assertEqual(cfg["ik_map"]["LeftHand"]["t_weight"], 200.0)
+        self.assertEqual(cfg["ik_map"]["RightHand"]["t_weight"], 200.0)
+        self.assertNotEqual(cfg["ik_map"]["LeftFoot"]["t_weight"], 200.0)
+        self.assertIn("benchmark experiment", cfg["ik_map"]["LeftHand"]["v2_position_weight_source"])
+
     def test_weighted_pole_analytic_compare_mode_scales_pole_weights(self):
         baseline = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic")
         scaled = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic_w0.25")
