@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 import hashlib
-import json
 import re
 import tempfile
 import warnings
@@ -16,6 +15,7 @@ import mujoco
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+from .model_fingerprint import model_fingerprint_payload, sha256_file
 from .spatial import relative_transform, transform
 
 
@@ -105,6 +105,13 @@ class MuJoCoRuntimeModelAdapter:
     def __init__(self, model_path: str | Path, model_format: str | None = None):
         self.model_path = Path(model_path)
         self.model_format = model_format or self.model_path.suffix.lstrip(".").lower()
+        self.loader_provenance: dict = {
+            "backend": "mujoco",
+            "load_path": str(self.model_path),
+            "temporary_load_copy": None,
+            "patches": [],
+        }
+        self.site_frame_provenance: dict[str, dict] = {}
         self.model = self._load_model(self.model_path)
         self.nq = int(self.model.nq)
         self.nv = int(self.model.nv)
@@ -121,13 +128,19 @@ class MuJoCoRuntimeModelAdapter:
         self._site_id_by_name = {name: i for i, name in enumerate(self._site_names)}
         self._norm_site_id = {normalize_label(name): i for i, name in enumerate(self._site_names)}
         self._coordinate_info = self._build_coordinate_info()
+        self.fingerprint_details = model_fingerprint_payload(
+            self.model_path,
+            backend="mujoco",
+            model_format=self.model_format,
+            loader_name="mujoco",
+            loader_version=getattr(mujoco, "__version__", None),
+            loader_provenance=self.loader_provenance,
+            compiled_summary=self._compiled_summary(),
+        )
 
     @property
     def fingerprint(self) -> str:
-        h = hashlib.sha256()
-        h.update(self.model_path.read_bytes())
-        h.update(json.dumps({"nq": self.nq, "nv": self.nv, "nbody": int(self.model.nbody)}).encode())
-        return h.hexdigest()
+        return str(self.fingerprint_details["sha256"])
 
     @property
     def body_names(self) -> list[str]:
@@ -174,6 +187,11 @@ class MuJoCoRuntimeModelAdapter:
         sid = self.site_id(site_name)
         body_id = int(self.model.site_bodyid[sid])
         site_quat_wxyz = np.asarray(self.model.site_quat[sid], dtype=float)
+        self.site_frame_provenance[site_name] = {
+            "source": "mujoco_compiled_site",
+            "trusted_runtime_site": True,
+            "body": self._body_names[body_id],
+        }
         return (
             self._body_names[body_id],
             np.asarray(self.model.site_pos[sid], dtype=float).copy(),
@@ -322,18 +340,38 @@ class MuJoCoRuntimeModelAdapter:
             return mujoco.MjModel.from_xml_path(str(model_path))
         except ValueError as exc:
             text = model_path.read_text()
-            patched = _patch_xml_for_mujoco_loading(text, model_path)
-            if patched == text:
+            patch = _patch_xml_for_mujoco_loading(text, model_path)
+            if patch.text == text:
                 raise
             with tempfile.NamedTemporaryFile("w", suffix=model_path.suffix, dir=str(model_path.parent), delete=False) as f:
-                f.write(patched)
+                f.write(patch.text)
                 tmp = Path(f.name)
+            self.loader_provenance["temporary_load_copy"] = {
+                "used": True,
+                "directory": "model_parent",
+                "suffix": model_path.suffix,
+                "note": "ephemeral path intentionally omitted from deterministic fingerprint",
+            }
+            self.loader_provenance["patches"] = patch.provenance
             try:
                 return mujoco.MjModel.from_xml_path(str(tmp))
             except Exception:
                 raise exc
             finally:
                 tmp.unlink(missing_ok=True)
+
+    def _compiled_summary(self) -> dict:
+        return {
+            "nq": self.nq,
+            "nv": self.nv,
+            "nbody": int(self.model.nbody),
+            "njnt": int(self.model.njnt),
+            "nsite": int(self.model.nsite),
+            "body_names": self._body_names,
+            "site_names": self._site_names,
+            "coordinates": [info.to_json() for info in self._coordinate_info],
+            "qpos0_sha256": hashlib.sha256(np.asarray(self.model.qpos0, dtype=float).tobytes()).hexdigest(),
+        }
 
 
 def _joint_nv(jtype: int) -> int:
@@ -344,19 +382,30 @@ def _joint_nv(jtype: int) -> int:
     return 1
 
 
-def _patch_xml_for_mujoco_loading(text: str, model_path: Path) -> str:
+@dataclass(frozen=True)
+class _XmlPatchResult:
+    text: str
+    provenance: list[dict]
+
+
+def _patch_xml_for_mujoco_loading(text: str, model_path: Path) -> _XmlPatchResult:
+    provenance: list[dict] = []
     patched = text.replace('solver="cg"', 'solver="CG"')
+    if patched != text:
+        provenance.append({"type": "mujoco_solver_case", "from": 'solver="cg"', "to": 'solver="CG"'})
     if model_path.suffix.lower() == ".urdf":
-        patched = _absolutize_urdf_meshes(patched, model_path.parent)
-    return patched
+        patched, mesh_provenance = _absolutize_urdf_meshes(patched, model_path.parent)
+        provenance.extend(mesh_provenance)
+    return _XmlPatchResult(patched, provenance)
 
 
-def _absolutize_urdf_meshes(text: str, base_dir: Path) -> str:
+def _absolutize_urdf_meshes(text: str, base_dir: Path) -> tuple[str, list[dict]]:
     try:
         root = ET.fromstring(text)
     except ET.ParseError:
-        return text
+        return text, []
     changed = False
+    provenance: list[dict] = []
     for mesh in root.findall(".//mesh"):
         filename = mesh.attrib.get("filename")
         if not filename or Path(filename).is_absolute():
@@ -365,9 +414,18 @@ def _absolutize_urdf_meshes(text: str, base_dir: Path) -> str:
         if path.exists():
             mesh.set("filename", str(path))
             changed = True
+            provenance.append(
+                {
+                    "type": "temporary_urdf_mesh_abspath",
+                    "original": filename,
+                    "resolved": str(path),
+                    "sha256": sha256_file(path),
+                    "note": "applied only to temporary load copy",
+                }
+            )
     if not changed:
-        return text
-    return ET.tostring(root, encoding="unicode")
+        return text, provenance
+    return ET.tostring(root, encoding="unicode"), provenance
 
 
 def _resolve_urdf_mesh_path(filename: str, base_dir: Path) -> Path:
@@ -403,6 +461,13 @@ class NewtonRuntimeModelAdapter:
         self._newton = newton
         self.model_path = Path(model_path)
         self.model_format = model_format or self.model_path.suffix.lstrip(".").lower()
+        self.loader_provenance: dict = {
+            "backend": "newton",
+            "load_path": str(self.model_path),
+            "temporary_load_copy": None,
+            "patches": [],
+        }
+        self.site_frame_provenance: dict[str, dict] = {}
         builder = newton.ModelBuilder()
         if self.model_format == "urdf":
             builder.add_urdf(str(self.model_path))
@@ -425,13 +490,19 @@ class NewtonRuntimeModelAdapter:
         self._joint_limit_lower = _to_numpy(self.model.joint_limit_lower)
         self._joint_limit_upper = _to_numpy(self.model.joint_limit_upper)
         self._coordinate_info = self._build_coordinate_info()
+        self.fingerprint_details = model_fingerprint_payload(
+            self.model_path,
+            backend="newton",
+            model_format=self.model_format,
+            loader_name="newton",
+            loader_version=getattr(newton, "__version__", None),
+            loader_provenance=self.loader_provenance,
+            compiled_summary=self._compiled_summary(),
+        )
 
     @property
     def fingerprint(self) -> str:
-        h = hashlib.sha256()
-        h.update(self.model_path.read_bytes())
-        h.update(json.dumps({"nq": self.nq, "nv": self.nv, "nbody": int(self.model.body_count), "backend": "newton"}).encode())
-        return h.hexdigest()
+        return str(self.fingerprint_details["sha256"])
 
     @property
     def body_names(self) -> list[str]:
@@ -501,16 +572,39 @@ class NewtonRuntimeModelAdapter:
         return self._body_id_by_name[self.resolve_body_name(body_name)]
 
     def model_site_frame(self, site_name: str) -> tuple[str, np.ndarray, np.ndarray]:
+        compiled = _mujoco_compiled_site_frame(self.model_path, site_name)
+        if compiled is not None:
+            body_name, pos, quat = compiled
+            resolved_body = self.resolve_body_name(body_name)
+            self.site_frame_provenance[site_name] = {
+                "source": "mujoco_compiled_site_crosscheck",
+                "trusted_runtime_site": True,
+                "body": resolved_body,
+                "note": "Newton does not expose compiled sites; MuJoCo compiled model is used as reference truth for the same source file.",
+            }
+            warnings.warn(
+                "Newton does not expose compiled model sites; using a MuJoCo compiled site cross-check for site truth.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return resolved_body, pos, quat
         frame = _mjcf_site_frame_from_xml(self.model_path, site_name)
         if frame is None:
             raise KeyError(f"unknown model site {site_name!r}")
         body_name, pos, quat = frame
+        resolved_body = self.resolve_body_name(body_name)
+        self.site_frame_provenance[site_name] = {
+            "source": "raw_xml_site_fallback",
+            "trusted_runtime_site": False,
+            "body": resolved_body,
+            "note": "Newton and MuJoCo compiled site truth were unavailable; this is provenance only, not compiled FK truth.",
+        }
         warnings.warn(
-            "Newton does not expose compiled model sites; using the MJCF XML site pose as a body-local fallback.",
+            "Newton does not expose compiled model sites and MuJoCo cross-check failed; using untrusted raw XML site provenance.",
             RuntimeWarning,
             stacklevel=2,
         )
-        return self.resolve_body_name(body_name), pos, quat
+        return resolved_body, pos, quat
 
     def body_transform(self, state: RobotKinematicState, body_name: str) -> np.ndarray:
         bid = self.body_id(body_name)
@@ -631,6 +725,18 @@ class NewtonRuntimeModelAdapter:
             raise RuntimeError(f"missing Newton coordinate metadata for dofs {missing}")
         return [x for x in infos if x is not None]
 
+    def _compiled_summary(self) -> dict:
+        return {
+            "nq": self.nq,
+            "nv": self.nv,
+            "nbody": int(self.model.body_count),
+            "njnt": int(self.model.joint_count),
+            "body_names": self._body_names,
+            "body_labels": self._body_labels,
+            "coordinates": [info.to_json() for info in self._coordinate_info],
+            "neutral_q_sha256": hashlib.sha256(np.asarray(self.neutral_q(), dtype=float).tobytes()).hexdigest(),
+        }
+
 
 def _newton_joint_nv(jtype: int) -> int:
     if jtype == 4:
@@ -692,6 +798,19 @@ def _mjcf_site_frame_from_xml(model_path: Path, site_name: str) -> tuple[str, np
         if found is not None:
             return found
     return None
+
+
+def _mujoco_compiled_site_frame(model_path: Path, site_name: str) -> tuple[str, np.ndarray, np.ndarray] | None:
+    try:
+        adapter = MuJoCoRuntimeModelAdapter(model_path)
+        return adapter.model_site_frame(site_name)
+    except Exception:
+        return None
+    finally:
+        try:
+            adapter.close()  # type: ignore[name-defined]
+        except Exception:
+            pass
 
 
 def _xml_vec(text: str | None, width: int) -> np.ndarray:
