@@ -1,202 +1,198 @@
-"""Artifact generation for Step-2 offline validation."""
+"""Manifest-driven Step-2 offline validation artifacts."""
 
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from pathlib import Path
-from functools import lru_cache
-import hashlib
-import importlib
+from tempfile import TemporaryDirectory
 import importlib.metadata
 import json
 import platform
-import shlex
 import subprocess
 import sys
 import time
 
 from .model_adapter import NewtonRuntimeModelAdapter
 from .profile import compile_kinematic_profile_v3
+from .robot_zoo import (
+    DEFAULT_ROBOT_ZOO_MANIFEST_PATH,
+    RobotValidationStatus,
+    RobotZooEntry,
+    ResolvedRobotSource,
+    allowed_status_values,
+    display_path,
+    load_robot_zoo_manifest,
+    reproduction_compile_command,
+    reproduction_validate_command,
+    resolve_robot_source,
+    sha256_file,
+)
 from .semantic_sites import default_rpo_semantic_map, infer_semantic_map_from_body_names
+from .semantic_sites import load_semantic_map
 
 
 DEFAULT_LOW_DISCREPANCY_COUNT = 32
-ROBOT_ZOO_MANIFEST_PATH = Path("assets/robot_zoo/robot_zoo_manifest.json")
+ROBOT_ZOO_MANIFEST_PATH = DEFAULT_ROBOT_ZOO_MANIFEST_PATH
 
-REQUIRED_ARTIFACT_IDS = [
-    "roboparty_rpo",
-    "unitree_g1_mjcf",
-    "unitree_g1_urdf",
-    "unitree_g1_23dof",
-    "unitree_h1",
-    "robotis_op3",
-    "booster_t1",
-    "pal_talos",
-    "berkeley_humanoid",
-]
-
-DESCRIPTION_MODULES = {
-    "unitree_g1_mjcf": ("robot_descriptions.g1_mj_description", "MJCF_PATH"),
-    "unitree_g1_urdf": ("robot_descriptions.g1_description", "URDF_PATH"),
-    "unitree_h1": ("robot_descriptions.h1_mj_description", "MJCF_PATH"),
-    "robotis_op3": ("robot_descriptions.op3_mj_description", "MJCF_PATH"),
-    "booster_t1": ("robot_descriptions.booster_t1_mj_description", "MJCF_PATH"),
-    "pal_talos": ("robot_descriptions.talos_mj_description", "MJCF_PATH"),
-    "berkeley_humanoid": ("robot_descriptions.berkeley_humanoid_description", "URDF_PATH"),
-}
-
-MANIFEST_MODEL_ID_BY_REPORT_ID = {
-    "roboparty_rpo": "roboparty_rpo_local",
-    "unitree_g1_mjcf": "unitree_g1_mjcf",
-    "unitree_g1_urdf": "unitree_g1_urdf",
-    "unitree_h1": "unitree_h1_mjcf",
-    "robotis_op3": "robotis_op3_mjcf",
-    "booster_t1": "booster_t1_mjcf",
-    "pal_talos": "pal_talos_mjcf_direct",
-    "berkeley_humanoid": "berkeley_humanoid_urdf",
-}
-
-EXTRA_MODEL_FILES = {
-    "unitree_g1_23dof": ("robot_descriptions.g1_description", "PACKAGE_PATH", "g1_23dof.xml"),
-}
+# Compatibility exports for older tests/imports. The manifest remains authoritative.
+try:
+    _DEFAULT_MANIFEST = load_robot_zoo_manifest(ROBOT_ZOO_MANIFEST_PATH)
+    REQUIRED_ARTIFACT_IDS = _DEFAULT_MANIFEST.required_ids()
+    MANIFEST_MODEL_ID_BY_REPORT_ID = {entry.id: entry.id for entry in _DEFAULT_MANIFEST.entries}
+except Exception:
+    REQUIRED_ARTIFACT_IDS = []
+    MANIFEST_MODEL_ID_BY_REPORT_ID = {}
 
 
 def write_validation_artifacts(
     output_dir: str | Path = "artifacts/retargeting_v3_step2",
     *,
+    manifest_path: str | Path = ROBOT_ZOO_MANIFEST_PATH,
     include_missing_required_reports: bool = True,
     low_discrepancy_count: int = DEFAULT_LOW_DISCREPANCY_COUNT,
+    deterministic_rerun: bool = False,
+    allow_source_fetch: bool = False,
 ) -> dict:
+    """Write one structured validation result for every Robot Zoo manifest entry.
+
+    ``include_missing_required_reports`` is accepted for compatibility; missing
+    required and optional entries are always materialized as explicit
+    ``source_unavailable`` or ``model_load_failed`` results.
+    """
+
+    del include_missing_required_reports
+    manifest = load_robot_zoo_manifest(manifest_path)
     out = Path(output_dir)
     per_robot = out / "per_robot"
     failures_dir = out / "failures"
     semantic_maps_dir = out / "semantic_maps"
-    per_robot.mkdir(parents=True, exist_ok=True)
-    failures_dir.mkdir(parents=True, exist_ok=True)
-    semantic_maps_dir.mkdir(parents=True, exist_ok=True)
+    test_results_dir = out / "test_results"
+    for directory in (per_robot, failures_dir, semantic_maps_dir, test_results_dir):
+        directory.mkdir(parents=True, exist_ok=True)
+    _clear_json_files(per_robot)
     _clear_json_files(failures_dir)
-    commands = []
-    reports = {}
-    rpo_path = Path("assets/robots/atom01/mjcf/atom01.xml")
-    if rpo_path.exists():
-        semantic_map = default_rpo_semantic_map()
-        semantic_map_path = _write_semantic_map_artifact(
-            semantic_maps_dir,
-            "roboparty_rpo",
-            semantic_map,
-            source="default_rpo_semantic_map",
-        )
-        cmd = _compile_command(
-            model_path=rpo_path,
-            model_id="roboparty_rpo",
-            output_path=per_robot / "roboparty_rpo.json",
-            semantic_map_path=semantic_map_path,
+    _clear_json_files(semantic_maps_dir)
+    _clear_matching_files(test_results_dir, ("*.json", "*.xml", "*.txt"))
+
+    reports: dict[str, dict] = {}
+    commands: list[str] = []
+    source_inventory: dict[str, dict] = {}
+    command_artifact_root = Path("${RETARGETING_V3_ARTIFACTS}")
+    command_manifest_path = Path("${ROBOT_ZOO_MANIFEST}")
+    for entry in manifest.entries:
+        command = reproduction_compile_command(
+            entry.id,
+            manifest_path=command_manifest_path,
+            output_path=command_artifact_root / "per_robot" / f"{entry.id}.json",
             low_discrepancy_count=low_discrepancy_count,
-        )
-        commands.append(cmd)
-        profile = compile_kinematic_profile_v3(
-            rpo_path,
-            semantic_map,
-            model_id="roboparty_rpo",
             backend="newton",
-            low_discrepancy_count=low_discrepancy_count,
-            reproduction_command=cmd,
         )
-        _write_profile_report(profile, per_robot / "roboparty_rpo.json", semantic_map_path=semantic_map_path)
-        reports["roboparty_rpo"] = {"status": "compiled", "failures": profile.failures}
-    else:
-        reports["roboparty_rpo"] = {"status": "missing", "failures": ["local RPO model not found"]}
-    for rid, resolved in _resolve_description_models().items():
-        if rid in reports:
-            continue
-        try:
-            adapter = NewtonRuntimeModelAdapter(resolved)
-            semantic_map = infer_semantic_map_from_body_names(adapter)
-            adapter.close()
-            semantic_map_path = _write_semantic_map_artifact(
-                semantic_maps_dir,
-                rid,
-                semantic_map,
-                source="inferred_from_newton_body_names",
-            )
-            cmd = _compile_command(
-                model_path=resolved,
-                model_id=rid,
-                output_path=per_robot / f"{rid}.json",
-                semantic_map_path=semantic_map_path,
-                low_discrepancy_count=low_discrepancy_count,
-            )
-            commands.append(cmd)
-            profile = compile_kinematic_profile_v3(
-                resolved,
-                semantic_map,
-                model_id=rid,
-                backend="newton",
-                low_discrepancy_count=low_discrepancy_count,
-                reproduction_command=cmd,
-            )
-            report = _write_profile_report(profile, per_robot / f"{rid}.json", semantic_map_path=semantic_map_path)
-            reports[rid] = {"status": "compiled" if not profile.failures else "failed", "failures": profile.failures}
-            if profile.failures:
-                _write_json(failures_dir / f"{rid}.json", report)
-        except Exception as exc:
-            cmd = _validate_command(output_dir=out, low_discrepancy_count=low_discrepancy_count)
-            report = {
-                "schema_version": 3,
-                "model": {"id": rid, "path": str(resolved)},
-                "failures": [f"model compile failed: {type(exc).__name__}: {exc}"],
-                "warnings": [],
-                "reproduction_command": cmd,
-            }
-            report = augment_validation_report_metadata(report, semantic_map_path=None)
-            _write_json(per_robot / f"{rid}.json", report)
-            _write_json(failures_dir / f"{rid}.json", report)
-            reports[rid] = {"status": "failed", "failures": report["failures"]}
-    if include_missing_required_reports:
-        for rid in REQUIRED_ARTIFACT_IDS:
-            if rid in reports:
-                continue
-            cmd = _validate_command(output_dir=out, low_discrepancy_count=low_discrepancy_count)
-            report = {
-                "schema_version": 3,
-                "model": {"id": rid},
-                "failures": [f"required complete model {rid!r} is not present in the local workspace cache"],
-                "warnings": ["full Robot Zoo synchronization is out of scope for this Step-2 implementation run"],
-                "reproduction_command": cmd,
-            }
-            report = augment_validation_report_metadata(report, semantic_map_path=None)
-            _write_json(per_robot / f"{rid}.json", report)
-            _write_json(failures_dir / f"{rid}.json", report)
-            reports[rid] = {"status": "missing", "failures": report["failures"]}
-    validation_checks = _write_validation_checks(out, per_robot)
-    env = {
-        "python": sys.version,
-        "platform": platform.platform(),
-        "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "git_head": _git(["rev-parse", "HEAD"]),
-        "git_status_short": _git(["status", "--short"]),
-        "package_versions": _package_versions(),
-    }
-    (out / "environment.json").write_text(json.dumps(env, indent=2, sort_keys=True) + "\n")
-    (out / "commands.txt").write_text("\n".join(commands + [_validate_command(output_dir=out, low_discrepancy_count=low_discrepancy_count)]) + "\n")
+        commands.append(command)
+        resolved = resolve_robot_source(entry, allow_fetch=allow_source_fetch)
+        source_inventory[entry.id] = resolved.to_json(manifest_path=manifest.path, manifest_sha256=manifest.sha256)
+        report = _validate_entry(
+            entry,
+            resolved,
+            manifest_path=manifest.path,
+            manifest_sha256=manifest.sha256,
+            semantic_maps_dir=semantic_maps_dir,
+            low_discrepancy_count=low_discrepancy_count,
+            reproduction_command=command,
+        )
+        _assert_allowed_status(report["status"])
+        _write_json(per_robot / f"{entry.id}.json", report)
+        reports[entry.id] = _summary_entry(report)
+        if report["status"] not in {
+            RobotValidationStatus.PASSED.value,
+            RobotValidationStatus.PARTIAL_PASSED.value,
+            RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
+            RobotValidationStatus.SOURCE_UNAVAILABLE.value,
+        }:
+            _write_json(failures_dir / f"{entry.id}.json", report)
+
+    cross_format = _cross_format_report(reports, per_robot)
+    deterministic = _deterministic_rerun_report(reports, deterministic_rerun=deterministic_rerun)
+    environment = _environment_report(manifest)
+    validation_command = reproduction_validate_command(
+        manifest_path=command_manifest_path,
+        output_dir=command_artifact_root,
+        low_discrepancy_count=low_discrepancy_count,
+        deterministic_rerun=deterministic_rerun,
+    )
+    commands.append(validation_command)
+    (out / "commands.txt").write_text("\n".join(commands) + "\n")
+    _write_json(out / "environment.json", environment)
+    _write_json(out / "source_inventory.json", source_inventory)
+    _write_json(out / "cross_format.json", cross_format)
+    _write_json(out / "deterministic_rerun.json", deterministic)
+
+    status_counts = Counter(item["status"] for item in reports.values())
+    class_counts = Counter(item["robot_class"] for item in reports.values())
+    capability_counts = Counter(item["expected_capability"] for item in reports.values())
     summary = {
+        "schema_version": 4,
+        "manifest": {
+            "path": display_path(manifest.path),
+            "sha256": manifest.sha256,
+            "model_count": len(manifest.entries),
+            "allowed_statuses": list(allowed_status_values()),
+        },
         "reports": reports,
-        "compiled_count": sum(1 for r in reports.values() if r["status"] == "compiled"),
-        "missing_count": sum(1 for r in reports.values() if r["status"] == "missing"),
+        "status_counts": dict(sorted(status_counts.items())),
+        "model_count_by_class": dict(sorted(class_counts.items())),
+        "model_count_by_expected_capability": dict(sorted(capability_counts.items())),
+        "algorithm_pass_count": sum(
+            status_counts[key]
+            for key in (
+                RobotValidationStatus.PASSED.value,
+                RobotValidationStatus.PARTIAL_PASSED.value,
+                RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
+            )
+        ),
+        "source_unavailable_count": status_counts[RobotValidationStatus.SOURCE_UNAVAILABLE.value],
+        "model_load_failed_count": status_counts[RobotValidationStatus.MODEL_LOAD_FAILED.value],
         "failure_artifacts_count": len(list(failures_dir.glob("*.json"))),
-        "validation_checks": validation_checks,
+        "cross_format": cross_format,
+        "deterministic_rerun": deterministic,
+        "notes": [
+            "compiled is intentionally not a validation status",
+            "source_unavailable is counted separately from algorithm pass/fail",
+        ],
     }
-    (out / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    _write_json(out / "summary.json", summary)
     return summary
 
 
-def augment_validation_report_metadata(report: dict, *, semantic_map_path: str | Path | None) -> dict:
-    """Add reproducibility metadata without changing compiler semantics."""
+def augment_validation_report_metadata(
+    report: dict,
+    *,
+    semantic_map_path: str | Path | None,
+    manifest_path: str | Path = ROBOT_ZOO_MANIFEST_PATH,
+) -> dict:
+    """Add manifest/provenance metadata without changing compiler semantics."""
+
+    manifest = load_robot_zoo_manifest(manifest_path)
     model = report.setdefault("model", {})
-    model_path = Path(model["path"]) if model.get("path") else None
-    model["local_file_sha256"] = _sha256_file(model_path) if model_path else _unavailable("model path is unavailable")
-    model["source"] = _model_source_metadata(str(model.get("id", "")), model_path)
-    model["semantic_map_artifact"] = str(semantic_map_path) if semantic_map_path else _unavailable("semantic map was not available before model resolution failed")
-    model["manifest"] = _robot_zoo_manifest_metadata(str(model.get("id", "")))
+    model_id = str(model.get("id", ""))
+    entry = manifest.model_by_id.get(model_id)
+    if entry:
+        resolved = resolve_robot_source(entry, allow_fetch=False)
+        model["manifest"] = {
+            "status": "available",
+            "manifest_path": display_path(manifest.path),
+            "manifest_sha256": manifest.sha256,
+            "manifest_model_id": entry.id,
+            "entry": entry.to_json(),
+        }
+        model["source_resolution"] = resolved.to_json(manifest_path=manifest.path, manifest_sha256=manifest.sha256)
+    else:
+        model["manifest"] = _unavailable(f"Robot Zoo manifest entry {model_id!r} is not present")
+    path = Path(model["path"]) if model.get("path") else None
+    model["path"] = display_path(path) if path else None
+    model["local_file_sha256"] = sha256_file(path) if path and path.exists() else _unavailable("model path is unavailable")
+    model["semantic_map_artifact"] = display_path(Path(semantic_map_path)) if semantic_map_path else _unavailable(
+        "semantic map was not available before model resolution failed"
+    )
 
     runtime = report.setdefault("runtime_adapter", {})
     backend = model.get("backend") or runtime.get("backend") or "newton"
@@ -205,290 +201,362 @@ def augment_validation_report_metadata(report: dict, *, semantic_map_path: str |
     return report
 
 
-def _resolve_description_models() -> dict[str, Path]:
-    resolved = {}
-    for rid, (module_name, attr) in DESCRIPTION_MODULES.items():
-        try:
-            module = importlib.import_module(module_name)
-            path = Path(getattr(module, attr))
-            if path.exists():
-                resolved[rid] = path
-        except Exception:
-            continue
-    for rid, (module_name, root_attr, relative) in EXTRA_MODEL_FILES.items():
-        try:
-            module = importlib.import_module(module_name)
-            path = Path(getattr(module, root_attr)) / relative
-            if path.exists():
-                resolved[rid] = path
-        except Exception:
-            continue
-    return resolved
-
-
-def _write_profile_report(profile, output_path: Path, *, semantic_map_path: Path) -> dict:
-    report = augment_validation_report_metadata(profile.to_json(), semantic_map_path=semantic_map_path)
-    _write_json(output_path, report)
+def _validate_entry(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
+    *,
+    manifest_path: Path,
+    manifest_sha256: str,
+    semantic_maps_dir: Path,
+    low_discrepancy_count: int,
+    reproduction_command: str,
+) -> dict:
+    if resolved.status == RobotValidationStatus.LICENSE_BLOCKED.value:
+        return _base_report(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            status=RobotValidationStatus.LICENSE_BLOCKED.value,
+            failures=[resolved.reason],
+            reproduction_command=reproduction_command,
+        )
+    if not resolved.available:
+        return _base_report(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            status=RobotValidationStatus.SOURCE_UNAVAILABLE.value,
+            failures=[],
+            warnings=[resolved.reason],
+            reproduction_command=reproduction_command,
+        )
+    if entry.expected_capability == "negative_control":
+        return _validate_negative_control(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            reproduction_command=reproduction_command,
+        )
+    try:
+        semantic_map, semantic_map_resolution = _semantic_map_for_entry(entry, resolved, manifest_path=manifest_path)
+        semantic_map_path = _write_semantic_map_artifact(
+            semantic_maps_dir,
+            entry.id,
+            semantic_map,
+            semantic_map_resolution=semantic_map_resolution,
+        )
+        profile = compile_kinematic_profile_v3(
+            resolved.path,
+            semantic_map,
+            model_id=entry.id,
+            model_format=entry.model_format,
+            backend="newton",
+            low_discrepancy_count=low_discrepancy_count,
+            reproduction_command=reproduction_command,
+        )
+    except Exception as exc:
+        return _base_report(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            status=RobotValidationStatus.MODEL_LOAD_FAILED.value,
+            failures=[f"{type(exc).__name__}: {exc}"],
+            reproduction_command=reproduction_command,
+        )
+    report = augment_validation_report_metadata(
+        profile.to_json(),
+        semantic_map_path=semantic_map_path,
+        manifest_path=manifest_path,
+    )
+    report["status"] = _profile_status(report)
+    report["status_reason"] = _profile_status_reason(report)
+    report["manifest_entry"] = entry.to_json()
+    report["semantic_map_resolution"] = semantic_map_resolution
+    _assert_allowed_status(report["status"])
     return report
 
 
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-
-
-def _clear_json_files(path: Path) -> None:
-    for stale in path.glob("*.json"):
-        stale.unlink()
-
-
-def _write_semantic_map_artifact(semantic_maps_dir: Path, model_id: str, semantic_map: dict, *, source: str) -> Path:
-    path = semantic_maps_dir / f"{model_id}.json"
-    _write_json(path, {"schema_version": 1, "model_id": model_id, "source": source, "semantics": semantic_map})
-    return path
-
-
-def _compile_command(
+def _validate_negative_control(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
     *,
-    model_path: Path,
-    model_id: str,
-    output_path: Path,
-    semantic_map_path: Path,
-    low_discrepancy_count: int,
-) -> str:
-    return shlex.join(
-        [
-            "python",
-            "-m",
-            "soma_retargeter.tools.compile_kinematic_profile_v3",
-            "--backend",
-            "newton",
-            "--model",
-            str(model_path),
-            "--model-id",
-            model_id,
-            "--semantic-map",
-            str(semantic_map_path),
-            "--output",
-            str(output_path),
-            "--low-discrepancy-count",
-            str(low_discrepancy_count),
-        ]
-    )
-
-
-def _validate_command(*, output_dir: Path, low_discrepancy_count: int) -> str:
-    return shlex.join(
-        [
-            "python",
-            "-m",
-            "soma_retargeter.tools.validate_kinematic_profile_v3",
-            "--output-dir",
-            str(output_dir),
-            "--low-discrepancy-count",
-            str(low_discrepancy_count),
-        ]
-    )
-
-
-def _write_validation_checks(out: Path, per_robot: Path) -> dict:
-    checks = {
-        "g1_mjcf_urdf_equivalence": _g1_mjcf_urdf_equivalence(per_robot),
-        "roboparty_rpo_distal_hand_endpoint": _rpo_distal_hand_endpoint(per_robot),
-        "robotis_op3_chest_demand_leakage": _op3_chest_demand_leakage(per_robot),
-    }
-    _write_json(out / "validation_checks.json", checks)
-    return checks
-
-
-def _read_report(per_robot: Path, report_id: str) -> dict | None:
-    path = per_robot / f"{report_id}.json"
-    if not path.exists():
-        return None
-    return json.loads(path.read_text())
-
-
-def _g1_mjcf_urdf_equivalence(per_robot: Path) -> dict:
-    mjcf = _read_report(per_robot, "unitree_g1_mjcf")
-    urdf = _read_report(per_robot, "unitree_g1_urdf")
-    if not mjcf or not urdf:
-        return {
-            "status": "unavailable",
-            "reason": "one or both G1 reports are unavailable",
-            "tolerance": _g1_equivalence_tolerance(),
+    manifest_path: Path,
+    manifest_sha256: str,
+    reproduction_command: str,
+) -> dict:
+    try:
+        adapter = NewtonRuntimeModelAdapter(resolved.path, model_format=entry.model_format)
+        runtime = {
+            "backend": "newton",
+            "nq": adapter.nq,
+            "nv": adapter.nv,
+            "body_count": len(adapter.body_names),
+            "package_versions": _package_versions(),
+            "loader_provenance": _loader_provenance("newton", entry.model_format),
         }
-    differences = {}
-    for task in sorted(set(mjcf.get("chains", {})) | set(urdf.get("chains", {}))):
-        mjcf_labels = mjcf.get("chains", {}).get(task, {}).get("coordinate_labels", [])
-        urdf_labels = urdf.get("chains", {}).get(task, {}).get("coordinate_labels", [])
-        if mjcf_labels != urdf_labels:
-            differences[f"{task}_coordinate_labels"] = {"mjcf": mjcf_labels, "urdf": urdf_labels}
-        for rank_key in ("regular_rank_translation", "regular_rank_rotation"):
-            mjcf_rank = mjcf.get("rank_stability", {}).get(task, {}).get(rank_key)
-            urdf_rank = urdf.get("rank_stability", {}).get(task, {}).get(rank_key)
-            if mjcf_rank != urdf_rank:
-                differences[f"{task}_{rank_key}"] = {"mjcf": mjcf_rank, "urdf": urdf_rank}
-    return {
-        "status": "passed" if not differences else "documented_limitation",
-        "tolerance": _g1_equivalence_tolerance(),
-        "differences": differences,
-        "known_limitation": (
-            "The cached G1 URDF and MJCF are not treated as strictly equivalent complete models; "
-            "current artifacts document topology/rank differences instead of claiming a pass."
+        adapter.close()
+    except Exception as exc:
+        return _base_report(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            status=RobotValidationStatus.MODEL_LOAD_FAILED.value,
+            failures=[f"{type(exc).__name__}: {exc}"],
+            reproduction_command=reproduction_command,
         )
-        if differences
-        else "",
-    }
-
-
-def _g1_equivalence_tolerance() -> dict:
-    return {
-        "chain_coordinate_labels": "exact ordered match required for strict topology equivalence",
-        "regular_rank_translation": 0,
-        "regular_rank_rotation": 0,
-        "neutral_semantic_position_m": 1e-3,
-    }
-
-
-def _rpo_distal_hand_endpoint(per_robot: Path) -> dict:
-    report = _read_report(per_robot, "roboparty_rpo")
-    if not report:
-        return {"status": "unavailable", "reason": "roboparty_rpo report is unavailable"}
-    checks = {}
-    for side, expected_body in (("left", "left_elbow_yaw_link"), ("right", "right_elbow_yaw_link")):
-        task = f"{side}_hand"
-        semantic = f"{side.capitalize()}Hand"
-        site = report.get("semantic_sites", {}).get(semantic, {})
-        labels = report.get("chains", {}).get(task, {}).get("coordinate_labels", [])
-        checks[task] = {
-            "semantic_body": site.get("body_name"),
-            "local_position": site.get("local_position"),
-            "full_arm_chain_coordinate_count": len(labels),
-            "full_arm_chain_includes_shoulder_and_elbow": any("arm_pitch" in label for label in labels)
-            and any("elbow_yaw" in label for label in labels),
-            "body_endpoint_matches_current_public_model": site.get("body_name") == expected_body,
-        }
-    passed = all(
-        item["body_endpoint_matches_current_public_model"]
-        and item["full_arm_chain_coordinate_count"] >= 5
-        and item["full_arm_chain_includes_shoulder_and_elbow"]
-        for item in checks.values()
+    report = _base_report(
+        entry,
+        resolved,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        status=RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
+        failures=[],
+        warnings=["negative control loaded; humanoid profile compilation intentionally not generated"],
+        reproduction_command=reproduction_command,
     )
-    return {
-        "status": "passed_with_documented_scope" if passed else "failed",
-        "checks": checks,
-        "scope_note": (
-            "The public RPO model exposes the distal arm endpoint as the elbow-yaw link body with zero local offset; "
-            "this check proves full shoulder-to-endpoint chain use, not a separate palm/fingertip mesh anchor."
-        ),
+    report["runtime_adapter"] = runtime
+    report["morphology_classification"] = {
+        "expected_capability": entry.expected_capability,
+        "robot_class": entry.robot_class,
+        "humanoid_profile_generated": False,
     }
+    return report
 
 
-def _op3_chest_demand_leakage(per_robot: Path) -> dict:
-    report = _read_report(per_robot, "robotis_op3")
-    if not report:
-        return {"status": "unavailable", "reason": "robotis_op3 report is unavailable"}
-    torso_labels = report.get("chains", {}).get("torso", {}).get("coordinate_labels", [])
-    projection = report.get("projection_reports", {}).get("torso", {})
-    leg_like = [label for label in torso_labels if any(part in label.lower() for part in ("hip", "knee", "ank"))]
-    passed = torso_labels == [] and projection.get("status") == "rank_zero" and not leg_like
-    return {
-        "status": "passed" if passed else "failed",
-        "torso_coordinate_labels": torso_labels,
-        "leg_coordinate_labels_in_torso_task": leg_like,
-        "projection_status": projection.get("status"),
-        "scope_note": "Chest demand is represented by a rank-zero torso projection for OP3; no leg coordinates are assigned to the torso task.",
-    }
-
-
-def _sha256_file(path: Path | None) -> str | dict:
-    if path is None:
-        return _unavailable("path is unavailable")
-    try:
-        h = hashlib.sha256()
-        with path.open("rb") as f:
-            for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                h.update(chunk)
-        return h.hexdigest()
-    except Exception as exc:
-        return _unavailable(f"{type(exc).__name__}: {exc}")
-
-
-def _model_source_metadata(model_id: str, model_path: Path | None) -> dict:
-    module_info = _description_module_info(model_id)
-    if module_info is None:
-        return {
-            "type": "local_workspace_file",
-            "path": str(model_path) if model_path else None,
-            "workspace_git_head": _git(["rev-parse", "HEAD"]) or _unavailable("not in a git checkout"),
-            "robot_descriptions": _unavailable("model is not supplied by robot_descriptions"),
+def _semantic_map_for_entry(entry: RobotZooEntry, resolved: ResolvedRobotSource, *, manifest_path: Path) -> tuple[dict, dict]:
+    explicit = _resolve_verified_semantic_map_path(entry, manifest_path=manifest_path)
+    if explicit:
+        return load_semantic_map(explicit), {
+            "status": "available",
+            "source": "verified_semantic_map",
+            "path": display_path(explicit),
         }
-    module_name = module_info[0]
-    metadata = {
-        "type": "robot_descriptions_module",
-        "module": module_name,
-        "path_attr": module_info[1],
-        "robot_descriptions_version": _version_or_unavailable("robot-descriptions"),
-    }
+    if entry.id == "roboparty_rpo_local":
+        return default_rpo_semantic_map(), {
+            "status": "available",
+            "source": "default_rpo_semantic_map",
+            "path": display_path(Path("assets/robot_zoo/semantic_maps/roboparty_rpo_local.json")),
+        }
+    adapter = NewtonRuntimeModelAdapter(resolved.path, model_format=entry.model_format)
     try:
-        module = importlib.import_module(module_name)
-        metadata["module_file"] = getattr(module, "__file__", None)
-        repo = Path(getattr(module, "REPOSITORY_PATH", ""))
-        package = Path(getattr(module, "PACKAGE_PATH", "")) if hasattr(module, "PACKAGE_PATH") else None
-        metadata["package_path"] = str(package) if package else _unavailable("PACKAGE_PATH is not exposed by module")
-        metadata["repository_path"] = str(repo) if str(repo) else _unavailable("REPOSITORY_PATH is not exposed by module")
-        metadata["repository_remote"] = _git(["-C", str(repo), "config", "--get", "remote.origin.url"]) if repo.exists() else _unavailable("repository path is unavailable")
-        metadata["repository_head"] = _git(["-C", str(repo), "rev-parse", "HEAD"]) if repo.exists() else _unavailable("repository path is unavailable")
-        metadata["repository_ref"] = _git(["-C", str(repo), "symbolic-ref", "--short", "HEAD"]) if repo.exists() else _unavailable("repository path is unavailable")
-        if not metadata["repository_ref"]:
-            metadata["repository_ref"] = _unavailable("repository is detached or ref is unavailable")
-    except Exception as exc:
-        metadata["module_resolution"] = _unavailable(f"{type(exc).__name__}: {exc}")
-    return metadata
+        return infer_semantic_map_from_body_names(adapter), {
+            "status": "inferred",
+            "source": "inferred_from_newton_body_names",
+            "path": None,
+            "warning": "not a verified semantic map; downstream gates must not count this as verified semantics",
+        }
+    finally:
+        adapter.close()
 
 
-def _description_module_info(model_id: str) -> tuple[str, str] | None:
-    if model_id in DESCRIPTION_MODULES:
-        return DESCRIPTION_MODULES[model_id]
-    if model_id in EXTRA_MODEL_FILES:
-        module_name, root_attr, _relative = EXTRA_MODEL_FILES[model_id]
-        return module_name, root_attr
+def _resolve_verified_semantic_map_path(entry: RobotZooEntry, *, manifest_path: Path) -> Path | None:
+    candidates: list[Path] = []
+    if entry.semantic_map_path:
+        configured = Path(entry.semantic_map_path)
+        if configured.is_absolute():
+            candidates.append(configured)
+        else:
+            candidates.append(manifest_path.parent / configured)
+            candidates.append(Path.cwd() / configured)
+    candidates.append(Path("assets/robot_zoo/semantic_maps") / f"{entry.id}.json")
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
     return None
 
 
-def _robot_zoo_manifest_metadata(report_id: str) -> dict:
-    manifest_model_id = MANIFEST_MODEL_ID_BY_REPORT_ID.get(report_id)
-    if manifest_model_id is None:
-        return _unavailable(f"no Robot Zoo manifest mapping is defined for report id {report_id!r}")
-    manifest = _robot_zoo_manifest()
-    if manifest is None:
-        return _unavailable(f"Robot Zoo manifest is unavailable at {ROBOT_ZOO_MANIFEST_PATH}")
-    entry = manifest.get("model_by_id", {}).get(manifest_model_id)
-    if entry is None:
-        return _unavailable(f"Robot Zoo manifest entry {manifest_model_id!r} is not present")
+def _profile_status(report: dict) -> str:
+    failures = report.get("failures", [])
+    capability = report.get("capability_status")
+    if any("missing required semantics" in failure for failure in failures):
+        return RobotValidationStatus.SEMANTIC_FAILED.value
+    if failures:
+        return RobotValidationStatus.ALGORITHM_FAILED.value
+    if capability == "partial_humanoid":
+        return RobotValidationStatus.PARTIAL_PASSED.value
+    return RobotValidationStatus.PASSED.value
+
+
+def _profile_status_reason(report: dict) -> str:
+    status = report["status"]
+    if status == RobotValidationStatus.PASSED.value:
+        return "profile completed without recorded failures"
+    if status == RobotValidationStatus.PARTIAL_PASSED.value:
+        return "available lower-body/torso semantics compiled with structured partial-humanoid downgrade"
+    if status == RobotValidationStatus.SEMANTIC_FAILED.value:
+        return "required humanoid semantics were missing or incomplete"
+    return "compiler recorded algorithm failures"
+
+
+def _base_report(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
+    *,
+    manifest_path: Path,
+    manifest_sha256: str,
+    status: str,
+    reproduction_command: str,
+    failures: list[str] | None = None,
+    warnings: list[str] | None = None,
+) -> dict:
     return {
-        "status": "available",
-        "manifest_path": str(ROBOT_ZOO_MANIFEST_PATH),
-        "manifest_sha256": manifest["sha256"],
-        "schema_version": manifest["payload"].get("schema_version"),
-        "catalog_name": manifest["payload"].get("catalog_name"),
-        "report_id": report_id,
-        "manifest_model_id": manifest_model_id,
-        "matched_by": "validation_report_id_mapping",
-        "entry": entry,
+        "schema_version": 4,
+        "status": status,
+        "status_reason": _status_reason(status, resolved),
+        "model": {
+            "id": entry.id,
+            "format": entry.model_format,
+            "backend": "newton",
+            "path": display_path(resolved.path),
+            "manifest": {
+                "status": "available",
+                "manifest_path": display_path(manifest_path),
+                "manifest_sha256": manifest_sha256,
+                "manifest_model_id": entry.id,
+                "entry": entry.to_json(),
+            },
+            "source_resolution": resolved.to_json(manifest_path=manifest_path, manifest_sha256=manifest_sha256),
+            "local_file_sha256": sha256_file(resolved.path) if resolved.path and resolved.path.exists() else _unavailable("model path is unavailable"),
+            "semantic_map_artifact": _unavailable("semantic map was not generated"),
+        },
+        "runtime_adapter": {
+            "backend": "newton",
+            "package_versions": _package_versions(),
+            "loader_provenance": _loader_provenance("newton", entry.model_format),
+        },
+        "manifest_entry": entry.to_json(),
+        "failures": failures or [],
+        "warnings": warnings or [],
+        "reproduction_command": reproduction_command,
     }
 
 
-@lru_cache(maxsize=1)
-def _robot_zoo_manifest() -> dict | None:
-    try:
-        payload = json.loads(ROBOT_ZOO_MANIFEST_PATH.read_text())
-    except Exception:
-        return None
+def _status_reason(status: str, resolved: ResolvedRobotSource) -> str:
+    if status == RobotValidationStatus.SOURCE_UNAVAILABLE.value:
+        return resolved.reason
+    if status == RobotValidationStatus.MODEL_LOAD_FAILED.value:
+        return "source resolved but runtime model loading or compilation failed"
+    if status == RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value:
+        return "negative control source loaded and was not promoted to a humanoid profile"
+    if status == RobotValidationStatus.LICENSE_BLOCKED.value:
+        return resolved.reason
+    return status
+
+
+def _summary_entry(report: dict) -> dict:
+    entry = report["manifest_entry"]
     return {
-        "payload": payload,
-        "sha256": _sha256_file(ROBOT_ZOO_MANIFEST_PATH),
-        "model_by_id": {entry["id"]: entry for entry in payload.get("models", [])},
+        "status": report["status"],
+        "status_reason": report.get("status_reason", ""),
+        "failures": report.get("failures", []),
+        "warnings": report.get("warnings", []),
+        "robot_class": entry.get("robot_class"),
+        "expected_capability": entry.get("expected_capability"),
+        "required": entry.get("required"),
+        "redistribution": entry.get("redistribution"),
+    }
+
+
+def _write_semantic_map_artifact(
+    semantic_maps_dir: Path,
+    model_id: str,
+    semantic_map: dict,
+    *,
+    semantic_map_resolution: dict,
+) -> Path:
+    path = semantic_maps_dir / f"{model_id}.json"
+    _write_json(
+        path,
+        {
+            "schema_version": 1,
+            "model_id": model_id,
+            "source": semantic_map_resolution["source"],
+            "resolution": semantic_map_resolution,
+            "semantics": semantic_map,
+        },
+    )
+    return path
+
+
+def _cross_format_report(reports: dict[str, dict], per_robot: Path) -> dict:
+    groups: dict[str, dict[str, str]] = defaultdict(dict)
+    for model_id in reports:
+        if model_id.endswith("_urdf"):
+            groups[model_id[: -len("_urdf")]]["urdf"] = model_id
+        elif model_id.endswith("_mjcf"):
+            groups[model_id[: -len("_mjcf")]]["mjcf"] = model_id
+    pairs = {}
+    for family, formats in sorted(groups.items()):
+        if {"urdf", "mjcf"} <= set(formats):
+            urdf_id = formats["urdf"]
+            mjcf_id = formats["mjcf"]
+            pairs[family] = {
+                "urdf": urdf_id,
+                "mjcf": mjcf_id,
+                "status": "not_run",
+                "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+                "inputs": {
+                    "urdf_status": reports[urdf_id]["status"],
+                    "mjcf_status": reports[mjcf_id]["status"],
+                    "urdf_report": display_path(per_robot / f"{urdf_id}.json"),
+                    "mjcf_report": display_path(per_robot / f"{mjcf_id}.json"),
+                },
+            }
+    return {
+        "schema_version": 1,
+        "gates": {
+            "same_source_strict": {
+                "status": "not_run",
+                "reason": "requires Agent A canonical URDF-to-MJCF conversion artifacts",
+            },
+            "variant_compatibility": {
+                "status": "not_run",
+                "reason": "requires both variants to pass independent algorithm gates first",
+            },
+        },
+        "pairs": pairs,
+    }
+
+
+def _deterministic_rerun_report(reports: dict[str, dict], *, deterministic_rerun: bool) -> dict:
+    return {
+        "schema_version": 1,
+        "status": "not_run" if not deterministic_rerun else "scaffolded",
+        "reason": (
+            "pass --deterministic-rerun to reserve a two-run comparison artifact; "
+            "the current implementation does not count single-run reports as deterministic pass"
+        ),
+        "models": {
+            model_id: {
+                "status": "not_run",
+                "input_status": report["status"],
+                "reason": "second independent run not executed in this artifact pass",
+            }
+            for model_id, report in sorted(reports.items())
+        },
+    }
+
+
+def _environment_report(manifest) -> dict:
+    return {
+        "python": sys.version,
+        "platform": platform.platform(),
+        "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "git_head": _git(["rev-parse", "HEAD"]),
+        "git_status_short": _git(["status", "--short"]),
+        "package_versions": _package_versions(),
+        "manifest": {
+            "path": display_path(manifest.path),
+            "sha256": manifest.sha256,
+            "model_count": len(manifest.entries),
+        },
+        "source_cache_root": "${ROBOT_ZOO_CACHE}",
+        "seed": 0,
     }
 
 
@@ -497,9 +565,9 @@ def _loader_provenance(backend: str, model_format: str) -> dict:
         ("newton", "urdf"): "newton.ModelBuilder.add_urdf",
         ("newton", "xml"): "newton.ModelBuilder.add_mjcf",
         ("newton", "mjcf"): "newton.ModelBuilder.add_mjcf",
-        ("mujoco", "urdf"): "mujoco.MjModel.from_xml_path with adapter URDF mesh absolutization fallback",
-        ("mujoco", "xml"): "mujoco.MjModel.from_xml_path with adapter XML compatibility fallback",
-        ("mujoco", "mjcf"): "mujoco.MjModel.from_xml_path with adapter XML compatibility fallback",
+        ("mujoco", "urdf"): "mujoco.MjModel.from_xml_path",
+        ("mujoco", "xml"): "mujoco.MjModel.from_xml_path",
+        ("mujoco", "mjcf"): "mujoco.MjModel.from_xml_path",
     }.get((backend, model_format), f"{backend} loader for {model_format or 'unavailable'}")
     return {
         "loader": loader,
@@ -531,8 +599,41 @@ def _unavailable(reason: str) -> dict:
     return {"status": "unavailable", "reason": reason}
 
 
+def _assert_allowed_status(status: str) -> None:
+    if status not in allowed_status_values():
+        raise ValueError(f"invalid Robot Zoo validation status: {status!r}")
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def _clear_json_files(path: Path) -> None:
+    for stale in path.glob("*.json"):
+        stale.unlink()
+
+
+def _clear_matching_files(path: Path, patterns: tuple[str, ...]) -> None:
+    for pattern in patterns:
+        for stale in path.glob(pattern):
+            stale.unlink()
+
+
 def _git(args: list[str]) -> str:
     try:
         return subprocess.check_output(["git", *args], text=True, stderr=subprocess.DEVNULL).strip()
     except Exception:
         return ""
+
+
+def isolated_validation_run(*, manifest_path: str | Path, low_discrepancy_count: int = 1) -> dict:
+    """Run validation into a temporary directory and return the parsed summary."""
+
+    with TemporaryDirectory() as tmp:
+        summary = write_validation_artifacts(
+            Path(tmp) / "artifacts",
+            manifest_path=manifest_path,
+            low_discrepancy_count=low_discrepancy_count,
+        )
+        return json.loads(json.dumps(summary))
