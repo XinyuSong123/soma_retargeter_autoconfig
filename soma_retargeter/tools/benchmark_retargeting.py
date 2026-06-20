@@ -568,6 +568,48 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["pole_vector_tasks"] = []
         config["benchmark_compare_mode"] = compare_mode
         return config
+    if compare_mode.startswith("v2_pole_keep_"):
+        raw_path = get_profile_path(robot, "retargeter_config")
+        if raw_path is None:
+            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        tokens = [token for token in compare_mode.removeprefix("v2_pole_keep_").replace("+", "_").split("_") if token]
+        if not tokens:
+            raise ValueError(f"Invalid pole keep selector in compare mode {compare_mode!r}")
+        kept_tasks = []
+        for task in config.get("pole_vector_tasks", []):
+            if not isinstance(task, dict):
+                continue
+            task_name = str(task.get("name", "")).lower()
+            target_site = str(task.get("target_site", "")).lower()
+            reference_site = str(task.get("reference_site", "")).lower()
+            selector_text = f"{task_name} {target_site} {reference_site}"
+            keep = False
+            for token in tokens:
+                if token == "arm":
+                    keep = keep or "arm" in selector_text or "forearm" in selector_text or "hand" in selector_text
+                elif token == "leg":
+                    keep = keep or "leg" in selector_text or "shin" in selector_text or "foot" in selector_text
+                elif token == "hand":
+                    keep = keep or "forearm_pole_vector" in task_name or "hand" in target_site
+                elif token == "foot":
+                    keep = keep or "shin_pole_vector" in task_name or "foot" in target_site
+                elif token == "proximal":
+                    keep = keep or (
+                        ("arm_pole_vector" in task_name and "forearm" not in task_name)
+                        or ("leg_pole_vector" in task_name and "shin" not in task_name)
+                    )
+                elif token == "distal":
+                    keep = keep or "forearm_pole_vector" in task_name or "shin_pole_vector" in task_name
+                else:
+                    keep = keep or token in selector_text
+            if keep:
+                task = dict(task)
+                task["selection_reason"] = f"benchmark experiment: kept by pole selector {','.join(tokens)}"
+                kept_tasks.append(task)
+        config["pole_vector_tasks"] = kept_tasks
+        config["benchmark_compare_mode"] = compare_mode
+        return config
     if compare_mode.startswith("v2_iter"):
         try:
             ik_iterations = int(compare_mode.removeprefix("v2_iter"))
@@ -620,7 +662,7 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["benchmark_compare_mode"] = compare_mode if pole_analytic_weight_scale == 1.0 else f"{compare_mode}_w{pole_analytic_weight_scale:g}"
         return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_iter<N>', 'v2_hand_w<weight>', or 'v2_pole_analytic'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', or 'v2_pole_analytic'."
     )
 
 
@@ -1551,7 +1593,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--compare",
         nargs="+",
         default=["legacy", "v2"],
-        help="Compare modes: legacy, v2, v2_no_pole, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
+        help="Compare modes: legacy, v2, v2_no_pole, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
     )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)

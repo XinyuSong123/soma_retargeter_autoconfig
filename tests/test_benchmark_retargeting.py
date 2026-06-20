@@ -54,6 +54,44 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["pole_vector_tasks"], [])
         self.assertTrue(cfg["direction_tasks"])
 
+    def test_pole_keep_compare_mode_filters_pole_tasks_by_semantic_selector(self):
+        cfg = _runtime_retargeter_config("unitree_g1", "v2_pole_keep_hand")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_pole_keep_hand")
+        self.assertTrue(cfg["direction_tasks"])
+        self.assertEqual(
+            [task["name"] for task in cfg["pole_vector_tasks"]],
+            ["LeftForeArm_pole_vector", "RightForeArm_pole_vector"],
+        )
+        self.assertIn("pole selector hand", cfg["pole_vector_tasks"][0]["selection_reason"])
+
+        foot_cfg = _runtime_retargeter_config("unitree_g1", "v2_pole_keep_foot")
+        self.assertEqual(
+            [task["name"] for task in foot_cfg["pole_vector_tasks"]],
+            ["LeftShin_pole_vector", "RightShin_pole_vector"],
+        )
+
+        distal_cfg = _runtime_retargeter_config("unitree_g1", "v2_pole_keep_distal")
+        self.assertEqual(
+            [task["name"] for task in distal_cfg["pole_vector_tasks"]],
+            [
+                "LeftForeArm_pole_vector",
+                "LeftShin_pole_vector",
+                "RightForeArm_pole_vector",
+                "RightShin_pole_vector",
+            ],
+        )
+
+        proximal_cfg = _runtime_retargeter_config("unitree_g1", "v2_pole_keep_proximal")
+        self.assertEqual(
+            [task["name"] for task in proximal_cfg["pole_vector_tasks"]],
+            [
+                "LeftArm_pole_vector",
+                "LeftLeg_pole_vector",
+                "RightArm_pole_vector",
+                "RightLeg_pole_vector",
+            ],
+        )
+
     def test_iteration_compare_mode_changes_only_iteration_count(self):
         baseline = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic")
         cfg = _runtime_retargeter_config("unitree_g1", "v2_iter4")
