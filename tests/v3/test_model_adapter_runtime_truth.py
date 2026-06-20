@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -127,6 +130,47 @@ def test_fingerprint_records_primary_include_asset_loader_and_compiled_summary(t
     assert payload["conversion_settings"] == {"canonical_format": "mjcf"}
     assert payload["compiled_summary"] == {"nq": 0, "nv": 0}
     assert len(payload["sha256"]) == 64
+
+
+def test_fingerprint_records_xacro_resolved_content_digest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _write(
+        tmp_path / "part.xacro",
+        """
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="part">
+  <xacro:property name="length" value="1.0"/>
+</robot>
+""",
+    )
+    main = _write(
+        tmp_path / "main.xacro",
+        """
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="main">
+  <xacro:include filename="part.xacro"/>
+</robot>
+""",
+    )
+    resolved = "<robot name='expanded'/>"
+
+    monkeypatch.setitem(
+        sys.modules,
+        "xacro",
+        SimpleNamespace(process_file=lambda path: SimpleNamespace(toxml=lambda: resolved)),
+    )
+
+    payload = model_fingerprint_payload(
+        main,
+        backend="mujoco",
+        model_format="urdf",
+        loader_name="mujoco",
+        loader_version="test-loader",
+    )
+
+    roles = {(entry["role"], Path(entry["path"]).name) for entry in payload["files"]}
+    assert ("primary_model", "main.xacro") in roles
+    assert ("resolved_include", "part.xacro") in roles
+    assert payload["xacro_resolution"]["status"] == "resolved"
+    assert payload["xacro_resolution"]["resolved_sha256"] == hashlib.sha256(resolved.encode("utf-8")).hexdigest()
+    assert payload["xacro_resolution"]["resolved_size_bytes"] == len(resolved)
 
 
 def test_newton_model_site_frame_records_mujoco_compiled_crosscheck(tmp_path: Path):

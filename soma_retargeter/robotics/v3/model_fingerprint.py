@@ -60,6 +60,7 @@ def model_fingerprint_payload(
         "conversion_settings": _stable_json(conversion_settings or {}),
         "loader_provenance": _stable_json(loader_provenance or {}),
         "files": [file.to_json() for file in files],
+        "xacro_resolution": _stable_json(_xacro_resolution_payload(root)),
         "compiled_summary": _stable_json(compiled_summary or {}),
     }
     stable = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -112,6 +113,61 @@ def _collect_files(model_path: Path) -> list[FileDigest]:
 
     visit_xml(model_path, root_file=True)
     return sorted(out, key=lambda item: (item.role, item.path))
+
+
+def _xacro_resolution_payload(model_path: Path) -> dict:
+    """Return deterministic xacro expansion provenance when the source uses xacro."""
+
+    if not _looks_like_xacro(model_path):
+        return {"present": False, "status": "not_xacro"}
+    try:
+        import xacro  # type: ignore[import-not-found]
+    except ImportError:
+        return {
+            "present": True,
+            "status": "resolver_unavailable",
+            "resolver": "python-xacro",
+            "resolver_version": None,
+            "resolved_sha256": None,
+            "resolved_size_bytes": None,
+        }
+    try:
+        document = xacro.process_file(str(model_path))
+        if hasattr(document, "toxml"):
+            resolved = document.toxml()
+        elif hasattr(document, "toprettyxml"):
+            resolved = document.toprettyxml()
+        else:
+            resolved = str(document)
+    except Exception as exc:
+        return {
+            "present": True,
+            "status": "resolve_failed",
+            "resolver": "python-xacro",
+            "resolver_version": _package_version("xacro"),
+            "resolved_sha256": None,
+            "resolved_size_bytes": None,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    resolved_bytes = resolved.replace("\r\n", "\n").encode("utf-8")
+    return {
+        "present": True,
+        "status": "resolved",
+        "resolver": "python-xacro",
+        "resolver_version": _package_version("xacro"),
+        "resolved_sha256": hashlib.sha256(resolved_bytes).hexdigest(),
+        "resolved_size_bytes": len(resolved_bytes),
+    }
+
+
+def _looks_like_xacro(path: Path) -> bool:
+    if path.suffix.lower() == ".xacro":
+        return True
+    try:
+        text = path.read_text(errors="ignore")
+    except OSError:
+        return False
+    return "xmlns:xacro" in text or "xacro:" in text
 
 
 def _xml_includes(path: Path) -> list[Path]:
