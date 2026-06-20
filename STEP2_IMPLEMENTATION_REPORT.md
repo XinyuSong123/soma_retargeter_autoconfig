@@ -2,6 +2,7 @@
 
 Status: **BLOCKED**  
 Branch/worktree: `agent-f-repro-ci-red-team` at `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig_agent_f`
+Primary commit: `67f726b test: add retargeting v3 step2 acceptance audit`
 
 ## Scope
 
