@@ -1,39 +1,39 @@
 {
   "failures": [],
   "manifest_entry": {
-    "description_name": "g1_mj_description",
+    "description_name": null,
     "expected_capability": "positive",
     "format": "mjcf",
-    "id": "unitree_g1_mjcf",
+    "id": "berkeley_humanoid_mjcf_direct",
     "license": "BSD-3-Clause",
-    "notes": "",
+    "notes": "Menagerie directory: berkeley_humanoid",
     "redistribution": "kinematic_snapshot",
     "required": true,
     "robot_class": "humanoid",
-    "source_family": "robot_descriptions"
+    "source_family": "mujoco_menagerie"
   },
   "model": {
     "backend": "newton",
     "format": "mjcf",
-    "id": "unitree_g1_mjcf",
+    "id": "berkeley_humanoid_mjcf_direct",
     "local_file_sha256": {
       "reason": "model path is unavailable",
       "status": "unavailable"
     },
     "manifest": {
       "entry": {
-        "description_name": "g1_mj_description",
+        "description_name": null,
         "expected_capability": "positive",
         "format": "mjcf",
-        "id": "unitree_g1_mjcf",
+        "id": "berkeley_humanoid_mjcf_direct",
         "license": "BSD-3-Clause",
-        "notes": "",
+        "notes": "Menagerie directory: berkeley_humanoid",
         "redistribution": "kinematic_snapshot",
         "required": true,
         "robot_class": "humanoid",
-        "source_family": "robot_descriptions"
+        "source_family": "mujoco_menagerie"
       },
-      "manifest_model_id": "unitree_g1_mjcf",
+      "manifest_model_id": "berkeley_humanoid_mjcf_direct",
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
       "status": "available"
@@ -45,28 +45,28 @@
     },
     "source_resolution": {
       "entry": {
-        "description_name": "g1_mj_description",
+        "description_name": null,
         "expected_capability": "positive",
         "format": "mjcf",
-        "id": "unitree_g1_mjcf",
+        "id": "berkeley_humanoid_mjcf_direct",
         "license": "BSD-3-Clause",
-        "notes": "",
+        "notes": "Menagerie directory: berkeley_humanoid",
         "redistribution": "kinematic_snapshot",
         "required": true,
         "robot_class": "humanoid",
-        "source_family": "robot_descriptions"
+        "source_family": "mujoco_menagerie"
       },
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
-      "module": "robot_descriptions.g1_mj_description",
+      "module": null,
       "path": null,
-      "path_attr": "MJCF_PATH",
-      "reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
-      "resolver": "robot_descriptions_no_fetch",
+      "path_attr": null,
+      "reason": "fixed-ref menagerie source is not in cache for 'berkeley_humanoid'; set ROBOT_ZOO_CACHE or run the sync plan",
+      "resolver": "mujoco_menagerie_cache",
       "status": "source_unavailable"
     }
   },
-  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id unitree_g1_mjcf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/unitree_g1_mjcf.json --low-discrepancy-count 1",
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id berkeley_humanoid_mjcf_direct --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/berkeley_humanoid_mjcf_direct.json --low-discrepancy-count 1",
   "runtime_adapter": {
     "backend": "newton",
     "loader_provenance": {
@@ -89,8 +89,8 @@
   },
   "schema_version": 4,
   "status": "source_unavailable",
-  "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+  "status_reason": "fixed-ref menagerie source is not in cache for 'berkeley_humanoid'; set ROBOT_ZOO_CACHE or run the sync plan",
   "warnings": [
-    "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+    "fixed-ref menagerie source is not in cache for 'berkeley_humanoid'; set ROBOT_ZOO_CACHE or run the sync plan"
   ]
 }

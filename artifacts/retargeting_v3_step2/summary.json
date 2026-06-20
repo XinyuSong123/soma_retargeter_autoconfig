@@ -1,134 +1,955 @@
 {
-  "compiled_count": 9,
-  "failure_artifacts_count": 0,
-  "missing_count": 0,
-  "reports": {
-    "berkeley_humanoid": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "booster_t1": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "pal_talos": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "roboparty_rpo": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "robotis_op3": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "unitree_g1_23dof": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "unitree_g1_mjcf": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "unitree_g1_urdf": {
-      "failures": [],
-      "status": "compiled"
-    },
-    "unitree_h1": {
-      "failures": [],
-      "status": "compiled"
-    }
-  },
-  "validation_checks": {
-    "g1_mjcf_urdf_equivalence": {
-      "differences": {
-        "left_hand_coordinate_labels": {
-          "mjcf": [
-            "left_shoulder_pitch_joint",
-            "left_shoulder_roll_joint",
-            "left_shoulder_yaw_joint",
-            "left_elbow_joint",
-            "left_wrist_roll_joint",
-            "left_wrist_pitch_joint"
-          ],
-          "urdf": [
-            "left_shoulder_pitch_joint",
-            "left_shoulder_roll_joint",
-            "left_shoulder_yaw_joint",
-            "left_elbow_joint",
-            "left_wrist_roll_joint",
-            "left_wrist_pitch_joint",
-            "left_wrist_yaw_joint"
-          ]
-        },
-        "right_hand_coordinate_labels": {
-          "mjcf": [
-            "right_shoulder_pitch_joint",
-            "right_shoulder_roll_joint",
-            "right_shoulder_yaw_joint",
-            "right_elbow_joint",
-            "right_wrist_roll_joint",
-            "right_wrist_pitch_joint"
-          ],
-          "urdf": [
-            "right_shoulder_pitch_joint",
-            "right_shoulder_roll_joint",
-            "right_shoulder_yaw_joint",
-            "right_elbow_joint",
-            "right_wrist_roll_joint",
-            "right_wrist_pitch_joint",
-            "right_wrist_yaw_joint"
-          ]
-        },
-        "torso_regular_rank_translation": {
-          "mjcf": 1,
-          "urdf": 2
-        }
+  "algorithm_pass_count": 0,
+  "cross_format": {
+    "gates": {
+      "same_source_strict": {
+        "reason": "requires Agent A canonical URDF-to-MJCF conversion artifacts",
+        "status": "not_run"
       },
-      "known_limitation": "The cached G1 URDF and MJCF are not treated as strictly equivalent complete models; current artifacts document topology/rank differences instead of claiming a pass.",
-      "status": "documented_limitation",
-      "tolerance": {
-        "chain_coordinate_labels": "exact ordered match required for strict topology equivalence",
-        "neutral_semantic_position_m": 0.001,
-        "regular_rank_rotation": 0,
-        "regular_rank_translation": 0
+      "variant_compatibility": {
+        "reason": "requires both variants to pass independent algorithm gates first",
+        "status": "not_run"
       }
     },
-    "roboparty_rpo_distal_hand_endpoint": {
-      "checks": {
-        "left_hand": {
-          "body_endpoint_matches_current_public_model": true,
-          "full_arm_chain_coordinate_count": 5,
-          "full_arm_chain_includes_shoulder_and_elbow": true,
-          "local_position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "semantic_body": "left_elbow_yaw_link"
+    "pairs": {
+      "booster_t1": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/booster_t1_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/booster_t1_urdf.json",
+          "urdf_status": "source_unavailable"
         },
-        "right_hand": {
-          "body_endpoint_matches_current_public_model": true,
-          "full_arm_chain_coordinate_count": 5,
-          "full_arm_chain_includes_shoulder_and_elbow": true,
-          "local_position": [
-            0.0,
-            0.0,
-            0.0
-          ],
-          "semantic_body": "right_elbow_yaw_link"
-        }
+        "mjcf": "booster_t1_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "booster_t1_urdf"
       },
-      "scope_note": "The public RPO model exposes the distal arm endpoint as the elbow-yaw link body with zero local offset; this check proves full shoulder-to-endpoint chain use, not a separate palm/fingertip mesh anchor.",
-      "status": "passed_with_documented_scope"
+      "cassie": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/cassie_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/cassie_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "cassie_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "cassie_urdf"
+      },
+      "elf2": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/elf2_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/elf2_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "elf2_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "elf2_urdf"
+      },
+      "fourier_n1": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/fourier_n1_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/fourier_n1_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "fourier_n1_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "fourier_n1_urdf"
+      },
+      "jvrc": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/jvrc_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/jvrc_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "jvrc_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "jvrc_urdf"
+      },
+      "unitree_g1": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_g1_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_g1_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "unitree_g1_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "unitree_g1_urdf"
+      },
+      "unitree_go2": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_go2_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_go2_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "unitree_go2_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "unitree_go2_urdf"
+      },
+      "unitree_h1": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "unitree_h1_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "unitree_h1_urdf"
+      },
+      "unitree_h1_2": {
+        "inputs": {
+          "mjcf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_2_mjcf.json",
+          "mjcf_status": "source_unavailable",
+          "urdf_report": "artifacts/retargeting_v3_step2/per_robot/unitree_h1_2_urdf.json",
+          "urdf_status": "source_unavailable"
+        },
+        "mjcf": "unitree_h1_2_mjcf",
+        "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",
+        "status": "not_run",
+        "urdf": "unitree_h1_2_urdf"
+      }
     },
-    "robotis_op3_chest_demand_leakage": {
-      "leg_coordinate_labels_in_torso_task": [],
-      "projection_status": "rank_zero",
-      "scope_note": "Chest demand is represented by a rank-zero torso projection for OP3; no leg coordinates are assigned to the torso task.",
-      "status": "passed",
-      "torso_coordinate_labels": []
+    "schema_version": 1
+  },
+  "deterministic_rerun": {
+    "models": {
+      "adam_lite_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "apptronik_apollo_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "atlas_drc_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "atlas_v4_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "berkeley_humanoid_mjcf_direct": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "berkeley_humanoid_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "bolt_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "booster_t1_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "booster_t1_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "cassie_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "cassie_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "draco3_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "elf2_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "elf2_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "ergocub_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "fourier_gr1_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "fourier_n1_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "fourier_n1_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "franka_panda_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "jaxon_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "jvrc_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "jvrc_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "mujoco_humanoid_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "pal_talos_mjcf_direct": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "rhea_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "robonaut2_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "roboparty_rpo_local": {
+        "input_status": "algorithm_failed",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "robotis_op3_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "romeo_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "sigmaban_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "simple_humanoid_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "stretch3_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "talos_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "toddlerbot_2xc_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "toddlerbot_2xm_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "toddlerbot_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_g1_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_g1_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_go2_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_go2_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_h1_2_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_h1_2_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_h1_mjcf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "unitree_h1_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "upkie_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      },
+      "valkyrie_urdf": {
+        "input_status": "source_unavailable",
+        "reason": "second independent run not executed in this artifact pass",
+        "status": "not_run"
+      }
+    },
+    "reason": "pass --deterministic-rerun to reserve a two-run comparison artifact; the current implementation does not count single-run reports as deterministic pass",
+    "schema_version": 1,
+    "status": "not_run"
+  },
+  "failure_artifacts_count": 1,
+  "manifest": {
+    "allowed_statuses": [
+      "passed",
+      "partial_passed",
+      "negative_control_passed",
+      "algorithm_failed",
+      "semantic_failed",
+      "model_load_failed",
+      "source_unavailable",
+      "license_blocked"
+    ],
+    "model_count": 46,
+    "path": "assets/robot_zoo/robot_zoo_manifest.json",
+    "sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c"
+  },
+  "model_count_by_class": {
+    "biped_no_arms": 5,
+    "humanoid": 37,
+    "mobile_manipulator": 1,
+    "quadruped": 2,
+    "single_arm": 1
+  },
+  "model_count_by_expected_capability": {
+    "negative_control": 9,
+    "positive": 37
+  },
+  "model_load_failed_count": 0,
+  "notes": [
+    "compiled is intentionally not a validation status",
+    "source_unavailable is counted separately from algorithm pass/fail"
+  ],
+  "reports": {
+    "adam_lite_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "apptronik_apollo_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "atlas_drc_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "atlas_v4_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "berkeley_humanoid_mjcf_direct": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "fixed-ref menagerie source is not in cache for 'berkeley_humanoid'; set ROBOT_ZOO_CACHE or run the sync plan",
+      "warnings": [
+        "fixed-ref menagerie source is not in cache for 'berkeley_humanoid'; set ROBOT_ZOO_CACHE or run the sync plan"
+      ]
+    },
+    "berkeley_humanoid_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "bolt_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "booster_t1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "booster_t1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "cassie_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "cassie_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "draco3_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "elf2_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "elf2_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "ergocub_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "fourier_gr1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "fourier_n1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "fourier_n1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "franka_panda_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "single_arm",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "jaxon_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "jvrc_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "jvrc_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "mujoco_humanoid_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "pal_talos_mjcf_direct": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "fixed-ref menagerie source is not in cache for 'pal_talos'; set ROBOT_ZOO_CACHE or run the sync plan",
+      "warnings": [
+        "fixed-ref menagerie source is not in cache for 'pal_talos'; set ROBOT_ZOO_CACHE or run the sync plan"
+      ]
+    },
+    "rhea_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "robonaut2_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "roboparty_rpo_local": {
+      "expected_capability": "positive",
+      "failures": [
+        "neutral exactness gate failed"
+      ],
+      "redistribution": "local_existing",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "compiler recorded algorithm failures",
+      "warnings": []
+    },
+    "robotis_op3_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "romeo_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "sigmaban_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "simple_humanoid_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "stretch3_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "mobile_manipulator",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "talos_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "toddlerbot_2xc_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "toddlerbot_2xm_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "toddlerbot_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_g1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_g1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_go2_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "quadruped",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_go2_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "quadruped",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_h1_2_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_h1_2_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_h1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "unitree_h1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "upkie_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
+    },
+    "valkyrie_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "source_unavailable",
+      "status_reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
+      "warnings": [
+        "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended"
+      ]
     }
+  },
+  "schema_version": 4,
+  "source_unavailable_count": 45,
+  "status_counts": {
+    "algorithm_failed": 1,
+    "source_unavailable": 45
   }
 }

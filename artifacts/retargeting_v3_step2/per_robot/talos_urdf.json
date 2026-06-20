@@ -1,39 +1,39 @@
 {
   "failures": [],
   "manifest_entry": {
-    "description_name": "g1_mj_description",
+    "description_name": "talos_description",
     "expected_capability": "positive",
-    "format": "mjcf",
-    "id": "unitree_g1_mjcf",
-    "license": "BSD-3-Clause",
-    "notes": "",
-    "redistribution": "kinematic_snapshot",
-    "required": true,
+    "format": "urdf",
+    "id": "talos_urdf",
+    "license": "LGPL-3.0",
+    "notes": "Fetch-only unless redistribution reviewed",
+    "redistribution": "fetch_only",
+    "required": false,
     "robot_class": "humanoid",
     "source_family": "robot_descriptions"
   },
   "model": {
     "backend": "newton",
-    "format": "mjcf",
-    "id": "unitree_g1_mjcf",
+    "format": "urdf",
+    "id": "talos_urdf",
     "local_file_sha256": {
       "reason": "model path is unavailable",
       "status": "unavailable"
     },
     "manifest": {
       "entry": {
-        "description_name": "g1_mj_description",
+        "description_name": "talos_description",
         "expected_capability": "positive",
-        "format": "mjcf",
-        "id": "unitree_g1_mjcf",
-        "license": "BSD-3-Clause",
-        "notes": "",
-        "redistribution": "kinematic_snapshot",
-        "required": true,
+        "format": "urdf",
+        "id": "talos_urdf",
+        "license": "LGPL-3.0",
+        "notes": "Fetch-only unless redistribution reviewed",
+        "redistribution": "fetch_only",
+        "required": false,
         "robot_class": "humanoid",
         "source_family": "robot_descriptions"
       },
-      "manifest_model_id": "unitree_g1_mjcf",
+      "manifest_model_id": "talos_urdf",
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
       "status": "available"
@@ -45,28 +45,28 @@
     },
     "source_resolution": {
       "entry": {
-        "description_name": "g1_mj_description",
+        "description_name": "talos_description",
         "expected_capability": "positive",
-        "format": "mjcf",
-        "id": "unitree_g1_mjcf",
-        "license": "BSD-3-Clause",
-        "notes": "",
-        "redistribution": "kinematic_snapshot",
-        "required": true,
+        "format": "urdf",
+        "id": "talos_urdf",
+        "license": "LGPL-3.0",
+        "notes": "Fetch-only unless redistribution reviewed",
+        "redistribution": "fetch_only",
+        "required": false,
         "robot_class": "humanoid",
         "source_family": "robot_descriptions"
       },
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
-      "module": "robot_descriptions.g1_mj_description",
+      "module": "robot_descriptions.talos_description",
       "path": null,
-      "path_attr": "MJCF_PATH",
+      "path_attr": "URDF_PATH",
       "reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
       "resolver": "robot_descriptions_no_fetch",
       "status": "source_unavailable"
     }
   },
-  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id unitree_g1_mjcf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/unitree_g1_mjcf.json --low-discrepancy-count 1",
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id talos_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/talos_urdf.json --low-discrepancy-count 1",
   "runtime_adapter": {
     "backend": "newton",
     "loader_provenance": {
@@ -75,8 +75,8 @@
         "reason": "runtime backend does not expose a serialized compiled-model manifest",
         "status": "unavailable"
       },
-      "loader": "newton.ModelBuilder.add_mjcf",
-      "model_format": "mjcf"
+      "loader": "newton.ModelBuilder.add_urdf",
+      "model_format": "urdf"
     },
     "package_versions": {
       "mujoco": "3.8.1",

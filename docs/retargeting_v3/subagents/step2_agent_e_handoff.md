@@ -11,7 +11,8 @@ Prior Agent E input worktree reviewed by commit hash; local path intentionally o
   - `9549b9e artifacts: publish manifest robot zoo validation scaffold`
   - `4ff8c41 docs: note agent e reasoning provenance`
 - Current Agent E-xhigh integration commits:
-  - pending at handoff edit time; final Integrator response lists committed hashes.
+  - `d420f26 feat: add manifest-driven robot zoo validation`
+  - artifacts/handoff commit containing this file; final Integrator response lists the concrete hash.
 
 ## Files
 
