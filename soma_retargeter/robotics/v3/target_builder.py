@@ -64,10 +64,6 @@ def build_targets_from_source_semantic_frames(
 ) -> SemanticTargets:
     """Reconstruct robot-space semantic targets from calibrated source semantic frames."""
     root = "Hips" if "Hips" in calibration.robot_neutral_site_transforms else next(iter(calibration.robot_neutral_site_transforms))
-    neutral_source = calibration.source_rest_semantic_frames
-    global_delta = np.eye(4)
-    if root in source_pose and root in neutral_source:
-        global_delta = source_pose[root] @ invert_transform(neutral_source[root])
 
     transforms: dict[str, np.ndarray] = {}
     provenance: dict[str, str] = {
@@ -77,17 +73,17 @@ def build_targets_from_source_semantic_frames(
     if calibration.source_provenance == "robot_neutral_proxy_no_external_source_rest_supplied":
         provenance["limitation"] = "source rest unavailable; source semantics are robot-neutral proxy frames"
 
-    transforms[root] = _apply_global_delta(calibration.robot_neutral_site_transforms[root], global_delta)
+    transforms[root] = _root_target_transform(calibration, source_pose, root)
     for edge_name, (parent, child) in EDGES.items():
         if parent not in calibration.robot_neutral_site_transforms or child not in calibration.robot_neutral_site_transforms:
             continue
         if parent not in transforms:
-            transforms[parent] = _apply_global_delta(calibration.robot_neutral_site_transforms[parent], global_delta)
-        transforms[child] = _edge_target_transform(calibration, source_pose, global_delta, edge_name, parent, child, transforms[parent])
+            transforms[parent] = calibration.robot_neutral_site_transforms[parent].copy()
+        transforms[child] = _edge_target_transform(calibration, source_pose, edge_name, parent, child, transforms[parent])
 
     for name, neutral_t in calibration.robot_neutral_site_transforms.items():
         if name not in transforms:
-            transforms[name] = _apply_global_delta(neutral_t, global_delta)
+            transforms[name] = neutral_t.copy()
             provenance[f"{name}:fallback"] = "not_on_calibrated_semantic_edge"
     return SemanticTargets(
         transforms=transforms,
@@ -146,7 +142,6 @@ def _targets(calibration: RestCalibration, transforms: dict[str, np.ndarray], mo
 def _edge_target_transform(
     calibration: RestCalibration,
     source_pose: dict[str, np.ndarray],
-    global_delta: np.ndarray,
     edge_name: str,
     parent: str,
     child: str,
@@ -172,24 +167,65 @@ def _edge_target_transform(
         or neutral_source_child is None
         or alignment is None
     ):
-        return _apply_global_delta(robot_child_neutral, global_delta)
+        return parent_target @ neutral_rel_robot
 
     source_rel = invert_transform(source_parent) @ source_child
     neutral_source_rel = invert_transform(neutral_source_parent) @ neutral_source_child
     source_edge = source_rel[:3, 3]
     if np.linalg.norm(source_edge) <= 1e-9:
-        return _apply_global_delta(robot_child_neutral, global_delta)
+        return parent_target @ neutral_rel_robot
 
     mapped_direction_parent = alignment @ normalize(source_edge)
     out[:3, 3] = parent_target[:3, 3] + parent_target[:3, :3] @ mapped_direction_parent * float(length)
-    source_rotation_delta = source_rel[:3, :3] @ neutral_source_rel[:3, :3].T
-    out[:3, :3] = parent_target[:3, :3] @ source_rotation_delta @ neutral_rel_robot[:3, :3]
+    source_rotation_delta = neutral_source_rel[:3, :3].T @ source_rel[:3, :3]
+    mapped_rotation_delta = alignment @ source_rotation_delta @ alignment.T
+    out[:3, :3] = parent_target[:3, :3] @ neutral_rel_robot[:3, :3] @ mapped_rotation_delta
     return out
 
 
-def _apply_global_delta(transform_world: np.ndarray, global_delta: np.ndarray) -> np.ndarray:
-    out = global_delta @ transform_world
+def _root_target_transform(
+    calibration: RestCalibration,
+    source_pose: dict[str, np.ndarray],
+    root: str,
+) -> np.ndarray:
+    robot_root_neutral = calibration.robot_neutral_site_transforms[root]
+    source_root = source_pose.get(root)
+    neutral_source_root = calibration.source_rest_semantic_frames.get(root)
+    if source_root is None or neutral_source_root is None:
+        return robot_root_neutral.copy()
+
+    root_alignment = calibration.edge_alignment_rotations.get("torso", np.eye(3))
+    source_local_delta = neutral_source_root[:3, :3].T @ (source_root[:3, 3] - neutral_source_root[:3, 3])
+    mapped_delta = root_alignment @ source_local_delta
+    root_offset = np.array(
+        [
+            mapped_delta[0] * calibration.root_horizontal_scale,
+            mapped_delta[1] * calibration.root_horizontal_scale,
+            _source_support_height_delta(calibration, source_pose) * calibration.vertical_root_scale,
+        ],
+        dtype=float,
+    )
+    source_rotation_delta = neutral_source_root[:3, :3].T @ source_root[:3, :3]
+    mapped_rotation_delta = root_alignment @ source_rotation_delta @ root_alignment.T
+    out = robot_root_neutral.copy()
+    out[:3, 3] = robot_root_neutral[:3, 3] + robot_root_neutral[:3, :3] @ root_offset
+    out[:3, :3] = robot_root_neutral[:3, :3] @ mapped_rotation_delta
     return out.copy()
+
+
+def _source_support_height_delta(calibration: RestCalibration, source_pose: dict[str, np.ndarray]) -> float:
+    if "Hips" not in source_pose:
+        return 0.0
+    hips = source_pose["Hips"]
+    heights = []
+    for foot in ("LeftFoot", "RightFoot"):
+        if foot not in source_pose:
+            continue
+        rel = hips[:3, :3].T @ (source_pose[foot][:3, 3] - hips[:3, 3])
+        heights.append(float(rel[2]))
+    if not heights:
+        return 0.0
+    return float(-min(heights) - calibration.source_support_height)
 
 
 def _translated(base: dict[str, np.ndarray], delta: np.ndarray, names: list[str] | None = None) -> dict[str, np.ndarray]:
