@@ -34,7 +34,7 @@ The acceptance audit explicitly covers all ten false positives listed in
 canonical-target-without-projection evidence, and missing formal six-subagent
 handoff evidence.
 
-Current blocker counts against `HEAD` `9861f1a`:
+Current blocker counts from the final Agent F audit artifact:
 
 | Gate | Count |
 |---|---:|

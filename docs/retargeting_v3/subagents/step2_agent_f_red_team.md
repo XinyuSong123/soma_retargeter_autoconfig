@@ -74,7 +74,7 @@ Total: **6** blocking findings.
 ## Assumptions
 
 - Agent F remains independent and does not implement Agent A-E core compiler, semantic, calibration, projection, or validation design.
-- The current `artifacts/retargeting_v3_step2` working tree at `9861f1a` is the acceptance target for this red-team pass.
+- The current `artifacts/retargeting_v3_step2` working tree is the acceptance target for this red-team pass.
 - It is valid for corrected gates to have zero current findings when coverage remains explicit; `body_name_depth_heuristic` is covered and currently clean in source.
 - All six subagent handoffs are present; Agent F's handoff records xhigh and an explicit BLOCKED result.
 
