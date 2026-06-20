@@ -1,709 +1,1174 @@
-# Goal — Step 2: Offline Runtime-Kinematics and Target Compiler
+# Goal — Step 2 完整收敛：正确的离线运动学编译器与全量机器人验证
 
-> **Codex execution contract**
+> **Codex 执行契约**
 >
-> Current branch: `retargeting-v3-step2-kinematic-core`  
-> Parent planning branch: `retargeting-v3-core-robot-zoo`  
-> Clean code lineage: `dev` at `aed9f9fbf09a1bf2816d8bfa5c8423ea2300cf2c`  
-> Step-1 specification is already complete in:
+> 当前分支：`retargeting-v3-step2-kinematic-core`  
+> 当前原型基线：`860a538ac25ce675b4b588bf4d2f5295ba80a463`  
+> 干净代码祖先：`dev@aed9f9fbf09a1bf2816d8bfa5c8423ea2300cf2c`  
+> Step 1 数学规范：
 >
 > - `docs/retargeting_v3/STEP1_MATHEMATICAL_SPEC.md`
 > - `docs/retargeting_v3/STEP1_COMPLETE_MODEL_CROSSCHECK.md`
 > - `docs/retargeting_v3/THREE_STEP_ROADMAP.md`
 >
-> Read all three files before touching code. They are normative. This task is deliberately smaller than the previous v2/v3 master plan.
+> 开始前必须完整阅读以上文件和本文件。当前代码只是 Step 2 原型，不能因为 `summary.json` 显示九台机器人 `compiled` 就宣称 Step 2 完成。
+>
+> **本轮只完成 Step 2。不得开始 Step 3，不得接入生产 `NewtonPipeline`，不得调 whole-body IK 权重。**
 
 ---
 
-## 1. Single objective
+## 0. 当前审计结论：本轮必须逐项关闭
 
-Implement and validate an **offline kinematic compiler** that converts a complete robot model plus a minimal semantic mapping into:
+| 项目 | 当前判定 | 本轮要求 |
+|---|---|---|
+| 代码已推送 | 通过 | 保留 |
+| runtime adapter 原型 | 基本通过 | 修复模型真值、site、fingerprint 与 cross-format |
+| full-chain path | RPO 基本通过 | 扩展到全部机器人并验证 LCA/完整链 |
+| numerical Jacobian | synthetic 基本通过 | 加强 Newton/MuJoCo cross-check 与完整模型 gate |
+| multi-pose rank | synthetic 基本通过 | 全量机器人执行，禁止假 rank |
+| rest calibration | 未通过 | 真正实现并独立测量误差 |
+| distal hand/sole site | 未通过 | 自动生成并实际用于 target/projection |
+| canonical complete-model projection | 未实现 | 对每台机器人、每个 canonical motion 真正运行 |
+| G1 URDF/MJCF equivalence | 未通过 | 改成同源严格等价 + 异源变体兼容两层验证 |
+| 完整机器人语义正确性 | 未通过 | verified semantic maps + 几何/拓扑证据 |
+| artifacts 可复现性 | 未通过 | 最终干净 commit 重跑，两次确定性验证 |
+| subagent/red-team 流程 | 无证据 | 必须使用 6 个专业 subagent 并保存 handoff |
+| Step 2 总体 | 未完成 | 本轮全部硬门槛通过后停止 |
 
-1. runtime-true semantic sites;
-2. full-chain active-coordinate paths;
-3. numerical relative position/orientation Jacobians;
-4. deterministic multi-pose capability reports;
-5. source/robot rest-frame calibration;
-6. an offset-free morphology target builder;
-7. chain-only closest-reachable torso and endpoint targets;
-8. neutral and canonical-motion validation artifacts.
+### 0.1 已确认的主要假阳性
 
-Do not integrate this into the production whole-body Newton retargeting pipeline in Step 2.
+当前实现中以下现象不得继续被视为“通过”：
 
----
+1. `projection_reports` 只把 neutral FK 投影回 neutral FK，`desired == projected`、residual=0；
+2. `calibrate_rest_frames()` 直接把 position/orientation errors 初始化为零；
+3. RPO Hand 和 Foot semantic site 仍是 body 原点 `[0,0,0]`；
+4. canonical target 虽生成，却没有逐 motion 输入真实 torso/endpoint chain projection；
+5. 自动语义推断在 Newton 没有 world body 时，用 body 名称字符串长度近似“深度”；
+6. 推断语义被包装成 `explicit_semantic_override`、confidence=1.0；
+7. TALOS foot、Booster T1 Hips/Chest 等已出现明显错误映射；
+8. G1 URDF/MJCF 差异被测试固化为 `documented_limitation`；
+9. artifacts 在旧 HEAD、dirty worktree 下生成，命令包含本机绝对路径；
+10. 没有正式 pytest/JUnit 结果、implementation report、六个 subagent handoff 和独立 red-team 结论。
 
-## 2. Why this branch starts from clean `dev`
-
-The v2 branch is an exploration archive, not a safe implementation base. It contains useful conclusions and a few reusable utilities, but its core path has known design defects:
-
-- static XML morphology treated as kinematic truth;
-- immediate semantic parent used instead of full endpoint chain;
-- one-rest-pose rank;
-- legacy scaler offsets retained in v2 target generation;
-- world Chest quaternion projected instead of true Hips-relative rotation;
-- no-wrist virtual hand offset not used by position IK;
-- priority/normalization fields not fully connected to runtime;
-- benchmark target mismatch.
-
-Starting from clean `dev` avoids silently preserving those defects. You may inspect `retargeting-v2-design`, but may copy code only after proving it satisfies the Step-1 contract.
-
-Do not merge the v2 branch.
-
----
-
-## 3. Hard scope boundary
-
-### In scope
-
-- Newton runtime model introspection;
-- URDF/MJCF model-loading adapter needed by selected validation robots;
-- FK-based semantic transforms;
-- full-chain active DoF discovery;
-- tangent-coordinate finite differences;
-- multi-pose rank and conditioning;
-- rest-frame calibration;
-- virtual distal hand and sole sites;
-- offset-free target generation;
-- small chain-only nonlinear projection;
-- complete-model validation reports;
-- tests and deterministic artifacts.
-
-### Out of scope
-
-- replacing `NewtonPipeline`;
-- production IK objective wiring;
-- contact state machine changes;
-- whole-body staged solver;
-- collision objectives;
-- temporal filtering;
-- full Robot Zoo synchronization;
-- UI work;
-- teacher refinement;
-- pose-pair optimization;
-- hand/foot/torso weight sweeps;
-- optimizing real-time speed beyond recording a baseline.
-
-If an out-of-scope issue is discovered, record it in `known_limitations.md`; do not expand the implementation.
+不得通过改名、改 status 或降低 gate 来关闭这些问题。
 
 ---
 
-## 4. Required architecture
+## 1. 本轮唯一目标
 
-Create a parallel v3 offline package. Do not force unfinished code through legacy classes.
+把现有原型修正成一个可信的、离线的 `KinematicProfileV3` 编译器，能够对 **Robot Zoo manifest 中的全部机器人条目** 输出可复现、可审计的结果：
 
-Suggested layout:
+1. 使用实际运行时模型/FK 作为运动学真值；
+2. 使用经过验证的 semantic body/site，而不是只靠名称猜测；
+3. 正确生成 distal hand、sole/toe/heel 等局部 site；
+4. 发现完整的相对运动学链和 active velocity coordinates；
+5. 计算数值 relative Jacobian 与多姿态局部 rank；
+6. 从真实 SOMA rest pose 到 robot neutral 做独立 rest calibration；
+7. 使用正确的旋转共轭和逐段 target construction；
+8. 对每一个 canonical motion 执行真实 torso/hand/foot chain projection；
+9. 对 URDF/MJCF 做正确的同源严格等价和异源变体比较；
+10. 对全量机器人产生结构化 pass/fail/unsupported 结果；
+11. 在最终干净 commit 上重跑全部测试和 artifacts；
+12. 由第六个 subagent 独立红队审查后才能宣布完成。
+
+---
+
+## 2. 硬性范围边界
+
+### 2.1 本轮包含
+
+- `soma_retargeter/robotics/v3/` 离线编译器；
+- runtime model adapter；
+- semantic site resolver 与 verified semantic maps；
+- geometry/topology-based distal site inference；
+- full-chain path；
+- numerical relative Jacobian；
+- multi-pose reachability；
+- rest calibration；
+- offset-free target builder；
+- chain-only closest-reachable projection；
+- canonical motion suite；
+- Robot Zoo 全量模型加载与验证；
+- cross-format equivalence；
+- artifacts、CI、测试报告、subagent handoff、red-team report。
+
+### 2.2 本轮禁止
+
+- 修改或接入生产 `newton_pipeline.py`；
+- production whole-body IK；
+- contact runtime；
+- collision objective；
+- temporal smoothing；
+- direction/pole-vector objective；
+- hand/foot/chest weight sweep；
+- viewer/UI/teacher refinement；
+- 用机器人名字写数学特例；
+- 为了让 summary 变绿而降低验收门槛；
+- 开始 Step 3。
+
+发现属于 Step 3 的问题，只写入 `known_limitations.md`，不得扩大本轮 scope。
+
+---
+
+## 3. 私有资产与公开模型规则
+
+1. Robot Zoo 只使用 `assets/robot_zoo/robot_zoo_manifest.json` 中明确列出的公开来源模型和仓库内已有 RPO。
+2. `franka_panda_mjcf` 指公开的 Franka Emika Panda/MuJoCo Menagerie 模型，仅作为单臂 negative control，可以保留。
+3. 不得增加任何用户公司私有模型或内部代号模型，包括但不限于 `cxxx_190`。
+4. 不得扫描、上传、复制用户机器上未列入 manifest 的模型目录。
+5. 若本地 cache 中出现 manifest 外模型，必须忽略并在审计报告中记录“未使用”。
+6. 所有上游模型必须固定 source/ref/hash；不得跟踪浮动 `main`。
+7. 受许可证限制的模型只做固定版本 fetch-only 验证，不提交模型文件。
+
+---
+
+## 4. 六个专业 Subagent：必须全部启用
+
+主 Codex 为 **Integrator**。启动后一次创建 6 个专业 subagent。六个 agent 必须全部工作，不能只把任务名列出来。
+
+每个 agent 必须：
+
+- 使用独立 worktree/branch；
+- 先读 Step 1 文档、本 goal、当前代码审计；
+- 提交小而可审查的 commits；
+- 不修改其他 agent 拥有的文件，除非 Integrator 批准；
+- 保存 handoff：`docs/retargeting_v3/subagents/step2_agent_<letter>_handoff.md`；
+- handoff 必须列出 commit、文件、命令、测试、数值结果、假设、失败、风险、集成顺序；
+- 不得自行降低 gate。
+
+### Agent A — Runtime Model Truth & Cross-Format Adapter
+
+**职责**
+
+- Newton runtime adapter；
+- MuJoCo reference adapter；
+- URDF/MJCF loading/canonicalization；
+- tangent integration；
+- body/joint topology；
+- q/qd coordinate metadata；
+- model/site runtime truth；
+- deterministic fingerprint；
+- engine Jacobian cross-check；
+- same-source URDF→canonical MJCF equivalence基础设施。
+
+**文件所有权**
 
 ```text
-soma_retargeter/robotics/v3/
-  __init__.py
-  model_adapter.py
-  semantic_sites.py
-  kinematic_paths.py
-  numerical_jacobian.py
-  reachability.py
-  rest_frames.py
-  target_builder.py
-  chain_projection.py
-  profile.py
-  validation.py
-
-soma_retargeter/tools/
-  compile_kinematic_profile_v3.py
-  validate_kinematic_profile_v3.py
+soma_retargeter/robotics/v3/model_adapter.py
+soma_retargeter/robotics/v3/kinematic_paths.py
+soma_retargeter/robotics/v3/model_fingerprint.py        # 可新增
+soma_retargeter/robotics/v3/model_conversion.py         # 可新增
+soma_retargeter/robotics/v3/spatial.py                  # 仅底层变换部分
+soma_retargeter/tools/convert_robot_model_v3.py         # 可新增
+tests/v3/test_model_adapter_*.py
+tests/v3/test_cross_format_adapter_*.py
 ```
 
-File names may change, but responsibilities must remain separate.
+**必须修复**
 
-The output schema for this step is `KinematicProfileV3`, not the production runtime profile.
+1. fingerprint 包含：主模型、include/xacro resolved 内容、实际引用 assets hash、loader version、conversion settings；
+2. Newton model site 若运行时 API 不暴露，不得无条件把原始 XML site 当 compiled truth；需要用 MuJoCo compiled site cross-check或标记可信来源；
+3. free/ball joint 使用 tangent integration；
+4. fixed body 保留在 path，但不产生 DoF；
+5. LCA 与 active-coordinate path 对 cross-branch 情况正确；
+6. URDF mesh 绝对路径 patch 只作为临时 load copy，并记录 provenance；
+7. 同源 URDF 转 MJCF 必须保留 topology、axis、limit、neutral 与 semantic FK。
+
+**交付门槛**
+
+- synthetic adapter tests 全通过；
+- RPO、G1、H1、OP3、Booster、TALOS adapter report；
+- same-source G1 URDF→canonical MJCF 严格等价报告；
+- 无 static XML FK 替代 runtime FK。
+
+### Agent B — Verified Semantics & Distal Geometry Sites
+
+**职责**
+
+- verified semantic maps；
+- semantic confidence/evidence；
+- topology-aware semantic resolver；
+- distal hand site；
+- sole/toe/heel/edge sites；
+- geometry/site provenance；
+- partial-humanoid 与 negative-control classification。
+
+**文件所有权**
+
+```text
+soma_retargeter/robotics/v3/semantic_sites.py
+soma_retargeter/robotics/v3/site_geometry.py             # 可新增
+soma_retargeter/robotics/v3/semantic_validation.py       # 可新增
+assets/robot_zoo/semantic_maps/
+assets/robot_zoo/semantic_expectations/
+tests/v3/test_semantic_sites_*.py
+tests/v3/test_site_geometry_*.py
+```
+
+**必须修复**
+
+1. 删除“用 body 名称字符串长度当树深度”的逻辑；
+2. 推断结果不能标记为 `explicit_semantic_override` 或 confidence=1.0；
+3. 每个 positive humanoid 都有 verified semantic map；
+4. mapping 必须保存 evidence：name、topology、side、neutral position、chain、site/geom；
+5. Hand position site 与 orientation capability 解耦；
+6. RPO Hand 必须从 link geometry、explicit site、distal child anchor 或可靠 extrapolation 得到 distal local position；
+7. RPO Foot 必须生成 sole center、toe、heel；不能只使用 ankle body 原点；
+8. TALOS foot 必须映射到真实 distal foot/sole，而不是 `leg_left_1_link`；
+9. Booster T1 Hips/Chest 必须反映真实 trunk/waist semantic split，不能简单同为 `Trunk` 而隐藏 waist joint；
+10. partial humanoid 不得伪造 Hand；negative control 不得误判为 full humanoid。
+
+**site 推断顺序**
+
+1. explicit compiled site/frame；
+2. verified semantic override；
+3. distal child-joint anchor；
+4. collision primitive bounds；
+5. visual mesh bounds（只读、固定 hash）；
+6. verified mirror；
+7. kinematic extrapolation。
+
+**site gate**
+
+- positive humanoid 的 Hand/Foot 都必须有明确 local pose 和 provenance；
+- body 原点只有在几何证明确为 distal/sole point 时才允许；
+- `local_position=[0,0,0]` 不能自动视为通过；
+- 左右镜像误差和 site confidence 必须落盘。
+
+### Agent C — Rest Calibration & Offset-Free Target Geometry
+
+**职责**
+
+- SOMA source rest frames；
+- robot neutral semantic frames；
+- Wahba/Kabsch frame alignment；
+- edge calibration；
+- rotation conjugation；
+- segment-local target builder；
+- root scaling；
+- independent neutral reconstruction validation；
+- canonical source semantic motions。
+
+**文件所有权**
+
+```text
+soma_retargeter/robotics/v3/source_rest.py
+soma_retargeter/robotics/v3/rest_frames.py
+soma_retargeter/robotics/v3/target_builder.py
+soma_retargeter/robotics/v3/calibration_validation.py     # 可新增
+tests/v3/test_rest_calibration_*.py
+tests/v3/test_target_builder_*.py
+```
+
+**必须修复**
+
+1. 禁止 `pos_errors={...:0}`、`rot_errors={...:0}` 这类循环验证；
+2. neutral error 必须由独立 target generation 与 robot neutral FK 比较计算；
+3. edge frame 不能只使用单方向 + 固定 world hint；应使用多语义方向、bend plane、bilateral axis 或 Wahba/Kabsch；
+4. 对旋转 delta 使用正确共轭：
+
+\[
+\Delta R_r=A\,\Delta R_h\,A^T
+\]
+
+5. target builder 不读取任何 v1 joint scales/offsets/pose-pair结果；
+6. source neutral 输入必须重建 robot neutral；
+7. source 全局平移/旋转不改变局部 limb articulation；
+8. root horizontal scale 使用 leg-length ratio；
+9. vertical root 使用 pelvis-to-support-foot geometry；
+10. zero-length、frame degeneracy、missing semantics 都有显式 fallback 和 confidence。
+
+**独立 neutral gate**
+
+- 先从 source rest 经 calibration 生成 robot targets；
+- 再与独立 runtime robot neutral FK 比较；
+- position max error `< 1 mm`；
+- relative rotation max error `< 0.01 rad`；
+- 不允许使用 robot neutral targets 直接复制成“重建结果”。
+
+### Agent D — Reachability, Canonical Chain Projection & Mathematical Gates
+
+**职责**
+
+- numerical relative Jacobian；
+- epsilon stability；
+- deterministic multi-pose local rank；
+- chain-only torso projection；
+- endpoint projection；
+- neutral/continuity priors；
+- canonical motion projection；
+- mathematical acceptance tests。
+
+**文件所有权**
+
+```text
+soma_retargeter/robotics/v3/numerical_jacobian.py
+soma_retargeter/robotics/v3/reachability.py
+soma_retargeter/robotics/v3/chain_projection.py
+soma_retargeter/robotics/v3/canonical_projection.py       # 可新增
+tests/v3/test_numerical_jacobian_*.py
+tests/v3/test_reachability_*.py
+tests/v3/test_chain_projection_*.py
+```
+
+**必须修复**
+
+1. projection 不再只做 neutral→neutral；
+2. 对每个 canonical motion 的 torso、left/right hand、left/right foot 运行 projection；
+3. torso desired 为真实 `Hips-relative Chest` calibrated delta；
+4. endpoint desired 为 Agent C 生成的 morphology target；
+5. 每个 projection 保存 desired、projected、residual、normalized residual、q、status、iterations；
+6. redundant chain 优化加入 range-normalized neutral prior；
+7. motion sequence 加 previous-q continuity prior；
+8. 确定性初始化和必要时 deterministic multi-start；
+9. rank 0 返回 `unreachable/rank_zero`，保留非零 source demand，不得将其计为零误差通过；
+10. regular rank 仍基于 local ranks，不使用 concatenated Jacobian rank；
+11. finite-difference epsilon-halving 失败时进入 hard warning/gate；
+12. Jacobian engine cross-check 必须在完整模型代表样本运行。
+
+**RPO torso gate**
+
+对 complete RPO model：
+
+- compatible axis canonical rotation被保留；
+- pure incompatible pitch/roll 引起 torso hinge motion ≤ compatible response 的 5%；
+- common world rotation不改变结果；
+- joint limits生效；
+- source不可达 demand单独报告。
+
+### Agent E — Full Robot Zoo Validation & Cross-Model Matrix
+
+**职责**
+
+- manifest resolver；
+- 固定上游 source/ref/hash；
+- 全量模型运行；
+- verified semantic-map调度；
+- URDF/MJCF equivalence；
+- positive/partial/negative 分类；
+- per-robot reports；
+- aggregate matrix；
+- 无本机绝对路径的 reproduction commands。
+
+**文件所有权**
+
+```text
+soma_retargeter/robotics/v3/validation.py
+soma_retargeter/robotics/v3/robot_zoo.py                  # 可新增
+soma_retargeter/tools/compile_kinematic_profile_v3.py
+soma_retargeter/tools/validate_kinematic_profile_v3.py
+soma_retargeter/tools/sync_robot_zoo_v3.py                # 可新增
+assets/robot_zoo/robot_zoo_manifest.json                  # 仅验证/补充固定ref
+artifacts/retargeting_v3_step2/
+tests/v3/test_full_robot_zoo_*.py
+```
+
+**全量定义**
+
+`assets/robot_zoo/robot_zoo_manifest.json` 中每一个 entry 都必须产生结构化结果，不能静默跳过。
+
+#### Positive humanoid
+
+每个 positive humanoid 必须执行：
+
+```text
+resolve fixed source
+→ license/provenance/hash
+→ runtime load
+→ verified semantics
+→ distal sites
+→ full chains
+→ neutral FK
+→ numerical Jacobians
+→ 32-sample reachability
+→ rest calibration
+→ neutral exactness
+→ 全部 canonical motions
+→ torso/hand/foot chain projection
+→ deterministic rerun
+→ report
+```
+
+#### Partial humanoid / biped
+
+- 运行所有可用链；
+- 缺失 Hand 等语义时结构化降级；
+- 不伪造 full humanoid readiness。
+
+#### Negative control
+
+包括公开 Franka Panda、Go2、Stretch、Cassie、Upkie、Bolt 等：
+
+- 模型必须能加载或给出明确 source failure；
+- morphology classification正确；
+- 不生成伪造 humanoid profile；
+- 结果为结构化 `negative_control_passed` 或明确 failure。
+
+#### Fetch-only
+
+- 使用固定 ref 下载到 cache，不提交受限资产；
+- 有网络/cache时必须运行；
+- 确实无法获取时输出 `source_unavailable`，包含固定 source、原因和复现命令；
+- 不得把 unavailable 计入算法 pass；
+- aggregate summary分别统计 algorithm pass 与 source unavailable。
+
+**G1 cross-format 两层 gate**
+
+1. **同源严格等价**：从同一个 G1 URDF 生成 deterministic canonical MJCF，再比较 topology、axis、limits、neutral semantic FK、chains、rank、canonical projection；必须通过。
+2. **异源变体兼容**：vendor URDF 与 Menagerie MJCF 可能不是同一 DoF variant；必须识别 variant difference，比较共同语义能力，不得伪称严格等价，也不得把差异固化为“测试预期即完成”。
+
+### Agent F — Reproducibility, CI & Independent Red Team
+
+**职责**
+
+- 首先写失败测试重现当前假阳性；
+- acceptance ledger；
+- pytest/JUnit；
+- clean-worktree artifact rerun；
+- deterministic rerun；
+- CI workflows；
+- 私有资产审计；
+- robot-name special-case审计；
+- legacy offset审计；
+- false-pass审计；
+- 最终独立 red-team report。
+
+**文件所有权**
+
+```text
+.github/workflows/retargeting_v3_step2.yml
+scripts/audit_retargeting_v3_step2.py                    # 可新增
+tests/v3/test_acceptance_gates_*.py
+docs/retargeting_v3/STEP2_ACCEPTANCE_LEDGER.md
+docs/retargeting_v3/STEP2_IMPLEMENTATION_REPORT.md
+docs/retargeting_v3/subagents/step2_agent_f_red_team.md
+artifacts/retargeting_v3_step2/test_results/
+```
+
+**独立性规则**
+
+- Agent F 不得参与 Agent A–E 的核心实现设计；
+- 不得降低任何 gate；
+- 必须寻找反例；
+- 发现阻断问题时，Integrator 必须派回对应 agent 修复；
+- 修复后 Agent F 重新审查；
+- 最终 report 必须明确 `PASS` 或 `BLOCKED`，不得使用模糊“基本完成”。
 
 ---
 
-## 5. Runtime model adapter
+## 5. 六个 Agent 的并行与集成顺序
 
-Implement a typed adapter whose truth comes from the robot model actually loaded by Newton.
+Codex 启动后立即创建六个 agent，但按以下节奏避免冲突：
 
-Minimum interface:
+### Wave 1：并行审计与接口冻结
+
+- A：runtime adapter/API审计；
+- B：全量 semantic/site审计；
+- C：calibration/target数学审计；
+- D：projection/reachability审计；
+- E：Robot Zoo source/manifest/validation矩阵准备；
+- F：先写能暴露当前假阳性的 failing tests 和 acceptance ledger。
+
+Wave 1 输出统一接口 ADR，Integrator 冻结：
+
+```text
+RuntimeModelAdapter
+SemanticSiteV3
+VerifiedSemanticMap
+RestCalibrationV3
+CanonicalSemanticMotion
+ChainProjectionResult
+KinematicProfileV3
+RobotValidationResult
+```
+
+### Wave 2：并行实现
+
+- A、B、C、D 实现各自模块；
+- E 构建 resolver、全量调度、report schema；
+- F 构建 CI、审计器与独立 gates。
+
+### Wave 3：按依赖集成
+
+严格顺序：
+
+```text
+A runtime truth
+→ B verified sites
+→ C calibration/targets
+→ D canonical projection
+→ E full-zoo validation
+→ F red-team
+```
+
+### Wave 4：修复与最终重跑
+
+- F 的每个 blocking finding分派回 A–E；
+- 修复后重新运行所有 tests和全量 Robot Zoo；
+- 最终 artifacts必须在 clean worktree、最终 commit 上生成；
+- 最后只允许文档/metadata commit，不允许生成 artifacts 后再改核心代码。
+
+---
+
+## 6. Verified semantic maps 与证据格式
+
+新增稳定格式，例如：
+
+```json
+{
+  "schema_version": 2,
+  "model_id": "...",
+  "model_fingerprint": "...",
+  "verification_status": "verified",
+  "semantics": {
+    "Hips": {
+      "body": "...",
+      "site": null,
+      "local_position": [0, 0, 0],
+      "local_rotation_xyzw": [0, 0, 0, 1],
+      "confidence": 0.99,
+      "evidence": ["topology", "neutral_position", "joint_chain"]
+    }
+  }
+}
+```
+
+要求：
+
+- inference 与 verified override明确区分；
+- confidence有来源；
+- verified map绑定model fingerprint；
+- model变化使map失效；
+- 左右语义必须通过side/topology/neutral geometry检查；
+- complete positive humanoid不能只用临时自动推断结果作为最终 ground truth。
+
+---
+
+## 7. 真正的 Rest Calibration
+
+### 7.1 独立数据流
+
+```text
+SOMA rest asset
+→ source world semantic transforms
+→ source semantic frames
+
+runtime robot neutral q
+→ runtime FK
+→ robot semantic sites
+→ robot semantic frames
+
+source frames + robot frames
+→ calibration rotations/lengths
+→ independently reconstructed robot targets
+→ compare with runtime neutral FK
+```
+
+禁止把 `robot_neutral_site_transforms` 原样复制成 neutral target 后再报告零误差。
+
+### 7.2 Frame 构造
+
+优先使用：
+
+1. bilateral axis；
+2. parent→child direction；
+3. bend-plane normal；
+4. torso vertical/forward directions；
+5. explicit model frame；
+6. multi-vector Wahba/Kabsch。
+
+每个 frame 保存：
+
+- basis；
+- input vectors；
+- conditioning；
+- confidence；
+- fallback；
+- handedness check。
+
+### 7.3 旋转映射
+
+动态 relative rotation 必须通过 calibrated frame 共轭：
+
+\[
+\Delta R_r=A\Delta R_hA^T
+\]
+
+并在 robot neutral relative orientation上重建。
+
+### 7.4 Calibration gates
+
+- 不存在硬编码零误差；
+- neutral position max error `<1e-3 m`；
+- neutral relative rotation max error `<1e-2 rad`；
+- frame determinant接近 +1；
+- 左右镜像误差落盘；
+- source global transform equivariance通过；
+- 至少三个非中立 canonical姿态由独立几何预期验证。
+
+---
+
+## 8. Canonical Complete-Model Projection
+
+### 8.1 Canonical motions
+
+每台 positive humanoid必须运行：
+
+1. neutral；
+2. root translation；
+3. global root yaw；
+4. torso pitch；
+5. torso roll；
+6. torso yaw；
+7. mixed torso rotation；
+8. arms forward；
+9. elbow bend；
+10. overhead reach；
+11. squat；
+12. single step；
+13. asymmetric arm reach；
+14. crossed-body reach；
+15. extreme-but-valid joint-limit stress。
+
+Partial/negative模型只运行适用子集，并报告 skipped reason。
+
+### 8.2 每个 motion 的真实流程
+
+```text
+canonical SOMA semantics
+→ Agent C target builder
+→ per-task desired robot target
+→ Agent D chain projection
+→ projected feasible target
+→ residual/capability report
+```
+
+不得使用 neutral relative transform代替 desired target。
+
+### 8.3 Projection cost
+
+Endpoint：
+
+\[
+\min_q
+\left\|\frac{p(q)-p_d}{L}\right\|^2
++\lambda_n\|D(q-q_0)\|^2
++\lambda_t\|D(q-q_{prev})\|^2
+\]
+
+Torso：
+
+\[
+\min_q
+\|\log(R(q)^TR_d)\|^2
++\lambda_n\|D(q-q_0)\|^2
++\lambda_t\|D(q-q_{prev})\|^2
+\]
+
+要求：
+
+- priors按joint range归一化；
+- constants统一，不按机器人手调；
+- deterministic；
+- bounds生效；
+- residual非零时诚实报告；
+- rank0保留unreachable demand；
+- sequence continuity可测。
+
+---
+
+## 9. 全量 Robot Zoo 验证
+
+### 9.1 Manifest 是机器真值
+
+测试必须动态读取 manifest，不能在代码里维护另一份容易漂移的机器人列表。
+
+每个 entry 必须生成：
+
+```text
+artifacts/retargeting_v3_step2/per_robot/<id>.json
+```
+
+结果状态只能来自明确枚举：
+
+```text
+passed
+partial_passed
+negative_control_passed
+algorithm_failed
+semantic_failed
+model_load_failed
+source_unavailable
+license_blocked
+```
+
+`compiled` 不是最终通过状态。
+
+### 9.2 Positive humanoid 硬门槛
+
+- fixed source/hash可验证；
+- runtime load成功；
+- verified semantics；
+- Hand/Foot distal sites；
+- full chain正确；
+- Jacobian有限且稳定；
+- reachability有32个低差异样本；
+- calibration独立通过；
+- canonical motions全量执行；
+- projection结果完整；
+- two-run deterministic；
+- 无 robot-name数学特例。
+
+### 9.3 跨模型统计
+
+aggregate summary至少包含：
+
+- model count by class/status；
+- semantic coverage；
+- site provenance分布；
+- rank分布；
+- singularity fraction；
+- calibration error；
+- canonical projection residual p50/p90/max；
+- solver convergence；
+- deterministic mismatch；
+- source unavailable；
+- failure taxonomy；
+- runtime compile时间。
+
+### 9.4 不能只看 RPO
+
+RPO 是关键回归模型，但任何算法默认必须同时通过不同形态：
+
+- single-axis torso；
+- zero-axis/fixed torso；
+- multi-axis torso；
+- no-wrist arm；
+- wrist-rich arm；
+- partial humanoid；
+- compact humanoid；
+- high-DoF humanoid；
+- URDF/MJCF同源转换；
+- negative controls。
+
+---
+
+## 10. G1 URDF/MJCF 正确验证设计
+
+当前随意比较 vendor URDF 与 Menagerie MJCF 是不充分的，因为它们可能是不同 DoF variant。
+
+### Gate A：同源严格等价
+
+使用同一个固定 G1 URDF：
+
+1. runtime直接加载URDF；
+2. deterministic转换成canonical MJCF；
+3. 两侧使用同一个 verified semantic map；
+4. 比较：
+   - body/joint topology；
+   - joint type/axis/limit；
+   - neutral q semantics；
+   - semantic site FK；
+   - active chains；
+   - local ranks；
+   - canonical projection residual。
+
+必须在容差内通过。
+
+### Gate B：异源变体兼容
+
+vendor 29DoF URDF vs Menagerie MJCF：
+
+- 自动识别实际 coordinate差异；
+- 比较共同语义链；
+- 记录额外/缺失DoF；
+- 不要求ordered labels完全相同；
+- 不得宣称strict equivalent；
+- 两者都必须独立通过算法 gates。
+
+### Gate C：23DoF真实模型
+
+- 使用固定真实23DoF模型；
+- 不得只通过锁定29DoF构造来替代；
+- 可额外运行locked-29DoF作为controlled ablation；
+- 结果应由实际model capability决定。
+
+---
+
+## 11. RPO 专项硬门槛
+
+1. torso chain只包含真实torso coordinate；
+2. torso regular rotational rank=1；
+3. axis在pelvis frame表达，global root rotation不改变结果；
+4. Hand chain包含完整shoulder/elbow链；
+5. Foot chain包含hip/knee/ankle；
+6. distal Hand site不是未经证明的 elbow body原点；
+7. sole/toe/heel site不是ankle body原点；
+8. source pure incompatible torso pitch/roll产生的hinge响应≤compatible响应5%；
+9. compatible torso twist正确保留并受limit约束；
+10. arms-forward、overhead、elbow-bend实际执行hand projection；
+11. squat、single-step实际执行foot projection；
+12. residual非零时不得被写成0或pass；
+13. no-wrist orientation support与position site分离；
+14. artifacts中保存site evidence和projection sequence。
+
+---
+
+## 12. 测试要求
+
+### 12.1 首先添加失败回归测试
+
+Agent F 应先为当前问题写测试，确认在修复前失败：
+
+- calibration hardcoded zero；
+- neutral→neutral假 projection；
+- zero-offset RPO hand/sole；
+- TALOS proximal foot误映射；
+- Booster Hips=Chest隐藏waist；
+- G1 arbitrary-source false equivalence；
+- dirty artifact metadata；
+- absolute cache path；
+- inferred semantics confidence=1；
+- rank0 false pass。
+
+### 12.2 数学单元测试
+
+- SO(3)/SE(3)；
+- relative transform invariance；
+- frame conjugation；
+- Wahba/Kabsch；
+- free/ball tangent integration；
+- prismatic/revolute/oblique Jacobian；
+- epsilon halving；
+- local rank与curved manifold；
+- multi-pose singularity；
+- LCA/cross-branch path；
+- redundant projection priors；
+- continuity；
+- bounds；
+- rank0 demand保留；
+- deterministic hash。
+
+### 12.3 完整模型测试
+
+所有 manifest entry 都要运行。测试不可写：
 
 ```python
-class RuntimeRobotModelAdapter(Protocol):
-    model_format: str
-    nq: int
-    nv: int
-
-    def neutral_q(self) -> np.ndarray: ...
-    def integrate(self, q: np.ndarray, delta_v: np.ndarray) -> np.ndarray: ...
-    def forward_kinematics(self, q: np.ndarray) -> RobotKinematicState: ...
-    def body_transform(self, state, body_name: str) -> np.ndarray: ...
-    def site_transform(self, state, site: SemanticSite) -> np.ndarray: ...
-    def active_velocity_coordinates(self, reference: SemanticSite, target: SemanticSite) -> list[int]: ...
+if not path.exists():
+    return
 ```
 
-Requirements:
+这种静默跳过。
 
-1. free/ball joints are perturbed through velocity/tangent integration;
-2. no naive quaternion-component addition;
-3. body and joint labels are normalized without losing originals;
-4. joint q/qd indices come from runtime arrays;
-5. fixed bodies remain in the semantic path but add no active coordinate;
-6. the adapter exposes a deterministic model fingerprint;
-7. model resources are released cleanly;
-8. CPU tests must run when CUDA is unavailable.
+允许：
 
-Raw XML parsing may supply provenance or explicit site hints, but cannot override runtime FK.
+- pytest skip，但必须带结构化原因；
+- aggregate summary将source unavailable单独计数；
+- required permissive models在CI缓存或sync后必须存在，否则CI失败。
 
----
+### 12.4 两次确定性运行
 
-## 6. Semantic sites
+对所有 required positive humanoid：
 
-Step 2 accepts a minimal explicit semantic map for hard-gate robots. Automatic semantic discovery is not the primary goal yet.
-
-Required semantics:
-
-- `Hips`;
-- `Chest`;
-- `LeftHand`;
-- `RightHand`;
-- `LeftFoot`;
-- `RightFoot`.
-
-Optional intermediate landmarks:
-
-- shoulders;
-- elbows;
-- hips;
-- knees;
-- head.
-
-A semantic endpoint is a body plus a local transform.
-
-Position-site offsets must always be honored independently of orientation capability.
-
-Site inference order:
-
-1. explicit model site;
-2. explicit semantic override;
-3. distal child anchor;
-4. safe geometry bound;
-5. symmetric mirror;
-6. segment extrapolation.
-
-Each site records source, confidence, local pose and reason.
+- 相同source/hash/config/seed运行两次；
+- profile deterministic hash一致；
+- rank一致；
+- projection q/residual在容差内一致；
+- semantic/site evidence一致。
 
 ---
 
-## 7. Full-chain path discovery
+## 13. Artifacts 与可复现性
 
-For every relative semantic task, compute the kinematic path using runtime topology.
-
-Required chains:
-
-```text
-Hips -> Chest
-Chest -> LeftHandSite
-Chest -> RightHandSite
-Hips -> LeftSoleSite
-Hips -> RightSoleSite
-```
-
-The hand chain must contain every proximal arm coordinate that affects the distal site. The foot chain must contain every hip/knee/ankle coordinate that affects the sole.
-
-Do not use semantic `ForeArm` as the reachability root for Hand.
-
-Save:
-
-- reference body;
-- target body;
-- LCA;
-- body path;
-- active velocity-coordinate indices and labels;
-- joint type per coordinate;
-- limit source.
-
----
-
-## 8. Numerical relative Jacobians
-
-Implement the exact formulas in the Step-1 specification.
-
-### Translation
-
-\[
-J_p[:,i]=\frac{p(q^+)-p(q^-)}{2\epsilon_i}
-\]
-
-where position is expressed in the semantic reference frame.
-
-### Rotation
-
-\[
-J_R[:,i]=\frac{\operatorname{Log}(R^+(R^-)^T)}{2\epsilon_i}.
-\]
-
-Requirements:
-
-- central difference;
-- adaptive epsilon by coordinate type/range;
-- epsilon-halving stability check;
-- quaternion sign safety;
-- separate translation and rotation matrices;
-- engine Jacobian cross-check where available;
-- finite and shape validation;
-- deterministic output.
-
----
-
-## 9. Multi-pose reachability
-
-Sample each chain at:
-
-1. neutral;
-2. ±10% safe-range per active coordinate;
-3. 32 deterministic low-discrepancy configurations inside central finite ranges.
-
-For each sample save singular values, local rank and conditioning.
-
-Compute:
-
-- `regular_rank`;
-- `nominal_rank`;
-- `singularity_fraction`;
-- `epsilon_unstable_fraction`;
-- conditioning percentiles.
-
-Do not use concatenated-Jacobian rank as simultaneous controllable rank.
-
-Do not produce a fixed endpoint projector from the aggregate sample set.
-
----
-
-## 10. Rest-frame calibration
-
-Implement semantic frames and per-edge alignment without loading any legacy scaler config.
-
-Hard rule:
-
-```text
-No v3 module may import or read v1 optimized joint_scales or joint_offsets.
-```
-
-The calibration must produce:
-
-- source rest semantic frames;
-- robot neutral semantic frames;
-- edge alignment rotations;
-- robot segment lengths;
-- bilateral symmetry report;
-- confidence and fallbacks.
-
-Neutral exactness gate:
-
-```text
-max semantic position error < 0.001 m
-max relative orientation error < 0.01 rad
-```
-
----
-
-## 11. Offset-free target builder
-
-Build desired robot semantic targets recursively in robot parent frames using calibrated edge alignment and robot segment length.
-
-Required properties:
-
-1. global source translation does not change local limb articulation;
-2. global source rotation rotates the root trajectory but does not corrupt local edge mapping;
-3. source neutral reconstructs robot neutral;
-4. output segment lengths equal robot lengths;
-5. left/right targets respect verified symmetry;
-6. no legacy offsets;
-7. no per-robot weight table;
-8. source zero-length edges use a recorded fallback.
-
-Implement a NumPy reference path first. A Warp optimization is optional and must match the reference.
-
----
-
-## 12. Chain-only closest-reachable projection
-
-Implement an offline deterministic bounded solver for:
-
-### Torso relative orientation
-
-Solve the Step-1 nonlinear relative-orientation problem over torso-chain coordinates.
-
-Must support:
-
-- rank 0 welded torso;
-- one-axis waist not aligned with world Z;
-- multi-axis serial waist;
-- joint limits;
-- continuity prior;
-- deterministic initialization.
-
-### Endpoint position
-
-For underactuated or infeasible hand/foot targets, solve chain-only normalized position projection and return:
-
-- desired target;
-- feasible projected target;
-- chain q;
-- residual;
-- convergence status.
-
-This is an offline reference implementation. Do not integrate it into production whole-body IK in this step.
-
----
-
-## 13. Complete robot validation set
-
-Hard-gate complete models:
-
-1. RoboParty RPO repository MJCF;
-2. Unitree G1 29DoF MJCF;
-3. Unitree G1 URDF equivalent;
-4. Unitree G1 23DoF real fixed model;
-5. Unitree H1 MJCF;
-6. ROBOTIS OP3 MJCF;
-7. Booster T1 MJCF.
-
-Additional compile/correctness gates:
-
-8. PAL TALOS MJCF;
-9. Berkeley Humanoid MJCF/URDF entry.
-
-Synthetic fixtures are still mandatory, but cannot replace these complete models.
-
-Use fixed upstream refs from `assets/robot_zoo/robot_zoo_manifest.json`. Do not download floating `main`.
-
-Do not commit large visual meshes in Step 2. Cache full assets outside Git and save hashes/provenance.
-
----
-
-## 14. Model-specific expectations are tests, not branches
-
-RPO assertions:
-
-- torso regular rotational rank 1;
-- actual torso axis recovered in pelvis frame;
-- full shoulder-to-distal-hand path;
-- full hip-to-sole path;
-- distal hand position site used despite limited orientation capability.
-
-OP3 assertion:
-
-- zero-DoF or effectively fixed torso semantics must compile cleanly;
-- source chest demand is reported unreachable instead of leaking into another chain.
-
-G1 assertion:
-
-- richer torso and arm capability is discovered from the model;
-- URDF and MJCF semantic results are equivalent within tolerance.
-
-Berkeley assertion:
-
-- missing full upper-body semantics downgrade to partial humanoid instead of fabricating Hand tasks.
-
-Do not implement these with `if robot_name` in core code.
-
----
-
-## 15. Required tests
-
-### Unit mathematics
-
-- SO(3) log/exp round trip;
-- relative-transform invariance under common world transform;
-- tangent integration for ball/free joints;
-- prismatic numerical Jacobian;
-- revolute numerical Jacobian;
-- non-world-axis hinge;
-- epsilon stability;
-- one-DoF curved workspace local-rank test;
-- multi-pose singularity recovery;
-- LCA path;
-- fixed-body path;
-- full hand/foot path;
-- frame construction degeneracy;
-- Kabsch/Wahba alignment;
-- neutral exactness;
-- source global-transform equivariance;
-- bounded single-axis torso projection;
-- rank-zero torso;
-- multi-axis torso projection;
-- endpoint projection and limit handling;
-- deterministic JSON/hash.
-
-### Synthetic models
-
-- yaw-only torso + 5DoF no-wrist arm;
-- 3DoF torso + wrist;
-- prismatic torso;
-- rotated base and oblique joint axis;
-- neutral pose away from limit midpoint;
-- asymmetric humanoid;
-- lower-body-only partial humanoid.
-
-### Complete models
-
-Every model in Section 13 must execute:
-
-```text
-load -> semantic sites -> path -> neutral FK -> Jacobians -> multi-pose rank
-     -> rest calibration -> neutral target -> canonical target projection -> report
-```
-
-No crash or silent skip.
-
----
-
-## 16. Canonical offline motions
-
-The target compiler must be tested on generated source semantic motions:
-
-1. neutral;
-2. root translation;
-3. global root yaw;
-4. torso pitch;
-5. torso roll;
-6. torso yaw;
-7. mixed torso rotation;
-8. arms forward;
-9. elbow bend;
-10. overhead reach;
-11. squat;
-12. single step target.
-
-These motions test target mathematics only; do not run production whole-body IK.
-
----
-
-## 17. Artifacts
-
-Write:
+最终目录：
 
 ```text
 artifacts/retargeting_v3_step2/
   environment.json
   commands.txt
+  source_inventory.json
+  acceptance_ledger.json
   summary.json
-  failures/
+  cross_format.json
+  deterministic_rerun.json
+  test_results/
+    pytest.txt
+    junit.xml
+    coverage.json
   per_robot/
-    roboparty_rpo.json
-    unitree_g1_mjcf.json
-    unitree_g1_urdf.json
-    unitree_g1_23dof.json
-    unitree_h1.json
-    robotis_op3.json
-    booster_t1.json
-    pal_talos.json
-    berkeley_humanoid.json
+  failures/
 ```
 
-Each report includes:
+### 13.1 clean generation protocol
 
-- model source/ref/hash;
-- runtime model dimensions;
-- semantic sites;
-- body paths;
-- active coordinates;
-- numerical Jacobians and singular values;
-- rank statistics;
-- rest calibration;
-- neutral errors;
-- canonical target projection residuals;
-- timing;
-- warnings/failures;
-- reproduction command.
+1. 所有核心代码和测试先commit；
+2. `git status --short`必须为空；
+3. 记录当前commit；
+4. 运行pytest；
+5. 运行全量Robot Zoo；
+6. 运行deterministic rerun；
+7. 生成artifacts；
+8. commit artifacts和reports；
+9. 如果之后修改核心代码，必须重新执行步骤1–8。
 
-Do not commit huge raw matrices for every sample. Save compact summaries plus selected diagnostic matrices.
+### 13.2 environment.json
 
----
+必须记录：
 
-## 18. Subagent plan
+- artifact生成时的真实git HEAD；
+- clean status；
+- Python/Newton/Warp/MuJoCo版本；
+- GPU/CPU；
+- robot_descriptions版本；
+- manifest hash；
+- source cache root用变量表示；
+- seed；
+- commands；
+- timestamp。
 
-The main Codex agent is the Integrator and owns scope.
+### 13.3 reproduction commands
 
-For all remaining Step-2 work and any follow-up goal derived from this file, the
-Integrator must use professional subagents by default. At minimum, run parallel
-review or implementation lanes for Runtime Adapter, Mathematical Core,
-Calibration/Targets, and Complete-Model Validation/Red Team before claiming a
-major gate is complete. If a lane is skipped because the change is too small to
-benefit, record that decision in the handoff or final summary.
+禁止写死：
 
-The Integrator's role is coordination, not direct feature implementation:
-summarize subagent findings, decide priorities, assign the next subagent round,
-review returned patches, run/coordinate verification, and maintain the final
-acceptance ledger. Bug fixes, feature work, and substantive test additions should
-be assigned to the appropriate professional subagent. The Integrator may make
-small coordination-only edits such as this goal file, handoff notes, conflict
-resolution glue, or final summary updates.
+```text
+/mnt/ssd1/song/...
+```
 
-### Agent A — Runtime model adapter
+改用：
 
-Owns:
+```text
+python -m ... --robot-id unitree_g1_mjcf --manifest assets/robot_zoo/robot_zoo_manifest.json
+```
 
-- runtime introspection;
-- tangent integration;
-- FK state;
-- path/coordinate extraction;
-- model fingerprint;
-- adapter tests.
-
-### Agent B — Mathematical core
-
-Owns:
-
-- SO(3)/SE(3) helpers;
-- numerical Jacobians;
-- multi-pose ranks;
-- chain projection;
-- synthetic mathematical tests.
-
-### Agent C — Calibration and targets
-
-Owns:
-
-- semantic rest frames;
-- virtual sites;
-- edge alignment;
-- target builder;
-- neutral/canonical tests.
-
-### Agent D — Complete-model validator and red team
-
-Owns:
-
-- fixed asset resolution;
-- complete-model reports;
-- URDF/MJCF comparison;
-- checking for robot-name branches, legacy offsets and false rank-zero passes.
-
-### Collaboration rules
-
-1. Agents use isolated worktrees/branches.
-2. Parallel heavy agents: maximum 4 unless the user explicitly asks for more.
-3. File ownership must not overlap without Integrator approval.
-4. Each agent submits small commits and a handoff report.
-5. Integrator merges in order A → B → C → D.
-6. Agent D cannot weaken acceptance gates.
-7. No agent edits production `newton_pipeline.py` except a tiny import-free diagnostic hook explicitly approved by Integrator.
-8. The Integrator must reconcile all subagent findings into tests, artifacts,
-   known limitations, or explicit non-blocking rationale before marking the
-   goal complete.
-9. Substantive implementation and regression-test work must be performed by
-   specialist worker subagents, not by the Integrator directly, unless the user
-   explicitly overrides this rule for a specific task.
+或 `${ROBOT_ZOO_CACHE}`。
 
 ---
 
-## 19. Acceptance gates
+## 14. 报告与 Handoff
 
-### Adapter
+必须新增：
 
-- runtime FK deterministic;
-- tangent integration valid;
-- active paths match synthetic truth;
-- no static XML FK used as final truth.
+```text
+docs/retargeting_v3/STEP2_ACCEPTANCE_LEDGER.md
+docs/retargeting_v3/STEP2_IMPLEMENTATION_REPORT.md
+docs/retargeting_v3/STEP2_KNOWN_LIMITATIONS.md
+docs/retargeting_v3/subagents/
+  step2_agent_a_handoff.md
+  step2_agent_b_handoff.md
+  step2_agent_c_handoff.md
+  step2_agent_d_handoff.md
+  step2_agent_e_handoff.md
+  step2_agent_f_red_team.md
+```
 
-### Jacobians
+Implementation report必须包含：
 
-- synthetic analytic comparison error < `1e-4` relative where conditioned;
-- epsilon-halving discrepancy below documented tolerance;
-- non-finite values: zero.
+- commits；
+- six-agent工作分配；
+- 当前架构；
+- 已关闭审计项；
+- 未关闭项；
+- 测试命令和真实结果；
+- 全量机器人统计；
+- G1 cross-format结果；
+- RPO专项结果；
+- 性能；
+- source unavailable；
+- red-team结论；
+- 是否允许进入Step 3。
 
-### Reachability
+---
 
-- yaw-only torso regular rank 1;
-- welded torso rank 0;
-- no-wrist full arm hand-position rank uses all proximal coordinates;
-- full leg path includes hip, knee and ankle;
-- one-DoF curved-workspace test remains local rank 1.
+## 15. CI 设计
+
+新增 workflow jobs：
+
+```text
+step2-unit-math
+step2-runtime-adapter
+step2-calibration-targets
+step2-rpo-g1
+step2-full-permissive-zoo
+step2-negative-controls
+step2-reproducibility
+step2-red-team-audit
+```
+
+要求：
+
+- unit jobs可CPU运行；
+- full zoo使用cache；
+- cache key包含manifest hash与source refs；
+- required model source缺失时失败，不静默skip；
+- fetch-only可单独manual job；
+- JUnit和artifacts可下载；
+- 当前commit没有CI status时不得宣称最终通过。
+
+---
+
+## 16. Acceptance Ledger：所有硬门槛
+
+### Runtime truth
+
+- [ ] Newton FK是主真值；
+- [ ] MuJoCo仅作reference/cross-check；
+- [ ] tangent integration正确；
+- [ ] model fingerprint完整；
+- [ ] include/assets/conversion provenance完整；
+- [ ] full-chain/LCA正确。
+
+### Semantics/sites
+
+- [ ] 所有positive humanoid有verified map；
+- [ ] inferred与verified明确区分；
+- [ ] confidence非伪造；
+- [ ] RPO distal hands正确；
+- [ ] RPO sole/toe/heel正确；
+- [ ] TALOS foot正确；
+- [ ] Booster waist semantic正确；
+- [ ] partial/negative不伪造语义。
 
 ### Calibration
 
-- neutral semantic position max error < `1 mm`;
-- neutral relative rotation max error < `0.01 rad`;
-- no v1 offsets read;
-- segment lengths positive and finite.
+- [ ] 无hardcoded zero error；
+- [ ] source/robot frame独立；
+- [ ] rotation conjugation正确；
+- [ ] neutral position `<1mm`；
+- [ ] neutral rotation `<0.01rad`；
+- [ ] global equivariance；
+- [ ] no legacy offsets。
 
-### Torso projection
+### Projection
 
-For a yaw-only synthetic and RPO chain:
+- [ ] 所有canonical motions真正投影；
+- [ ] torso desired不是neutral placeholder；
+- [ ] endpoint desired来自target builder；
+- [ ] neutral/continuity prior；
+- [ ] rank0 demand保留；
+- [ ] residual真实；
+- [ ] deterministic。
 
-- pure source pitch/roll produces projected hinge motion ≤ 5% of pure compatible-axis response;
-- compatible-axis rotation is preserved within joint limits;
-- result invariant to common world rotation.
+### Cross-format
 
-### Complete models
+- [ ] 同源G1 URDF→MJCF严格等价；
+- [ ] 异源G1变体差异正确记录；
+- [ ] 真实G1 23DoF验证；
+- [ ] 不把limitation当pass。
 
-- all Section-13 models produce a report;
-- hard-gate models pass load/path/Jacobian/calibration/neutral checks;
-- partial morphology returns structured status;
-- no hard-gate model silently falls back to a synthetic model.
+### Full Robot Zoo
 
-### Determinism
+- [ ] manifest每个entry有结果；
+- [ ] required positive全部算法通过；
+- [ ] partial正确降级；
+- [ ] negative controls正确；
+- [ ] fetch-only明确状态；
+- [ ] 没有私有资产；
+- [ ] 无静默skip。
 
-Two runs with the same model hashes and seed produce semantically identical profile JSON and rank results.
+### Reproducibility
 
----
-
-## 20. Explicitly forbidden
-
-- merge `retargeting-v2-design`;
-- production IK integration;
-- hand/foot/chest weight tuning;
-- robot-name special cases in mathematical modules;
-- static XML body transforms as runtime truth;
-- semantic immediate parent as endpoint-chain root;
-- concatenated-Jacobian rank as controllable rank;
-- legacy scaler offsets;
-- world Chest quaternion projection;
-- position site offset conditioned on orientation support;
-- rank-zero residual reported as successful zero error;
-- large unpinned asset downloads;
-- claiming complete-model validation when only synthetic fixtures ran;
-- adding direction/pole/collision objectives;
-- weakening gates to finish.
-
----
-
-## 21. Recommended commit sequence
-
-1. `test: add v3 synthetic runtime kinematics fixtures`
-2. `feat: add Newton runtime model adapter`
-3. `feat: add full-chain path discovery`
-4. `feat: add numerical relative Jacobians`
-5. `feat: add deterministic multi-pose reachability`
-6. `feat: add semantic sites and rest frames`
-7. `feat: add offset-free target builder`
-8. `feat: add bounded chain target projection`
-9. `test: validate complete RPO and G1 models`
-10. `test: validate H1 OP3 Booster TALOS Berkeley models`
-11. `docs: publish step2 implementation report and artifacts`
-
-Do not make dozens of parameter-sweep commits.
+- [ ] pytest实际运行；
+- [ ] JUnit保存；
+- [ ] final HEAD artifacts；
+- [ ] clean worktree；
+- [ ] 无本机绝对路径；
+- [ ] two-run deterministic；
+- [ ] CI通过；
+- [ ] 6个handoff完整；
+- [ ] Agent F最终 `PASS`。
 
 ---
 
-## 22. Completion definition
+## 17. 明确禁止的捷径
 
-Step 2 is complete only when:
+以下任何做法都算失败：
 
-- [ ] runtime model adapter exists and is tested;
-- [ ] full-chain active-coordinate discovery passes;
-- [ ] numerical relative Jacobians pass synthetic checks;
-- [ ] deterministic multi-pose rank passes;
-- [ ] rest-frame calibration passes neutral exactness;
-- [ ] v3 target builder reads no legacy offsets;
-- [ ] true relative torso chain projection passes;
-- [ ] endpoint chain projection passes;
-- [ ] all hard-gate complete robots produce passing reports;
-- [ ] TALOS and Berkeley produce structured reports;
-- [ ] URDF/MJCF G1 semantic equivalence is reported;
-- [ ] no production IK integration was added;
-- [ ] tests were actually executed;
-- [ ] artifacts and reproduction commands are committed;
-- [ ] red-team review has no blocking finding;
-- [ ] all commits are pushed to this branch.
+- 把 `compiled_count == N` 当完成；
+- desired直接取neutral FK；
+- error字典直接填0；
+- local_position为0就默认site正确；
+- 用字符串长度判断body深度；
+- 推断语义标confidence=1；
+- 机器人名字数学分支；
+- G1异源变体差异写成expected limitation后算通过；
+- tests中`if not path.exists(): return`；
+- rank0 residual置零并算pass；
+- artifacts在dirty worktree生成；
+- 命令写死用户本机路径；
+- 只运行9台当前模型却称“全量”；
+- 使用公司私有模型；
+- 没有subagent证据；
+- 没有red-team仍宣称完成；
+- 开始生产IK或Step3。
 
-When this list passes, stop. Do not begin Step 3 on this branch.
+---
+
+## 18. 推荐提交顺序
+
+1. `test: expose step2 false-positive calibration and projection gates`
+2. `refactor: harden runtime model truth and fingerprints`
+3. `feat: add verified semantic maps and distal geometry sites`
+4. `feat: implement independent rest calibration`
+5. `feat: fix calibrated target rotation and root scaling`
+6. `feat: run canonical torso and endpoint chain projections`
+7. `feat: add normalized neutral and continuity priors`
+8. `feat: add same-source URDF MJCF equivalence`
+9. `feat: validate all permissive positive humanoids`
+10. `test: validate partial and negative-control robot zoo`
+11. `test: add deterministic rerun and clean artifact audit`
+12. `ci: add step2 full validation matrix`
+13. `docs: add six subagent handoffs and implementation report`
+14. `artifacts: publish final clean step2 validation results`
+
+不要再次把所有工作压成一个无法审查的大提交。
+
+---
+
+## 19. Codex 启动步骤
+
+1. `git status --short`；
+2. `git rev-parse HEAD`；
+3. 确认分支为 `retargeting-v3-step2-kinematic-core`；
+4. 阅读三个Step1文档、本goal和现有known limitations；
+5. 一次创建六个专业subagent；
+6. 六个agent先完成Wave1审计；
+7. Integrator冻结接口；
+8. Agent F先提交失败回归测试；
+9. A–E按ownership实现；
+10. Integrator按依赖顺序集成；
+11. 运行全量Robot Zoo；
+12. Agent F红队；
+13. 阻断项返回对应agent修复；
+14. 最终clean rerun；
+15. 保存完整artifacts和reports；
+16. push全部commits；
+17. 到此停止，不进入Step3。
+
+---
+
+## 20. Step 2 完成定义
+
+只有同时满足以下条件才能写 `Step 2: PASS`：
+
+- [ ] 当前审计表所有“未通过/未实现/无证据”项已关闭；
+- [ ] six subagents全部有真实handoff；
+- [ ] runtime adapter通过；
+- [ ] verified semantics通过；
+- [ ] distal hand/sole sites通过；
+- [ ] independent rest calibration通过；
+- [ ] calibrated target builder通过；
+- [ ] canonical complete-model projection通过；
+- [ ] RPO专项通过；
+- [ ] G1同源cross-format严格等价通过；
+- [ ] G1异源variant比较诚实；
+- [ ] G1 23DoF真实模型通过；
+- [ ] manifest全量条目有结构化结果；
+- [ ] required positive humanoids全部算法通过；
+- [ ] partial与negative controls通过；
+- [ ] 无公司私有资产；
+- [ ] tests/JUnit/CI通过；
+- [ ] final clean artifacts可复现；
+- [ ] Agent F最终红队结论为 `PASS`；
+- [ ] 全部commits已push。
+
+若任一硬门槛未满足，implementation report必须写 `Step 2: BLOCKED`，列出阻断原因，并停止，不得开始Step3。
