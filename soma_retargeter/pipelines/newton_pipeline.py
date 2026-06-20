@@ -77,6 +77,7 @@ class NewtonPipeline:
         self.input_sample_rates = []
         self.max_frames = -1
         self.input_contact_scores = []
+        self.contact_score_summary = []
 
         if retarget_config is None:
             retargeter_config = pipeline_utils.get_retargeter_config(self.source_type, self.target_type)
@@ -234,9 +235,12 @@ class NewtonPipeline:
                 configured HumanToRobotScaler.
         """
         offsets = offsets if len(offsets) == len(buffers) else [wp.transform_identity()] * len(buffers)
+        if not hasattr(self, "contact_score_summary"):
+            self.contact_score_summary = []
         for i in trange(len(buffers), desc="[INFO] Converting Motions for Newton"):
             raw_buffer = buffers[i]
             explicit_scores = self._read_explicit_contact_scores(raw_buffer) if self.contact_aware_foot_ik_enabled else None
+            contact_score_source = "npz_foot_contacts" if explicit_scores is not None else None
             buffer = raw_buffer
             if self.initialization_pose and self.num_initialization_frames > 0:
                 buffer = newton_utils.create_buffer_with_initialization_frames(
@@ -254,12 +258,26 @@ class NewtonPipeline:
                     scores = explicit_scores
                     if scores is None and self.contact_source in ("auto", "soma_heuristic"):
                         scores = infer_contacts_from_animation_buffer(buffer, offsets[i], window)
+                        contact_score_source = "soma_heuristic"
                     self.input_contact_scores.append(scores)
+                    self.contact_score_summary.append(
+                        self._summarize_contact_scores(
+                            scores,
+                            contact_score_source or "unavailable",
+                            window,
+                        )
+                    )
                 except Exception as exc:
                     print(f"[WARN] Contact inference failed, disabling lock for this clip: {exc}")
                     self.input_contact_scores.append(None)
+                    self.contact_score_summary.append({
+                        "status": "failed",
+                        "source": contact_score_source or self.contact_source,
+                        "reason": str(exc),
+                    })
             else:
                 self.input_contact_scores.append(None)
+                self.contact_score_summary.append({"status": "disabled", "source": "disabled"})
 
     def _read_explicit_contact_scores(self, buffer):
         if self.contact_source not in ("auto", "npz_foot_contacts"):
@@ -286,6 +304,35 @@ class NewtonPipeline:
                 continue
             out[key] = np.concatenate([np.full(prepend_count, values[0], dtype=np.float32), values])
         return out
+
+    @staticmethod
+    def _summarize_contact_scores(scores, source, smoothing_window):
+        if scores is None:
+            return {"status": "unavailable", "source": str(source), "smoothing_window": int(smoothing_window)}
+        summary = {
+            "status": "ok",
+            "source": str(source),
+            "smoothing_window": int(smoothing_window),
+            "channels": {},
+        }
+        frame_count = 0
+        for key, values in sorted(scores.items()):
+            arr = np.asarray(values, dtype=np.float32)
+            finite = arr[np.isfinite(arr)]
+            frame_count = max(frame_count, int(arr.size))
+            if finite.size == 0:
+                summary["channels"][key] = {"status": "unavailable", "frame_count": int(arr.size)}
+                continue
+            summary["channels"][key] = {
+                "status": "ok",
+                "frame_count": int(arr.size),
+                "mean": float(np.mean(finite)),
+                "min": float(np.min(finite)),
+                "max": float(np.max(finite)),
+                "active_fraction_0_5": float(np.mean(finite >= 0.5)),
+            }
+        summary["frame_count"] = int(frame_count)
+        return summary
 
     def execute(self):
         """

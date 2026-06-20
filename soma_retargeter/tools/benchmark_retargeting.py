@@ -1525,6 +1525,7 @@ def _run_runtime_benchmark(
         },
         "priority_guard": getattr(pipeline, "priority_guard_report", {}),
         "solver_objectives": getattr(pipeline, "ik_objective_summary", {}),
+        "contact_scores": getattr(pipeline, "contact_score_summary", []),
         "metrics": {
             **_aggregate_motion_metrics(motion_payloads),
             "fallback_counts": {

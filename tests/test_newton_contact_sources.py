@@ -123,6 +123,18 @@ class TestNewtonContactModes(unittest.TestCase):
         scores = pipe.input_contact_scores[0]
         self.assertEqual(float(scores["left_heel_contact_score"][0]), 1.0)
         self.assertEqual(float(scores["left_toe_contact_score"][0]), 0.0)
+        summary = pipe.contact_score_summary[0]
+        self.assertEqual(summary["status"], "ok")
+        self.assertEqual(summary["source"], "npz_foot_contacts")
+        self.assertEqual(summary["frame_count"], 2)
+        self.assertEqual(summary["channels"]["left_heel_contact_score"]["frame_count"], 2)
+        self.assertAlmostEqual(summary["channels"]["left_heel_contact_score"]["active_fraction_0_5"], 0.5)
+
+    def test_contact_score_summary_reports_unavailable_scores(self):
+        summary = NewtonPipeline._summarize_contact_scores(None, "auto", 3)
+        self.assertEqual(summary["status"], "unavailable")
+        self.assertEqual(summary["source"], "auto")
+        self.assertEqual(summary["smoothing_window"], 3)
 
     def test_explicit_contacts_are_prepended_for_initialization_frames(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)
