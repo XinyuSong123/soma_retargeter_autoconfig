@@ -36,7 +36,7 @@
       "RightShin": 0
     }
   },
-  "command": "python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 e3_v2 --motions assets/motions/bvh --max-motions 2 --max-frames 80 --compare legacy v2 v2_pole_analytic --output artifacts/retargeting_v2 --force",
+  "command": "python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 e3_v2 --motions assets/motions/bvh --max-motions 2 --max-frames 80 --compare legacy v2 --output artifacts/retargeting_v2 --force",
   "compare_metrics": {
     "legacy": {
       "acceleration_p95": {
@@ -253,16 +253,16 @@
         "value": 2.4609505128021683
       },
       "runtime_seconds": {
-        "bvh_load_runtime": 0.9560333304107189,
-        "compile_profile": 0.011474080383777618,
-        "metric_runtime": 0.33665232732892036,
+        "bvh_load_runtime": 0.8621116578578949,
+        "compile_profile": 0.011305592954158783,
+        "metric_runtime": 0.33358823880553246,
         "motion_count": 2,
-        "motion_runtime": 0.8386345729231834,
+        "motion_runtime": 0.9039496257901192,
         "output_frame_count": 160,
-        "pipeline_construct_runtime": 0.03967399150133133,
-        "solve_fps": 208.0518387555648,
-        "solve_runtime": 0.7690391056239605,
-        "target_setup_runtime": 0.06959546729922295
+        "pipeline_construct_runtime": 0.04139489680528641,
+        "solve_fps": 192.07843263878823,
+        "solve_runtime": 0.8329930528998375,
+        "target_setup_runtime": 0.07095657289028168
       },
       "solver_iterations": {
         "status": "ok",
@@ -518,16 +518,16 @@
         "value": 14.676401121983266
       },
       "runtime_seconds": {
-        "bvh_load_runtime": 0.6667216494679451,
-        "compile_profile": 0.011474080383777618,
-        "metric_runtime": 0.34493572264909744,
+        "bvh_load_runtime": 0.8590813167393208,
+        "compile_profile": 0.011305592954158783,
+        "metric_runtime": 0.3332766070961952,
         "motion_count": 2,
-        "motion_runtime": 4.145070843398571,
+        "motion_runtime": 4.183807302266359,
         "output_frame_count": 160,
-        "pipeline_construct_runtime": 0.0505283959209919,
-        "solve_fps": 41.651833080098925,
-        "solve_runtime": 3.8413675501942635,
-        "target_setup_runtime": 0.30370329320430756
+        "pipeline_construct_runtime": 0.049648549407720566,
+        "solve_fps": 41.18135986330822,
+        "solve_runtime": 3.8852529525756836,
+        "target_setup_runtime": 0.29855434969067574
       },
       "solver_iterations": {
         "status": "ok",
@@ -558,306 +558,30 @@
         "value": 8.269031366588568
       },
       "warnings": 8
-    },
-    "v2_pole_analytic": {
-      "acceleration_p95": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 216.57136765705158
-      },
-      "confidence": 1.0,
-      "fallback_counts": {
-        "pole_vector": [
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0
-        ],
-        "status": "ok"
-      },
-      "foot_position_rmse": {
-        "aggregation": "mean",
-        "axis_order": [
-          "x",
-          "y",
-          "z"
-        ],
-        "axis_rmse": [
-          0.14026263056691973,
-          0.1256082321984746,
-          0.2946433550119255
-        ],
-        "by_semantic": {
-          "LeftFoot": {
-            "axis_order": [
-              "x",
-              "y",
-              "z"
-            ],
-            "axis_rmse": [
-              0.15638249520849318,
-              0.08245515030556805,
-              0.38635185967480656
-            ],
-            "mean_error": [
-              -0.1497691062983229,
-              -0.014372690367623508,
-              -0.26757368774370915
-            ],
-            "p95_abs_error": [
-              0.2148504949566826,
-              0.1153285632130582,
-              0.5700283068278006
-            ],
-            "sample_count": 160,
-            "statistic": "rmse",
-            "status": "ok",
-            "unit": "m",
-            "value": 0.4478782964792833
-          },
-          "RightFoot": {
-            "axis_order": [
-              "x",
-              "y",
-              "z"
-            ],
-            "axis_rmse": [
-              0.12414276592534623,
-              0.16876131409138115,
-              0.20293485034904452
-            ],
-            "mean_error": [
-              0.11728727669768935,
-              -0.16190354708295526,
-              -0.029925858462124633
-            ],
-            "p95_abs_error": [
-              0.17915290649384796,
-              0.25600614548706135,
-              0.3571918602394286
-            ],
-            "sample_count": 160,
-            "statistic": "rmse",
-            "status": "ok",
-            "unit": "m",
-            "value": 0.30170606378373765
-          }
-        },
-        "mean_error": [
-          -0.01624091480031678,
-          -0.08813811872528939,
-          -0.1487497731029169
-        ],
-        "motion_count": 2,
-        "p95_abs_error": [
-          0.1970017007252653,
-          0.18566735435005977,
-          0.4636100835336146
-        ],
-        "sample_count": 320,
-        "status": "ok",
-        "value": 0.3747921801315105
-      },
-      "foot_slide": {
-        "aggregation": "mean",
-        "motion_count": 1,
-        "status": "ok",
-        "value": 0.0
-      },
-      "hand_position_rmse": {
-        "aggregation": "mean",
-        "axis_order": [
-          "x",
-          "y",
-          "z"
-        ],
-        "axis_rmse": [
-          0.6987259825408925,
-          0.9944041938505237,
-          0.9154099449904581
-        ],
-        "by_semantic": {
-          "LeftHand": {
-            "axis_order": [
-              "x",
-              "y",
-              "z"
-            ],
-            "axis_rmse": [
-              0.44332293564806546,
-              0.8350492066622882,
-              0.7174503412449154
-            ],
-            "mean_error": [
-              0.37785256780063603,
-              -0.8217430346710458,
-              0.21147524072194238
-            ],
-            "p95_abs_error": [
-              0.789131412363693,
-              1.0188992967831332,
-              0.9888700994719711
-            ],
-            "sample_count": 160,
-            "statistic": "rmse",
-            "status": "ok",
-            "unit": "m",
-            "value": 1.1877751447087421
-          },
-          "RightHand": {
-            "axis_order": [
-              "x",
-              "y",
-              "z"
-            ],
-            "axis_rmse": [
-              0.9541290294337192,
-              1.1537591810387589,
-              1.113369548736001
-            ],
-            "mean_error": [
-              0.946221265824675,
-              -1.1464322251136312,
-              0.3327112000867323
-            ],
-            "p95_abs_error": [
-              1.0708784001913128,
-              1.3146810271947786,
-              1.4274486243108473
-            ],
-            "sample_count": 160,
-            "statistic": "rmse",
-            "status": "ok",
-            "unit": "m",
-            "value": 2.0089796239585165
-          }
-        },
-        "mean_error": [
-          0.6620369168126556,
-          -0.9840876298923386,
-          0.27209322040433737
-        ],
-        "motion_count": 2,
-        "p95_abs_error": [
-          0.9300049062775029,
-          1.1667901619889558,
-          1.2081593618914093
-        ],
-        "sample_count": 320,
-        "status": "ok",
-        "value": 1.5983773843336293
-      },
-      "joint_limit_margin": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 0.0
-      },
-      "penetration": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 1.907348634588857e-08
-      },
-      "root_acceleration_p95": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 0.0
-      },
-      "root_tilt": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 0.4491574728339618
-      },
-      "root_velocity_p95": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 0.0
-      },
-      "runtime_seconds": {
-        "bvh_load_runtime": 0.9866043142974377,
-        "compile_profile": 0.011474080383777618,
-        "metric_runtime": 0.3335221856832504,
-        "motion_count": 2,
-        "motion_runtime": 0.8787375539541245,
-        "output_frame_count": 160,
-        "pipeline_construct_runtime": 0.047050848603248596,
-        "solve_fps": 278.1103843867033,
-        "solve_runtime": 0.5753111317753792,
-        "target_setup_runtime": 0.30342642217874527
-      },
-      "solver_iterations": {
-        "status": "ok",
-        "value": 8.0
-      },
-      "task_residual_by_type_priority": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 1.9631460976445565
-      },
-      "torso_reachable_residual": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 1.2055403503627113
-      },
-      "torso_unreachable_residual": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 0.04537293351488534
-      },
-      "velocity_p95": {
-        "aggregation": "mean",
-        "motion_count": 2,
-        "status": "ok",
-        "value": 8.898465283142215
-      },
-      "warnings": 8
     }
   },
   "compare_runtime_seconds": {
     "legacy": {
-      "bvh_load_runtime": 0.9560333304107189,
-      "metric_runtime": 0.33665232732892036,
+      "bvh_load_runtime": 0.8621116578578949,
+      "metric_runtime": 0.33358823880553246,
       "motion_count": 2,
-      "motion_runtime": 0.8386345729231834,
+      "motion_runtime": 0.9039496257901192,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 0.03967399150133133,
-      "solve_fps": 208.0518387555648,
-      "solve_runtime": 0.7690391056239605,
-      "target_setup_runtime": 0.06959546729922295
+      "pipeline_construct_runtime": 0.04139489680528641,
+      "solve_fps": 192.07843263878823,
+      "solve_runtime": 0.8329930528998375,
+      "target_setup_runtime": 0.07095657289028168
     },
     "v2": {
-      "bvh_load_runtime": 0.6667216494679451,
-      "metric_runtime": 0.34493572264909744,
+      "bvh_load_runtime": 0.8590813167393208,
+      "metric_runtime": 0.3332766070961952,
       "motion_count": 2,
-      "motion_runtime": 4.145070843398571,
+      "motion_runtime": 4.183807302266359,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 0.0505283959209919,
-      "solve_fps": 41.651833080098925,
-      "solve_runtime": 3.8413675501942635,
-      "target_setup_runtime": 0.30370329320430756
-    },
-    "v2_pole_analytic": {
-      "bvh_load_runtime": 0.9866043142974377,
-      "metric_runtime": 0.3335221856832504,
-      "motion_count": 2,
-      "motion_runtime": 0.8787375539541245,
-      "output_frame_count": 160,
-      "pipeline_construct_runtime": 0.047050848603248596,
-      "solve_fps": 278.1103843867033,
-      "solve_runtime": 0.5753111317753792,
-      "target_setup_runtime": 0.30342642217874527
+      "pipeline_construct_runtime": 0.049648549407720566,
+      "solve_fps": 41.18135986330822,
+      "solve_runtime": 3.8852529525756836,
+      "target_setup_runtime": 0.29855434969067574
     }
   },
   "compare_solver_objectives": {
@@ -906,29 +630,6 @@
       "sparse_residual_dim": 66,
       "temporal_acceleration": 0,
       "temporal_velocity": 0
-    },
-    "v2_pole_analytic": {
-      "active_objectives": 28,
-      "autodiff_sparse_residual_dim": 0,
-      "batch_size": 2,
-      "collision": 0,
-      "contact": 4,
-      "direction": 8,
-      "direction_analytic": 8,
-      "direction_autodiff": 0,
-      "ground_barrier": 0,
-      "ik_iterations": 8,
-      "jacobian_mode": "analytic",
-      "joint_limit": 1,
-      "pole_vector": 8,
-      "pole_vector_analytic": 8,
-      "pole_vector_autodiff": 0,
-      "position": 5,
-      "rotation": 1,
-      "smooth_joint_filter": 1,
-      "sparse_residual_dim": 66,
-      "temporal_acceleration": 0,
-      "temporal_velocity": 0
     }
   },
   "compiler_version": "2.1.6",
@@ -945,22 +646,22 @@
       "v2_value": 1.197650793070413
     },
     {
-      "allowed_max": 1.0482932161539793,
-      "delta": 3.3064362704753876,
-      "legacy_value": 0.8386345729231834,
+      "allowed_max": 1.129937032237649,
+      "delta": 3.27985767647624,
+      "legacy_value": 0.9039496257901192,
       "metric": "runtime_seconds.motion_runtime",
       "rule": "relative_not_worse",
       "status": "failed",
       "tolerance": 0.25,
       "unit": "s",
-      "v2_value": 4.145070843398571
+      "v2_value": 4.183807302266359
     }
   ],
   "failure_type": "benchmark_gate",
   "per_robot_artifact": "per_robot/e3_v2.json",
   "profile_path": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/soma_retargeter/configs/e3_v2/e3_v2_compiled_retarget_profile_v2.json",
   "profile_schema_version": 2,
-  "reproduction_command": "python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 e3_v2 --motions assets/motions/bvh --max-motions 2 --max-frames 80 --compare legacy v2 v2_pole_analytic --output artifacts/retargeting_v2 --force",
+  "reproduction_command": "python -m soma_retargeter.tools.benchmark_retargeting --robots roboparty_rpo unitree_g1 e3_v2 --motions assets/motions/bvh --max-motions 2 --max-frames 80 --compare legacy v2 --output artifacts/retargeting_v2 --force",
   "robot": "e3_v2",
   "robot_fingerprint": "627f2a31ffd01afd7c82a56153899f05affff922e5e44075091e51264a6ca8d7",
   "root_ground_summary": {

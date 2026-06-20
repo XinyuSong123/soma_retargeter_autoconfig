@@ -108,7 +108,8 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["ik_iterations"], 4)
         self.assertTrue(cfg["direction_tasks"])
         self.assertTrue(cfg["pole_vector_tasks"])
-        self.assertFalse(all(task["analytic_jacobian"] for task in cfg["pole_vector_tasks"]))
+        self.assertTrue(all(task["analytic_jacobian"] for task in cfg["pole_vector_tasks"]))
+        self.assertTrue(all(task["residual_mode"] == "tangent2" for task in cfg["pole_vector_tasks"]))
         self.assertEqual(cfg["pole_vector_tasks"][0]["weight"], baseline["pole_vector_tasks"][0]["weight"])
 
     def test_hand_weight_compare_mode_overrides_only_hand_position_weights(self):

@@ -784,6 +784,28 @@ def _compiled_profile_torso_rotational_rank(compiled_profile: dict[str, Any]) ->
     return 0
 
 
+def _compiled_profile_uses_multi_axis_torso(compiled_profile: dict[str, Any]) -> bool:
+    return _compiled_profile_torso_rotational_rank(compiled_profile) > 1
+
+
+def _compiled_profile_supports_tangent_pole_schedule(compiled_profile: dict[str, Any]) -> bool:
+    if not _compiled_profile_uses_multi_axis_torso(compiled_profile):
+        return False
+    chains = compiled_profile.get("chains", {})
+    if not isinstance(chains, dict):
+        return False
+    hand_ranks: list[int] = []
+    for semantic in ("LeftHand", "RightHand"):
+        chain = chains.get(semantic)
+        if not isinstance(chain, dict):
+            continue
+        try:
+            hand_ranks.append(int(chain.get("translational_rank", 0)))
+        except (TypeError, ValueError):
+            hand_ranks.append(0)
+    return bool(hand_ranks) and min(hand_ranks) > 1
+
+
 def _compiled_profile_runtime_ik_iterations(compiled_profile: dict[str, Any]) -> int:
     if _compiled_profile_torso_rotational_rank(compiled_profile) == 1:
         return _SINGLE_AXIS_TORSO_COMPILED_PROFILE_IK_ITERATIONS
@@ -961,7 +983,8 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
         return []
 
     priority_bands, _ = _resolve_priority_weight_bands(compiled_profile)
-    analytic_direction_jacobian = _compiled_profile_torso_rotational_rank(compiled_profile) > 1
+    multi_axis_torso = _compiled_profile_uses_multi_axis_torso(compiled_profile)
+    tangent_pole_schedule = _compiled_profile_supports_tangent_pole_schedule(compiled_profile)
     out: list[dict[str, Any]] = []
     for task in compiled_profile.get("tasks", []):
         if not isinstance(task, dict) or not task.get("enabled", False):
@@ -994,15 +1017,22 @@ def _extract_compiled_profile_link_tasks(compiled_profile: dict[str, Any], task_
             "weight_source": "compiled task normalized weight",
         }
         if task_type == "direction":
-            payload["analytic_jacobian"] = bool(analytic_direction_jacobian)
+            payload["analytic_jacobian"] = bool(multi_axis_torso)
             payload["jacobian_schedule_reason"] = (
                 "enabled for multi-axis torso profile"
-                if analytic_direction_jacobian
+                if multi_axis_torso
                 else "disabled for single-axis torso profile to preserve bounded tracking"
             )
         elif task_type == "pole_vector":
-            payload["analytic_jacobian"] = False
-            payload["jacobian_schedule_reason"] = "disabled after validation because bounded analytic activation regressed tracking"
+            payload["analytic_jacobian"] = bool(tangent_pole_schedule)
+            payload["residual_mode"] = "tangent2" if tangent_pole_schedule else "normal3"
+            payload["jacobian_schedule_reason"] = (
+                "enabled as tangent-space analytic residual for multi-axis torso profile with rank-2 hand reach"
+                if tangent_pole_schedule
+                else "disabled for morphology profile after validation because analytic activation regressed tracking or safety"
+            )
+            if tangent_pole_schedule:
+                payload["residual_mode_reason"] = "default morphology schedule: tangent-space pole-vector residual"
         out.append(payload)
     return out
 

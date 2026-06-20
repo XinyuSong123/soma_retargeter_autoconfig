@@ -198,11 +198,24 @@ class TestContactConfig(unittest.TestCase):
         self.assertEqual(left_forearm_pole["target_site"], "LeftHand")
         self.assertEqual(left_forearm_pole["weight"], 10.0)
         self.assertFalse(left_forearm_pole["analytic_jacobian"])
+        self.assertEqual(left_forearm_pole["residual_mode"], "normal3")
         self.assertEqual(
             left_forearm_pole["jacobian_schedule_reason"],
-            "disabled after validation because bounded analytic activation regressed tracking",
+            "disabled for morphology profile after validation because analytic activation regressed tracking or safety",
         )
         self.assertEqual(left_forearm_pole["priority_weight_band"], 10.0)
+        g1_left_forearm_pole = next(task for task in g1_full_cfg["pole_vector_tasks"] if task["name"] == "LeftForeArm_pole_vector")
+        self.assertTrue(g1_left_forearm_pole["analytic_jacobian"])
+        self.assertEqual(g1_left_forearm_pole["residual_mode"], "tangent2")
+        self.assertEqual(
+            g1_left_forearm_pole["jacobian_schedule_reason"],
+            "enabled as tangent-space analytic residual for multi-axis torso profile with rank-2 hand reach",
+        )
+        self.assertIn("tangent-space", g1_left_forearm_pole["residual_mode_reason"])
+        e3_pole_cfg = build_runtime_retargeter_config("e3_v2", {"ik_map": {"LeftHand": "left_forearm_distal_link"}})
+        e3_left_forearm_pole = next(task for task in e3_pole_cfg["pole_vector_tasks"] if task["name"] == "LeftForeArm_pole_vector")
+        self.assertFalse(e3_left_forearm_pole["analytic_jacobian"])
+        self.assertEqual(e3_left_forearm_pole["residual_mode"], "normal3")
 
     def test_compiled_profile_registry_path_and_validation(self):
         path = get_profile_path("roboparty_rpo", "compiled_retarget_profile")

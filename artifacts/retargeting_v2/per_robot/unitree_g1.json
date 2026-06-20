@@ -259,16 +259,16 @@
           "value": 2.532490246215586
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8999692648649216,
-          "compile_profile": 0.041497644037008286,
-          "metric_runtime": 0.33169693127274513,
+          "bvh_load_runtime": 0.8358916155993938,
+          "compile_profile": 0.03837146237492561,
+          "metric_runtime": 0.3392816185951233,
           "motion_count": 2,
-          "motion_runtime": 0.929722510278225,
+          "motion_runtime": 1.2860082238912582,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.439699940383434,
-          "solve_fps": 173.7245908407888,
-          "solve_runtime": 0.9209979958832264,
-          "target_setup_runtime": 0.00872451439499855
+          "pipeline_construct_runtime": 4.525701608508825,
+          "solve_fps": 125.31828741472923,
+          "solve_runtime": 1.2767490148544312,
+          "target_setup_runtime": 0.009259209036827087
         },
         "solver_iterations": {
           "status": "ok",
@@ -302,6 +302,16 @@
       },
       "motion_benchmark": {
         "compare_mode": "legacy",
+        "contact_scores": [
+          {
+            "source": "disabled",
+            "status": "disabled"
+          },
+          {
+            "source": "disabled",
+            "status": "disabled"
+          }
+        ],
         "metrics": {
           "acceleration_p95": {
             "aggregation": "mean",
@@ -1113,15 +1123,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.8999692648649216,
-          "metric_runtime": 0.33169693127274513,
+          "bvh_load_runtime": 0.8358916155993938,
+          "metric_runtime": 0.3392816185951233,
           "motion_count": 2,
-          "motion_runtime": 0.929722510278225,
+          "motion_runtime": 1.2860082238912582,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.439699940383434,
-          "solve_fps": 173.7245908407888,
-          "solve_runtime": 0.9209979958832264,
-          "target_setup_runtime": 0.00872451439499855
+          "pipeline_construct_runtime": 4.525701608508825,
+          "solve_fps": 125.31828741472923,
+          "solve_runtime": 1.2767490148544312,
+          "target_setup_runtime": 0.009259209036827087
         },
         "solver_objectives": {
           "active_objectives": 30,
@@ -1156,7 +1166,7 @@
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 863.5041694473578
+          "value": 837.0282075647509
         },
         "confidence": 1.0,
         "fallback_counts": {
@@ -1180,9 +1190,9 @@
             "z"
           ],
           "axis_rmse": [
-            0.248086999475506,
-            0.2676885993519976,
-            0.1932197864637061
+            0.14037901327750973,
+            0.11199294974412713,
+            0.2347443493203963
           ],
           "by_semantic": {
             "LeftFoot": {
@@ -1192,25 +1202,25 @@
                 "z"
               ],
               "axis_rmse": [
-                0.24215589764717835,
-                0.3954416100383927,
-                0.17884400553431248
+                0.13983774973939206,
+                0.1464195762847244,
+                0.24079325458571202
               ],
               "mean_error": [
-                -0.1856477709389257,
-                0.3597616838226952,
-                0.03765859885192511
+                -0.055215972563957036,
+                0.1010492246019199,
+                0.08800393096167711
               ],
               "p95_abs_error": [
-                0.46660005517445696,
-                0.5219053379955183,
-                0.33952304992595284
+                0.33815052794993916,
+                0.32770290075368436,
+                0.3998929626430078
               ],
               "sample_count": 160,
               "statistic": "rmse",
               "status": "ok",
               "unit": "m",
-              "value": 0.5193662960296412
+              "value": 0.3398765338694236
             },
             "RightFoot": {
               "axis_order": [
@@ -1219,1171 +1229,47 @@
                 "z"
               ],
               "axis_rmse": [
-                0.2540181013038337,
-                0.1399355886656025,
-                0.20759556739309967
+                0.14092027681562733,
+                0.07756632320352984,
+                0.22869544405508066
               ],
               "mean_error": [
-                -0.05738581886108758,
-                0.0875777683238909,
-                0.17038059218308493
+                0.03147145386724056,
+                0.009133463269218045,
+                0.12822946792999249
               ],
               "p95_abs_error": [
-                0.4559198737639969,
-                0.31602404470350726,
-                0.36725542739287886
+                0.2613951721308835,
+                0.1547538416157704,
+                0.42449937146368855
               ],
               "sample_count": 160,
               "statistic": "rmse",
               "status": "ok",
               "unit": "m",
-              "value": 0.3603123489402269
+              "value": 0.2835180512706212
             }
           },
           "mean_error": [
-            -0.12151679490000664,
-            0.22366972607329302,
-            0.10401959551750503
+            -0.011872259348358238,
+            0.05509134393556897,
+            0.1081166994458348
           ],
           "motion_count": 2,
           "p95_abs_error": [
-            0.4612599644692269,
-            0.4189646913495128,
-            0.35338923865941585
+            0.2997728500404113,
+            0.24122837118472734,
+            0.41219616705334816
           ],
           "sample_count": 320,
           "status": "ok",
-          "value": 0.43983932248493407
-        },
-        "foot_slide": {
-          "motion_count": 2,
-          "reason": "unavailable",
-          "status": "unavailable"
-        },
-        "hand_position_rmse": {
-          "aggregation": "mean",
-          "axis_order": [
-            "x",
-            "y",
-            "z"
-          ],
-          "axis_rmse": [
-            0.2955294194511259,
-            0.2443775428047786,
-            0.3648665642886144
-          ],
-          "by_semantic": {
-            "LeftHand": {
-              "axis_order": [
-                "x",
-                "y",
-                "z"
-              ],
-              "axis_rmse": [
-                0.41791937024819736,
-                0.16690950175355995,
-                0.20111838653805844
-              ],
-              "mean_error": [
-                -0.1635017952994429,
-                0.033148569723026586,
-                -0.047667041568450814
-              ],
-              "p95_abs_error": [
-                0.7492788209546601,
-                0.32091222962820387,
-                0.4161838106209149
-              ],
-              "sample_count": 160,
-              "statistic": "rmse",
-              "status": "ok",
-              "unit": "m",
-              "value": 0.4977852131611894
-            },
-            "RightHand": {
-              "axis_order": [
-                "x",
-                "y",
-                "z"
-              ],
-              "axis_rmse": [
-                0.17313946865405436,
-                0.3218455838559972,
-                0.5286147420391704
-              ],
-              "mean_error": [
-                0.11438107299423894,
-                -0.14260880334890932,
-                0.12362071887157185
-              ],
-              "p95_abs_error": [
-                0.31694685477545614,
-                0.5625035356157759,
-                0.7215801605719976
-              ],
-              "sample_count": 160,
-              "statistic": "rmse",
-              "status": "ok",
-              "unit": "m",
-              "value": 0.6452824092820377
-            }
-          },
-          "mean_error": [
-            -0.024560361152601972,
-            -0.054730116812941376,
-            0.03797683865156052
-          ],
-          "motion_count": 2,
-          "p95_abs_error": [
-            0.533112837865058,
-            0.44170788262198996,
-            0.5688819855964563
-          ],
-          "sample_count": 320,
-          "status": "ok",
-          "value": 0.5715338112216135
-        },
-        "joint_limit_margin": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 0.0
-        },
-        "penetration": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 0.0
-        },
-        "root_acceleration_p95": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 2076.4013774148434
-        },
-        "root_tilt": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 0.8935075511020174
-        },
-        "root_velocity_p95": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 8.111093106011701
-        },
-        "runtime_seconds": {
-          "bvh_load_runtime": 0.8987584598362446,
-          "compile_profile": 0.041497644037008286,
-          "metric_runtime": 0.3320627473294735,
-          "motion_count": 2,
-          "motion_runtime": 4.638731174170971,
-          "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.1510006710886955,
-          "solve_fps": 36.36385444528557,
-          "solve_runtime": 4.3999736122787,
-          "target_setup_runtime": 0.23875756189227104
-        },
-        "solver_iterations": {
-          "status": "ok",
-          "value": 8.0
-        },
-        "task_residual_by_type_priority": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 1.9332704053113328
-        },
-        "torso_reachable_residual": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 1.969051676320899
-        },
-        "torso_unreachable_residual": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 0.0
-        },
-        "velocity_p95": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 36.89118093001116
-        },
-        "warnings": 0
-      },
-      "motion_benchmark": {
-        "compare_mode": "v2",
-        "metrics": {
-          "acceleration_p95": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 863.5041694473578
-          },
-          "fallback_counts": {
-            "pole_vector": [
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0
-            ],
-            "status": "ok"
-          },
-          "foot_position_rmse": {
-            "aggregation": "mean",
-            "axis_order": [
-              "x",
-              "y",
-              "z"
-            ],
-            "axis_rmse": [
-              0.248086999475506,
-              0.2676885993519976,
-              0.1932197864637061
-            ],
-            "by_semantic": {
-              "LeftFoot": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.24215589764717835,
-                  0.3954416100383927,
-                  0.17884400553431248
-                ],
-                "mean_error": [
-                  -0.1856477709389257,
-                  0.3597616838226952,
-                  0.03765859885192511
-                ],
-                "p95_abs_error": [
-                  0.46660005517445696,
-                  0.5219053379955183,
-                  0.33952304992595284
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.5193662960296412
-              },
-              "RightFoot": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.2540181013038337,
-                  0.1399355886656025,
-                  0.20759556739309967
-                ],
-                "mean_error": [
-                  -0.05738581886108758,
-                  0.0875777683238909,
-                  0.17038059218308493
-                ],
-                "p95_abs_error": [
-                  0.4559198737639969,
-                  0.31602404470350726,
-                  0.36725542739287886
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.3603123489402269
-              }
-            },
-            "mean_error": [
-              -0.12151679490000664,
-              0.22366972607329302,
-              0.10401959551750503
-            ],
-            "motion_count": 2,
-            "p95_abs_error": [
-              0.4612599644692269,
-              0.4189646913495128,
-              0.35338923865941585
-            ],
-            "sample_count": 320,
-            "status": "ok",
-            "value": 0.43983932248493407
-          },
-          "foot_slide": {
-            "motion_count": 2,
-            "reason": "unavailable",
-            "status": "unavailable"
-          },
-          "hand_position_rmse": {
-            "aggregation": "mean",
-            "axis_order": [
-              "x",
-              "y",
-              "z"
-            ],
-            "axis_rmse": [
-              0.2955294194511259,
-              0.2443775428047786,
-              0.3648665642886144
-            ],
-            "by_semantic": {
-              "LeftHand": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.41791937024819736,
-                  0.16690950175355995,
-                  0.20111838653805844
-                ],
-                "mean_error": [
-                  -0.1635017952994429,
-                  0.033148569723026586,
-                  -0.047667041568450814
-                ],
-                "p95_abs_error": [
-                  0.7492788209546601,
-                  0.32091222962820387,
-                  0.4161838106209149
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.4977852131611894
-              },
-              "RightHand": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.17313946865405436,
-                  0.3218455838559972,
-                  0.5286147420391704
-                ],
-                "mean_error": [
-                  0.11438107299423894,
-                  -0.14260880334890932,
-                  0.12362071887157185
-                ],
-                "p95_abs_error": [
-                  0.31694685477545614,
-                  0.5625035356157759,
-                  0.7215801605719976
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.6452824092820377
-              }
-            },
-            "mean_error": [
-              -0.024560361152601972,
-              -0.054730116812941376,
-              0.03797683865156052
-            ],
-            "motion_count": 2,
-            "p95_abs_error": [
-              0.533112837865058,
-              0.44170788262198996,
-              0.5688819855964563
-            ],
-            "sample_count": 320,
-            "status": "ok",
-            "value": 0.5715338112216135
-          },
-          "joint_limit_margin": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 0.0
-          },
-          "penetration": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 0.0
-          },
-          "root_acceleration_p95": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 2076.4013774148434
-          },
-          "root_tilt": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 0.8935075511020174
-          },
-          "root_velocity_p95": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 8.111093106011701
-          },
-          "solver_iterations": {
-            "status": "ok",
-            "value": 8.0
-          },
-          "task_residual_by_type_priority": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 1.9332704053113328
-          },
-          "torso_reachable_residual": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 1.969051676320899
-          },
-          "torso_unreachable_residual": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 0.0
-          },
-          "velocity_p95": {
-            "aggregation": "mean",
-            "motion_count": 2,
-            "status": "ok",
-            "value": 36.89118093001116
-          }
-        },
-        "motions": [
-          {
-            "frame_selection": "max_motion_window",
-            "frames": 80,
-            "metrics": {
-              "acceleration_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "actuated_joint_coord_per_s2",
-                "value": 816.933095738068
-              },
-              "foot_position_rmse": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.27911310242654386,
-                  0.4119089234700842,
-                  0.22747981667803305
-                ],
-                "by_semantic": {
-                  "LeftFoot": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.33956972124275053,
-                      0.7257035435443715,
-                      0.22601198474833803
-                    ],
-                    "mean_error": [
-                      -0.32745573539166833,
-                      0.6767263824411647,
-                      0.16211795709002935
-                    ],
-                    "p95_abs_error": [
-                      0.5765737148357194,
-                      0.8925278550075221,
-                      0.36024080855537227
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.8324870244920457
-                  },
-                  "RightFoot": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.2186564836103372,
-                      0.09811430339579683,
-                      0.228947648607728
-                    ],
-                    "mean_error": [
-                      0.10391135893533736,
-                      0.04635936318304603,
-                      0.22226484664101834
-                    ],
-                    "p95_abs_error": [
-                      0.4033704282822237,
-                      0.2133866292268742,
-                      0.32902155439966374
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.3314424537663934
-                  }
-                },
-                "mean_error": [
-                  -0.11177218822816548,
-                  0.36154287281210534,
-                  0.19219140186552383
-                ],
-                "p95_abs_error": [
-                  0.4899720715589716,
-                  0.5529572421171982,
-                  0.34463118147751803
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.5819647391292195
-              },
-              "foot_slide": {
-                "statistic": "p95",
-                "status": "unavailable",
-                "unit": "m_per_s"
-              },
-              "hand_position_rmse": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.35230817618593474,
-                  0.3192003493294463,
-                  0.4195637269082283
-                ],
-                "by_semantic": {
-                  "LeftHand": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.5122452809185762,
-                      0.1791477058844693,
-                      0.17158946801126093
-                    ],
-                    "mean_error": [
-                      -0.11816925048635948,
-                      -0.051254231822403386,
-                      -0.0008091323535215466
-                    ],
-                    "p95_abs_error": [
-                      0.8728809183387224,
-                      0.33348077614811716,
-                      0.32767234151229707
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.5691503086877902
-                  },
-                  "RightHand": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.1923710714532932,
-                      0.4592529927744232,
-                      0.6675379858051956
-                    ],
-                    "mean_error": [
-                      0.10333670384142661,
-                      -0.3686628425103306,
-                      0.5795065255853604
-                    ],
-                    "p95_abs_error": [
-                      0.3740076051467839,
-                      0.7407170900856352,
-                      0.9035984029603638
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.8327826264981818
-                  }
-                },
-                "mean_error": [
-                  -0.007416273322466438,
-                  -0.20995853716636698,
-                  0.28934869661591944
-                ],
-                "p95_abs_error": [
-                  0.6234442617427531,
-                  0.5370989331168762,
-                  0.6156353722363305
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.700966467592986
-              },
-              "joint_limit_margin": {
-                "status": "ok",
-                "unit": "normalized_margin",
-                "value": 0.0
-              },
-              "penetration": {
-                "statistic": "max",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.0
-              },
-              "root_acceleration_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "root_coord_per_s2",
-                "value": 91.00867152214036
-              },
-              "root_tilt": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "rad",
-                "value": 0.696471782702527
-              },
-              "root_velocity_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "root_coord_per_s",
-                "value": 4.144956350326535
-              },
-              "task_residual_by_type_priority": {
-                "count": 1360,
-                "groups": {
-                  "direction:p3": {
-                    "count": 640,
-                    "max": 1.9998760501693797,
-                    "mean": 1.1586407256022202,
-                    "statistic": "p95",
-                    "status": "ok",
-                    "unit": "residual",
-                    "value": 1.984324245755068
-                  },
-                  "pole_vector:p3": {
-                    "count": 640,
-                    "max": 1.9861630425578969,
-                    "mean": 1.322147179642447,
-                    "statistic": "p95",
-                    "status": "ok",
-                    "unit": "residual",
-                    "value": 1.9375815318649068
-                  },
-                  "projected_relative_rotation:p2": {
-                    "count": 80,
-                    "max": 2.142121712138816,
-                    "mean": 1.1100161421527552,
-                    "statistic": "p95",
-                    "status": "ok",
-                    "unit": "residual",
-                    "value": 2.051748268411657
-                  }
-                },
-                "max": 2.142121712138816,
-                "mean": 1.232724669653535,
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "residual",
-                "value": 1.9737454992485124
-              },
-              "torso_reachable_residual": {
-                "count": 80,
-                "max": 2.142121712138816,
-                "mean": 1.1100161421527552,
-                "source_unreachable_p95": 0.0,
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "rad",
-                "value": 2.051748268411657
-              },
-              "torso_unreachable_residual": {
-                "count": 80,
-                "max": 0.0,
-                "mean": 0.0,
-                "meaning": "actual_unreachable_leakage",
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "rad",
-                "value": 0.0
-              },
-              "velocity_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "actuated_joint_coord_per_s",
-                "value": 38.190774363992304
-              }
-            },
-            "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_throw_ball_001__A057.bvh",
-            "sample_rate": 120.0,
-            "source_frame_start": 92
-          },
-          {
-            "frame_selection": "max_motion_window",
-            "frames": 80,
-            "metrics": {
-              "acceleration_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "actuated_joint_coord_per_s2",
-                "value": 910.0752431566475
-              },
-              "foot_position_rmse": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.21706089652446817,
-                  0.12346827523391102,
-                  0.15895975624937914
-                ],
-                "by_semantic": {
-                  "LeftFoot": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.1447420740516062,
-                      0.06517967653241385,
-                      0.1316760263202869
-                    ],
-                    "mean_error": [
-                      -0.04383980648618309,
-                      0.04279698520422574,
-                      -0.08680075938617912
-                    ],
-                    "p95_abs_error": [
-                      0.35662639551319447,
-                      0.1512828209835144,
-                      0.31880529129653346
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.20624556756723683
-                  },
-                  "RightFoot": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.2893797189973301,
-                      0.18175687393540818,
-                      0.18624348617847133
-                    ],
-                    "mean_error": [
-                      -0.2186829966575125,
-                      0.12879617346473576,
-                      0.11849633772515156
-                    ],
-                    "p95_abs_error": [
-                      0.5084693192457701,
-                      0.41866146018014033,
-                      0.405489300386094
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.3891822441140604
-                  }
-                },
-                "mean_error": [
-                  -0.1312614015718478,
-                  0.08579657933448076,
-                  0.015847789169486214
-                ],
-                "p95_abs_error": [
-                  0.43254785737948226,
-                  0.28497214058182735,
-                  0.3621472958413137
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.2977139058406486
-              },
-              "foot_slide": {
-                "statistic": "p95",
-                "status": "unavailable",
-                "unit": "m_per_s"
-              },
-              "hand_position_rmse": {
-                "axis_order": [
-                  "x",
-                  "y",
-                  "z"
-                ],
-                "axis_rmse": [
-                  0.23875066271631695,
-                  0.16955473628011092,
-                  0.31016940166900053
-                ],
-                "by_semantic": {
-                  "LeftHand": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.32359345957781843,
-                      0.1546712976226506,
-                      0.23064730506485595
-                    ],
-                    "mean_error": [
-                      -0.20883434011252627,
-                      0.11755137126845656,
-                      -0.09452495078338008
-                    ],
-                    "p95_abs_error": [
-                      0.6256767235705979,
-                      0.3083436831082906,
-                      0.5046952797295329
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.42642011763458876
-                  },
-                  "RightHand": {
-                    "axis_order": [
-                      "x",
-                      "y",
-                      "z"
-                    ],
-                    "axis_rmse": [
-                      0.1539078658548155,
-                      0.1844381749375712,
-                      0.38969149827314503
-                    ],
-                    "mean_error": [
-                      0.12542544214705126,
-                      0.08344523581251193,
-                      -0.33226508784221676
-                    ],
-                    "p95_abs_error": [
-                      0.2598861044041284,
-                      0.3842899811459167,
-                      0.5395619181836314
-                    ],
-                    "sample_count": 80,
-                    "statistic": "rmse",
-                    "status": "ok",
-                    "unit": "m",
-                    "value": 0.4577821920658935
-                  }
-                },
-                "mean_error": [
-                  -0.04170444898273751,
-                  0.10049830354048424,
-                  -0.21339501931279842
-                ],
-                "p95_abs_error": [
-                  0.44278141398736315,
-                  0.3463168321271037,
-                  0.5221285989565821
-                ],
-                "sample_count": 160,
-                "statistic": "rmse",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.44210115485024115
-              },
-              "joint_limit_margin": {
-                "status": "ok",
-                "unit": "normalized_margin",
-                "value": 0.0
-              },
-              "penetration": {
-                "statistic": "max",
-                "status": "ok",
-                "unit": "m",
-                "value": 0.0
-              },
-              "root_acceleration_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "root_coord_per_s2",
-                "value": 4061.7940833075468
-              },
-              "root_tilt": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "rad",
-                "value": 1.090543319501508
-              },
-              "root_velocity_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "root_coord_per_s",
-                "value": 12.077229861696868
-              },
-              "task_residual_by_type_priority": {
-                "count": 1360,
-                "groups": {
-                  "direction:p3": {
-                    "count": 640,
-                    "max": 1.9269304167976031,
-                    "mean": 0.8776066504802618,
-                    "statistic": "p95",
-                    "status": "ok",
-                    "unit": "residual",
-                    "value": 1.8253747066394082
-                  },
-                  "pole_vector:p3": {
-                    "count": 640,
-                    "max": 1.9990505042436042,
-                    "mean": 1.177910300822173,
-                    "statistic": "p95",
-                    "status": "ok",
-                    "unit": "residual",
-                    "value": 1.9444004000427475
-                  },
-                  "projected_relative_rotation:p2": {
-                    "count": 80,
-                    "max": 2.2369577343654385,
-                    "mean": 1.2058620025658158,
-                    "statistic": "p95",
-                    "status": "ok",
-                    "unit": "residual",
-                    "value": 1.886355084230141
-                  }
-                },
-                "max": 2.2369577343654385,
-                "mean": 1.0382351537050174,
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "residual",
-                "value": 1.892795311374153
-              },
-              "torso_reachable_residual": {
-                "count": 80,
-                "max": 2.2369577343654385,
-                "mean": 1.2058620025658158,
-                "source_unreachable_p95": 0.0,
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "rad",
-                "value": 1.886355084230141
-              },
-              "torso_unreachable_residual": {
-                "count": 80,
-                "max": 0.0,
-                "mean": 0.0,
-                "meaning": "actual_unreachable_leakage",
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "rad",
-                "value": 0.0
-              },
-              "velocity_p95": {
-                "statistic": "p95",
-                "status": "ok",
-                "unit": "actuated_joint_coord_per_s",
-                "value": 35.59158749603001
-              }
-            },
-            "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_walk_forward_002__A057.bvh",
-            "sample_rate": 120.0,
-            "source_frame_start": 445
-          }
-        ],
-        "priority_guard": {
-          "checked_frames": 95,
-          "enabled": true,
-          "max_after": 0.0,
-          "max_allowed": 1e-05,
-          "protected_priority": 0,
-          "protected_residual": "joint_limit_penetration",
-          "rollback_count": 0
-        },
-        "runtime_seconds": {
-          "bvh_load_runtime": 0.8987584598362446,
-          "metric_runtime": 0.3320627473294735,
-          "motion_count": 2,
-          "motion_runtime": 4.638731174170971,
-          "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.1510006710886955,
-          "solve_fps": 36.36385444528557,
-          "solve_runtime": 4.3999736122787,
-          "target_setup_runtime": 0.23875756189227104
-        },
-        "solver_objectives": {
-          "active_objectives": 24,
-          "autodiff_sparse_residual_dim": 24,
-          "batch_size": 2,
-          "collision": 0,
-          "contact": 0,
-          "direction": 8,
-          "direction_analytic": 8,
-          "direction_autodiff": 0,
-          "ground_barrier": 0,
-          "ik_iterations": 8,
-          "jacobian_mode": "mixed",
-          "joint_limit": 1,
-          "pole_vector": 8,
-          "pole_vector_analytic": 0,
-          "pole_vector_autodiff": 8,
-          "position": 5,
-          "rotation": 1,
-          "smooth_joint_filter": 1,
-          "sparse_residual_dim": 66,
-          "temporal_acceleration": 0,
-          "temporal_velocity": 0
-        },
-        "status": "ok"
-      },
-      "status": "ok"
-    },
-    "v2_pole_analytic": {
-      "metrics": {
-        "acceleration_p95": {
-          "aggregation": "mean",
-          "motion_count": 2,
-          "status": "ok",
-          "value": 895.1716432681751
-        },
-        "confidence": 1.0,
-        "fallback_counts": {
-          "pole_vector": [
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0
-          ],
-          "status": "ok"
-        },
-        "foot_position_rmse": {
-          "aggregation": "mean",
-          "axis_order": [
-            "x",
-            "y",
-            "z"
-          ],
-          "axis_rmse": [
-            0.24470584709978457,
-            0.4053142240092692,
-            0.3213735567542571
-          ],
-          "by_semantic": {
-            "LeftFoot": {
-              "axis_order": [
-                "x",
-                "y",
-                "z"
-              ],
-              "axis_rmse": [
-                0.22737551238649054,
-                0.30358934204760546,
-                0.26968008074556893
-              ],
-              "mean_error": [
-                -0.05237412010133448,
-                0.1794746572238752,
-                -0.04670377611137714
-              ],
-              "p95_abs_error": [
-                0.45558945204545076,
-                0.6421096702529068,
-                0.6173813629020837
-              ],
-              "sample_count": 160,
-              "statistic": "rmse",
-              "status": "ok",
-              "unit": "m",
-              "value": 0.4720275397686386
-            },
-            "RightFoot": {
-              "axis_order": [
-                "x",
-                "y",
-                "z"
-              ],
-              "axis_rmse": [
-                0.26203618181307864,
-                0.5070391059709329,
-                0.3730670327629453
-              ],
-              "mean_error": [
-                0.005677807297731929,
-                0.3370494140555379,
-                0.26282318541729
-              ],
-              "p95_abs_error": [
-                0.5684812564772213,
-                1.0103646040889787,
-                0.7871980894251983
-              ],
-              "sample_count": 160,
-              "statistic": "rmse",
-              "status": "ok",
-              "unit": "m",
-              "value": 0.692274680311257
-            }
-          },
-          "mean_error": [
-            -0.023348156401801275,
-            0.25826203563970657,
-            0.10805970465295642
-          ],
-          "motion_count": 2,
-          "p95_abs_error": [
-            0.5120353542613361,
-            0.8262371371709427,
-            0.7022897261636409
-          ],
-          "sample_count": 320,
-          "status": "ok",
-          "value": 0.5821511100399478
+          "value": 0.31169729257002243
         },
         "foot_slide": {
           "aggregation": "mean",
           "motion_count": 1,
           "status": "ok",
-          "value": 11.47337469624248
+          "value": 0.3369909970542055
         },
         "hand_position_rmse": {
           "aggregation": "mean",
@@ -2393,9 +1279,9 @@
             "z"
           ],
           "axis_rmse": [
-            0.3554853569515354,
-            0.5073758945539322,
-            0.4803504980551022
+            0.2894726364618007,
+            0.20457045171635851,
+            0.3947043397176902
           ],
           "by_semantic": {
             "LeftHand": {
@@ -2405,25 +1291,25 @@
                 "z"
               ],
               "axis_rmse": [
-                0.37275538182546597,
-                0.36718667889865664,
-                0.39847896285343987
+                0.24601879927917164,
+                0.17780657841070693,
+                0.35366744140672346
               ],
               "mean_error": [
-                0.05280226792912666,
-                -0.147742080899746,
-                0.13495092024567729
+                -0.0528289719057695,
+                0.13016250239126056,
+                0.22462827511845415
               ],
               "p95_abs_error": [
-                0.5981998589720181,
-                0.6804077659328445,
-                0.711476681335679
+                0.5399217032032333,
+                0.2899232899999631,
+                0.6166029991802139
               ],
               "sample_count": 160,
               "statistic": "rmse",
               "status": "ok",
               "unit": "m",
-              "value": 0.6822574796485421
+              "value": 0.4686506839129775
             },
             "RightHand": {
               "axis_order": [
@@ -2432,41 +1318,41 @@
                 "z"
               ],
               "axis_rmse": [
-                0.3382153320776046,
-                0.6475651102092078,
-                0.5622220332567645
+                0.3329264736444298,
+                0.23133432502201012,
+                0.43574123802865683
               ],
               "mean_error": [
-                0.2403579528746936,
-                -0.13858898901739164,
-                0.2595294788860478
+                0.20022315532752347,
+                -0.1458222334385132,
+                0.15944303878942384
               ],
               "p95_abs_error": [
-                0.5385528972228152,
-                1.0579025167400924,
-                0.8457647775670225
+                0.5990700762309117,
+                0.45936484029483615,
+                0.7662616413888461
               ],
               "sample_count": 160,
               "statistic": "rmse",
               "status": "ok",
               "unit": "m",
-              "value": 0.9250994068223765
+              "value": 0.6091074826045331
             }
           },
           "mean_error": [
-            0.14658011040191016,
-            -0.14316553495856882,
-            0.19724019956586256
+            0.07369709171087699,
+            -0.007829865523626318,
+            0.19203565695393898
           ],
           "motion_count": 2,
           "p95_abs_error": [
-            0.5683763780974166,
-            0.8691551413364685,
-            0.7786207294513507
+            0.5694958897170725,
+            0.3746440651473996,
+            0.69143232028453
           ],
           "sample_count": 320,
           "status": "ok",
-          "value": 0.8036784432354591
+          "value": 0.5388790832587553
         },
         "joint_limit_margin": {
           "aggregation": "mean",
@@ -2478,37 +1364,37 @@
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 5.496074816126184e-07
+          "value": 0.0
         },
         "root_acceleration_p95": {
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 12837.727765289143
+          "value": 3668.6403326729596
         },
         "root_tilt": {
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 1.3318210690543308
+          "value": 1.326889534244199
         },
         "root_velocity_p95": {
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 71.6230293275954
+          "value": 18.835335511152053
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.9543884061276913,
-          "compile_profile": 0.041497644037008286,
-          "metric_runtime": 0.3392508700489998,
+          "bvh_load_runtime": 0.6035945788025856,
+          "compile_profile": 0.03837146237492561,
+          "metric_runtime": 0.3330092057585716,
           "motion_count": 2,
-          "motion_runtime": 0.9647864624857903,
+          "motion_runtime": 1.4691617637872696,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.15098337456584,
-          "solve_fps": 228.37768345621964,
-          "solve_runtime": 0.7005938477814198,
-          "target_setup_runtime": 0.2641926147043705
+          "pipeline_construct_runtime": 4.151830159127712,
+          "solve_fps": 130.89427570867113,
+          "solve_runtime": 1.2223605588078499,
+          "target_setup_runtime": 0.2468012049794197
         },
         "solver_iterations": {
           "status": "ok",
@@ -2518,13 +1404,13 @@
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 1.9140277689796792
+          "value": 1.8581250112810561
         },
         "torso_reachable_residual": {
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 2.430578751507786
+          "value": 2.268746859052402
         },
         "torso_unreachable_residual": {
           "aggregation": "mean",
@@ -2536,18 +1422,28 @@
           "aggregation": "mean",
           "motion_count": 2,
           "status": "ok",
-          "value": 37.205654506495804
+          "value": 35.204824632954036
         },
         "warnings": 0
       },
       "motion_benchmark": {
-        "compare_mode": "v2_pole_analytic",
+        "compare_mode": "v2",
+        "contact_scores": [
+          {
+            "source": "disabled",
+            "status": "disabled"
+          },
+          {
+            "source": "disabled",
+            "status": "disabled"
+          }
+        ],
         "metrics": {
           "acceleration_p95": {
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 895.1716432681751
+            "value": 837.0282075647509
           },
           "fallback_counts": {
             "pole_vector": [
@@ -2570,9 +1466,9 @@
               "z"
             ],
             "axis_rmse": [
-              0.24470584709978457,
-              0.4053142240092692,
-              0.3213735567542571
+              0.14037901327750973,
+              0.11199294974412713,
+              0.2347443493203963
             ],
             "by_semantic": {
               "LeftFoot": {
@@ -2582,25 +1478,25 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.22737551238649054,
-                  0.30358934204760546,
-                  0.26968008074556893
+                  0.13983774973939206,
+                  0.1464195762847244,
+                  0.24079325458571202
                 ],
                 "mean_error": [
-                  -0.05237412010133448,
-                  0.1794746572238752,
-                  -0.04670377611137714
+                  -0.055215972563957036,
+                  0.1010492246019199,
+                  0.08800393096167711
                 ],
                 "p95_abs_error": [
-                  0.45558945204545076,
-                  0.6421096702529068,
-                  0.6173813629020837
+                  0.33815052794993916,
+                  0.32770290075368436,
+                  0.3998929626430078
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.4720275397686386
+                "value": 0.3398765338694236
               },
               "RightFoot": {
                 "axis_order": [
@@ -2609,47 +1505,47 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.26203618181307864,
-                  0.5070391059709329,
-                  0.3730670327629453
+                  0.14092027681562733,
+                  0.07756632320352984,
+                  0.22869544405508066
                 ],
                 "mean_error": [
-                  0.005677807297731929,
-                  0.3370494140555379,
-                  0.26282318541729
+                  0.03147145386724056,
+                  0.009133463269218045,
+                  0.12822946792999249
                 ],
                 "p95_abs_error": [
-                  0.5684812564772213,
-                  1.0103646040889787,
-                  0.7871980894251983
+                  0.2613951721308835,
+                  0.1547538416157704,
+                  0.42449937146368855
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.692274680311257
+                "value": 0.2835180512706212
               }
             },
             "mean_error": [
-              -0.023348156401801275,
-              0.25826203563970657,
-              0.10805970465295642
+              -0.011872259348358238,
+              0.05509134393556897,
+              0.1081166994458348
             ],
             "motion_count": 2,
             "p95_abs_error": [
-              0.5120353542613361,
-              0.8262371371709427,
-              0.7022897261636409
+              0.2997728500404113,
+              0.24122837118472734,
+              0.41219616705334816
             ],
             "sample_count": 320,
             "status": "ok",
-            "value": 0.5821511100399478
+            "value": 0.31169729257002243
           },
           "foot_slide": {
             "aggregation": "mean",
             "motion_count": 1,
             "status": "ok",
-            "value": 11.47337469624248
+            "value": 0.3369909970542055
           },
           "hand_position_rmse": {
             "aggregation": "mean",
@@ -2659,9 +1555,9 @@
               "z"
             ],
             "axis_rmse": [
-              0.3554853569515354,
-              0.5073758945539322,
-              0.4803504980551022
+              0.2894726364618007,
+              0.20457045171635851,
+              0.3947043397176902
             ],
             "by_semantic": {
               "LeftHand": {
@@ -2671,25 +1567,25 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.37275538182546597,
-                  0.36718667889865664,
-                  0.39847896285343987
+                  0.24601879927917164,
+                  0.17780657841070693,
+                  0.35366744140672346
                 ],
                 "mean_error": [
-                  0.05280226792912666,
-                  -0.147742080899746,
-                  0.13495092024567729
+                  -0.0528289719057695,
+                  0.13016250239126056,
+                  0.22462827511845415
                 ],
                 "p95_abs_error": [
-                  0.5981998589720181,
-                  0.6804077659328445,
-                  0.711476681335679
+                  0.5399217032032333,
+                  0.2899232899999631,
+                  0.6166029991802139
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.6822574796485421
+                "value": 0.4686506839129775
               },
               "RightHand": {
                 "axis_order": [
@@ -2698,41 +1594,41 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.3382153320776046,
-                  0.6475651102092078,
-                  0.5622220332567645
+                  0.3329264736444298,
+                  0.23133432502201012,
+                  0.43574123802865683
                 ],
                 "mean_error": [
-                  0.2403579528746936,
-                  -0.13858898901739164,
-                  0.2595294788860478
+                  0.20022315532752347,
+                  -0.1458222334385132,
+                  0.15944303878942384
                 ],
                 "p95_abs_error": [
-                  0.5385528972228152,
-                  1.0579025167400924,
-                  0.8457647775670225
+                  0.5990700762309117,
+                  0.45936484029483615,
+                  0.7662616413888461
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.9250994068223765
+                "value": 0.6091074826045331
               }
             },
             "mean_error": [
-              0.14658011040191016,
-              -0.14316553495856882,
-              0.19724019956586256
+              0.07369709171087699,
+              -0.007829865523626318,
+              0.19203565695393898
             ],
             "motion_count": 2,
             "p95_abs_error": [
-              0.5683763780974166,
-              0.8691551413364685,
-              0.7786207294513507
+              0.5694958897170725,
+              0.3746440651473996,
+              0.69143232028453
             ],
             "sample_count": 320,
             "status": "ok",
-            "value": 0.8036784432354591
+            "value": 0.5388790832587553
           },
           "joint_limit_margin": {
             "aggregation": "mean",
@@ -2744,25 +1640,25 @@
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 5.496074816126184e-07
+            "value": 0.0
           },
           "root_acceleration_p95": {
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 12837.727765289143
+            "value": 3668.6403326729596
           },
           "root_tilt": {
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 1.3318210690543308
+            "value": 1.326889534244199
           },
           "root_velocity_p95": {
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 71.6230293275954
+            "value": 18.835335511152053
           },
           "solver_iterations": {
             "status": "ok",
@@ -2772,13 +1668,13 @@
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 1.9140277689796792
+            "value": 1.8581250112810561
           },
           "torso_reachable_residual": {
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 2.430578751507786
+            "value": 2.268746859052402
           },
           "torso_unreachable_residual": {
             "aggregation": "mean",
@@ -2790,7 +1686,7 @@
             "aggregation": "mean",
             "motion_count": 2,
             "status": "ok",
-            "value": 37.205654506495804
+            "value": 35.204824632954036
           }
         },
         "motions": [
@@ -2802,7 +1698,7 @@
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "actuated_joint_coord_per_s2",
-                "value": 837.7187099394687
+                "value": 793.7515833455958
               },
               "foot_position_rmse": {
                 "axis_order": [
@@ -2811,9 +1707,9 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.29395394747957004,
-                  0.6027645425233266,
-                  0.44383113045205186
+                  0.05470882356321964,
+                  0.04001640291105639,
+                  0.22551585111885042
                 ],
                 "by_semantic": {
                   "LeftFoot": {
@@ -2823,25 +1719,25 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.3101008335310349,
-                      0.460392580674837,
-                      0.31029221902284515
+                      0.039158152268170286,
+                      0.03259926079040761,
+                      0.25295491378506796
                     ],
                     "mean_error": [
-                      -0.11182678705319082,
-                      0.27186823920684605,
-                      0.04151346446246025
+                      -0.021218084044469582,
+                      0.019074823467085757,
+                      0.24245382895397385
                     ],
                     "p95_abs_error": [
-                      0.5533538954577106,
-                      0.8529496277388401,
-                      0.7213165956920505
+                      0.069038696943754,
+                      0.0469372575522282,
+                      0.3099467733987219
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 0.6359285466805215
+                    "value": 0.25803538730404674
                   },
                   "RightFoot": {
                     "axis_order": [
@@ -2850,48 +1746,48 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.27780706142810524,
-                      0.7451365043718162,
-                      0.5773700418812586
+                      0.07025949485826899,
+                      0.04743354503170516,
+                      0.1980767884526329
                     ],
                     "mean_error": [
-                      0.11355018021589844,
-                      0.5277554741553978,
-                      0.44511418992198026
+                      0.027678572336700912,
+                      -0.026468296832295762,
+                      0.19031321942557305
                     ],
                     "p95_abs_error": [
-                      0.6133824207435549,
-                      1.2698089400199786,
-                      1.1778275059143755
+                      0.11755800701619253,
+                      0.08514099437837101,
+                      0.27649820608734554
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 0.9827315700580371
+                    "value": 0.21545475612230755
                   }
                 },
                 "mean_error": [
-                  0.0008616965813538103,
-                  0.3998118566811219,
-                  0.24331382719222025
+                  0.0032302441461156657,
+                  -0.0036967366826050037,
+                  0.21638352418977344
                 ],
                 "p95_abs_error": [
-                  0.5833681581006328,
-                  1.0613792838794094,
-                  0.949572050803213
+                  0.09329835197997326,
+                  0.06603912596529961,
+                  0.2932224897430337
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.8093300583692793
+                "value": 0.23674507171317716
               },
               "foot_slide": {
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "m_per_s",
-                "value": 11.47337469624248
+                "value": 0.3369909970542055
               },
               "hand_position_rmse": {
                 "axis_order": [
@@ -2900,9 +1796,9 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.5053750529172747,
-                  0.7671786412625436,
-                  0.6556333750455471
+                  0.2902220705821298,
+                  0.24556581364895463,
+                  0.4574613292244722
                 ],
                 "by_semantic": {
                   "LeftHand": {
@@ -2912,25 +1808,25 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.5549174946731797,
-                      0.6354508068605024,
-                      0.4491397124726578
+                      0.3027526391762129,
+                      0.15989499156600806,
+                      0.37870522069353985
                     ],
                     "mean_error": [
-                      0.24535268478106667,
-                      -0.33479753932150347,
-                      0.30980441172072515
+                      -0.02919858093290147,
+                      0.12357406932502066,
+                      0.3347652408709747
                     ],
                     "p95_abs_error": [
-                      0.8871649409661478,
-                      1.2057783607200756,
-                      0.7547959552728889
+                      0.7434380540019905,
+                      0.28727684400310555,
+                      0.5966590196538327
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 0.9557497764342106
+                    "value": 0.5105322840297161
                   },
                   "RightHand": {
                     "axis_order": [
@@ -2939,42 +1835,42 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.4558326111613695,
-                      0.8989064756645848,
-                      0.8621270376184362
+                      0.2776915019880467,
+                      0.33123663573190126,
+                      0.5362174377554044
                     ],
                     "mean_error": [
-                      0.3125429324033713,
-                      -0.6545469669043297,
-                      0.5253241479257273
+                      0.0943089386967303,
+                      -0.2813980990559812,
+                      0.4418523520524249
                     ],
                     "p95_abs_error": [
-                      0.6737905082629065,
-                      1.5739379480621754,
-                      1.2313479788849582
+                      0.4726295605227169,
+                      0.6815306150023122,
+                      0.8687456609853308
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 1.3263028501751242
+                    "value": 0.6887375550094075
                   }
                 },
                 "mean_error": [
-                  0.27894780859221896,
-                  -0.49467225311291657,
-                  0.41756427982322625
+                  0.032555178881914414,
+                  -0.07891201486548026,
+                  0.3883087964616998
                 ],
                 "p95_abs_error": [
-                  0.7804777246145271,
-                  1.3898581543911255,
-                  0.9930719670789235
+                  0.6080338072623537,
+                  0.4844037295027088,
+                  0.7327023403195818
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 1.1410263133046672
+                "value": 0.5996349195195618
               },
               "joint_limit_margin": {
                 "status": "ok",
@@ -2985,73 +1881,73 @@
                 "statistic": "max",
                 "status": "ok",
                 "unit": "m",
-                "value": 1.0992149632252368e-06
+                "value": 0.0
               },
               "root_acceleration_p95": {
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "root_coord_per_s2",
-                "value": 20415.319919206257
+                "value": 1418.7920488612199
               },
               "root_tilt": {
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "rad",
-                "value": 1.5251469915960405
+                "value": 1.0448346361296825
               },
               "root_velocity_p95": {
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "root_coord_per_s",
-                "value": 107.60733548843059
+                "value": 8.874379047945016
               },
               "task_residual_by_type_priority": {
                 "count": 1360,
                 "groups": {
                   "direction:p3": {
                     "count": 640,
-                    "max": 1.999358958832512,
-                    "mean": 1.1548780174995563,
+                    "max": 1.868540938261668,
+                    "mean": 0.807833015366457,
                     "statistic": "p95",
                     "status": "ok",
                     "unit": "residual",
-                    "value": 1.9652839863424199
+                    "value": 1.7556612180028168
                   },
                   "pole_vector:p3": {
                     "count": 640,
-                    "max": 1.999643671238768,
-                    "mean": 1.4640482766077396,
+                    "max": 1.8905767370767566,
+                    "mean": 1.0128463416458005,
                     "statistic": "p95",
                     "status": "ok",
                     "unit": "residual",
-                    "value": 1.9728811668312527
+                    "value": 1.7698135660547598
                   },
                   "projected_relative_rotation:p2": {
                     "count": 80,
-                    "max": 3.1014439434344876,
-                    "mean": 1.8044482891327385,
+                    "max": 2.2198869278545996,
+                    "mean": 1.1078121519078827,
                     "statistic": "p95",
                     "status": "ok",
                     "unit": "residual",
-                    "value": 2.7208071350389025
+                    "value": 2.123844817646318
                   }
                 },
-                "max": 3.1014439434344876,
-                "mean": 1.3385799201171238,
+                "max": 2.2198869278545996,
+                "mean": 0.9219557063532908,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 1.978385933337114
+                "value": 1.7814409181026285
               },
               "torso_reachable_residual": {
                 "count": 80,
-                "max": 3.1014439434344876,
-                "mean": 1.8044482891327385,
+                "max": 2.2198869278545996,
+                "mean": 1.1078121519078827,
                 "source_unreachable_p95": 0.0,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "rad",
-                "value": 2.7208071350389025
+                "value": 2.123844817646318
               },
               "torso_unreachable_residual": {
                 "count": 80,
@@ -3067,7 +1963,7 @@
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "actuated_joint_coord_per_s",
-                "value": 39.13015657084931
+                "value": 34.819364152533645
               }
             },
             "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_throw_ball_001__A057.bvh",
@@ -3082,7 +1978,7 @@
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "actuated_joint_coord_per_s2",
-                "value": 952.6245765968816
+                "value": 880.304831783906
               },
               "foot_position_rmse": {
                 "axis_order": [
@@ -3091,9 +1987,9 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.19545774671999913,
-                  0.20786390549521175,
-                  0.19891598305646233
+                  0.2260492029917998,
+                  0.18396949657719786,
+                  0.24397284752194226
                 ],
                 "by_semantic": {
                   "LeftFoot": {
@@ -3103,25 +1999,25 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.14465019124194622,
-                      0.1467861034203739,
-                      0.2290679424682927
+                      0.24051734721061385,
+                      0.26023989177904117,
+                      0.22863159538635608
                     ],
                     "mean_error": [
-                      0.007078546850521862,
-                      0.08708107524090436,
-                      -0.13492101668521453
+                      -0.08921386108344449,
+                      0.18302362573675404,
+                      -0.06644596703061961
                     ],
                     "p95_abs_error": [
-                      0.35782500863319083,
-                      0.4312697127669735,
-                      0.5134461301121167
+                      0.6072623589561242,
+                      0.6084685439551405,
+                      0.4898391518872937
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 0.30812653285675573
+                    "value": 0.4217176804348005
                   },
                   "RightFoot": {
                     "axis_order": [
@@ -3130,42 +2026,42 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.24626530219805207,
-                      0.26894170757004965,
-                      0.16876402364463194
+                      0.2115810587729857,
+                      0.10769910137535453,
+                      0.25931409965752844
                     ],
                     "mean_error": [
-                      -0.10219456562043458,
-                      0.14634335395567802,
-                      0.0805321809125997
+                      0.03526433539778021,
+                      0.04473522337073185,
+                      0.06614571643441192
                     ],
                     "p95_abs_error": [
-                      0.5235800922108877,
-                      0.7509202681579787,
-                      0.3965686729360212
+                      0.40523233724557445,
+                      0.22436668885316982,
+                      0.5725005368400317
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 0.401817790564477
+                    "value": 0.3515813464189349
                   }
                 },
                 "mean_error": [
-                  -0.047558009384956364,
-                  0.1167122145982912,
-                  -0.027194417886307408
+                  -0.02697476284283214,
+                  0.11387942455374293,
+                  -0.00015012529810384811
                 ],
                 "p95_abs_error": [
-                  0.44070255042203926,
-                  0.5910949904624762,
-                  0.45500740152406893
+                  0.5062473481008494,
+                  0.41641761640415514,
+                  0.5311698443636627
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.35497216171061635
+                "value": 0.3866495134268677
               },
               "foot_slide": {
                 "statistic": "p95",
@@ -3179,9 +2075,9 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.20559566098579599,
-                  0.24757314784532075,
-                  0.30506762106465735
+                  0.2887232023414716,
+                  0.16357508978376237,
+                  0.33194735021090815
                 ],
                 "by_semantic": {
                   "LeftHand": {
@@ -3191,25 +2087,25 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.1905932689777522,
-                      0.09892255093681085,
-                      0.34781821323422196
+                      0.1892849593821303,
+                      0.19571816525540578,
+                      0.32862966211990696
                     ],
                     "mean_error": [
-                      -0.13974814892281334,
-                      0.03931337752201144,
-                      -0.03990257122937062
+                      -0.07645936287863755,
+                      0.13675093545750044,
+                      0.11449130936593359
                     ],
                     "p95_abs_error": [
-                      0.30923477697788854,
-                      0.15503717114561327,
-                      0.6681574073984692
+                      0.33640535240447605,
+                      0.29256973599682057,
+                      0.636546978706595
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 0.4087651828628736
+                    "value": 0.42676908379623896
                   },
                   "RightHand": {
                     "axis_order": [
@@ -3218,42 +2114,42 @@
                       "z"
                     ],
                     "axis_rmse": [
-                      0.2205980529938398,
-                      0.39622374475383065,
-                      0.2623170288950926
+                      0.38816144530081287,
+                      0.13143201431211896,
+                      0.33526503830190935
                     ],
                     "mean_error": [
-                      0.16817297334601597,
-                      0.37736898886954645,
-                      -0.006265190153631606
+                      0.30613737195831664,
+                      -0.01024636782104521,
+                      -0.12296627447357725
                     ],
                     "p95_abs_error": [
-                      0.40331528618272383,
-                      0.5418670854180094,
-                      0.4601815762490865
+                      0.7255105919391065,
+                      0.23719906558736017,
+                      0.6637776217923614
                     ],
                     "sample_count": 80,
                     "statistic": "rmse",
                     "status": "ok",
                     "unit": "m",
-                    "value": 0.5238959634696286
+                    "value": 0.5294774101996588
                   }
                 },
                 "mean_error": [
-                  0.01421241221160131,
-                  0.20834118319577893,
-                  -0.023083880691501114
+                  0.11483900453983956,
+                  0.06325228381822763,
+                  -0.004237482553821825
                 ],
                 "p95_abs_error": [
-                  0.35627503158030616,
-                  0.3484521282818114,
-                  0.5641694918237778
+                  0.5309579721717913,
+                  0.2648844007920904,
+                  0.6501623002494782
                 ],
                 "sample_count": 160,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.46633057316625115
+                "value": 0.47812324699794884
               },
               "joint_limit_margin": {
                 "status": "ok",
@@ -3270,67 +2166,67 @@
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "root_coord_per_s2",
-                "value": 5260.1356113720285
+                "value": 5918.488616484699
               },
               "root_tilt": {
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "rad",
-                "value": 1.1384951465126212
+                "value": 1.6089444323587154
               },
               "root_velocity_p95": {
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "root_coord_per_s",
-                "value": 35.638723166760215
+                "value": 28.796291974359086
               },
               "task_residual_by_type_priority": {
                 "count": 1360,
                 "groups": {
                   "direction:p3": {
                     "count": 640,
-                    "max": 1.9377822318583449,
-                    "mean": 0.8888465460675687,
+                    "max": 1.9357418244802038,
+                    "mean": 0.8068197010644191,
                     "statistic": "p95",
                     "status": "ok",
                     "unit": "residual",
-                    "value": 1.8541209732853543
+                    "value": 1.8420560760002673
                   },
                   "pole_vector:p3": {
                     "count": 640,
-                    "max": 1.9929814087819386,
-                    "mean": 1.0591934428020593,
+                    "max": 1.999904358146447,
+                    "mean": 1.1321595160834252,
                     "statistic": "p95",
                     "status": "ok",
                     "unit": "residual",
-                    "value": 1.7950165588337437
+                    "value": 1.9708624263824521
                   },
                   "projected_relative_rotation:p2": {
                     "count": 80,
-                    "max": 2.486243962327471,
-                    "mean": 0.9759190110206157,
+                    "max": 2.740943797199061,
+                    "mean": 1.2032676476988535,
                     "statistic": "p95",
                     "status": "ok",
                     "unit": "residual",
-                    "value": 2.1403503679766693
+                    "value": 2.4136489004584853
                   }
                 },
-                "max": 2.486243962327471,
-                "mean": 0.9741317012928024,
+                "max": 2.740943797199061,
+                "mean": 0.9832412579342124,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 1.8496696046222443
+                "value": 1.9348091044594837
               },
               "torso_reachable_residual": {
                 "count": 80,
-                "max": 2.486243962327471,
-                "mean": 0.9759190110206157,
+                "max": 2.740943797199061,
+                "mean": 1.2032676476988535,
                 "source_unreachable_p95": 0.0,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "rad",
-                "value": 2.1403503679766693
+                "value": 2.4136489004584853
               },
               "torso_unreachable_residual": {
                 "count": 80,
@@ -3346,7 +2242,7 @@
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "actuated_joint_coord_per_s",
-                "value": 35.2811524421423
+                "value": 35.59028511337443
               }
             },
             "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_walk_forward_002__A057.bvh",
@@ -3364,15 +2260,15 @@
           "rollback_count": 0
         },
         "runtime_seconds": {
-          "bvh_load_runtime": 0.9543884061276913,
-          "metric_runtime": 0.3392508700489998,
+          "bvh_load_runtime": 0.6035945788025856,
+          "metric_runtime": 0.3330092057585716,
           "motion_count": 2,
-          "motion_runtime": 0.9647864624857903,
+          "motion_runtime": 1.4691617637872696,
           "output_frame_count": 160,
-          "pipeline_construct_runtime": 4.15098337456584,
-          "solve_fps": 228.37768345621964,
-          "solve_runtime": 0.7005938477814198,
-          "target_setup_runtime": 0.2641926147043705
+          "pipeline_construct_runtime": 4.151830159127712,
+          "solve_fps": 130.89427570867113,
+          "solve_runtime": 1.2223605588078499,
+          "target_setup_runtime": 0.2468012049794197
         },
         "solver_objectives": {
           "active_objectives": 24,
@@ -3393,7 +2289,7 @@
           "position": 5,
           "rotation": 1,
           "smooth_joint_filter": 1,
-          "sparse_residual_dim": 66,
+          "sparse_residual_dim": 58,
           "temporal_acceleration": 0,
           "temporal_velocity": 0
         },
@@ -3409,7 +2305,7 @@
       "aggregation": "mean",
       "motion_count": 2,
       "status": "ok",
-      "value": 863.5041694473578
+      "value": 837.0282075647509
     },
     "confidence": 1.0,
     "fallback_counts": {
@@ -3433,9 +2329,9 @@
         "z"
       ],
       "axis_rmse": [
-        0.248086999475506,
-        0.2676885993519976,
-        0.1932197864637061
+        0.14037901327750973,
+        0.11199294974412713,
+        0.2347443493203963
       ],
       "by_semantic": {
         "LeftFoot": {
@@ -3445,25 +2341,25 @@
             "z"
           ],
           "axis_rmse": [
-            0.24215589764717835,
-            0.3954416100383927,
-            0.17884400553431248
+            0.13983774973939206,
+            0.1464195762847244,
+            0.24079325458571202
           ],
           "mean_error": [
-            -0.1856477709389257,
-            0.3597616838226952,
-            0.03765859885192511
+            -0.055215972563957036,
+            0.1010492246019199,
+            0.08800393096167711
           ],
           "p95_abs_error": [
-            0.46660005517445696,
-            0.5219053379955183,
-            0.33952304992595284
+            0.33815052794993916,
+            0.32770290075368436,
+            0.3998929626430078
           ],
           "sample_count": 160,
           "statistic": "rmse",
           "status": "ok",
           "unit": "m",
-          "value": 0.5193662960296412
+          "value": 0.3398765338694236
         },
         "RightFoot": {
           "axis_order": [
@@ -3472,46 +2368,47 @@
             "z"
           ],
           "axis_rmse": [
-            0.2540181013038337,
-            0.1399355886656025,
-            0.20759556739309967
+            0.14092027681562733,
+            0.07756632320352984,
+            0.22869544405508066
           ],
           "mean_error": [
-            -0.05738581886108758,
-            0.0875777683238909,
-            0.17038059218308493
+            0.03147145386724056,
+            0.009133463269218045,
+            0.12822946792999249
           ],
           "p95_abs_error": [
-            0.4559198737639969,
-            0.31602404470350726,
-            0.36725542739287886
+            0.2613951721308835,
+            0.1547538416157704,
+            0.42449937146368855
           ],
           "sample_count": 160,
           "statistic": "rmse",
           "status": "ok",
           "unit": "m",
-          "value": 0.3603123489402269
+          "value": 0.2835180512706212
         }
       },
       "mean_error": [
-        -0.12151679490000664,
-        0.22366972607329302,
-        0.10401959551750503
+        -0.011872259348358238,
+        0.05509134393556897,
+        0.1081166994458348
       ],
       "motion_count": 2,
       "p95_abs_error": [
-        0.4612599644692269,
-        0.4189646913495128,
-        0.35338923865941585
+        0.2997728500404113,
+        0.24122837118472734,
+        0.41219616705334816
       ],
       "sample_count": 320,
       "status": "ok",
-      "value": 0.43983932248493407
+      "value": 0.31169729257002243
     },
     "foot_slide": {
-      "motion_count": 2,
-      "reason": "unavailable",
-      "status": "unavailable"
+      "aggregation": "mean",
+      "motion_count": 1,
+      "status": "ok",
+      "value": 0.3369909970542055
     },
     "hand_position_rmse": {
       "aggregation": "mean",
@@ -3521,9 +2418,9 @@
         "z"
       ],
       "axis_rmse": [
-        0.2955294194511259,
-        0.2443775428047786,
-        0.3648665642886144
+        0.2894726364618007,
+        0.20457045171635851,
+        0.3947043397176902
       ],
       "by_semantic": {
         "LeftHand": {
@@ -3533,25 +2430,25 @@
             "z"
           ],
           "axis_rmse": [
-            0.41791937024819736,
-            0.16690950175355995,
-            0.20111838653805844
+            0.24601879927917164,
+            0.17780657841070693,
+            0.35366744140672346
           ],
           "mean_error": [
-            -0.1635017952994429,
-            0.033148569723026586,
-            -0.047667041568450814
+            -0.0528289719057695,
+            0.13016250239126056,
+            0.22462827511845415
           ],
           "p95_abs_error": [
-            0.7492788209546601,
-            0.32091222962820387,
-            0.4161838106209149
+            0.5399217032032333,
+            0.2899232899999631,
+            0.6166029991802139
           ],
           "sample_count": 160,
           "statistic": "rmse",
           "status": "ok",
           "unit": "m",
-          "value": 0.4977852131611894
+          "value": 0.4686506839129775
         },
         "RightHand": {
           "axis_order": [
@@ -3560,41 +2457,41 @@
             "z"
           ],
           "axis_rmse": [
-            0.17313946865405436,
-            0.3218455838559972,
-            0.5286147420391704
+            0.3329264736444298,
+            0.23133432502201012,
+            0.43574123802865683
           ],
           "mean_error": [
-            0.11438107299423894,
-            -0.14260880334890932,
-            0.12362071887157185
+            0.20022315532752347,
+            -0.1458222334385132,
+            0.15944303878942384
           ],
           "p95_abs_error": [
-            0.31694685477545614,
-            0.5625035356157759,
-            0.7215801605719976
+            0.5990700762309117,
+            0.45936484029483615,
+            0.7662616413888461
           ],
           "sample_count": 160,
           "statistic": "rmse",
           "status": "ok",
           "unit": "m",
-          "value": 0.6452824092820377
+          "value": 0.6091074826045331
         }
       },
       "mean_error": [
-        -0.024560361152601972,
-        -0.054730116812941376,
-        0.03797683865156052
+        0.07369709171087699,
+        -0.007829865523626318,
+        0.19203565695393898
       ],
       "motion_count": 2,
       "p95_abs_error": [
-        0.533112837865058,
-        0.44170788262198996,
-        0.5688819855964563
+        0.5694958897170725,
+        0.3746440651473996,
+        0.69143232028453
       ],
       "sample_count": 320,
       "status": "ok",
-      "value": 0.5715338112216135
+      "value": 0.5388790832587553
     },
     "joint_limit_margin": {
       "aggregation": "mean",
@@ -3612,31 +2509,31 @@
       "aggregation": "mean",
       "motion_count": 2,
       "status": "ok",
-      "value": 2076.4013774148434
+      "value": 3668.6403326729596
     },
     "root_tilt": {
       "aggregation": "mean",
       "motion_count": 2,
       "status": "ok",
-      "value": 0.8935075511020174
+      "value": 1.326889534244199
     },
     "root_velocity_p95": {
       "aggregation": "mean",
       "motion_count": 2,
       "status": "ok",
-      "value": 8.111093106011701
+      "value": 18.835335511152053
     },
     "runtime_seconds": {
-      "bvh_load_runtime": 0.8987584598362446,
-      "compile_profile": 0.041497644037008286,
-      "metric_runtime": 0.3320627473294735,
+      "bvh_load_runtime": 0.6035945788025856,
+      "compile_profile": 0.03837146237492561,
+      "metric_runtime": 0.3330092057585716,
       "motion_count": 2,
-      "motion_runtime": 4.638731174170971,
+      "motion_runtime": 1.4691617637872696,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 4.1510006710886955,
-      "solve_fps": 36.36385444528557,
-      "solve_runtime": 4.3999736122787,
-      "target_setup_runtime": 0.23875756189227104
+      "pipeline_construct_runtime": 4.151830159127712,
+      "solve_fps": 130.89427570867113,
+      "solve_runtime": 1.2223605588078499,
+      "target_setup_runtime": 0.2468012049794197
     },
     "solver_iterations": {
       "status": "ok",
@@ -3646,13 +2543,13 @@
       "aggregation": "mean",
       "motion_count": 2,
       "status": "ok",
-      "value": 1.9332704053113328
+      "value": 1.8581250112810561
     },
     "torso_reachable_residual": {
       "aggregation": "mean",
       "motion_count": 2,
       "status": "ok",
-      "value": 1.969051676320899
+      "value": 2.268746859052402
     },
     "torso_unreachable_residual": {
       "aggregation": "mean",
@@ -3664,18 +2561,28 @@
       "aggregation": "mean",
       "motion_count": 2,
       "status": "ok",
-      "value": 36.89118093001116
+      "value": 35.204824632954036
     },
     "warnings": 0
   },
   "motion_benchmark": {
     "compare_mode": "v2",
+    "contact_scores": [
+      {
+        "source": "disabled",
+        "status": "disabled"
+      },
+      {
+        "source": "disabled",
+        "status": "disabled"
+      }
+    ],
     "metrics": {
       "acceleration_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 863.5041694473578
+        "value": 837.0282075647509
       },
       "fallback_counts": {
         "pole_vector": [
@@ -3698,9 +2605,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.248086999475506,
-          0.2676885993519976,
-          0.1932197864637061
+          0.14037901327750973,
+          0.11199294974412713,
+          0.2347443493203963
         ],
         "by_semantic": {
           "LeftFoot": {
@@ -3710,25 +2617,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.24215589764717835,
-              0.3954416100383927,
-              0.17884400553431248
+              0.13983774973939206,
+              0.1464195762847244,
+              0.24079325458571202
             ],
             "mean_error": [
-              -0.1856477709389257,
-              0.3597616838226952,
-              0.03765859885192511
+              -0.055215972563957036,
+              0.1010492246019199,
+              0.08800393096167711
             ],
             "p95_abs_error": [
-              0.46660005517445696,
-              0.5219053379955183,
-              0.33952304992595284
+              0.33815052794993916,
+              0.32770290075368436,
+              0.3998929626430078
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.5193662960296412
+            "value": 0.3398765338694236
           },
           "RightFoot": {
             "axis_order": [
@@ -3737,46 +2644,47 @@
               "z"
             ],
             "axis_rmse": [
-              0.2540181013038337,
-              0.1399355886656025,
-              0.20759556739309967
+              0.14092027681562733,
+              0.07756632320352984,
+              0.22869544405508066
             ],
             "mean_error": [
-              -0.05738581886108758,
-              0.0875777683238909,
-              0.17038059218308493
+              0.03147145386724056,
+              0.009133463269218045,
+              0.12822946792999249
             ],
             "p95_abs_error": [
-              0.4559198737639969,
-              0.31602404470350726,
-              0.36725542739287886
+              0.2613951721308835,
+              0.1547538416157704,
+              0.42449937146368855
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.3603123489402269
+            "value": 0.2835180512706212
           }
         },
         "mean_error": [
-          -0.12151679490000664,
-          0.22366972607329302,
-          0.10401959551750503
+          -0.011872259348358238,
+          0.05509134393556897,
+          0.1081166994458348
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.4612599644692269,
-          0.4189646913495128,
-          0.35338923865941585
+          0.2997728500404113,
+          0.24122837118472734,
+          0.41219616705334816
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.43983932248493407
+        "value": 0.31169729257002243
       },
       "foot_slide": {
-        "motion_count": 2,
-        "reason": "unavailable",
-        "status": "unavailable"
+        "aggregation": "mean",
+        "motion_count": 1,
+        "status": "ok",
+        "value": 0.3369909970542055
       },
       "hand_position_rmse": {
         "aggregation": "mean",
@@ -3786,9 +2694,9 @@
           "z"
         ],
         "axis_rmse": [
-          0.2955294194511259,
-          0.2443775428047786,
-          0.3648665642886144
+          0.2894726364618007,
+          0.20457045171635851,
+          0.3947043397176902
         ],
         "by_semantic": {
           "LeftHand": {
@@ -3798,25 +2706,25 @@
               "z"
             ],
             "axis_rmse": [
-              0.41791937024819736,
-              0.16690950175355995,
-              0.20111838653805844
+              0.24601879927917164,
+              0.17780657841070693,
+              0.35366744140672346
             ],
             "mean_error": [
-              -0.1635017952994429,
-              0.033148569723026586,
-              -0.047667041568450814
+              -0.0528289719057695,
+              0.13016250239126056,
+              0.22462827511845415
             ],
             "p95_abs_error": [
-              0.7492788209546601,
-              0.32091222962820387,
-              0.4161838106209149
+              0.5399217032032333,
+              0.2899232899999631,
+              0.6166029991802139
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.4977852131611894
+            "value": 0.4686506839129775
           },
           "RightHand": {
             "axis_order": [
@@ -3825,41 +2733,41 @@
               "z"
             ],
             "axis_rmse": [
-              0.17313946865405436,
-              0.3218455838559972,
-              0.5286147420391704
+              0.3329264736444298,
+              0.23133432502201012,
+              0.43574123802865683
             ],
             "mean_error": [
-              0.11438107299423894,
-              -0.14260880334890932,
-              0.12362071887157185
+              0.20022315532752347,
+              -0.1458222334385132,
+              0.15944303878942384
             ],
             "p95_abs_error": [
-              0.31694685477545614,
-              0.5625035356157759,
-              0.7215801605719976
+              0.5990700762309117,
+              0.45936484029483615,
+              0.7662616413888461
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.6452824092820377
+            "value": 0.6091074826045331
           }
         },
         "mean_error": [
-          -0.024560361152601972,
-          -0.054730116812941376,
-          0.03797683865156052
+          0.07369709171087699,
+          -0.007829865523626318,
+          0.19203565695393898
         ],
         "motion_count": 2,
         "p95_abs_error": [
-          0.533112837865058,
-          0.44170788262198996,
-          0.5688819855964563
+          0.5694958897170725,
+          0.3746440651473996,
+          0.69143232028453
         ],
         "sample_count": 320,
         "status": "ok",
-        "value": 0.5715338112216135
+        "value": 0.5388790832587553
       },
       "joint_limit_margin": {
         "aggregation": "mean",
@@ -3877,19 +2785,19 @@
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 2076.4013774148434
+        "value": 3668.6403326729596
       },
       "root_tilt": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 0.8935075511020174
+        "value": 1.326889534244199
       },
       "root_velocity_p95": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 8.111093106011701
+        "value": 18.835335511152053
       },
       "solver_iterations": {
         "status": "ok",
@@ -3899,13 +2807,13 @@
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.9332704053113328
+        "value": 1.8581250112810561
       },
       "torso_reachable_residual": {
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 1.969051676320899
+        "value": 2.268746859052402
       },
       "torso_unreachable_residual": {
         "aggregation": "mean",
@@ -3917,7 +2825,7 @@
         "aggregation": "mean",
         "motion_count": 2,
         "status": "ok",
-        "value": 36.89118093001116
+        "value": 35.204824632954036
       }
     },
     "motions": [
@@ -3929,7 +2837,7 @@
             "statistic": "p95",
             "status": "ok",
             "unit": "actuated_joint_coord_per_s2",
-            "value": 816.933095738068
+            "value": 793.7515833455958
           },
           "foot_position_rmse": {
             "axis_order": [
@@ -3938,9 +2846,9 @@
               "z"
             ],
             "axis_rmse": [
-              0.27911310242654386,
-              0.4119089234700842,
-              0.22747981667803305
+              0.05470882356321964,
+              0.04001640291105639,
+              0.22551585111885042
             ],
             "by_semantic": {
               "LeftFoot": {
@@ -3950,25 +2858,25 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.33956972124275053,
-                  0.7257035435443715,
-                  0.22601198474833803
+                  0.039158152268170286,
+                  0.03259926079040761,
+                  0.25295491378506796
                 ],
                 "mean_error": [
-                  -0.32745573539166833,
-                  0.6767263824411647,
-                  0.16211795709002935
+                  -0.021218084044469582,
+                  0.019074823467085757,
+                  0.24245382895397385
                 ],
                 "p95_abs_error": [
-                  0.5765737148357194,
-                  0.8925278550075221,
-                  0.36024080855537227
+                  0.069038696943754,
+                  0.0469372575522282,
+                  0.3099467733987219
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.8324870244920457
+                "value": 0.25803538730404674
               },
               "RightFoot": {
                 "axis_order": [
@@ -3977,47 +2885,48 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.2186564836103372,
-                  0.09811430339579683,
-                  0.228947648607728
+                  0.07025949485826899,
+                  0.04743354503170516,
+                  0.1980767884526329
                 ],
                 "mean_error": [
-                  0.10391135893533736,
-                  0.04635936318304603,
-                  0.22226484664101834
+                  0.027678572336700912,
+                  -0.026468296832295762,
+                  0.19031321942557305
                 ],
                 "p95_abs_error": [
-                  0.4033704282822237,
-                  0.2133866292268742,
-                  0.32902155439966374
+                  0.11755800701619253,
+                  0.08514099437837101,
+                  0.27649820608734554
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.3314424537663934
+                "value": 0.21545475612230755
               }
             },
             "mean_error": [
-              -0.11177218822816548,
-              0.36154287281210534,
-              0.19219140186552383
+              0.0032302441461156657,
+              -0.0036967366826050037,
+              0.21638352418977344
             ],
             "p95_abs_error": [
-              0.4899720715589716,
-              0.5529572421171982,
-              0.34463118147751803
+              0.09329835197997326,
+              0.06603912596529961,
+              0.2932224897430337
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.5819647391292195
+            "value": 0.23674507171317716
           },
           "foot_slide": {
             "statistic": "p95",
-            "status": "unavailable",
-            "unit": "m_per_s"
+            "status": "ok",
+            "unit": "m_per_s",
+            "value": 0.3369909970542055
           },
           "hand_position_rmse": {
             "axis_order": [
@@ -4026,9 +2935,9 @@
               "z"
             ],
             "axis_rmse": [
-              0.35230817618593474,
-              0.3192003493294463,
-              0.4195637269082283
+              0.2902220705821298,
+              0.24556581364895463,
+              0.4574613292244722
             ],
             "by_semantic": {
               "LeftHand": {
@@ -4038,25 +2947,25 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.5122452809185762,
-                  0.1791477058844693,
-                  0.17158946801126093
+                  0.3027526391762129,
+                  0.15989499156600806,
+                  0.37870522069353985
                 ],
                 "mean_error": [
-                  -0.11816925048635948,
-                  -0.051254231822403386,
-                  -0.0008091323535215466
+                  -0.02919858093290147,
+                  0.12357406932502066,
+                  0.3347652408709747
                 ],
                 "p95_abs_error": [
-                  0.8728809183387224,
-                  0.33348077614811716,
-                  0.32767234151229707
+                  0.7434380540019905,
+                  0.28727684400310555,
+                  0.5966590196538327
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.5691503086877902
+                "value": 0.5105322840297161
               },
               "RightHand": {
                 "axis_order": [
@@ -4065,42 +2974,42 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.1923710714532932,
-                  0.4592529927744232,
-                  0.6675379858051956
+                  0.2776915019880467,
+                  0.33123663573190126,
+                  0.5362174377554044
                 ],
                 "mean_error": [
-                  0.10333670384142661,
-                  -0.3686628425103306,
-                  0.5795065255853604
+                  0.0943089386967303,
+                  -0.2813980990559812,
+                  0.4418523520524249
                 ],
                 "p95_abs_error": [
-                  0.3740076051467839,
-                  0.7407170900856352,
-                  0.9035984029603638
+                  0.4726295605227169,
+                  0.6815306150023122,
+                  0.8687456609853308
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.8327826264981818
+                "value": 0.6887375550094075
               }
             },
             "mean_error": [
-              -0.007416273322466438,
-              -0.20995853716636698,
-              0.28934869661591944
+              0.032555178881914414,
+              -0.07891201486548026,
+              0.3883087964616998
             ],
             "p95_abs_error": [
-              0.6234442617427531,
-              0.5370989331168762,
-              0.6156353722363305
+              0.6080338072623537,
+              0.4844037295027088,
+              0.7327023403195818
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.700966467592986
+            "value": 0.5996349195195618
           },
           "joint_limit_margin": {
             "status": "ok",
@@ -4117,67 +3026,67 @@
             "statistic": "p95",
             "status": "ok",
             "unit": "root_coord_per_s2",
-            "value": 91.00867152214036
+            "value": 1418.7920488612199
           },
           "root_tilt": {
             "statistic": "p95",
             "status": "ok",
             "unit": "rad",
-            "value": 0.696471782702527
+            "value": 1.0448346361296825
           },
           "root_velocity_p95": {
             "statistic": "p95",
             "status": "ok",
             "unit": "root_coord_per_s",
-            "value": 4.144956350326535
+            "value": 8.874379047945016
           },
           "task_residual_by_type_priority": {
             "count": 1360,
             "groups": {
               "direction:p3": {
                 "count": 640,
-                "max": 1.9998760501693797,
-                "mean": 1.1586407256022202,
+                "max": 1.868540938261668,
+                "mean": 0.807833015366457,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 1.984324245755068
+                "value": 1.7556612180028168
               },
               "pole_vector:p3": {
                 "count": 640,
-                "max": 1.9861630425578969,
-                "mean": 1.322147179642447,
+                "max": 1.8905767370767566,
+                "mean": 1.0128463416458005,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 1.9375815318649068
+                "value": 1.7698135660547598
               },
               "projected_relative_rotation:p2": {
                 "count": 80,
-                "max": 2.142121712138816,
-                "mean": 1.1100161421527552,
+                "max": 2.2198869278545996,
+                "mean": 1.1078121519078827,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 2.051748268411657
+                "value": 2.123844817646318
               }
             },
-            "max": 2.142121712138816,
-            "mean": 1.232724669653535,
+            "max": 2.2198869278545996,
+            "mean": 0.9219557063532908,
             "statistic": "p95",
             "status": "ok",
             "unit": "residual",
-            "value": 1.9737454992485124
+            "value": 1.7814409181026285
           },
           "torso_reachable_residual": {
             "count": 80,
-            "max": 2.142121712138816,
-            "mean": 1.1100161421527552,
+            "max": 2.2198869278545996,
+            "mean": 1.1078121519078827,
             "source_unreachable_p95": 0.0,
             "statistic": "p95",
             "status": "ok",
             "unit": "rad",
-            "value": 2.051748268411657
+            "value": 2.123844817646318
           },
           "torso_unreachable_residual": {
             "count": 80,
@@ -4193,7 +3102,7 @@
             "statistic": "p95",
             "status": "ok",
             "unit": "actuated_joint_coord_per_s",
-            "value": 38.190774363992304
+            "value": 34.819364152533645
           }
         },
         "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_throw_ball_001__A057.bvh",
@@ -4208,7 +3117,7 @@
             "statistic": "p95",
             "status": "ok",
             "unit": "actuated_joint_coord_per_s2",
-            "value": 910.0752431566475
+            "value": 880.304831783906
           },
           "foot_position_rmse": {
             "axis_order": [
@@ -4217,9 +3126,9 @@
               "z"
             ],
             "axis_rmse": [
-              0.21706089652446817,
-              0.12346827523391102,
-              0.15895975624937914
+              0.2260492029917998,
+              0.18396949657719786,
+              0.24397284752194226
             ],
             "by_semantic": {
               "LeftFoot": {
@@ -4229,25 +3138,25 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.1447420740516062,
-                  0.06517967653241385,
-                  0.1316760263202869
+                  0.24051734721061385,
+                  0.26023989177904117,
+                  0.22863159538635608
                 ],
                 "mean_error": [
-                  -0.04383980648618309,
-                  0.04279698520422574,
-                  -0.08680075938617912
+                  -0.08921386108344449,
+                  0.18302362573675404,
+                  -0.06644596703061961
                 ],
                 "p95_abs_error": [
-                  0.35662639551319447,
-                  0.1512828209835144,
-                  0.31880529129653346
+                  0.6072623589561242,
+                  0.6084685439551405,
+                  0.4898391518872937
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.20624556756723683
+                "value": 0.4217176804348005
               },
               "RightFoot": {
                 "axis_order": [
@@ -4256,42 +3165,42 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.2893797189973301,
-                  0.18175687393540818,
-                  0.18624348617847133
+                  0.2115810587729857,
+                  0.10769910137535453,
+                  0.25931409965752844
                 ],
                 "mean_error": [
-                  -0.2186829966575125,
-                  0.12879617346473576,
-                  0.11849633772515156
+                  0.03526433539778021,
+                  0.04473522337073185,
+                  0.06614571643441192
                 ],
                 "p95_abs_error": [
-                  0.5084693192457701,
-                  0.41866146018014033,
-                  0.405489300386094
+                  0.40523233724557445,
+                  0.22436668885316982,
+                  0.5725005368400317
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.3891822441140604
+                "value": 0.3515813464189349
               }
             },
             "mean_error": [
-              -0.1312614015718478,
-              0.08579657933448076,
-              0.015847789169486214
+              -0.02697476284283214,
+              0.11387942455374293,
+              -0.00015012529810384811
             ],
             "p95_abs_error": [
-              0.43254785737948226,
-              0.28497214058182735,
-              0.3621472958413137
+              0.5062473481008494,
+              0.41641761640415514,
+              0.5311698443636627
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.2977139058406486
+            "value": 0.3866495134268677
           },
           "foot_slide": {
             "statistic": "p95",
@@ -4305,9 +3214,9 @@
               "z"
             ],
             "axis_rmse": [
-              0.23875066271631695,
-              0.16955473628011092,
-              0.31016940166900053
+              0.2887232023414716,
+              0.16357508978376237,
+              0.33194735021090815
             ],
             "by_semantic": {
               "LeftHand": {
@@ -4317,25 +3226,25 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.32359345957781843,
-                  0.1546712976226506,
-                  0.23064730506485595
+                  0.1892849593821303,
+                  0.19571816525540578,
+                  0.32862966211990696
                 ],
                 "mean_error": [
-                  -0.20883434011252627,
-                  0.11755137126845656,
-                  -0.09452495078338008
+                  -0.07645936287863755,
+                  0.13675093545750044,
+                  0.11449130936593359
                 ],
                 "p95_abs_error": [
-                  0.6256767235705979,
-                  0.3083436831082906,
-                  0.5046952797295329
+                  0.33640535240447605,
+                  0.29256973599682057,
+                  0.636546978706595
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.42642011763458876
+                "value": 0.42676908379623896
               },
               "RightHand": {
                 "axis_order": [
@@ -4344,42 +3253,42 @@
                   "z"
                 ],
                 "axis_rmse": [
-                  0.1539078658548155,
-                  0.1844381749375712,
-                  0.38969149827314503
+                  0.38816144530081287,
+                  0.13143201431211896,
+                  0.33526503830190935
                 ],
                 "mean_error": [
-                  0.12542544214705126,
-                  0.08344523581251193,
-                  -0.33226508784221676
+                  0.30613737195831664,
+                  -0.01024636782104521,
+                  -0.12296627447357725
                 ],
                 "p95_abs_error": [
-                  0.2598861044041284,
-                  0.3842899811459167,
-                  0.5395619181836314
+                  0.7255105919391065,
+                  0.23719906558736017,
+                  0.6637776217923614
                 ],
                 "sample_count": 80,
                 "statistic": "rmse",
                 "status": "ok",
                 "unit": "m",
-                "value": 0.4577821920658935
+                "value": 0.5294774101996588
               }
             },
             "mean_error": [
-              -0.04170444898273751,
-              0.10049830354048424,
-              -0.21339501931279842
+              0.11483900453983956,
+              0.06325228381822763,
+              -0.004237482553821825
             ],
             "p95_abs_error": [
-              0.44278141398736315,
-              0.3463168321271037,
-              0.5221285989565821
+              0.5309579721717913,
+              0.2648844007920904,
+              0.6501623002494782
             ],
             "sample_count": 160,
             "statistic": "rmse",
             "status": "ok",
             "unit": "m",
-            "value": 0.44210115485024115
+            "value": 0.47812324699794884
           },
           "joint_limit_margin": {
             "status": "ok",
@@ -4396,67 +3305,67 @@
             "statistic": "p95",
             "status": "ok",
             "unit": "root_coord_per_s2",
-            "value": 4061.7940833075468
+            "value": 5918.488616484699
           },
           "root_tilt": {
             "statistic": "p95",
             "status": "ok",
             "unit": "rad",
-            "value": 1.090543319501508
+            "value": 1.6089444323587154
           },
           "root_velocity_p95": {
             "statistic": "p95",
             "status": "ok",
             "unit": "root_coord_per_s",
-            "value": 12.077229861696868
+            "value": 28.796291974359086
           },
           "task_residual_by_type_priority": {
             "count": 1360,
             "groups": {
               "direction:p3": {
                 "count": 640,
-                "max": 1.9269304167976031,
-                "mean": 0.8776066504802618,
+                "max": 1.9357418244802038,
+                "mean": 0.8068197010644191,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 1.8253747066394082
+                "value": 1.8420560760002673
               },
               "pole_vector:p3": {
                 "count": 640,
-                "max": 1.9990505042436042,
-                "mean": 1.177910300822173,
+                "max": 1.999904358146447,
+                "mean": 1.1321595160834252,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 1.9444004000427475
+                "value": 1.9708624263824521
               },
               "projected_relative_rotation:p2": {
                 "count": 80,
-                "max": 2.2369577343654385,
-                "mean": 1.2058620025658158,
+                "max": 2.740943797199061,
+                "mean": 1.2032676476988535,
                 "statistic": "p95",
                 "status": "ok",
                 "unit": "residual",
-                "value": 1.886355084230141
+                "value": 2.4136489004584853
               }
             },
-            "max": 2.2369577343654385,
-            "mean": 1.0382351537050174,
+            "max": 2.740943797199061,
+            "mean": 0.9832412579342124,
             "statistic": "p95",
             "status": "ok",
             "unit": "residual",
-            "value": 1.892795311374153
+            "value": 1.9348091044594837
           },
           "torso_reachable_residual": {
             "count": 80,
-            "max": 2.2369577343654385,
-            "mean": 1.2058620025658158,
+            "max": 2.740943797199061,
+            "mean": 1.2032676476988535,
             "source_unreachable_p95": 0.0,
             "statistic": "p95",
             "status": "ok",
             "unit": "rad",
-            "value": 1.886355084230141
+            "value": 2.4136489004584853
           },
           "torso_unreachable_residual": {
             "count": 80,
@@ -4472,7 +3381,7 @@
             "statistic": "p95",
             "status": "ok",
             "unit": "actuated_joint_coord_per_s",
-            "value": 35.59158749603001
+            "value": 35.59028511337443
           }
         },
         "motion": "/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig/assets/motions/bvh/Neutral_walk_forward_002__A057.bvh",
@@ -4490,19 +3399,19 @@
       "rollback_count": 0
     },
     "runtime_seconds": {
-      "bvh_load_runtime": 0.8987584598362446,
-      "metric_runtime": 0.3320627473294735,
+      "bvh_load_runtime": 0.6035945788025856,
+      "metric_runtime": 0.3330092057585716,
       "motion_count": 2,
-      "motion_runtime": 4.638731174170971,
+      "motion_runtime": 1.4691617637872696,
       "output_frame_count": 160,
-      "pipeline_construct_runtime": 4.1510006710886955,
-      "solve_fps": 36.36385444528557,
-      "solve_runtime": 4.3999736122787,
-      "target_setup_runtime": 0.23875756189227104
+      "pipeline_construct_runtime": 4.151830159127712,
+      "solve_fps": 130.89427570867113,
+      "solve_runtime": 1.2223605588078499,
+      "target_setup_runtime": 0.2468012049794197
     },
     "solver_objectives": {
       "active_objectives": 24,
-      "autodiff_sparse_residual_dim": 24,
+      "autodiff_sparse_residual_dim": 0,
       "batch_size": 2,
       "collision": 0,
       "contact": 0,
@@ -4511,15 +3420,15 @@
       "direction_autodiff": 0,
       "ground_barrier": 0,
       "ik_iterations": 8,
-      "jacobian_mode": "mixed",
+      "jacobian_mode": "analytic",
       "joint_limit": 1,
       "pole_vector": 8,
-      "pole_vector_analytic": 0,
-      "pole_vector_autodiff": 8,
+      "pole_vector_analytic": 8,
+      "pole_vector_autodiff": 0,
       "position": 5,
       "rotation": 1,
       "smooth_joint_filter": 1,
-      "sparse_residual_dim": 66,
+      "sparse_residual_dim": 58,
       "temporal_acceleration": 0,
       "temporal_velocity": 0
     },
