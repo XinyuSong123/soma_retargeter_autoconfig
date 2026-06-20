@@ -1,11 +1,11 @@
 {
   "failures": [],
   "manifest_entry": {
-    "description_name": "g1_description",
+    "description_name": "jvrc_mj_description",
     "expected_capability": "positive",
-    "format": "urdf",
-    "id": "unitree_g1_urdf",
-    "license": "BSD-3-Clause",
+    "format": "mjcf",
+    "id": "jvrc_mjcf",
+    "license": "BSD-2-Clause",
     "notes": "",
     "redistribution": "kinematic_snapshot",
     "required": true,
@@ -14,26 +14,26 @@
   },
   "model": {
     "backend": "newton",
-    "format": "urdf",
-    "id": "unitree_g1_urdf",
+    "format": "mjcf",
+    "id": "jvrc_mjcf",
     "local_file_sha256": {
       "reason": "model path is unavailable",
       "status": "unavailable"
     },
     "manifest": {
       "entry": {
-        "description_name": "g1_description",
+        "description_name": "jvrc_mj_description",
         "expected_capability": "positive",
-        "format": "urdf",
-        "id": "unitree_g1_urdf",
-        "license": "BSD-3-Clause",
+        "format": "mjcf",
+        "id": "jvrc_mjcf",
+        "license": "BSD-2-Clause",
         "notes": "",
         "redistribution": "kinematic_snapshot",
         "required": true,
         "robot_class": "humanoid",
         "source_family": "robot_descriptions"
       },
-      "manifest_model_id": "unitree_g1_urdf",
+      "manifest_model_id": "jvrc_mjcf",
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
       "status": "available"
@@ -45,11 +45,11 @@
     },
     "source_resolution": {
       "entry": {
-        "description_name": "g1_description",
+        "description_name": "jvrc_mj_description",
         "expected_capability": "positive",
-        "format": "urdf",
-        "id": "unitree_g1_urdf",
-        "license": "BSD-3-Clause",
+        "format": "mjcf",
+        "id": "jvrc_mjcf",
+        "license": "BSD-2-Clause",
         "notes": "",
         "redistribution": "kinematic_snapshot",
         "required": true,
@@ -58,15 +58,15 @@
       },
       "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
       "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
-      "module": "robot_descriptions.g1_description",
+      "module": "robot_descriptions.jvrc_mj_description",
       "path": null,
-      "path_attr": "URDF_PATH",
+      "path_attr": "MJCF_PATH",
       "reason": "robot_descriptions module import is disabled because imports may fetch upstream sources; rerun with explicit fetch/import enabled when cache/network use is intended",
       "resolver": "robot_descriptions_no_fetch",
       "status": "source_unavailable"
     }
   },
-  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id unitree_g1_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/unitree_g1_urdf.json --low-discrepancy-count 1",
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id jvrc_mjcf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/jvrc_mjcf.json --low-discrepancy-count 1",
   "runtime_adapter": {
     "backend": "newton",
     "loader_provenance": {
@@ -75,8 +75,8 @@
         "reason": "runtime backend does not expose a serialized compiled-model manifest",
         "status": "unavailable"
       },
-      "loader": "newton.ModelBuilder.add_urdf",
-      "model_format": "urdf"
+      "loader": "newton.ModelBuilder.add_mjcf",
+      "model_format": "mjcf"
     },
     "package_versions": {
       "mujoco": "3.8.1",
