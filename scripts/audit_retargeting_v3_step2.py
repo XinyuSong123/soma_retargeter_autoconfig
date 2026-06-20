@@ -1,0 +1,622 @@
+#!/usr/bin/env python3
+"""Independent Step-2 acceptance audit for retargeting v3 artifacts.
+
+This script is intentionally read-only. It audits existing JSON artifacts and
+source snippets for false-positive patterns called out in ``goal.md``.
+"""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from pathlib import Path
+import argparse
+import json
+import math
+import re
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+
+
+DEFAULT_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step2")
+DEFAULT_SOURCE_ROOT = Path(".")
+ZERO_TOL = 1e-12
+ABSOLUTE_LOCAL_PREFIXES = ("/mnt/", "/home/", "/Users/")
+FULL_HUMANOID_REPORTS = (
+    "roboparty_rpo",
+    "unitree_g1_mjcf",
+    "unitree_g1_urdf",
+    "unitree_g1_23dof",
+    "unitree_h1",
+    "robotis_op3",
+    "booster_t1",
+    "pal_talos",
+)
+ENDPOINT_SEMANTICS = ("LeftHand", "RightHand", "LeftFoot", "RightFoot")
+GOAL_FALSE_POSITIVE_GATES = (
+    "hardcoded_zero_calibration",
+    "neutral_to_neutral_fake_projection",
+    "zero_offset_rpo_hand_sole",
+    "talos_proximal_foot_mapping",
+    "booster_hips_chest_alias",
+    "arbitrary_g1_equivalence",
+    "dirty_artifact_metadata",
+    "absolute_cache_paths",
+    "inferred_semantics_confidence_one",
+    "rank0_false_pass",
+    "robot_name_special_cases",
+    "legacy_offsets",
+)
+
+
+@dataclass(frozen=True)
+class Finding:
+    gate: str
+    severity: str
+    subject: str
+    message: str
+    evidence: dict
+
+
+@dataclass(frozen=True)
+class AuditResult:
+    status: str
+    artifact_dir: str
+    source_root: str
+    finding_count: int
+    blocking_count: int
+    gate_counts: dict[str, int]
+    findings: list[Finding]
+
+    @property
+    def blocking_findings(self) -> list[Finding]:
+        return [finding for finding in self.findings if finding.severity == "error"]
+
+    def to_json(self) -> dict:
+        payload = asdict(self)
+        payload["findings"] = [asdict(finding) for finding in self.findings]
+        return payload
+
+
+def run_audit(
+    artifact_dir: Path = DEFAULT_ARTIFACT_DIR,
+    source_root: Path = DEFAULT_SOURCE_ROOT,
+) -> AuditResult:
+    artifact_dir = artifact_dir.resolve()
+    source_root = source_root.resolve()
+    findings: list[Finding] = []
+
+    summary = _read_json(artifact_dir / "summary.json")
+    validation_checks = _read_json(artifact_dir / "validation_checks.json")
+    environment = _read_json(artifact_dir / "environment.json")
+    commands_text = _read_text(artifact_dir / "commands.txt")
+    per_robot = _load_per_robot(artifact_dir / "per_robot")
+    semantic_maps = _load_per_robot(artifact_dir / "semantic_maps")
+
+    findings.extend(_audit_hardcoded_zero_calibration(source_root, per_robot))
+    findings.extend(_audit_neutral_projection_only(per_robot))
+    findings.extend(_audit_rpo_zero_endpoint_sites(per_robot.get("roboparty_rpo", {}), validation_checks))
+    findings.extend(_audit_talos_foot_mapping(per_robot.get("pal_talos", {}), semantic_maps.get("pal_talos", {})))
+    findings.extend(_audit_booster_hips_chest(per_robot.get("booster_t1", {}), semantic_maps.get("booster_t1", {})))
+    findings.extend(_audit_g1_equivalence(summary, validation_checks))
+    findings.extend(_audit_dirty_artifact_metadata(environment, source_root))
+    findings.extend(_audit_absolute_paths(commands_text, per_robot))
+    findings.extend(_audit_inferred_semantics_confidence(per_robot, semantic_maps))
+    findings.extend(_audit_rank_zero_false_pass(per_robot))
+    findings.extend(_audit_robot_name_special_cases(source_root))
+    findings.extend(_audit_legacy_offsets(source_root, per_robot))
+
+    gate_counts = {gate: 0 for gate in GOAL_FALSE_POSITIVE_GATES}
+    for finding in findings:
+        gate_counts[finding.gate] = gate_counts.get(finding.gate, 0) + 1
+    blocking = [finding for finding in findings if finding.severity == "error"]
+    return AuditResult(
+        status="PASS" if not blocking else "BLOCKED",
+        artifact_dir=str(artifact_dir),
+        source_root=str(source_root),
+        finding_count=len(findings),
+        blocking_count=len(blocking),
+        gate_counts=gate_counts,
+        findings=findings,
+    )
+
+
+def _audit_hardcoded_zero_calibration(source_root: Path, per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    rest_frames = source_root / "soma_retargeter/robotics/v3/rest_frames.py"
+    text = _read_text(rest_frames)
+    patterns = {
+        "position": r"pos_errors\s*=\s*\{\s*name\s*:\s*0\.0\s+for\s+name\s+in\s+transforms\s*\}",
+        "orientation": r"rot_errors\s*=\s*\{\s*name\s*:\s*0\.0\s+for\s+name\s+in\s+transforms\s*\}",
+    }
+    for label, pattern in patterns.items():
+        if re.search(pattern, text):
+            findings.append(
+                Finding(
+                    "hardcoded_zero_calibration",
+                    "error",
+                    str(rest_frames.relative_to(source_root)),
+                    f"rest calibration {label} errors are directly initialized to zero",
+                    {"pattern": pattern},
+                )
+            )
+    for robot_id, report in sorted(per_robot.items()):
+        calibration = report.get("rest_calibration", {})
+        pos = calibration.get("neutral_position_errors", {})
+        rot = calibration.get("neutral_orientation_errors", {})
+        all_zero = pos and rot and all(_is_zero(v) for v in pos.values()) and all(_is_zero(v) for v in rot.values())
+        has_measurement_evidence = any(
+            key in calibration
+            for key in (
+                "independent_measurements",
+                "measured_neutral_errors",
+                "calibration_residual_samples",
+                "recomputed_neutral_errors",
+            )
+        )
+        if all_zero and not has_measurement_evidence:
+            findings.append(
+                Finding(
+                    "hardcoded_zero_calibration",
+                    "error",
+                    robot_id,
+                    "artifact records exact zero calibration errors without independent measurement evidence",
+                    {
+                        "max_position_error": calibration.get("max_position_error"),
+                        "max_orientation_error": calibration.get("max_orientation_error"),
+                        "site_count": len(pos),
+                    },
+                )
+            )
+    return findings
+
+
+def _audit_neutral_projection_only(per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    for robot_id, report in sorted(per_robot.items()):
+        projections = report.get("projection_reports", {})
+        if not projections:
+            continue
+        equal_zero = []
+        for task, projection in sorted(projections.items()):
+            desired = projection.get("desired")
+            projected = projection.get("projected")
+            residual = projection.get("residual")
+            if _vectors_close(desired, projected) and _is_zero(residual):
+                equal_zero.append(task)
+        canonical_projection_keys = [
+            key
+            for key in (
+                "canonical_projection_reports",
+                "canonical_motion_projection_reports",
+                "per_motion_projection_reports",
+            )
+            if key in report
+        ]
+        if equal_zero and len(equal_zero) == len(projections) and not canonical_projection_keys:
+            findings.append(
+                Finding(
+                    "neutral_to_neutral_fake_projection",
+                    "error",
+                    robot_id,
+                    "projection reports only prove desired==projected zero-residual neutral targets",
+                    {"tasks": equal_zero, "canonical_projection_keys": canonical_projection_keys},
+                )
+            )
+    return findings
+
+
+def _audit_rpo_zero_endpoint_sites(report: dict, validation_checks: dict) -> list[Finding]:
+    findings: list[Finding] = []
+    sites = report.get("semantic_sites", {})
+    for semantic in ENDPOINT_SEMANTICS:
+        site = sites.get(semantic, {})
+        if _vector_is_zero(site.get("local_position")) and site.get("reason") in {"explicit_body", None}:
+            findings.append(
+                Finding(
+                    "zero_offset_rpo_hand_sole",
+                    "error",
+                    f"roboparty_rpo:{semantic}",
+                    "RPO endpoint semantic site uses the body origin instead of a distal hand or sole local site",
+                    {
+                        "body_name": site.get("body_name"),
+                        "local_position": site.get("local_position"),
+                        "reason": site.get("reason"),
+                    },
+                )
+            )
+    rpo_check = validation_checks.get("roboparty_rpo_distal_hand_endpoint", {})
+    if rpo_check.get("status") == "passed_with_documented_scope":
+        findings.append(
+            Finding(
+                "zero_offset_rpo_hand_sole",
+                "error",
+                "validation_checks.roboparty_rpo_distal_hand_endpoint",
+                "validation check treats zero-offset RPO distal endpoints as a scoped pass",
+                {"status": rpo_check.get("status"), "scope_note": rpo_check.get("scope_note")},
+            )
+        )
+    return findings
+
+
+def _audit_talos_foot_mapping(report: dict, semantic_map: dict) -> list[Finding]:
+    findings: list[Finding] = []
+    for semantic, bad_body in (("LeftFoot", "leg_left_1_link"), ("RightFoot", "leg_right_1_link")):
+        site = report.get("semantic_sites", {}).get(semantic, {})
+        mapped = semantic_map.get("semantics", {}).get(semantic)
+        if site.get("body_name") == bad_body or mapped == bad_body:
+            findings.append(
+                Finding(
+                    "talos_proximal_foot_mapping",
+                    "error",
+                    f"pal_talos:{semantic}",
+                    "TALOS foot maps to a proximal leg link instead of a distal foot or sole site",
+                    {"semantic_map": mapped, "site_body": site.get("body_name")},
+                )
+            )
+    return findings
+
+
+def _audit_booster_hips_chest(report: dict, semantic_map: dict) -> list[Finding]:
+    sites = report.get("semantic_sites", {})
+    hips = sites.get("Hips", {}).get("body_name")
+    chest = sites.get("Chest", {}).get("body_name")
+    mapped = semantic_map.get("semantics", {})
+    if hips and chest and hips == chest:
+        return [
+            Finding(
+                "booster_hips_chest_alias",
+                "error",
+                "booster_t1:Hips/Chest",
+                "Booster T1 Hips and Chest resolve to the same body, hiding waist/trunk capability",
+                {
+                    "site_body": hips,
+                    "semantic_map_hips": mapped.get("Hips"),
+                    "semantic_map_chest": mapped.get("Chest"),
+                    "torso_chain": report.get("chains", {}).get("torso", {}),
+                },
+            )
+        ]
+    return []
+
+
+def _audit_g1_equivalence(summary: dict, validation_checks: dict) -> list[Finding]:
+    findings: list[Finding] = []
+    check = validation_checks.get("g1_mjcf_urdf_equivalence", {})
+    if check.get("status") != "passed":
+        findings.append(
+            Finding(
+                "arbitrary_g1_equivalence",
+                "error",
+                "validation_checks.g1_mjcf_urdf_equivalence",
+                "G1 URDF/MJCF equivalence is not a strict pass",
+                {"status": check.get("status"), "differences": check.get("differences", {})},
+            )
+        )
+    compiled_count = summary.get("compiled_count")
+    failure_count = summary.get("failure_artifacts_count")
+    if compiled_count == 9 and failure_count == 0 and check.get("status") != "passed":
+        findings.append(
+            Finding(
+                "arbitrary_g1_equivalence",
+                "error",
+                "summary.json",
+                "summary is green while G1 equivalence remains a documented limitation",
+                {"compiled_count": compiled_count, "failure_artifacts_count": failure_count},
+            )
+        )
+    return findings
+
+
+def _audit_dirty_artifact_metadata(environment: dict, source_root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    status = environment.get("git_status_short", "")
+    if status.strip():
+        findings.append(
+            Finding(
+                "dirty_artifact_metadata",
+                "error",
+                "environment.json",
+                "artifacts were generated from a dirty worktree",
+                {"git_status_short": status},
+            )
+        )
+    current_head = _git(source_root, "rev-parse", "HEAD")
+    artifact_head = environment.get("git_head")
+    if current_head and artifact_head and current_head != artifact_head:
+        findings.append(
+            Finding(
+                "dirty_artifact_metadata",
+                "error",
+                "environment.json",
+                "artifact git_head does not match the audited checkout HEAD",
+                {"artifact_git_head": artifact_head, "current_git_head": current_head},
+            )
+        )
+    return findings
+
+
+def _audit_absolute_paths(commands_text: str, per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    for idx, line in enumerate(commands_text.splitlines(), start=1):
+        hits = _absolute_local_hits(line)
+        if hits:
+            findings.append(
+                Finding(
+                    "absolute_cache_paths",
+                    "error",
+                    f"commands.txt:{idx}",
+                    "reproduction command contains local absolute cache path(s)",
+                    {"paths": hits, "command": line},
+                )
+            )
+    for robot_id, report in sorted(per_robot.items()):
+        for field in ("reproduction_command",):
+            hits = _absolute_local_hits(str(report.get(field, "")))
+            if hits:
+                findings.append(
+                    Finding(
+                        "absolute_cache_paths",
+                        "error",
+                        f"{robot_id}:{field}",
+                        f"{field} contains local absolute cache path(s)",
+                        {"paths": hits},
+                    )
+                )
+        model_path = str(report.get("model", {}).get("path", ""))
+        hits = _absolute_local_hits(model_path)
+        if hits:
+            findings.append(
+                Finding(
+                    "absolute_cache_paths",
+                    "error",
+                    f"{robot_id}:model.path",
+                    "model.path contains a local absolute cache path",
+                    {"paths": hits},
+                )
+            )
+    return findings
+
+
+def _audit_inferred_semantics_confidence(per_robot: dict[str, dict], semantic_maps: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    for robot_id, semantic_map in sorted(semantic_maps.items()):
+        if semantic_map.get("source") != "inferred_from_newton_body_names":
+            continue
+        report = per_robot.get(robot_id, {})
+        for semantic, site in sorted(report.get("semantic_sites", {}).items()):
+            if site.get("source") == "explicit_semantic_override" or float(site.get("confidence", 0.0)) >= 1.0:
+                findings.append(
+                    Finding(
+                        "inferred_semantics_confidence_one",
+                        "error",
+                        f"{robot_id}:{semantic}",
+                        "inferred body-name semantic is emitted as explicit override and/or confidence=1.0",
+                        {
+                            "semantic_map_source": semantic_map.get("source"),
+                            "site_source": site.get("source"),
+                            "confidence": site.get("confidence"),
+                            "body_name": site.get("body_name"),
+                        },
+                    )
+                )
+    return findings
+
+
+def _audit_rank_zero_false_pass(per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    for robot_id, report in sorted(per_robot.items()):
+        for task, projection in sorted(report.get("projection_reports", {}).items()):
+            if projection.get("status") == "rank_zero" and _is_zero(projection.get("residual")):
+                if "unreachable_demand" not in projection and "demand_residual" not in projection:
+                    findings.append(
+                        Finding(
+                            "rank0_false_pass",
+                            "error",
+                            f"{robot_id}:{task}",
+                            "rank-zero projection reports zero residual without unreachable-demand evidence",
+                            {
+                                "status": projection.get("status"),
+                                "residual": projection.get("residual"),
+                                "desired": projection.get("desired"),
+                                "projected": projection.get("projected"),
+                            },
+                        )
+                    )
+    return findings
+
+
+def _audit_robot_name_special_cases(source_root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    checked_files = [
+        source_root / "soma_retargeter/robotics/v3/semantic_sites.py",
+        source_root / "soma_retargeter/robotics/v3/profile.py",
+        source_root / "soma_retargeter/robotics/v3/chain_projection.py",
+        source_root / "soma_retargeter/robotics/v3/kinematic_paths.py",
+        source_root / "soma_retargeter/robotics/v3/numerical_jacobian.py",
+        source_root / "soma_retargeter/robotics/v3/reachability.py",
+        source_root / "soma_retargeter/robotics/v3/rest_frames.py",
+        source_root / "soma_retargeter/robotics/v3/target_builder.py",
+    ]
+    patterns = (
+        "default_rpo_semantic_map",
+        "roboparty_rpo",
+        "unitree_g1",
+        "booster_t1",
+        "pal_talos",
+        "robotis_op3",
+        "berkeley_humanoid",
+    )
+    for path in checked_files:
+        text = _read_text(path)
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            if any(pattern in line for pattern in patterns):
+                findings.append(
+                    Finding(
+                        "robot_name_special_cases",
+                        "error",
+                        f"{path.relative_to(source_root)}:{line_no}",
+                        "v3 core source contains robot-name-specific logic or default mapping",
+                        {"line": line.strip()},
+                    )
+                )
+    return findings
+
+
+def _audit_legacy_offsets(source_root: Path, per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    source_files = [
+        source_root / "soma_retargeter/robotics/v3/source_rest.py",
+        source_root / "soma_retargeter/robotics/v3/target_builder.py",
+        source_root / "soma_retargeter/robotics/v3/rest_frames.py",
+        source_root / "soma_retargeter/robotics/v3/profile.py",
+    ]
+    legacy_patterns = ("joint_offsets", "human_to_robot_scaler", "scaler_config", "optimized_offsets")
+    for path in source_files:
+        text = _read_text(path)
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            if any(pattern in line for pattern in legacy_patterns):
+                findings.append(
+                    Finding(
+                        "legacy_offsets",
+                        "error",
+                        f"{path.relative_to(source_root)}:{line_no}",
+                        "v3 source still references legacy scaler/offset fields",
+                        {"line": line.strip()},
+                    )
+                )
+    for robot_id, report in sorted(per_robot.items()):
+        text = json.dumps(report, sort_keys=True)
+        hits = [pattern for pattern in legacy_patterns if pattern in text]
+        if hits:
+            findings.append(
+                Finding(
+                    "legacy_offsets",
+                    "error",
+                    robot_id,
+                    "artifact contains legacy scaler/offset field names",
+                    {"patterns": hits},
+                )
+            )
+    return findings
+
+
+def _load_per_robot(directory: Path) -> dict[str, dict]:
+    if not directory.exists():
+        return {}
+    return {path.stem: _read_json(path) for path in sorted(directory.glob("*.json"))}
+
+
+def _read_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())
+
+
+def _read_text(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return path.read_text()
+
+
+def _is_zero(value: object) -> bool:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(number) and abs(number) <= ZERO_TOL
+
+
+def _vector_is_zero(value: object) -> bool:
+    if not isinstance(value, list) or not value:
+        return False
+    return all(_is_zero(item) for item in value)
+
+
+def _vectors_close(a: object, b: object) -> bool:
+    if not isinstance(a, list) or not isinstance(b, list) or len(a) != len(b):
+        return False
+    try:
+        return all(abs(float(x) - float(y)) <= ZERO_TOL for x, y in zip(a, b))
+    except (TypeError, ValueError):
+        return False
+
+
+def _absolute_local_hits(text: str) -> list[str]:
+    hits: list[str] = []
+    for token in re.split(r"\s+", text):
+        stripped = token.strip("'\"")
+        if stripped.startswith(ABSOLUTE_LOCAL_PREFIXES):
+            hits.append(stripped)
+    return hits
+
+
+def _git(source_root: Path, *args: str) -> str:
+    try:
+        completed = subprocess.run(
+            ["git", *args],
+            cwd=source_root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except Exception:
+        return ""
+    return completed.stdout.strip()
+
+
+def write_junit(result: AuditResult, path: Path) -> None:
+    testsuite = ET.Element(
+        "testsuite",
+        {
+            "name": "retargeting_v3_step2_acceptance_audit",
+            "tests": str(len(GOAL_FALSE_POSITIVE_GATES)),
+            "failures": str(sum(1 for gate, count in result.gate_counts.items() if count)),
+            "errors": "0",
+            "skipped": "0",
+        },
+    )
+    by_gate: dict[str, list[Finding]] = {gate: [] for gate in GOAL_FALSE_POSITIVE_GATES}
+    for finding in result.findings:
+        by_gate.setdefault(finding.gate, []).append(finding)
+    for gate in GOAL_FALSE_POSITIVE_GATES:
+        case = ET.SubElement(testsuite, "testcase", {"classname": "retargeting_v3_step2", "name": gate})
+        gate_findings = by_gate.get(gate, [])
+        if gate_findings:
+            failure = ET.SubElement(
+                case,
+                "failure",
+                {
+                    "message": f"{len(gate_findings)} blocking finding(s)",
+                    "type": "AcceptanceGateFailure",
+                },
+            )
+            failure.text = "\n".join(f"{f.subject}: {f.message}" for f in gate_findings)
+    tree = ET.ElementTree(testsuite)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tree.write(path, encoding="utf-8", xml_declaration=True)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--artifact-dir", type=Path, default=DEFAULT_ARTIFACT_DIR)
+    parser.add_argument("--source-root", type=Path, default=DEFAULT_SOURCE_ROOT)
+    parser.add_argument("--output-json", type=Path, default=None)
+    parser.add_argument("--junit-xml", type=Path, default=None)
+    args = parser.parse_args(argv)
+
+    result = run_audit(args.artifact_dir, args.source_root)
+    payload = result.to_json()
+    if args.output_json:
+        args.output_json.parent.mkdir(parents=True, exist_ok=True)
+        args.output_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    if args.junit_xml:
+        write_junit(result, args.junit_xml)
+
+    print(json.dumps({"status": result.status, "blocking_count": result.blocking_count, "gate_counts": result.gate_counts}, sort_keys=True))
+    return 0 if result.status == "PASS" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
