@@ -11,6 +11,7 @@ import hashlib
 import importlib
 import json
 import os
+import re
 import sys
 
 
@@ -256,6 +257,73 @@ def display_path(path: Path | None) -> str | None:
             except Exception:
                 pass
         return "${LOCAL_SOURCE_PATH}/" + path.name
+
+
+def sanitize_reproduction_text(text: str) -> str:
+    sanitized = str(text)
+    roots: list[tuple[str, Path]] = [("WORKSPACE", Path.cwd())]
+    cache_root = os.environ.get("ROBOT_ZOO_CACHE")
+    if cache_root:
+        roots.append(("ROBOT_ZOO_CACHE", Path(cache_root).expanduser()))
+    roots.extend(_display_cache_roots())
+    roots.append(("HOME", Path.home()))
+    for variable, root in roots:
+        try:
+            resolved = root.resolve()
+        except Exception:
+            continue
+        root_text = str(resolved)
+        if not root_text or root_text == ".":
+            continue
+        sanitized = sanitized.replace(root_text + os.sep, f"${{{variable}}}/")
+        sanitized = sanitized.replace(root_text, f"${{{variable}}}")
+    sanitized = re.sub(r"(?:(?<=^)|(?<=[\s`'\"(=:]))/[^\s`'\",)]+", _local_source_path_placeholder, sanitized)
+    return sanitized
+
+
+def _local_source_path_placeholder(match: re.Match[str]) -> str:
+    text = match.group(0)
+    return "${LOCAL_SOURCE_PATH}/" + Path(text).name
+
+
+def model_load_failure_diagnostic(exc: BaseException | str, *, reproduction_command: str = "") -> dict:
+    text = str(exc)
+    message = sanitize_reproduction_text(text)
+    lowered = text.lower()
+    kind = "runtime_loader_exception"
+    local_fix_available = False
+    blocker = "runtime loader raised an unclassified exception"
+    next_action = "re-run the reproduction command and inspect the loader stack trace"
+    if "pycollada" in lowered or ("collada" in lowered and "decoder" in lowered) or (
+        ".dae" in lowered and "decoder" in lowered
+    ):
+        kind = "missing_optional_dependency_pycollada"
+        blocker = "URDF references Collada DAE geometry but the runtime environment lacks pycollada support"
+        next_action = "install the public pycollada dependency in the validation environment; do not strip geometry gates"
+    elif "unknown body" in lowered and "'world'" in lowered:
+        kind = "synthetic_world_body_missing"
+        local_fix_available = True
+        blocker = "verified semantic map references MuJoCo's synthetic world body but the Newton adapter did not expose it"
+        next_action = "use Newton synthetic-world support and rerun the same command"
+    elif "invalid literal for int()" in lowered and ("pgs" in lowered or "solver" in lowered):
+        kind = "unsupported_newton_mjcf_solver_option"
+        local_fix_available = True
+        blocker = "Newton MJCF loader rejected a named solver enum"
+        next_action = "load through a temporary kinematic-only XML copy with option@solver omitted"
+    elif "string is not a file" in lowered or "no such file" in lowered or "could not open file" in lowered:
+        kind = "missing_referenced_asset"
+        blocker = "the source XML resolves but at least one referenced mesh or include file is absent from the local public cache"
+        next_action = "refresh the fixed public source/cache; do not substitute private assets"
+    return {
+        "status": "failed",
+        "classification": RobotValidationStatus.MODEL_LOAD_FAILED.value,
+        "kind": kind,
+        "message": message,
+        "local_fix_available": local_fix_available,
+        "blocker": blocker,
+        "next_action": next_action,
+        "reproduction_command": reproduction_command,
+    }
 
 
 def sha256_file(path: str | Path) -> str:

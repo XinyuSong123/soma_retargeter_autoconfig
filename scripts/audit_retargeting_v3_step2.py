@@ -12,6 +12,7 @@ from pathlib import Path
 import argparse
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -145,7 +146,7 @@ class AuditResult:
     def to_json(self) -> dict:
         payload = asdict(self)
         payload["findings"] = [asdict(finding) for finding in self.findings]
-        return payload
+        return _sanitize_audit_payload(payload)
 
 
 def run_audit(
@@ -191,8 +192,8 @@ def run_audit(
     blocking = [finding for finding in findings if finding.severity == "error"]
     return AuditResult(
         status="PASS" if not blocking else "BLOCKED",
-        artifact_dir=str(artifact_dir),
-        source_root=str(source_root),
+        artifact_dir=_display_audit_path(artifact_dir),
+        source_root=_display_audit_path(source_root),
         finding_count=len(findings),
         blocking_count=len(blocking),
         gate_counts=gate_counts,
@@ -573,7 +574,7 @@ def _audit_required_artifact_files(artifact_dir: Path) -> list[Finding]:
                     "error",
                     relative,
                     "required reproducibility/test artifact is missing",
-                    {"artifact_dir": str(artifact_dir)},
+                    {"artifact_dir": _display_audit_path(artifact_dir)},
                 )
             )
             continue
@@ -588,7 +589,7 @@ def _audit_required_artifact_files(artifact_dir: Path) -> list[Finding]:
                     "error",
                     relative,
                     "required reproducibility/test artifact is empty",
-                    {"artifact_dir": str(artifact_dir)},
+                    {"artifact_dir": _display_audit_path(artifact_dir)},
                 )
             )
     return findings
@@ -898,6 +899,62 @@ def _vectors_close(a: object, b: object) -> bool:
 def _absolute_local_hits(text: str) -> list[str]:
     pattern = r"(?<![\w$])/(?:mnt|home|Users)/[^\s\"'<>),\]}`]+"
     return [match.group(0).rstrip(".,;:") for match in re.finditer(pattern, text)]
+
+
+def _sanitize_audit_payload(value):
+    if isinstance(value, dict):
+        return {key: _sanitize_audit_payload(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_audit_payload(child) for child in value]
+    if isinstance(value, tuple):
+        return [_sanitize_audit_payload(child) for child in value]
+    if isinstance(value, str):
+        return _sanitize_audit_string(value)
+    return value
+
+
+def _sanitize_audit_string(value: str) -> str:
+    pattern = r"(?<![\w$])/(?:mnt|home|Users|tmp|var|private/var)/[^\s\"'<>),\]}`:]+"
+
+    def replace(match: re.Match[str]) -> str:
+        token = match.group(0)
+        path_text = token.rstrip(".,;")
+        suffix = token[len(path_text) :]
+        return f"{_display_audit_path(Path(path_text))}{suffix}"
+
+    return re.sub(pattern, replace, value)
+
+
+def _display_audit_path(path: Path) -> str:
+    if not path.is_absolute():
+        return str(path)
+    resolved = path.resolve()
+    for root in (Path.cwd(),):
+        try:
+            return str(resolved.relative_to(root.resolve()))
+        except Exception:
+            pass
+    for variable, root in _audit_placeholder_roots():
+        try:
+            return f"${{{variable}}}/" + str(resolved.relative_to(root.resolve()))
+        except Exception:
+            pass
+    return "${LOCAL_SOURCE_PATH}/" + resolved.name
+
+
+def _audit_placeholder_roots() -> list[tuple[str, Path]]:
+    descriptions_cache = os.environ.get("ROBOT_DESCRIPTIONS_CACHE")
+    newton_cache = os.environ.get("NEWTON_CACHE")
+    return [
+        (
+            "ROBOT_DESCRIPTIONS_CACHE",
+            Path(descriptions_cache).expanduser() if descriptions_cache else Path.home() / ".cache" / "robot_descriptions",
+        ),
+        (
+            "NEWTON_CACHE",
+            Path(newton_cache).expanduser() if newton_cache else Path.home() / ".cache" / "newton",
+        ),
+    ]
 
 
 def _walk_json(value: object, prefix: str = "") -> list[tuple[str, object]]:

@@ -9,9 +9,11 @@ import importlib.metadata
 import json
 import math
 import platform
+import re
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
 
 from .model_adapter import MuJoCoRuntimeModelAdapter
 from .model_conversion import compare_runtime_models, convert_urdf_to_canonical_mjcf
@@ -25,12 +27,12 @@ from .robot_zoo import (
     allowed_status_values,
     display_path,
     load_robot_zoo_manifest,
+    model_load_failure_diagnostic,
     reproduction_compile_command,
     reproduction_validate_command,
     resolve_robot_source,
     sha256_file,
 )
-from .semantic_sites import infer_semantic_map_from_body_names
 from .semantic_sites import load_semantic_map
 
 
@@ -52,6 +54,15 @@ _FAILURE_ARTIFACT_STATUSES = {
     RobotValidationStatus.SEMANTIC_FAILED.value,
     RobotValidationStatus.ALGORITHM_FAILED.value,
 }
+_REQUIRED_REPRODUCIBILITY_ARTIFACTS = (
+    "acceptance_ledger.json",
+    "test_results/pytest.txt",
+    "test_results/junit.xml",
+    "test_results/coverage.json",
+)
+_LOCAL_ABSOLUTE_PATH_RE = re.compile(
+    r"(?<![\w$])/(?:mnt|home|Users|tmp|var|private/var)/[^\s\"'<>),\]}`:]+"
+)
 
 
 def write_validation_artifacts(
@@ -103,7 +114,9 @@ def write_validation_artifacts(
         commands.append(command)
         resolved = resolve_robot_source(entry, allow_fetch=allow_source_fetch)
         resolved_sources[entry.id] = resolved
-        source_inventory[entry.id] = resolved.to_json(manifest_path=manifest.path, manifest_sha256=manifest.sha256)
+        source_inventory[entry.id] = _sanitize_artifact_payload(
+            resolved.to_json(manifest_path=manifest.path, manifest_sha256=manifest.sha256)
+        )
         report = _validate_entry(
             entry,
             resolved,
@@ -113,6 +126,7 @@ def write_validation_artifacts(
             low_discrepancy_count=low_discrepancy_count,
             reproduction_command=command,
         )
+        report = _sanitize_artifact_payload(report)
         _assert_allowed_status(report["status"])
         _write_json(per_robot / f"{entry.id}.json", report)
         full_reports[entry.id] = report
@@ -120,7 +134,8 @@ def write_validation_artifacts(
         if report["status"] in _FAILURE_ARTIFACT_STATUSES:
             _write_json(failures_dir / f"{entry.id}.json", report)
 
-    cross_format = _cross_format_report(reports, per_robot)
+    validation_checks = _validation_checks(out)
+    cross_format = _cross_format_report(reports, per_robot, validation_checks=validation_checks)
     deterministic = _deterministic_rerun_report(
         manifest.entries,
         full_reports,
@@ -138,12 +153,12 @@ def write_validation_artifacts(
         deterministic_rerun=deterministic_rerun,
     )
     commands.append(validation_command)
-    (out / "commands.txt").write_text("\n".join(commands) + "\n")
+    commands.extend(_external_reproducibility_commands(command_artifact_root))
+    (out / "commands.txt").write_text(_sanitize_artifact_string("\n".join(commands)) + "\n")
     _write_json(out / "environment.json", environment)
     _write_json(out / "source_inventory.json", source_inventory)
     _write_json(out / "cross_format.json", cross_format)
     _write_json(out / "deterministic_rerun.json", deterministic)
-    validation_checks = _validation_checks(out)
     _write_json(out / "validation_checks.json", validation_checks)
 
     status_counts = Counter(item["status"] for item in reports.values())
@@ -184,6 +199,7 @@ def write_validation_artifacts(
         "cross_format": cross_format,
         "validation_checks": validation_checks,
         "deterministic_rerun": deterministic,
+        "required_reproducibility_artifacts": _required_reproducibility_artifact_protocol(command_artifact_root),
         "notes": [
             "compiled is intentionally not a validation status",
             "source_unavailable is counted separately from algorithm pass/fail",
@@ -191,6 +207,7 @@ def write_validation_artifacts(
             "failure artifacts contain only loader/compile, semantic, or algorithm failures",
         ],
     }
+    summary = _sanitize_artifact_payload(summary)
     _write_json(out / "summary.json", summary)
     return summary
 
@@ -272,8 +289,22 @@ def _validate_entry(
             manifest_sha256=manifest_sha256,
             reproduction_command=reproduction_command,
         )
+    semantic_map_path_for_entry = _resolve_verified_semantic_map_path(entry, manifest_path=manifest_path)
+    if semantic_map_path_for_entry is None:
+        return _missing_verified_semantic_map_report(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            reproduction_command=reproduction_command,
+        )
     try:
-        semantic_map, semantic_map_resolution = _semantic_map_for_entry(entry, resolved, manifest_path=manifest_path)
+        semantic_map, semantic_map_resolution = _semantic_map_for_entry(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            verified_semantic_map_path=semantic_map_path_for_entry,
+        )
         semantic_map_path = _write_semantic_map_artifact(
             semantic_maps_dir,
             entry.id,
@@ -290,20 +321,20 @@ def _validate_entry(
             reproduction_command=reproduction_command,
         )
     except Exception as exc:
-        return _base_report(
+        return _model_load_failed_report(
             entry,
             resolved,
             manifest_path=manifest_path,
             manifest_sha256=manifest_sha256,
-            status=RobotValidationStatus.MODEL_LOAD_FAILED.value,
-            failures=[f"{type(exc).__name__}: {exc}"],
             reproduction_command=reproduction_command,
+            exc=exc,
         )
     report = augment_validation_report_metadata(
         profile.to_json(),
         semantic_map_path=semantic_map_path,
         manifest_path=manifest_path,
     )
+    _record_profile_gate_failures(report)
     report["status"] = _profile_status(report)
     report["status_reason"] = _profile_status_reason(report)
     report["manifest_entry"] = entry.to_json()
@@ -332,14 +363,13 @@ def _validate_negative_control(
         }
         adapter.close()
     except Exception as exc:
-        return _base_report(
+        return _model_load_failed_report(
             entry,
             resolved,
             manifest_path=manifest_path,
             manifest_sha256=manifest_sha256,
-            status=RobotValidationStatus.MODEL_LOAD_FAILED.value,
-            failures=[f"{type(exc).__name__}: {exc}"],
             reproduction_command=reproduction_command,
+            exc=exc,
         )
     report = _base_report(
         entry,
@@ -360,24 +390,21 @@ def _validate_negative_control(
     return report
 
 
-def _semantic_map_for_entry(entry: RobotZooEntry, resolved: ResolvedRobotSource, *, manifest_path: Path) -> tuple[dict, dict]:
-    explicit = _resolve_verified_semantic_map_path(entry, manifest_path=manifest_path)
-    if explicit:
-        return load_semantic_map(explicit), {
-            "status": "available",
-            "source": "verified_semantic_map",
-            "path": display_path(explicit),
-        }
-    adapter = NewtonRuntimeModelAdapter(resolved.path, model_format=entry.model_format)
-    try:
-        return infer_semantic_map_from_body_names(adapter), {
-            "status": "inferred",
-            "source": "inferred_from_newton_body_names",
-            "path": None,
-            "warning": "not a verified semantic map; downstream gates must not count this as verified semantics",
-        }
-    finally:
-        adapter.close()
+def _semantic_map_for_entry(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
+    *,
+    manifest_path: Path,
+    verified_semantic_map_path: Path | None = None,
+) -> tuple[dict, dict]:
+    explicit = verified_semantic_map_path or _resolve_verified_semantic_map_path(entry, manifest_path=manifest_path)
+    if explicit is None:
+        raise FileNotFoundError(f"missing verified semantic map for {entry.id}")
+    return load_semantic_map(explicit), {
+        "status": "available",
+        "source": "verified_semantic_map",
+        "path": display_path(explicit),
+    }
 
 
 def _resolve_verified_semantic_map_path(entry: RobotZooEntry, *, manifest_path: Path) -> Path | None:
@@ -396,11 +423,54 @@ def _resolve_verified_semantic_map_path(entry: RobotZooEntry, *, manifest_path: 
     return None
 
 
+def _missing_verified_semantic_map_report(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
+    *,
+    manifest_path: Path,
+    manifest_sha256: str,
+    reproduction_command: str,
+) -> dict:
+    resolution = {
+        "status": "missing",
+        "source": "verified_semantic_map",
+        "path": None,
+        "required": True,
+        "reason": (
+            "positive humanoid validation requires a verified semantic map; "
+            "body-name inference is diagnostic only and cannot satisfy Step 2 gates"
+        ),
+    }
+    failure = f"missing verified semantic map for {entry.id}"
+    report = _base_report(
+        entry,
+        resolved,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        status=RobotValidationStatus.SEMANTIC_FAILED.value,
+        failures=[failure],
+        warnings=[],
+        reproduction_command=reproduction_command,
+    )
+    report["semantic_map_resolution"] = resolution
+    report["semantic_map_artifact"] = _unavailable("verified semantic map was not available")
+    report.setdefault("failure_taxonomy", {}).setdefault("semantic", {})["verified_semantic_map"] = {
+        "status": "failed",
+        "classification": RobotValidationStatus.SEMANTIC_FAILED.value,
+        "kind": "missing_verified_semantic_map",
+        "message": failure,
+        "next_action": "add a verified semantic map with topology/site evidence or classify the model as a structured partial/unsupported case",
+    }
+    return report
+
+
 def _profile_status(report: dict) -> str:
     failures = report.get("failures", [])
     capability = report.get("capability_status")
     if any("missing required semantics" in failure for failure in failures):
         return RobotValidationStatus.SEMANTIC_FAILED.value
+    if _epsilon_stability_gate_failures(report):
+        return RobotValidationStatus.ALGORITHM_FAILED.value
     if failures:
         return RobotValidationStatus.ALGORITHM_FAILED.value
     if capability == "partial_humanoid":
@@ -416,7 +486,82 @@ def _profile_status_reason(report: dict) -> str:
         return "available lower-body/torso semantics compiled with structured partial-humanoid downgrade"
     if status == RobotValidationStatus.SEMANTIC_FAILED.value:
         return "required humanoid semantics were missing or incomplete"
+    epsilon_failures = _epsilon_stability_gate_failures(report)
+    if epsilon_failures:
+        tasks = ", ".join(failure["task"] for failure in epsilon_failures)
+        return f"epsilon stability gate failed for task(s): {tasks}"
     return "compiler recorded algorithm failures"
+
+
+def _record_profile_gate_failures(report: dict) -> None:
+    epsilon_failures = _epsilon_stability_gate_failures(report)
+    if not epsilon_failures:
+        return
+
+    taxonomy = report.setdefault("failure_taxonomy", {})
+    algorithm = taxonomy.setdefault("algorithm", {})
+    algorithm["epsilon_stability"] = {
+        "status": "failed",
+        "classification": RobotValidationStatus.ALGORITHM_FAILED.value,
+        "tasks": epsilon_failures,
+    }
+
+    failures = report.setdefault("failures", [])
+    existing = set(str(failure) for failure in failures)
+    for failure in epsilon_failures:
+        task = failure["task"]
+        message = (
+            "epsilon stability gate failed: "
+            f"{task} has epsilon_stability_gate_passed=false"
+        )
+        if message not in existing:
+            failures.append(message)
+            existing.add(message)
+
+
+def _epsilon_stability_gate_failures(report: dict) -> list[dict]:
+    failures = []
+    rank_stability = report.get("rank_stability", {})
+    if not isinstance(rank_stability, dict):
+        return failures
+    for task, payload in sorted(rank_stability.items()):
+        if not isinstance(payload, dict):
+            continue
+        false_paths = [
+            f"rank_stability.{task}{path}"
+            for path, value in _walk_epsilon_gate_values(payload)
+            if value is False
+        ]
+        if not false_paths:
+            continue
+        failures.append(
+            {
+                "task": str(task),
+                "gate": "epsilon_stability",
+                "status": "failed",
+                "false_gate_paths": false_paths,
+                "false_gate_count": len(false_paths),
+                "epsilon_unstable_columns": payload.get("epsilon_unstable_columns", []),
+                "epsilon_unstable_fraction": payload.get("epsilon_unstable_fraction"),
+                "epsilon_unstable_sample_fraction": payload.get("epsilon_unstable_sample_fraction"),
+            }
+        )
+    return failures
+
+
+def _walk_epsilon_gate_values(value: object, *, path: str = "") -> list[tuple[str, object]]:
+    hits: list[tuple[str, object]] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}" if path else f".{key}"
+            if key == "epsilon_stability_gate_passed":
+                hits.append((child_path, child))
+            else:
+                hits.extend(_walk_epsilon_gate_values(child, path=child_path))
+    elif isinstance(value, list):
+        for idx, child in enumerate(value):
+            hits.extend(_walk_epsilon_gate_values(child, path=f"{path}[{idx}]"))
+    return hits
 
 
 def _base_report(
@@ -460,6 +605,29 @@ def _base_report(
         "warnings": warnings or [],
         "reproduction_command": reproduction_command,
     }
+
+
+def _model_load_failed_report(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
+    *,
+    manifest_path: Path,
+    manifest_sha256: str,
+    reproduction_command: str,
+    exc: BaseException,
+) -> dict:
+    diagnostic = model_load_failure_diagnostic(exc, reproduction_command=reproduction_command)
+    report = _base_report(
+        entry,
+        resolved,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        status=RobotValidationStatus.MODEL_LOAD_FAILED.value,
+        failures=[f"{type(exc).__name__}: {diagnostic['message']}"],
+        reproduction_command=reproduction_command,
+    )
+    report.setdefault("failure_taxonomy", {}).setdefault("model_load", {})[diagnostic["kind"]] = diagnostic
+    return report
 
 
 def _status_reason(status: str, resolved: ResolvedRobotSource) -> str:
@@ -509,7 +677,7 @@ def _write_semantic_map_artifact(
     return path
 
 
-def _cross_format_report(reports: dict[str, dict], per_robot: Path) -> dict:
+def _cross_format_report(reports: dict[str, dict], per_robot: Path, *, validation_checks: dict | None = None) -> dict:
     groups: dict[str, dict[str, str]] = defaultdict(dict)
     for model_id in reports:
         if model_id.endswith("_urdf"):
@@ -534,18 +702,93 @@ def _cross_format_report(reports: dict[str, dict], per_robot: Path) -> dict:
                 },
             }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "gates": {
-            "same_source_strict": {
-                "status": "not_run",
-                "reason": "requires Agent A canonical URDF-to-MJCF conversion artifacts",
-            },
-            "variant_compatibility": {
-                "status": "not_run",
-                "reason": "requires both variants to pass independent algorithm gates first",
-            },
+            "same_source_strict": _same_source_strict_gate(validation_checks or {}),
+            "variant_compatibility": _variant_compatibility_gate(pairs),
         },
         "pairs": pairs,
+    }
+
+
+def _same_source_strict_gate(validation_checks: dict) -> dict:
+    check_name = "g1_mjcf_urdf_equivalence"
+    check = validation_checks.get(check_name, {})
+    if not isinstance(check, dict) or not check:
+        return {
+            "status": "not_run",
+            "reason": "same-source validation check was not materialized",
+            "validation_check": check_name,
+        }
+
+    check_status = str(check.get("status", "unknown"))
+    gate_status = _cross_format_status_from_same_source_check(check)
+    gate = {
+        "status": gate_status,
+        "reason": _same_source_gate_reason(check, gate_status),
+        "validation_check": check_name,
+        "validation_check_status": check_status,
+    }
+    for key in (
+        "mode",
+        "source",
+        "generated",
+        "source_sha256",
+        "generated_sha256",
+        "strict_equivalent",
+        "gate_a_status",
+        "gate_a_evidence_complete",
+        "gate_a_required_sections",
+        "evidence_statuses",
+        "evidence_incomplete_reasons",
+        "differences",
+    ):
+        if key in check:
+            gate[key] = check[key]
+    return gate
+
+
+def _cross_format_status_from_same_source_check(check: dict) -> str:
+    status = check.get("status")
+    if status == "passed":
+        return "passed"
+    if status == "incomplete":
+        return "incomplete"
+    if status in {"failed", "algorithm_failed"}:
+        return "failed"
+    if status in {"source_unavailable", "blocked"}:
+        return "blocked"
+    return "not_run"
+
+
+def _same_source_gate_reason(check: dict, gate_status: str) -> str:
+    if gate_status == "passed":
+        return "same-source Gate A evidence is complete and passed"
+    if gate_status == "incomplete":
+        return "same-source conversion was compared, but Gate A semantic/projection evidence is incomplete"
+    if gate_status == "failed":
+        return "same-source strict comparison failed"
+    if gate_status == "blocked":
+        return str(check.get("reason") or "same-source strict comparison could not run")
+    return "same-source strict comparison has no validation evidence"
+
+
+def _variant_compatibility_gate(pairs: dict[str, dict]) -> dict:
+    return {
+        "status": "blocked",
+        "reason": (
+            "variant compatibility requires semantic FK, common-chain, rank, DoF-difference, "
+            "and projection evidence for independently passing variants"
+        ),
+        "pair_count": len(pairs),
+        "pair_statuses": {
+            family: {
+                "status": pair["status"],
+                "urdf_status": pair["inputs"]["urdf_status"],
+                "mjcf_status": pair["inputs"]["mjcf_status"],
+            }
+            for family, pair in sorted(pairs.items())
+        },
     }
 
 
@@ -560,8 +803,11 @@ def _g1_same_source_strict_check(output_dir: Path) -> dict:
     if source is None:
         return {
             "status": "source_unavailable",
+            "gate_a_status": "blocked",
+            "gate_a_evidence_complete": False,
             "reason": "fixed G1 same-source URDF cache was not found",
             "differences": {"source": "unavailable"},
+            "evidence_incomplete_reasons": {"source": "fixed G1 same-source URDF cache was not found"},
         }
     generated = output_dir / "cross_format" / "unitree_g1_same_source_canonical.xml"
     try:
@@ -574,19 +820,42 @@ def _g1_same_source_strict_check(output_dir: Path) -> dict:
             left.close()
             right.close()
     except Exception as exc:
+        _sanitize_xml_artifact(generated)
         return {
             "status": "algorithm_failed",
+            "gate_a_status": "blocked",
+            "gate_a_evidence_complete": False,
             "reason": f"{type(exc).__name__}: {exc}",
             "differences": {"exception": type(exc).__name__},
+            "evidence_incomplete_reasons": {"runtime_comparison": f"{type(exc).__name__}: {exc}"},
         }
+    _sanitize_xml_artifact(generated)
+    evidence_sections = _same_source_evidence_sections(equivalence)
     return {
-        "status": "passed" if equivalence["strict_equivalent"] else "algorithm_failed",
+        "status": _same_source_validation_status(equivalence),
         "mode": "same_source_urdf_to_canonical_mjcf",
+        "comparison_schema_version": equivalence.get("schema_version"),
         "source": display_path(source),
         "generated": display_path(generated),
         "source_sha256": conversion["source_sha256"],
-        "generated_sha256": conversion["output_sha256"],
+        "generated_sha256": sha256_file(generated),
+        "generated_runtime_sha256": conversion["output_sha256"],
+        "generated_artifact_sanitization": {
+            "status": "applied",
+            "path_placeholders": [
+                "${ROBOT_ZOO_CACHE}",
+                "${ROBOT_DESCRIPTIONS_CACHE}",
+                "${NEWTON_CACHE}",
+                "${LOCAL_SOURCE_PATH}",
+            ],
+        },
         "strict_equivalent": equivalence["strict_equivalent"],
+        "gate_a_status": equivalence["gate_a_status"],
+        "gate_a_evidence_complete": equivalence["gate_a_evidence_complete"],
+        "gate_a_required_sections": equivalence["gate_a_required_sections"],
+        "evidence_statuses": _same_source_evidence_statuses(evidence_sections),
+        "evidence_incomplete_reasons": _same_source_evidence_incomplete_reasons(evidence_sections),
+        "evidence": evidence_sections,
         "differences": {failure: True for failure in equivalence["failures"]},
         "coordinate_comparison": equivalence.get("coordinate_comparison", {}),
         "runtime_dimensions": {
@@ -597,6 +866,32 @@ def _g1_same_source_strict_check(output_dir: Path) -> dict:
         },
         "tolerances": equivalence["tolerances"],
     }
+
+
+def _same_source_validation_status(equivalence: dict) -> str:
+    gate_a_status = equivalence.get("gate_a_status")
+    if gate_a_status == "complete_passed":
+        return "passed"
+    if gate_a_status == "incomplete":
+        return "incomplete"
+    return "failed"
+
+
+def _same_source_evidence_sections(equivalence: dict) -> dict:
+    return {section: equivalence.get(section, {}) for section in equivalence.get("gate_a_required_sections", [])}
+
+
+def _same_source_evidence_statuses(evidence_sections: dict[str, dict]) -> dict:
+    return {section: payload.get("status", "missing") for section, payload in evidence_sections.items()}
+
+
+def _same_source_evidence_incomplete_reasons(evidence_sections: dict[str, dict]) -> dict:
+    reasons = {}
+    for section, payload in evidence_sections.items():
+        if payload.get("status") == "passed":
+            continue
+        reasons[section] = payload.get("reason") or payload.get("failures") or payload.get("status", "missing")
+    return reasons
 
 
 def _find_g1_same_source_urdf() -> Path | None:
@@ -1025,7 +1320,89 @@ def _assert_allowed_status(status: str) -> None:
 
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    sanitized = _sanitize_artifact_payload(payload)
+    path.write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n")
+
+
+def _sanitize_artifact_payload(value):
+    if isinstance(value, dict):
+        return {key: _sanitize_artifact_payload(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_artifact_payload(child) for child in value]
+    if isinstance(value, tuple):
+        return [_sanitize_artifact_payload(child) for child in value]
+    if isinstance(value, Path):
+        return display_path(value)
+    if isinstance(value, str):
+        return _sanitize_artifact_string(value)
+    return value
+
+
+def _sanitize_artifact_string(value: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        token = match.group(0)
+        path_text = token.rstrip(".,;")
+        suffix = token[len(path_text) :]
+        return f"{display_path(Path(path_text))}{suffix}"
+
+    return _LOCAL_ABSOLUTE_PATH_RE.sub(replace, value)
+
+
+def _sanitize_xml_artifact(path: Path) -> None:
+    if not path.exists():
+        return
+    try:
+        tree = ET.parse(path)
+    except ET.ParseError:
+        path.write_text(_sanitize_artifact_string(path.read_text(errors="replace")))
+        return
+    changed = False
+    for element in tree.iter():
+        if element.text:
+            sanitized = _sanitize_artifact_string(element.text)
+            if sanitized != element.text:
+                element.text = sanitized
+                changed = True
+        if element.tail:
+            sanitized = _sanitize_artifact_string(element.tail)
+            if sanitized != element.tail:
+                element.tail = sanitized
+                changed = True
+        for key, value in list(element.attrib.items()):
+            sanitized = _sanitize_artifact_string(value)
+            if sanitized != value:
+                element.set(key, sanitized)
+                changed = True
+    if changed:
+        ET.indent(tree, space="  ")
+        tree.write(path, encoding="unicode", xml_declaration=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write("\n")
+
+
+def _external_reproducibility_commands(artifact_root: Path) -> list[str]:
+    return _required_reproducibility_artifact_protocol(artifact_root)["commands"]
+
+
+def _required_reproducibility_artifact_protocol(artifact_root: Path) -> dict:
+    root = display_path(artifact_root)
+    return {
+        "producer": "external_test_protocol",
+        "reason": "validation generation does not execute the pytest, JUnit, coverage, or acceptance-audit test protocol",
+        "required_files": list(_REQUIRED_REPRODUCIBILITY_ARTIFACTS),
+        "commands": [
+            "python -m pip install pytest coverage",
+            f"python -m coverage run -m pytest tests --junitxml={root}/test_results/junit.xml > {root}/test_results/pytest.txt 2>&1",
+            f"python -m coverage json -o {root}/test_results/coverage.json",
+            (
+                "python scripts/audit_retargeting_v3_step2.py "
+                f"--artifact-dir {root} "
+                "--source-root . "
+                f"--output-json {root}/acceptance_ledger.json "
+                f"--junit-xml {root}/test_results/acceptance_audit.junit.xml"
+            ),
+        ],
+    }
 
 
 def _clear_json_files(path: Path) -> None:

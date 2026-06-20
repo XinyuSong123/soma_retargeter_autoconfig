@@ -857,8 +857,15 @@ def test_validation_artifacts_include_required_reports(tmp_path: Path):
         }
 
     rpo = reports["roboparty_rpo_local"]
-    assert rpo["status"] == "passed"
-    assert rpo["failures"] == []
+    assert rpo["status"] == "algorithm_failed"
+    assert rpo["status_reason"].startswith("epsilon stability gate failed for task(s): ")
+    assert any("epsilon stability gate failed:" in failure for failure in rpo["failures"])
+    epsilon_taxonomy = rpo["failure_taxonomy"]["algorithm"]["epsilon_stability"]
+    assert epsilon_taxonomy["status"] == "failed"
+    assert epsilon_taxonomy["classification"] == "algorithm_failed"
+    assert epsilon_taxonomy["tasks"]
+    assert all(task["gate"] == "epsilon_stability" for task in epsilon_taxonomy["tasks"])
+    assert all(task["false_gate_paths"] for task in epsilon_taxonomy["tasks"])
     assert rpo["canonical_target_validation"]["failures"] == []
     assert rpo["canonical_target_validation"]["root_translation_equivariant"]
     assert rpo["canonical_target_validation"]["global_root_yaw_equivariant"]

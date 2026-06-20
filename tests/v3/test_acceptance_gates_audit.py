@@ -53,9 +53,13 @@ def test_audit_blocks_local_absolute_paths_anywhere_in_artifacts(tmp_path: Path)
     (failures / "robot.json").write_text('{"error": "`/mnt/ssd1/song/.cache/model.obj`"}\n')
 
     result = run_audit(artifact_dir=artifact_dir, source_root=Path("."))
+    payload = json.dumps(result.to_json())
 
     assert result.gate_counts["absolute_cache_paths"] == 1
     assert result.status == "BLOCKED"
+    assert "/mnt/ssd1/song" not in payload
+    assert str(tmp_path) not in payload
+    assert "${LOCAL_SOURCE_PATH}/model.obj" in payload
 
 
 def test_audit_blocks_missing_required_reproducibility_artifacts(tmp_path: Path):

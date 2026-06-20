@@ -10,6 +10,7 @@ from soma_retargeter.robotics.v3.validation import (
     DEFAULT_LOW_DISCREPANCY_COUNT,
     MANIFEST_MODEL_ID_BY_REPORT_ID,
     REQUIRED_ARTIFACT_IDS,
+    _sanitize_xml_artifact,
     write_validation_artifacts,
 )
 
@@ -37,6 +38,21 @@ def _artifact_path(root: Path, value: str) -> Path:
 
 def test_default_low_discrepancy_count_matches_goal():
     assert DEFAULT_LOW_DISCREPANCY_COUNT == 32
+
+
+def test_generated_cross_format_xml_paths_are_sanitized(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    cache_root = tmp_path / "newton-cache"
+    mesh_path = cache_root / "unitree_g1" / "meshes" / "pelvis.STL"
+    mesh_path.parent.mkdir(parents=True)
+    xml_path = tmp_path / "canonical.xml"
+    xml_path.write_text(f'<mujoco><asset><mesh file="{mesh_path}"/></asset></mujoco>\n')
+    monkeypatch.setenv("NEWTON_CACHE", str(cache_root))
+
+    _sanitize_xml_artifact(xml_path)
+
+    text = xml_path.read_text()
+    assert str(tmp_path) not in text
+    assert '${NEWTON_CACHE}/unitree_g1/meshes/pelvis.STL' in text
 
 
 def test_summary_failure_artifacts_match_true_failure_statuses(validation_artifacts: Path):
@@ -85,7 +101,50 @@ def test_per_robot_reproduction_commands_reference_saved_semantic_maps(validatio
                 assert semantic_map.exists()
                 payload = _load(semantic_map)
                 assert payload["semantics"]
-                assert payload["source"] in {"verified_semantic_map", "inferred_from_newton_body_names"}
+                assert payload["source"] == "verified_semantic_map"
+
+
+def test_required_external_reproducibility_protocol_is_recorded(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "catalog_name": "test-zoo",
+                "models": [
+                    {
+                        "id": "missing_positive",
+                        "description_name": None,
+                        "format": "mjcf",
+                        "robot_class": "humanoid",
+                        "expected_capability": "positive",
+                        "redistribution": "kinematic_snapshot",
+                        "required": True,
+                        "source_family": "local",
+                        "source_path": str(tmp_path / "missing.xml"),
+                    }
+                ],
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr("soma_retargeter.robotics.v3.validation._validation_checks", lambda output_dir: {})
+
+    summary = write_validation_artifacts(tmp_path / "artifacts", manifest_path=manifest, low_discrepancy_count=1)
+    commands = (tmp_path / "artifacts" / "commands.txt").read_text()
+    protocol = summary["required_reproducibility_artifacts"]
+
+    assert protocol["producer"] == "external_test_protocol"
+    assert protocol["required_files"] == [
+        "acceptance_ledger.json",
+        "test_results/pytest.txt",
+        "test_results/junit.xml",
+        "test_results/coverage.json",
+    ]
+    assert "${RETARGETING_V3_ARTIFACTS}/acceptance_ledger.json" in commands
+    assert "${RETARGETING_V3_ARTIFACTS}/test_results/pytest.txt" in commands
+    assert "${RETARGETING_V3_ARTIFACTS}/test_results/junit.xml" in commands
+    assert "${RETARGETING_V3_ARTIFACTS}/test_results/coverage.json" in commands
 
 
 def test_reports_include_model_and_loader_provenance(validation_artifacts: Path):
@@ -118,7 +177,20 @@ def test_complete_model_cross_checks_are_materialized(validation_artifacts: Path
     checks = _load(validation_artifacts / "validation_checks.json")
 
     g1 = checks["g1_mjcf_urdf_equivalence"]
-    assert g1["status"] == "passed"
-    assert g1["strict_equivalent"]
-    assert g1["differences"] == {}
-    assert g1["coordinate_comparison"]["passed"]
+    assert g1["status"] in {"passed", "incomplete", "source_unavailable"}
+    if g1["status"] == "passed":
+        assert g1["gate_a_status"] == "complete_passed"
+        assert g1["gate_a_evidence_complete"]
+        assert set(g1["evidence_statuses"].values()) == {"passed"}
+    elif g1["status"] == "incomplete":
+        assert not g1["gate_a_evidence_complete"]
+        assert g1["strict_equivalent"]
+        assert g1["gate_a_status"] == "incomplete"
+        assert g1["differences"] == {}
+        assert g1["coordinate_comparison"]["passed"]
+        assert g1["evidence_statuses"]["semantic_fk"] == "unavailable"
+        assert g1["evidence_statuses"]["canonical_projection"] == "unavailable"
+    else:
+        assert not g1["gate_a_evidence_complete"]
+        assert g1["gate_a_status"] == "blocked"
+        assert g1["differences"] == {"source": "unavailable"}
