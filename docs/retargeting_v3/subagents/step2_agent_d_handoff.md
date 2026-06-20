@@ -6,6 +6,7 @@
   - `63630cc feat: harden chain projection gates`
   - `af9a258 fix: classify rank zero canonical demand`
   - `28c51c3 docs: add agent d xhigh handoff`
+  - `5fe2aa0 docs: update agent d handoff results`
 - Prior worktree reviewed: `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig_agent_d`; used only as reference, not assumed correct.
 
 ## Files
@@ -58,6 +59,9 @@
 - BLOCKED: `PYTHONPATH=. pytest -q tests/v3/test_acceptance_gates_audit.py`
   - Result after this handoff file exists: `1 failed in 0.06s`.
   - Remaining blockers: canonical targets without per-motion projection in existing artifacts, arbitrary G1 equivalence, dirty artifact metadata, two robot-name semantic special-case findings, and missing Agent B handoff.
+- BLOCKED: final rerun of `PYTHONPATH=. pytest -q tests/v3/test_acceptance_gates_audit.py`
+  - Result: `1 failed in 0.06s`.
+  - Remaining blockers: canonical targets without per-motion projection in existing artifacts, arbitrary G1 equivalence, dirty artifact metadata, artifact HEAD mismatch, two robot-name semantic special-case findings, and missing Agent B handoff.
 
 ## Numerical Results
 
