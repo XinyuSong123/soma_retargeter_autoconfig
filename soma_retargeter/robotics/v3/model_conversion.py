@@ -92,7 +92,8 @@ def compare_runtime_models(
         failures.append("body_name_order_mismatch")
     left_coords = _coordinate_signature(left)
     right_coords = _coordinate_signature(right)
-    if left_coords != right_coords:
+    coordinate_comparison = _compare_coordinate_signatures(left_coords, right_coords)
+    if coordinate_comparison["failures"]:
         failures.append("coordinate_signature_mismatch")
 
     semantic_fk = {}
@@ -118,6 +119,7 @@ def compare_runtime_models(
         "right_fingerprint": right.fingerprint,
         "left_signature": left_sig,
         "right_signature": right_sig,
+        "coordinate_comparison": coordinate_comparison,
         "semantic_fk": semantic_fk,
         "tolerances": {
             "position_atol": position_atol,
@@ -138,6 +140,26 @@ def _coordinate_signature(adapter: MuJoCoRuntimeModelAdapter) -> list[dict]:
         }
         for coord in adapter.coordinate_info
     ]
+
+
+def _compare_coordinate_signatures(left: list[dict], right: list[dict], *, limit_atol: float = 1e-5) -> dict:
+    failures: list[str] = []
+    if len(left) != len(right):
+        failures.append("coordinate_count_mismatch")
+        return {"passed": False, "failures": failures, "limit_atol": limit_atol}
+    for index, (l_coord, r_coord) in enumerate(zip(left, right)):
+        for key in ("label", "joint_name", "joint_type", "limited"):
+            if l_coord[key] != r_coord[key]:
+                failures.append(f"{index}:{key}_mismatch")
+        for key in ("lower", "upper"):
+            l_value = l_coord[key]
+            r_value = r_coord[key]
+            if l_value is None or r_value is None:
+                if l_value != r_value:
+                    failures.append(f"{index}:{key}_finite_mismatch")
+            elif abs(float(l_value) - float(r_value)) > limit_atol:
+                failures.append(f"{index}:{key}_limit_mismatch")
+    return {"passed": not failures, "failures": failures, "limit_atol": limit_atol}
 
 
 def _compare_semantic_fk(

@@ -12,6 +12,8 @@ import subprocess
 import sys
 import time
 
+from .model_adapter import MuJoCoRuntimeModelAdapter
+from .model_conversion import compare_runtime_models, convert_urdf_to_canonical_mjcf
 from .model_adapter import NewtonRuntimeModelAdapter
 from .profile import compile_kinematic_profile_v3
 from .robot_zoo import (
@@ -126,6 +128,8 @@ def write_validation_artifacts(
     _write_json(out / "source_inventory.json", source_inventory)
     _write_json(out / "cross_format.json", cross_format)
     _write_json(out / "deterministic_rerun.json", deterministic)
+    validation_checks = _validation_checks(out)
+    _write_json(out / "validation_checks.json", validation_checks)
 
     status_counts = Counter(item["status"] for item in reports.values())
     class_counts = Counter(item["robot_class"] for item in reports.values())
@@ -154,6 +158,7 @@ def write_validation_artifacts(
         "model_load_failed_count": status_counts[RobotValidationStatus.MODEL_LOAD_FAILED.value],
         "failure_artifacts_count": len(list(failures_dir.glob("*.json"))),
         "cross_format": cross_format,
+        "validation_checks": validation_checks,
         "deterministic_rerun": deterministic,
         "notes": [
             "compiled is intentionally not a validation status",
@@ -516,6 +521,67 @@ def _cross_format_report(reports: dict[str, dict], per_robot: Path) -> dict:
         },
         "pairs": pairs,
     }
+
+
+def _validation_checks(output_dir: Path) -> dict:
+    return {
+        "g1_mjcf_urdf_equivalence": _g1_same_source_strict_check(output_dir),
+    }
+
+
+def _g1_same_source_strict_check(output_dir: Path) -> dict:
+    source = _find_g1_same_source_urdf()
+    if source is None:
+        return {
+            "status": "source_unavailable",
+            "reason": "fixed G1 same-source URDF cache was not found",
+            "differences": {"source": "unavailable"},
+        }
+    generated = output_dir / "cross_format" / "unitree_g1_same_source_canonical.xml"
+    try:
+        conversion = convert_urdf_to_canonical_mjcf(source, generated)
+        left = MuJoCoRuntimeModelAdapter(source, model_format="urdf")
+        right = MuJoCoRuntimeModelAdapter(generated, model_format="xml")
+        try:
+            equivalence = compare_runtime_models(left, right)
+        finally:
+            left.close()
+            right.close()
+    except Exception as exc:
+        return {
+            "status": "algorithm_failed",
+            "reason": f"{type(exc).__name__}: {exc}",
+            "differences": {"exception": type(exc).__name__},
+        }
+    return {
+        "status": "passed" if equivalence["strict_equivalent"] else "algorithm_failed",
+        "mode": "same_source_urdf_to_canonical_mjcf",
+        "source": display_path(source),
+        "generated": display_path(generated),
+        "source_sha256": conversion["source_sha256"],
+        "generated_sha256": conversion["output_sha256"],
+        "strict_equivalent": equivalence["strict_equivalent"],
+        "differences": {failure: True for failure in equivalence["failures"]},
+        "coordinate_comparison": equivalence.get("coordinate_comparison", {}),
+        "runtime_dimensions": {
+            "source_nq": equivalence["left_signature"]["nq"],
+            "source_nv": equivalence["left_signature"]["nv"],
+            "generated_nq": equivalence["right_signature"]["nq"],
+            "generated_nv": equivalence["right_signature"]["nv"],
+        },
+        "tolerances": equivalence["tolerances"],
+    }
+
+
+def _find_g1_same_source_urdf() -> Path | None:
+    candidates = [
+        Path.home() / ".cache/newton/newton-assets_unitree_g1_308a72cd/unitree_g1/urdf/g1_29dof.urdf",
+        Path.home() / ".cache/robot_descriptions/unitree_ros/robots/g1_description/g1_29dof.urdf",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _deterministic_rerun_report(reports: dict[str, dict], *, deterministic_rerun: bool) -> dict:
