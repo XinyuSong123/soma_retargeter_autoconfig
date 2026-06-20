@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import importlib.metadata
 import json
+import math
 import platform
 import subprocess
 import sys
@@ -78,6 +79,8 @@ def write_validation_artifacts(
     _clear_matching_files(test_results_dir, ("*.json", "*.xml", "*.txt"))
 
     reports: dict[str, dict] = {}
+    full_reports: dict[str, dict] = {}
+    resolved_sources: dict[str, ResolvedRobotSource] = {}
     commands: list[str] = []
     source_inventory: dict[str, dict] = {}
     command_artifact_root = Path("${RETARGETING_V3_ARTIFACTS}")
@@ -92,6 +95,7 @@ def write_validation_artifacts(
         )
         commands.append(command)
         resolved = resolve_robot_source(entry, allow_fetch=allow_source_fetch)
+        resolved_sources[entry.id] = resolved
         source_inventory[entry.id] = resolved.to_json(manifest_path=manifest.path, manifest_sha256=manifest.sha256)
         report = _validate_entry(
             entry,
@@ -104,6 +108,7 @@ def write_validation_artifacts(
         )
         _assert_allowed_status(report["status"])
         _write_json(per_robot / f"{entry.id}.json", report)
+        full_reports[entry.id] = report
         reports[entry.id] = _summary_entry(report)
         if report["status"] not in {
             RobotValidationStatus.PASSED.value,
@@ -114,7 +119,15 @@ def write_validation_artifacts(
             _write_json(failures_dir / f"{entry.id}.json", report)
 
     cross_format = _cross_format_report(reports, per_robot)
-    deterministic = _deterministic_rerun_report(reports, deterministic_rerun=deterministic_rerun)
+    deterministic = _deterministic_rerun_report(
+        manifest.entries,
+        full_reports,
+        resolved_sources,
+        manifest_path=manifest.path,
+        manifest_sha256=manifest.sha256,
+        low_discrepancy_count=low_discrepancy_count,
+        deterministic_rerun=deterministic_rerun,
+    )
     environment = _environment_report(manifest, git_snapshot=pre_generation_git)
     validation_command = reproduction_validate_command(
         manifest_path=command_manifest_path,
@@ -584,22 +597,353 @@ def _find_g1_same_source_urdf() -> Path | None:
     return None
 
 
-def _deterministic_rerun_report(reports: dict[str, dict], *, deterministic_rerun: bool) -> dict:
-    return {
-        "schema_version": 1,
-        "status": "not_run" if not deterministic_rerun else "scaffolded",
-        "reason": (
-            "pass --deterministic-rerun to reserve a two-run comparison artifact; "
-            "the current implementation does not count single-run reports as deterministic pass"
-        ),
-        "models": {
+def _deterministic_rerun_report(
+    entries: tuple[RobotZooEntry, ...],
+    reports: dict[str, dict],
+    resolved_sources: dict[str, ResolvedRobotSource],
+    *,
+    manifest_path: Path,
+    manifest_sha256: str,
+    low_discrepancy_count: int,
+    deterministic_rerun: bool,
+) -> dict:
+    models: dict[str, dict] = {}
+    if not deterministic_rerun:
+        not_run_models = {
             model_id: {
                 "status": "not_run",
                 "input_status": report["status"],
-                "reason": "second independent run not executed in this artifact pass",
+                "compared": False,
+                "reason": "second independent run not requested",
             }
             for model_id, report in sorted(reports.items())
+        }
+        return {
+            "schema_version": 2,
+            "status": "not_run",
+            "reason": (
+                "pass --deterministic-rerun to execute independent two-run comparisons; "
+                "single-run reports are not counted as deterministic pass"
+            ),
+            "comparison_fields": _deterministic_comparison_fields(),
+            "totals": _deterministic_totals(not_run_models),
+            "models": not_run_models,
+        }
+
+    with TemporaryDirectory() as tmp:
+        rerun_semantic_maps = Path(tmp) / "semantic_maps"
+        for entry in entries:
+            first = reports[entry.id]
+            input_status = first["status"]
+            resolved = resolved_sources[entry.id]
+            if input_status == RobotValidationStatus.SOURCE_UNAVAILABLE.value:
+                models[entry.id] = {
+                    "status": "source_unavailable",
+                    "input_status": input_status,
+                    "compared": False,
+                    "reason": "source unavailable; not counted as deterministic pass",
+                }
+                continue
+            if input_status == RobotValidationStatus.LICENSE_BLOCKED.value:
+                models[entry.id] = {
+                    "status": "license_blocked",
+                    "input_status": input_status,
+                    "compared": False,
+                    "reason": "license blocked; no model source may be rerun",
+                }
+                continue
+            if input_status == RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value:
+                models[entry.id] = _negative_control_determinism_entry(
+                    entry,
+                    resolved,
+                    first,
+                    manifest_path=manifest_path,
+                    manifest_sha256=manifest_sha256,
+                    semantic_maps_dir=rerun_semantic_maps,
+                    low_discrepancy_count=low_discrepancy_count,
+                )
+                continue
+            if input_status not in {RobotValidationStatus.PASSED.value, RobotValidationStatus.PARTIAL_PASSED.value}:
+                models[entry.id] = {
+                    "status": "skipped_non_pass_status",
+                    "input_status": input_status,
+                    "compared": False,
+                    "reason": "only terminal profile pass statuses are counted in deterministic pass",
+                }
+                continue
+            rerun = _validate_entry(
+                entry,
+                resolved,
+                manifest_path=manifest_path,
+                manifest_sha256=manifest_sha256,
+                semantic_maps_dir=rerun_semantic_maps,
+                low_discrepancy_count=low_discrepancy_count,
+                reproduction_command=first.get("reproduction_command", ""),
+            )
+            models[entry.id] = _compare_deterministic_profile_reports(first, rerun)
+
+    totals = _deterministic_totals(models)
+    if totals["compared_count"] == 0:
+        status = "no_comparable_models"
+        reason = "no terminal profile pass reports were available for two-run comparison"
+    elif totals["mismatch_count"] == 0 and totals["rerun_failed_count"] == 0:
+        status = "passed"
+        reason = "all compared terminal profile reports matched; unavailable sources were not counted as pass"
+    else:
+        status = "failed"
+        reason = "one or more deterministic rerun comparisons mismatched or failed to rerun"
+    return {
+        "schema_version": 2,
+        "status": status,
+        "reason": reason,
+        "comparison_fields": _deterministic_comparison_fields(),
+        "tolerances": {"float_abs_tol": 1e-9, "float_rel_tol": 1e-9},
+        "totals": totals,
+        "models": dict(sorted(models.items())),
+    }
+
+
+def _negative_control_determinism_entry(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
+    first: dict,
+    *,
+    manifest_path: Path,
+    manifest_sha256: str,
+    semantic_maps_dir: Path,
+    low_discrepancy_count: int,
+) -> dict:
+    rerun = _validate_entry(
+        entry,
+        resolved,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        semantic_maps_dir=semantic_maps_dir,
+        low_discrepancy_count=low_discrepancy_count,
+        reproduction_command=first.get("reproduction_command", ""),
+    )
+    matched = first.get("status") == rerun.get("status") and _negative_runtime_summary(first) == _negative_runtime_summary(rerun)
+    return {
+        "status": "matched" if matched else "mismatched",
+        "input_status": first.get("status"),
+        "rerun_status": rerun.get("status"),
+        "compared": True,
+        "profile_comparison": False,
+        "reason": "negative controls have no humanoid profile hash; compared load status and runtime dimensions only",
+        "comparisons": {
+            "status": {
+                "matched": first.get("status") == rerun.get("status"),
+                "first": first.get("status"),
+                "second": rerun.get("status"),
+                "mismatch_paths": [] if first.get("status") == rerun.get("status") else ["status"],
+            },
+            "runtime_summary": _comparison_result(
+                _negative_runtime_summary(first),
+                _negative_runtime_summary(rerun),
+            ),
         },
+    }
+
+
+def _compare_deterministic_profile_reports(first: dict, rerun: dict) -> dict:
+    first_payload = _deterministic_profile_payload(first)
+    rerun_payload = _deterministic_profile_payload(rerun)
+    comparisons = {
+        field: _comparison_result(first_payload[field], rerun_payload[field])
+        for field in _deterministic_comparison_fields()
+    }
+    mismatches = {
+        field: comparison["mismatch_paths"]
+        for field, comparison in comparisons.items()
+        if not comparison["matched"]
+    }
+    matched = not mismatches
+    status = "matched" if matched else "mismatched"
+    return {
+        "status": status,
+        "input_status": first.get("status"),
+        "rerun_status": rerun.get("status"),
+        "compared": True,
+        "profile_comparison": True,
+        "first_deterministic_hash": first.get("deterministic_hash"),
+        "second_deterministic_hash": rerun.get("deterministic_hash"),
+        "comparisons": comparisons,
+        "mismatches": mismatches,
+    }
+
+
+def _deterministic_comparison_fields() -> list[str]:
+    return [
+        "status",
+        "deterministic_hash",
+        "rank_summary",
+        "canonical_projection_residuals",
+        "semantic_site_evidence",
+    ]
+
+
+def _deterministic_profile_payload(report: dict) -> dict:
+    return {
+        "status": report.get("status"),
+        "deterministic_hash": report.get("deterministic_hash"),
+        "rank_summary": _rank_summary(report),
+        "canonical_projection_residuals": _canonical_projection_residuals(report),
+        "semantic_site_evidence": _semantic_site_evidence(report),
+    }
+
+
+def _rank_summary(report: dict) -> dict:
+    keys = (
+        "regular_rank_translation",
+        "nominal_rank_translation",
+        "regular_rank_rotation",
+        "nominal_rank_rotation",
+        "singularity_fraction_translation",
+        "singularity_fraction_rotation",
+        "epsilon_unstable_fraction",
+        "epsilon_unstable_sample_fraction",
+        "epsilon_stability_gate_passed",
+        "epsilon_unstable_columns",
+        "samples",
+        "rank_method",
+        "regular_rank_fraction_threshold",
+    )
+    return {
+        task: {key: payload.get(key) for key in keys if key in payload}
+        for task, payload in sorted(report.get("rank_stability", {}).items())
+    }
+
+
+def _canonical_projection_residuals(report: dict) -> dict:
+    canonical = report.get("canonical_projection_reports", {})
+    motions = canonical.get("motions", {})
+    return {
+        "motion_order": canonical.get("motion_order", []),
+        "target_source": canonical.get("target_source"),
+        "failures": canonical.get("failures", []),
+        "unreachable_demands": canonical.get("unreachable_demands", []),
+        "motions": {
+            motion_name: {
+                task_name: {
+                    key: task_payload.get(key)
+                    for key in (
+                        "status",
+                        "converged",
+                        "residual",
+                        "normalized_residual",
+                        "normalization_scale",
+                        "iterations",
+                        "active_coordinates",
+                        "desired_source",
+                        "reference",
+                        "target",
+                    )
+                    if key in task_payload
+                }
+                for task_name, task_payload in sorted(motion_payload.get("tasks", {}).items())
+            }
+            for motion_name, motion_payload in sorted(motions.items())
+        },
+    }
+
+
+def _semantic_site_evidence(report: dict) -> dict:
+    return {
+        "semantic_map_resolution": {
+            key: value
+            for key, value in report.get("semantic_map_resolution", {}).items()
+            if key in {"status", "source", "path", "warning"}
+        },
+        "sites": {
+            semantic: {
+                key: site.get(key)
+                for key in (
+                    "semantic_name",
+                    "body_name",
+                    "local_position",
+                    "local_rotation_xyzw",
+                    "source",
+                    "confidence",
+                    "reason",
+                )
+                if key in site
+            }
+            for semantic, site in sorted(report.get("semantic_sites", {}).items())
+        },
+    }
+
+
+def _negative_runtime_summary(report: dict) -> dict:
+    runtime = report.get("runtime_adapter", {})
+    return {
+        "backend": runtime.get("backend"),
+        "nq": runtime.get("nq"),
+        "nv": runtime.get("nv"),
+        "body_count": runtime.get("body_count"),
+        "humanoid_profile_generated": report.get("morphology_classification", {}).get("humanoid_profile_generated"),
+    }
+
+
+def _comparison_result(first: object, second: object) -> dict:
+    mismatch_paths: list[str] = []
+    _compare_values(first, second, path="", mismatch_paths=mismatch_paths)
+    return {
+        "matched": not mismatch_paths,
+        "first": first,
+        "second": second,
+        "mismatch_paths": mismatch_paths[:50],
+    }
+
+
+def _compare_values(first: object, second: object, *, path: str, mismatch_paths: list[str]) -> None:
+    if isinstance(first, bool) or isinstance(second, bool):
+        if first != second:
+            mismatch_paths.append(path or "$")
+        return
+    if isinstance(first, (int, float)) and isinstance(second, (int, float)):
+        if not math.isclose(float(first), float(second), rel_tol=1e-9, abs_tol=1e-9):
+            mismatch_paths.append(path or "$")
+        return
+    if isinstance(first, dict) and isinstance(second, dict):
+        keys = set(first) | set(second)
+        for key in sorted(keys):
+            child_path = f"{path}.{key}" if path else str(key)
+            if key not in first or key not in second:
+                mismatch_paths.append(child_path)
+                continue
+            _compare_values(first[key], second[key], path=child_path, mismatch_paths=mismatch_paths)
+        return
+    if isinstance(first, list) and isinstance(second, list):
+        if len(first) != len(second):
+            mismatch_paths.append(f"{path}.length" if path else "length")
+            return
+        for idx, (first_item, second_item) in enumerate(zip(first, second)):
+            child_path = f"{path}[{idx}]" if path else f"[{idx}]"
+            _compare_values(first_item, second_item, path=child_path, mismatch_paths=mismatch_paths)
+        return
+    if first != second:
+        mismatch_paths.append(path or "$")
+
+
+def _deterministic_totals(models: dict[str, dict]) -> dict:
+    compared = [model for model in models.values() if model.get("compared")]
+    return {
+        "model_count": len(models),
+        "compared_count": len(compared),
+        "matched_count": sum(1 for model in compared if model.get("status") == "matched"),
+        "mismatch_count": sum(1 for model in compared if model.get("status") == "mismatched"),
+        "rerun_failed_count": sum(1 for model in compared if model.get("rerun_status") in {
+            RobotValidationStatus.MODEL_LOAD_FAILED.value,
+            RobotValidationStatus.ALGORITHM_FAILED.value,
+            RobotValidationStatus.SEMANTIC_FAILED.value,
+        }),
+        "source_unavailable_count": sum(
+            1 for model in models.values() if model.get("status") == "source_unavailable"
+        ),
+        "license_blocked_count": sum(1 for model in models.values() if model.get("status") == "license_blocked"),
+        "skipped_non_pass_count": sum(
+            1 for model in models.values() if model.get("status") == "skipped_non_pass_status"
+        ),
     }
 
 
