@@ -523,6 +523,21 @@ Do not commit huge raw matrices for every sample. Save compact summaries plus se
 
 The main Codex agent is the Integrator and owns scope.
 
+For all remaining Step-2 work and any follow-up goal derived from this file, the
+Integrator must use professional subagents by default. At minimum, run parallel
+review or implementation lanes for Runtime Adapter, Mathematical Core,
+Calibration/Targets, and Complete-Model Validation/Red Team before claiming a
+major gate is complete. If a lane is skipped because the change is too small to
+benefit, record that decision in the handoff or final summary.
+
+The Integrator's role is coordination, not direct feature implementation:
+summarize subagent findings, decide priorities, assign the next subagent round,
+review returned patches, run/coordinate verification, and maintain the final
+acceptance ledger. Bug fixes, feature work, and substantive test additions should
+be assigned to the appropriate professional subagent. The Integrator may make
+small coordination-only edits such as this goal file, handoff notes, conflict
+resolution glue, or final summary updates.
+
 ### Agent A — Runtime model adapter
 
 Owns:
@@ -566,12 +581,18 @@ Owns:
 ### Collaboration rules
 
 1. Agents use isolated worktrees/branches.
-2. Parallel heavy agents: maximum 3.
+2. Parallel heavy agents: maximum 4 unless the user explicitly asks for more.
 3. File ownership must not overlap without Integrator approval.
 4. Each agent submits small commits and a handoff report.
 5. Integrator merges in order A → B → C → D.
 6. Agent D cannot weaken acceptance gates.
 7. No agent edits production `newton_pipeline.py` except a tiny import-free diagnostic hook explicitly approved by Integrator.
+8. The Integrator must reconcile all subagent findings into tests, artifacts,
+   known limitations, or explicit non-blocking rationale before marking the
+   goal complete.
+9. Substantive implementation and regression-test work must be performed by
+   specialist worker subagents, not by the Integrator directly, unless the user
+   explicitly overrides this rule for a specific task.
 
 ---
 

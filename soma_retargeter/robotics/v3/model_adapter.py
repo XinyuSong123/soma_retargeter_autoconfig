@@ -1,0 +1,711 @@
+"""Runtime-model adapter backed by MuJoCo's compiled kinematics."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Protocol
+import hashlib
+import json
+import re
+import tempfile
+import warnings
+import xml.etree.ElementTree as ET
+
+import mujoco
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+from .spatial import relative_transform, transform
+
+
+_JOINT_TYPES = {
+    mujoco.mjtJoint.mjJNT_FREE: "free",
+    mujoco.mjtJoint.mjJNT_BALL: "ball",
+    mujoco.mjtJoint.mjJNT_SLIDE: "prismatic",
+    mujoco.mjtJoint.mjJNT_HINGE: "revolute",
+}
+
+_NEWTON_JOINT_TYPES = {
+    0: "prismatic",
+    1: "revolute",
+    2: "ball",
+    3: "fixed",
+    4: "free",
+}
+
+
+@dataclass(frozen=True)
+class SemanticSite:
+    semantic_name: str
+    body_name: str
+    local_position: np.ndarray
+    local_rotation_xyzw: np.ndarray
+    source: str = "explicit_semantic_override"
+    confidence: float = 1.0
+    reason: str = "configured"
+
+    def to_json(self) -> dict:
+        return {
+            "semantic_name": self.semantic_name,
+            "body_name": self.body_name,
+            "local_position": self.local_position.tolist(),
+            "local_rotation_xyzw": self.local_rotation_xyzw.tolist(),
+            "source": self.source,
+            "confidence": self.confidence,
+            "reason": self.reason,
+        }
+
+
+@dataclass(frozen=True)
+class RobotKinematicState:
+    q: np.ndarray
+    body_xpos: np.ndarray
+    body_xmat: np.ndarray
+
+
+@dataclass(frozen=True)
+class CoordinateInfo:
+    index: int
+    label: str
+    joint_name: str
+    joint_type: str
+    qpos_adr: int
+    dof_adr: int
+    limited: bool
+    lower: float
+    upper: float
+
+    def to_json(self) -> dict:
+        return self.__dict__.copy()
+
+
+class RuntimeRobotModelAdapter(Protocol):
+    model_format: str
+    nq: int
+    nv: int
+
+    def neutral_q(self) -> np.ndarray: ...
+    def integrate(self, q: np.ndarray, delta_v: np.ndarray) -> np.ndarray: ...
+    def forward_kinematics(self, q: np.ndarray) -> RobotKinematicState: ...
+    def body_transform(self, state: RobotKinematicState, body_name: str) -> np.ndarray: ...
+    def site_transform(self, state: RobotKinematicState, site: SemanticSite) -> np.ndarray: ...
+    def active_velocity_coordinates(self, reference: SemanticSite, target: SemanticSite) -> list[int]: ...
+
+
+def normalize_label(name: str | None) -> str:
+    if not name:
+        return ""
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
+class MuJoCoRuntimeModelAdapter:
+    """Adapter whose topology, dimensions, FK and integration come from MuJoCo."""
+
+    def __init__(self, model_path: str | Path, model_format: str | None = None):
+        self.model_path = Path(model_path)
+        self.model_format = model_format or self.model_path.suffix.lstrip(".").lower()
+        self.model = self._load_model(self.model_path)
+        self.nq = int(self.model.nq)
+        self.nv = int(self.model.nv)
+        self._body_names = [
+            mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i) or f"body_{i}"
+            for i in range(self.model.nbody)
+        ]
+        self._body_id_by_name = {name: i for i, name in enumerate(self._body_names)}
+        self._norm_body_id = {normalize_label(name): i for i, name in enumerate(self._body_names)}
+        self._site_names = [
+            mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_SITE, i) or f"site_{i}"
+            for i in range(self.model.nsite)
+        ]
+        self._site_id_by_name = {name: i for i, name in enumerate(self._site_names)}
+        self._norm_site_id = {normalize_label(name): i for i, name in enumerate(self._site_names)}
+        self._coordinate_info = self._build_coordinate_info()
+
+    @property
+    def fingerprint(self) -> str:
+        h = hashlib.sha256()
+        h.update(self.model_path.read_bytes())
+        h.update(json.dumps({"nq": self.nq, "nv": self.nv, "nbody": int(self.model.nbody)}).encode())
+        return h.hexdigest()
+
+    @property
+    def body_names(self) -> list[str]:
+        return list(self._body_names)
+
+    @property
+    def coordinate_info(self) -> list[CoordinateInfo]:
+        return list(self._coordinate_info)
+
+    def close(self) -> None:
+        self.model = None  # type: ignore[assignment]
+
+    def neutral_q(self) -> np.ndarray:
+        return np.asarray(self.model.qpos0, dtype=float).copy()
+
+    def integrate(self, q: np.ndarray, delta_v: np.ndarray) -> np.ndarray:
+        out = np.asarray(q, dtype=float).copy()
+        delta = np.asarray(delta_v, dtype=float).copy()
+        mujoco.mj_integratePos(self.model, out, delta, 1.0)
+        return out
+
+    def forward_kinematics(self, q: np.ndarray) -> RobotKinematicState:
+        data = mujoco.MjData(self.model)
+        data.qpos[:] = np.asarray(q, dtype=float)
+        mujoco.mj_forward(self.model, data)
+        return RobotKinematicState(
+            q=np.asarray(q, dtype=float).copy(),
+            body_xpos=np.asarray(data.xpos, dtype=float).copy(),
+            body_xmat=np.asarray(data.xmat, dtype=float).reshape(self.model.nbody, 3, 3).copy(),
+        )
+
+    def resolve_body_name(self, body_name: str) -> str:
+        if body_name in self._body_id_by_name:
+            return body_name
+        key = normalize_label(body_name)
+        if key in self._norm_body_id:
+            return self._body_names[self._norm_body_id[key]]
+        raise KeyError(f"unknown body {body_name!r}")
+
+    def body_id(self, body_name: str) -> int:
+        return self._body_id_by_name[self.resolve_body_name(body_name)]
+
+    def model_site_frame(self, site_name: str) -> tuple[str, np.ndarray, np.ndarray]:
+        sid = self.site_id(site_name)
+        body_id = int(self.model.site_bodyid[sid])
+        site_quat_wxyz = np.asarray(self.model.site_quat[sid], dtype=float)
+        return (
+            self._body_names[body_id],
+            np.asarray(self.model.site_pos[sid], dtype=float).copy(),
+            np.asarray([site_quat_wxyz[1], site_quat_wxyz[2], site_quat_wxyz[3], site_quat_wxyz[0]], dtype=float),
+        )
+
+    def site_id(self, site_name: str) -> int:
+        if site_name in self._site_id_by_name:
+            return self._site_id_by_name[site_name]
+        key = normalize_label(site_name)
+        if key in self._norm_site_id:
+            return self._norm_site_id[key]
+        raise KeyError(f"unknown model site {site_name!r}")
+
+    def body_transform(self, state: RobotKinematicState, body_name: str) -> np.ndarray:
+        bid = self.body_id(body_name)
+        return transform(state.body_xpos[bid], state.body_xmat[bid])
+
+    def site_transform(self, state: RobotKinematicState, site: SemanticSite) -> np.ndarray:
+        body_t = self.body_transform(state, site.body_name)
+        local_t = transform(site.local_position, _quat_xyzw_to_matrix(site.local_rotation_xyzw))
+        return body_t @ local_t
+
+    def relative_transform(self, state: RobotKinematicState, reference: SemanticSite, target: SemanticSite) -> np.ndarray:
+        return relative_transform(self.site_transform(state, reference), self.site_transform(state, target))
+
+    def active_velocity_coordinates(self, reference: SemanticSite, target: SemanticSite) -> list[int]:
+        body_ids = self.body_path_ids(reference.body_name, target.body_name)
+        lca_id = self.body_id(self.lca_body(reference.body_name, target.body_name))
+        active: list[int] = []
+        for bid in body_ids:
+            if bid == lca_id:
+                continue
+            for jid in self._joints_on_body(bid):
+                jtype = self.model.jnt_type[jid]
+                adr = int(self.model.jnt_dofadr[jid])
+                width = _joint_nv(jtype)
+                active.extend(range(adr, adr + width))
+        return sorted(set(active))
+
+    def body_path_ids(self, reference_body: str, target_body: str) -> list[int]:
+        ref = self.body_id(reference_body)
+        tgt = self.body_id(target_body)
+        ref_anc = self._ancestors(ref)
+        tgt_anc = self._ancestors(tgt)
+        tgt_set = set(tgt_anc)
+        lca = next(b for b in ref_anc if b in tgt_set)
+        ref_branch = ref_anc[: ref_anc.index(lca)]
+        tgt_branch = tgt_anc[: tgt_anc.index(lca)]
+        return ref_branch + [lca] + list(reversed(tgt_branch))
+
+    def body_path(self, reference_body: str, target_body: str) -> list[str]:
+        return [self._body_names[i] for i in self.body_path_ids(reference_body, target_body)]
+
+    def lca_body(self, reference_body: str, target_body: str) -> str:
+        ref_anc = self._ancestors(self.body_id(reference_body))
+        tgt_anc = set(self._ancestors(self.body_id(target_body)))
+        for bid in ref_anc:
+            if bid in tgt_anc:
+                return self._body_names[bid]
+        return self._body_names[0]
+
+    def coordinate(self, index: int) -> CoordinateInfo:
+        return self._coordinate_info[index]
+
+    def coordinate_limits(self, indices: list[int] | None = None) -> list[CoordinateInfo]:
+        if indices is None:
+            return self.coordinate_info
+        return [self._coordinate_info[i] for i in indices]
+
+    def set_velocity_coordinates(self, q: np.ndarray, indices: list[int], values: np.ndarray) -> np.ndarray:
+        out = np.asarray(q, dtype=float).copy()
+        delta = np.zeros(self.nv)
+        for idx, value in zip(indices, values):
+            current = self._velocity_coordinate_value(out, idx)
+            delta[idx] = float(value) - current
+        return self.integrate(out, delta)
+
+    def _velocity_coordinate_value(self, q: np.ndarray, dof_idx: int) -> float:
+        info = self._coordinate_info[dof_idx]
+        if info.joint_type in {"revolute", "prismatic"}:
+            return float(q[info.qpos_adr])
+        return 0.0
+
+    def _ancestors(self, body_id: int) -> list[int]:
+        out = []
+        cur = int(body_id)
+        while cur >= 0:
+            out.append(cur)
+            parent = int(self.model.body_parentid[cur])
+            if parent == cur or cur == 0:
+                break
+            cur = parent
+        return out
+
+    def _descendant_or_self_ids(self, body_id: int) -> set[int]:
+        out = {body_id}
+        changed = True
+        while changed:
+            changed = False
+            for i in range(self.model.nbody):
+                if i not in out and int(self.model.body_parentid[i]) in out:
+                    out.add(i)
+                    changed = True
+        return out
+
+    def _joints_on_body(self, body_id: int) -> list[int]:
+        adr = int(self.model.body_jntadr[body_id])
+        num = int(self.model.body_jntnum[body_id])
+        if adr < 0 or num <= 0:
+            return []
+        return list(range(adr, adr + num))
+
+    def _build_coordinate_info(self) -> list[CoordinateInfo]:
+        infos: list[CoordinateInfo | None] = [None] * self.nv
+        for jid in range(self.model.njnt):
+            jtype = self.model.jnt_type[jid]
+            joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jid) or f"joint_{jid}"
+            dof_adr = int(self.model.jnt_dofadr[jid])
+            qpos_adr = int(self.model.jnt_qposadr[jid])
+            width = _joint_nv(jtype)
+            limited = bool(self.model.jnt_limited[jid])
+            lower = float(self.model.jnt_range[jid, 0]) if limited else -np.inf
+            upper = float(self.model.jnt_range[jid, 1]) if limited else np.inf
+            for k in range(width):
+                idx = dof_adr + k
+                suffix = "" if width == 1 else f"[{k}]"
+                infos[idx] = CoordinateInfo(
+                    index=idx,
+                    label=f"{joint_name}{suffix}",
+                    joint_name=joint_name,
+                    joint_type=_JOINT_TYPES[jtype],
+                    qpos_adr=qpos_adr,
+                    dof_adr=dof_adr,
+                    limited=limited and width == 1,
+                    lower=lower if width == 1 else -np.inf,
+                    upper=upper if width == 1 else np.inf,
+                )
+        if any(x is None for x in infos):
+            missing = [i for i, x in enumerate(infos) if x is None]
+            raise RuntimeError(f"missing coordinate metadata for dofs {missing}")
+        return [x for x in infos if x is not None]
+
+    def _load_model(self, model_path: Path):
+        try:
+            return mujoco.MjModel.from_xml_path(str(model_path))
+        except ValueError as exc:
+            text = model_path.read_text()
+            patched = _patch_xml_for_mujoco_loading(text, model_path)
+            if patched == text:
+                raise
+            with tempfile.NamedTemporaryFile("w", suffix=model_path.suffix, dir=str(model_path.parent), delete=False) as f:
+                f.write(patched)
+                tmp = Path(f.name)
+            try:
+                return mujoco.MjModel.from_xml_path(str(tmp))
+            except Exception:
+                raise exc
+            finally:
+                tmp.unlink(missing_ok=True)
+
+
+def _joint_nv(jtype: int) -> int:
+    if jtype == mujoco.mjtJoint.mjJNT_FREE:
+        return 6
+    if jtype == mujoco.mjtJoint.mjJNT_BALL:
+        return 3
+    return 1
+
+
+def _patch_xml_for_mujoco_loading(text: str, model_path: Path) -> str:
+    patched = text.replace('solver="cg"', 'solver="CG"')
+    if model_path.suffix.lower() == ".urdf":
+        patched = _absolutize_urdf_meshes(patched, model_path.parent)
+    return patched
+
+
+def _absolutize_urdf_meshes(text: str, base_dir: Path) -> str:
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError:
+        return text
+    changed = False
+    for mesh in root.findall(".//mesh"):
+        filename = mesh.attrib.get("filename")
+        if not filename or Path(filename).is_absolute():
+            continue
+        path = _resolve_urdf_mesh_path(filename, base_dir)
+        if path.exists():
+            mesh.set("filename", str(path))
+            changed = True
+    if not changed:
+        return text
+    return ET.tostring(root, encoding="unicode")
+
+
+def _resolve_urdf_mesh_path(filename: str, base_dir: Path) -> Path:
+    if filename.startswith("package://"):
+        rest = filename.removeprefix("package://")
+        parts = Path(rest).parts
+        if not parts:
+            return base_dir / rest
+        package_name = parts[0]
+        rel = Path(*parts[1:]) if len(parts) > 1 else Path()
+        for parent in [base_dir, *base_dir.parents]:
+            if parent.name == package_name:
+                return (parent / rel).resolve()
+            candidate = parent / package_name / rel
+            if candidate.exists():
+                return candidate.resolve()
+        return (base_dir.parent / rel).resolve()
+    return (base_dir / filename).resolve()
+
+
+def _quat_xyzw_to_matrix(q: np.ndarray) -> np.ndarray:
+    from .spatial import quat_xyzw_to_matrix
+
+    return quat_xyzw_to_matrix(q)
+
+
+class NewtonRuntimeModelAdapter:
+    """Adapter backed by Newton's compiled ModelBuilder model on CPU."""
+
+    def __init__(self, model_path: str | Path, model_format: str | None = None):
+        import newton
+
+        self._newton = newton
+        self.model_path = Path(model_path)
+        self.model_format = model_format or self.model_path.suffix.lstrip(".").lower()
+        builder = newton.ModelBuilder()
+        if self.model_format == "urdf":
+            builder.add_urdf(str(self.model_path))
+        else:
+            builder.add_mjcf(str(self.model_path))
+        self.model = builder.finalize(device="cpu")
+        self.nq = int(self.model.joint_coord_count)
+        self.nv = int(self.model.joint_dof_count)
+        self._body_labels = list(self.model.body_label)
+        self._body_names = [_leaf_label(label) for label in self._body_labels]
+        self._body_id_by_name = {name: i for i, name in enumerate(self._body_names)}
+        self._body_id_by_name.update({label: i for i, label in enumerate(self._body_labels)})
+        self._norm_body_id = {normalize_label(name): i for i, name in enumerate(self._body_names)}
+        self._norm_body_id.update({normalize_label(label): i for i, label in enumerate(self._body_labels)})
+        self._joint_type = _to_numpy(self.model.joint_type).astype(int)
+        self._joint_child = _to_numpy(self.model.joint_child).astype(int)
+        self._joint_parent = _to_numpy(self.model.joint_parent).astype(int)
+        self._joint_q_start = _to_numpy(self.model.joint_q_start).astype(int)
+        self._joint_qd_start = _to_numpy(self.model.joint_qd_start).astype(int)
+        self._joint_limit_lower = _to_numpy(self.model.joint_limit_lower)
+        self._joint_limit_upper = _to_numpy(self.model.joint_limit_upper)
+        self._coordinate_info = self._build_coordinate_info()
+
+    @property
+    def fingerprint(self) -> str:
+        h = hashlib.sha256()
+        h.update(self.model_path.read_bytes())
+        h.update(json.dumps({"nq": self.nq, "nv": self.nv, "nbody": int(self.model.body_count), "backend": "newton"}).encode())
+        return h.hexdigest()
+
+    @property
+    def body_names(self) -> list[str]:
+        return list(self._body_names)
+
+    @property
+    def coordinate_info(self) -> list[CoordinateInfo]:
+        return list(self._coordinate_info)
+
+    def close(self) -> None:
+        self.model = None  # type: ignore[assignment]
+
+    def neutral_q(self) -> np.ndarray:
+        return _to_numpy(self.model.joint_q).astype(float).copy()
+
+    def integrate(self, q: np.ndarray, delta_v: np.ndarray) -> np.ndarray:
+        out = np.asarray(q, dtype=float).copy()
+        delta = np.asarray(delta_v, dtype=float)
+        for jid in range(int(self.model.joint_count)):
+            jtype = int(self._joint_type[jid])
+            q_start = int(self._joint_q_start[jid])
+            qd_start = int(self._joint_qd_start[jid])
+            if jtype == 4:
+                out[q_start : q_start + 3] += delta[qd_start : qd_start + 3]
+                rot_delta = delta[qd_start + 3 : qd_start + 6]
+                if np.linalg.norm(rot_delta) > 0.0:
+                    current = Rotation.from_quat(out[q_start + 3 : q_start + 7])
+                    out[q_start + 3 : q_start + 7] = (Rotation.from_rotvec(rot_delta) * current).as_quat()
+                out[q_start + 3 : q_start + 7] = _normalize_quat_xyzw(out[q_start + 3 : q_start + 7])
+            elif jtype in {0, 1}:
+                out[q_start] += delta[qd_start]
+            elif jtype == 2:
+                rot_delta = delta[qd_start : qd_start + 3]
+                if np.linalg.norm(rot_delta) > 0.0:
+                    current = Rotation.from_quat(out[q_start : q_start + 4])
+                    out[q_start : q_start + 4] = (Rotation.from_rotvec(rot_delta) * current).as_quat()
+                out[q_start : q_start + 4] = _normalize_quat_xyzw(out[q_start : q_start + 4])
+        return out
+
+    def forward_kinematics(self, q: np.ndarray) -> RobotKinematicState:
+        import warp as wp
+
+        state = self.model.state()
+        q_wp = wp.array(np.asarray(q, dtype=np.float32), dtype=wp.float32, device="cpu")
+        qd_wp = wp.array(np.zeros(self.nv, dtype=np.float32), dtype=wp.float32, device="cpu")
+        self._newton.eval_fk(self.model, q_wp, qd_wp, state)
+        body_q = _to_numpy(state.body_q).astype(float)
+        positions = body_q[:, :3]
+        rotations = np.stack([Rotation.from_quat(quat).as_matrix() for quat in body_q[:, 3:7]])
+        return RobotKinematicState(q=np.asarray(q, dtype=float).copy(), body_xpos=positions, body_xmat=rotations)
+
+    def resolve_body_name(self, body_name: str) -> str:
+        if body_name in self._body_id_by_name:
+            return self._body_names[self._body_id_by_name[body_name]]
+        key = normalize_label(body_name)
+        if key in self._norm_body_id:
+            return self._body_names[self._norm_body_id[key]]
+        if key == "world":
+            warnings.warn(
+                "Newton models do not expose a synthetic world body; free-root paths relative to world are unavailable.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        raise KeyError(f"unknown body {body_name!r}")
+
+    def body_id(self, body_name: str) -> int:
+        return self._body_id_by_name[self.resolve_body_name(body_name)]
+
+    def model_site_frame(self, site_name: str) -> tuple[str, np.ndarray, np.ndarray]:
+        frame = _mjcf_site_frame_from_xml(self.model_path, site_name)
+        if frame is None:
+            raise KeyError(f"unknown model site {site_name!r}")
+        body_name, pos, quat = frame
+        warnings.warn(
+            "Newton does not expose compiled model sites; using the MJCF XML site pose as a body-local fallback.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return self.resolve_body_name(body_name), pos, quat
+
+    def body_transform(self, state: RobotKinematicState, body_name: str) -> np.ndarray:
+        bid = self.body_id(body_name)
+        return transform(state.body_xpos[bid], state.body_xmat[bid])
+
+    def site_transform(self, state: RobotKinematicState, site: SemanticSite) -> np.ndarray:
+        body_t = self.body_transform(state, site.body_name)
+        local_t = transform(site.local_position, _quat_xyzw_to_matrix(site.local_rotation_xyzw))
+        return body_t @ local_t
+
+    def relative_transform(self, state: RobotKinematicState, reference: SemanticSite, target: SemanticSite) -> np.ndarray:
+        return relative_transform(self.site_transform(state, reference), self.site_transform(state, target))
+
+    def active_velocity_coordinates(self, reference: SemanticSite, target: SemanticSite) -> list[int]:
+        body_ids = self.body_path_ids(reference.body_name, target.body_name)
+        lca_id = self.body_id(self.lca_body(reference.body_name, target.body_name))
+        active: list[int] = []
+        for bid in body_ids:
+            if bid == lca_id:
+                continue
+            for jid in self._joints_on_body(bid):
+                adr = int(self._joint_qd_start[jid])
+                width = _newton_joint_nv(int(self._joint_type[jid]))
+                active.extend(range(adr, adr + width))
+        return sorted(set(active))
+
+    def body_path_ids(self, reference_body: str, target_body: str) -> list[int]:
+        ref = self.body_id(reference_body)
+        tgt = self.body_id(target_body)
+        ref_anc = self._ancestors(ref)
+        tgt_anc = self._ancestors(tgt)
+        tgt_set = set(tgt_anc)
+        lca = next(b for b in ref_anc if b in tgt_set)
+        ref_branch = ref_anc[: ref_anc.index(lca)]
+        tgt_branch = tgt_anc[: tgt_anc.index(lca)]
+        return ref_branch + [lca] + list(reversed(tgt_branch))
+
+    def body_path(self, reference_body: str, target_body: str) -> list[str]:
+        return [self._body_names[i] for i in self.body_path_ids(reference_body, target_body)]
+
+    def lca_body(self, reference_body: str, target_body: str) -> str:
+        ref_anc = self._ancestors(self.body_id(reference_body))
+        tgt_anc = set(self._ancestors(self.body_id(target_body)))
+        for bid in ref_anc:
+            if bid in tgt_anc:
+                return self._body_names[bid]
+        return self._body_names[0]
+
+    def coordinate(self, index: int) -> CoordinateInfo:
+        return self._coordinate_info[index]
+
+    def coordinate_limits(self, indices: list[int] | None = None) -> list[CoordinateInfo]:
+        if indices is None:
+            return self.coordinate_info
+        return [self._coordinate_info[i] for i in indices]
+
+    def set_velocity_coordinates(self, q: np.ndarray, indices: list[int], values: np.ndarray) -> np.ndarray:
+        out = np.asarray(q, dtype=float).copy()
+        delta = np.zeros(self.nv)
+        for idx, value in zip(indices, values):
+            current = self._velocity_coordinate_value(out, idx)
+            delta[idx] = float(value) - current
+        return self.integrate(out, delta)
+
+    def _velocity_coordinate_value(self, q: np.ndarray, dof_idx: int) -> float:
+        info = self._coordinate_info[dof_idx]
+        if info.joint_type in {"revolute", "prismatic"}:
+            return float(q[info.qpos_adr])
+        return 0.0
+
+    def _ancestors(self, body_id: int) -> list[int]:
+        out = []
+        cur = int(body_id)
+        while cur >= 0:
+            out.append(cur)
+            parent = self._parent_body(cur)
+            if parent < 0:
+                break
+            cur = parent
+        return out
+
+    def _parent_body(self, body_id: int) -> int:
+        for jid in self._joints_on_body(body_id):
+            return int(self._joint_parent[jid])
+        return -1
+
+    def _joints_on_body(self, body_id: int) -> list[int]:
+        return [jid for jid, child in enumerate(self._joint_child) if int(child) == int(body_id)]
+
+    def _build_coordinate_info(self) -> list[CoordinateInfo]:
+        infos: list[CoordinateInfo | None] = [None] * self.nv
+        for jid, label in enumerate(self.model.joint_label):
+            jtype = int(self._joint_type[jid])
+            joint_type = _NEWTON_JOINT_TYPES.get(jtype, f"joint_type_{jtype}")
+            qpos_adr = int(self._joint_q_start[jid])
+            dof_adr = int(self._joint_qd_start[jid])
+            width = _newton_joint_nv(jtype)
+            joint_name = _leaf_label(label)
+            for k in range(width):
+                idx = dof_adr + k
+                if idx < 0:
+                    continue
+                limited = jtype in {0, 1} and abs(self._joint_limit_lower[idx]) < 1e9 and abs(self._joint_limit_upper[idx]) < 1e9
+                suffix = "" if width == 1 else f"[{k}]"
+                infos[idx] = CoordinateInfo(
+                    index=idx,
+                    label=f"{joint_name}{suffix}",
+                    joint_name=joint_name,
+                    joint_type=joint_type,
+                    qpos_adr=qpos_adr,
+                    dof_adr=dof_adr,
+                    limited=bool(limited),
+                    lower=float(self._joint_limit_lower[idx]) if limited else -np.inf,
+                    upper=float(self._joint_limit_upper[idx]) if limited else np.inf,
+                )
+        if any(x is None for x in infos):
+            missing = [i for i, x in enumerate(infos) if x is None]
+            raise RuntimeError(f"missing Newton coordinate metadata for dofs {missing}")
+        return [x for x in infos if x is not None]
+
+
+def _newton_joint_nv(jtype: int) -> int:
+    if jtype == 4:
+        return 6
+    if jtype == 2:
+        return 3
+    if jtype in {0, 1}:
+        return 1
+    return 0
+
+
+def _to_numpy(value) -> np.ndarray:
+    if hasattr(value, "numpy"):
+        return value.numpy()
+    return np.asarray(value)
+
+
+def _leaf_label(label: str) -> str:
+    return str(label).split("/")[-1]
+
+
+def _normalize_quat_xyzw(q: np.ndarray) -> np.ndarray:
+    quat = np.asarray(q, dtype=float)
+    norm = float(np.linalg.norm(quat))
+    if norm == 0.0:
+        raise ValueError("cannot normalize zero quaternion")
+    quat = quat / norm
+    if quat[3] < 0.0:
+        quat = -quat
+    return quat
+
+
+def _mjcf_site_frame_from_xml(model_path: Path, site_name: str) -> tuple[str, np.ndarray, np.ndarray] | None:
+    if model_path.suffix.lower() not in {".xml", ".mjcf"}:
+        return None
+    try:
+        root = ET.fromstring(model_path.read_text())
+    except ET.ParseError:
+        return None
+
+    def visit_body(body: ET.Element) -> tuple[str, np.ndarray, np.ndarray] | None:
+        body_name = body.attrib.get("name")
+        if body_name:
+            for site in body.findall("site"):
+                candidate = site.attrib.get("name")
+                if candidate == site_name or normalize_label(candidate) == normalize_label(site_name):
+                    return body_name, _xml_vec(site.attrib.get("pos"), 3), _xml_quat_xyzw(site)
+        for child in body.findall("body"):
+            found = visit_body(child)
+            if found is not None:
+                return found
+        return None
+
+    worldbody = root.find("worldbody")
+    if worldbody is None:
+        return None
+    for body in worldbody.findall("body"):
+        found = visit_body(body)
+        if found is not None:
+            return found
+    return None
+
+
+def _xml_vec(text: str | None, width: int) -> np.ndarray:
+    if not text:
+        return np.zeros(width)
+    values = np.fromstring(text, sep=" ", dtype=float)
+    if values.size != width:
+        raise ValueError(f"expected {width} XML vector values, got {values.size}")
+    return values
+
+
+def _xml_quat_xyzw(element: ET.Element) -> np.ndarray:
+    quat = element.attrib.get("quat")
+    if quat:
+        values = _xml_vec(quat, 4)
+        return np.asarray([values[1], values[2], values[3], values[0]], dtype=float)
+    return np.asarray([0.0, 0.0, 0.0, 1.0], dtype=float)
