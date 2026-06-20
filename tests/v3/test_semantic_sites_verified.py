@@ -9,8 +9,8 @@ import pytest
 from soma_retargeter.robotics.v3 import MuJoCoRuntimeModelAdapter
 from soma_retargeter.robotics.v3.semantic_sites import (
     build_semantic_sites,
-    default_rpo_semantic_map,
     infer_semantic_map_from_body_names,
+    load_robot_zoo_semantic_map,
     load_semantic_map,
 )
 from soma_retargeter.robotics.v3.semantic_validation import (
@@ -71,10 +71,14 @@ def test_distal_zero_origin_gate_exposes_body_only_false_positive():
         )
 
 
-def test_default_rpo_semantic_map_has_verified_nonzero_core_distal_offsets():
+def test_robot_zoo_semantic_map_has_verified_nonzero_core_distal_offsets():
     adapter = MuJoCoRuntimeModelAdapter("assets/robots/atom01/mjcf/atom01.xml")
 
-    sites = build_semantic_sites(adapter, default_rpo_semantic_map(), require_distal_site_offsets=True)
+    sites = build_semantic_sites(
+        adapter,
+        load_robot_zoo_semantic_map("roboparty_rpo_local"),
+        require_distal_site_offsets=True,
+    )
 
     for name in ("LeftHand", "RightHand", "LeftFoot", "RightFoot"):
         assert np.linalg.norm(sites[name].local_position) > 1e-9

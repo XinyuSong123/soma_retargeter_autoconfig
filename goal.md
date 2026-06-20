@@ -13,6 +13,8 @@
 >
 > 开始前必须完整阅读以上文件和本文件。当前代码只是 Step 2 原型，不能因为 `summary.json` 显示九台机器人 `compiled` 就宣称 Step 2 完成。
 >
+> 所有本轮创建或继续使用的 subagent 必须使用 `xhigh` 推理强度；若工具无法原地提升已启动 agent 的推理强度，必须在 handoff 中记录该限制，并且后续新建 subagent 一律以 `xhigh` 启动。
+>
 > **本轮只完成 Step 2。不得开始 Step 3，不得接入生产 `NewtonPipeline`，不得调 whole-body IK 权重。**
 
 ---
@@ -129,6 +131,7 @@
 每个 agent 必须：
 
 - 使用独立 worktree/branch；
+- 使用 `xhigh` 推理强度；
 - 先读 Step 1 文档、本 goal、当前代码审计；
 - 提交小而可审查的 commits；
 - 不修改其他 agent 拥有的文件，除非 Integrator 批准；

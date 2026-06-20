@@ -1,11 +1,3813 @@
 {
+  "canonical_projection_reports": {
+    "failures": [],
+    "motion_order": [
+      "neutral",
+      "root_translation",
+      "global_root_yaw",
+      "torso_pitch",
+      "torso_roll",
+      "torso_yaw",
+      "mixed_torso_rotation",
+      "arms_forward",
+      "elbow_bend",
+      "overhead_reach",
+      "squat",
+      "single_step_target"
+    ],
+    "motions": {
+      "arms_forward": {
+        "mode": "arms_forward",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.449820831340919e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.004584407039545088,
+              -0.05994710808261842,
+              -0.12004124257876006,
+              -0.22313249936044677,
+              -0.04344954121838008,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18211393174064272,
+              0.18665344674840437,
+              0.009442170969805264
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 35,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 0.0027848945106771893,
+            "prior_residual_norm": 8.272442273963146e-06,
+            "projected": [
+              0.18316804834105113,
+              0.187886959582688,
+              0.008957408509951748
+            ],
+            "reference": "Chest",
+            "residual": 0.0016934315345127663,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged/with_residual",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554273602961411e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.023837642094338436,
+              0.07970673659762549,
+              0.148415758638908,
+              -0.32296966417659373,
+              0.42268558633593667
+            ],
+            "converged": true,
+            "desired": [
+              0.1762836606202811,
+              -0.18985980854587814,
+              0.032207808192094345
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 21,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 0.009212889720969437,
+            "prior_residual_norm": 2.213598306377189e-05,
+            "projected": [
+              0.1808073910196305,
+              -0.189811027520709,
+              0.02890363309688526
+            ],
+            "reference": "Chest",
+            "residual": 0.005602150424097367,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged/with_residual",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              3.809782767039138e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -2.655871698809475e-23,
+              9.281425795291266e-18,
+              -1.7627216027903858e-22
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 2,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 1.212691518961757e-10,
+            "prior_residual_norm": 2.022701213572593e-06,
+            "projected": [
+              0.0,
+              0.0,
+              3.809782767039138e-10
+            ],
+            "reference": "Hips",
+            "residual": 3.8097827670409027e-10,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "elbow_bend": {
+        "mode": "elbow_bend",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.449820831340919e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0022893247190407407,
+              -0.055046474202391886,
+              -0.10061835939318599,
+              -0.17271041817360902,
+              -0.06315417234780163,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18403675082007948,
+              0.18499400272900857,
+              -0.0013569125268386717
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 47,
+            "normalization_scale": 0.5383119893577942,
+            "normalized_residual": 2.6942211082972926e-09,
+            "prior_residual_norm": 5.147446092618535e-06,
+            "projected": [
+              0.1840367507319192,
+              0.18499400386728262,
+              -0.001356913421277861
+            ],
+            "reference": "Chest",
+            "residual": 1.4503315245772768e-09,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554273602961411e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.00256148323096864,
+              0.03868823414819304,
+              0.07024854722435993,
+              -0.10447008416021442,
+              0.2107179221508136
+            ],
+            "converged": true,
+            "desired": [
+              0.1861991138505982,
+              -0.18240617994316613,
+              -0.014761244225876324
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 72,
+            "normalization_scale": 0.5049925461810517,
+            "normalized_residual": 1.1187239255840791e-09,
+            "prior_residual_norm": 1.121413200285947e-05,
+            "projected": [
+              0.18619911347829887,
+              -0.18240617984485297,
+              -0.014761244639268534
+            ],
+            "reference": "Chest",
+            "residual": 5.649472436543656e-10,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -2.655871698809475e-23,
+              9.281425795291266e-18,
+              -1.7627216027903858e-22
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 2.9543695890673675e-18,
+            "prior_residual_norm": 7.270578117269972e-15,
+            "projected": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "reference": "Hips",
+            "residual": 9.281425797003138e-18,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "global_root_yaw": {
+        "mode": "global_root_yaw",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031640012411334115,
+              0.08192499917748307,
+              -0.7541240911073747
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.4497848499215164e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.14767187790959e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.1882499977544601,
+              0.17774986112400343,
+              -0.032574117417993875
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 8.612244359975673e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.18824999775445966,
+              0.17774986112400315,
+              -0.032574117417993875
+            ],
+            "reference": "Chest",
+            "residual": 5.23691153334427e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467429305,
+              -0.08192499921785294,
+              -0.7541239123455168
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.55429252301369e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147662779419887e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.1882499977400131,
+              -0.17774986028910564,
+              -0.03356999150120887
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 5.809635060057777e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 3.532708032038494e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -1.5874135445352e-17,
+              7.005857841379147e-18,
+              2.4840669364053963e-17
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 9.644994794376677e-18,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "reference": "Hips",
+            "residual": 3.0300644789925566e-17,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=1",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "mixed_torso_rotation": {
+        "mode": "mixed_torso_rotation",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.449820831340919e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.1882499977544601,
+              0.17774986112400343,
+              -0.032574117417993986
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 8.803650941565012e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.18824999775445966,
+              0.17774986112400315,
+              -0.032574117417993875
+            ],
+            "reference": "Chest",
+            "residual": 5.3533015581491455e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554273602961411e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999774001305,
+              -0.17774986028910567,
+              -0.033569991501208984
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 6.140880308028646e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 3.7341307954279784e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.10598953934258648,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.14622159886090474,
+              0.20000035906348834,
+              0.10544714505872818
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 5,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 0.07882505528193909,
+            "prior_residual_norm": 2.8605275527419593e-06,
+            "projected": [
+              0.0,
+              0.0,
+              0.10598953342781313
+            ],
+            "reference": "Hips",
+            "residual": 0.24763621459254914,
+            "solver_message": "`ftol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged/with_residual",
+            "target": "Chest"
+          }
+        }
+      },
+      "neutral": {
+        "mode": "neutral",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283774764,
+            "normalized_residual": 4.449820831352704e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999775446002,
+              0.17774986112400337,
+              -0.032574117417993875
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 6.967376916304649e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.18824999775445966,
+              0.17774986112400315,
+              -0.032574117417993875
+            ],
+            "reference": "Chest",
+            "residual": 4.236704743275018e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300204588,
+            "normalized_residual": 4.5542736029760866e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999774001303,
+              -0.1777498602891056,
+              -0.033569991501208984
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 5.477376462914627e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 3.3306690738754696e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -2.655871698809475e-23,
+              9.281425795291266e-18,
+              -1.7627216027903858e-22
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 2.9543695890673675e-18,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "reference": "Hips",
+            "residual": 9.281425797003138e-18,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=1",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "overhead_reach": {
+        "mode": "overhead_reach",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.449820831340919e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.00259037512617585,
+              -0.013646095261035877,
+              -0.010142365135895212,
+              0.02464902846933334,
+              -0.016558199013882544,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18881298234731975,
+              0.1763371593173946,
+              -0.03672889667142787
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 42,
+            "normalization_scale": 0.5547589261164279,
+            "normalized_residual": 1.100464336214612e-08,
+            "prior_residual_norm": 5.113660159247989e-06,
+            "projected": [
+              0.18881298144530717,
+              0.17633716531501203,
+              -0.036728895974967424
+            ],
+            "reference": "Chest",
+            "residual": 6.104924133878457e-09,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554273602961411e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.002950995649221998,
+              0.07954843842034884,
+              0.1439558618484278,
+              -0.27634947283330014,
+              0.13154758333811575
+            ],
+            "converged": true,
+            "desired": [
+              0.18002750492730987,
+              -0.18838379217435067,
+              0.016176004666208277
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 28,
+            "normalization_scale": 0.5763478772387106,
+            "normalized_residual": 0.0014010315280484206,
+            "prior_residual_norm": 9.553252551168554e-06,
+            "projected": [
+              0.17979062099097723,
+              -0.18875860168634476,
+              0.016850860413305524
+            ],
+            "reference": "Chest",
+            "residual": 0.0008074815471352143,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged/with_residual",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -2.655871698809475e-23,
+              9.281425795291266e-18,
+              -1.7627216027903858e-22
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 2.9543695890673675e-18,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "reference": "Hips",
+            "residual": 9.281425797003138e-18,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=1",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "root_translation": {
+        "mode": "root_translation",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031640012411333074,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.4498168986991655e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147708953093445e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999775446002,
+              0.1777498611240034,
+              -0.032574117417993875
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 7.217077170877573e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.18824999775445966,
+              0.17774986112400315,
+              -0.032574117417993875
+            ],
+            "reference": "Chest",
+            "residual": 4.388541835720876e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164589246742816,
+              -0.08192499921785293,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554285678262983e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147655042879411e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999774001303,
+              -0.17774986028910558,
+              -0.033569991501208984
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 5.342587316371217e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 3.2487068343022356e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -2.655871698809475e-23,
+              9.281425795291266e-18,
+              -1.7627216027903858e-22
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 2.9543695890673675e-18,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "reference": "Hips",
+            "residual": 9.281425797003138e-18,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=1",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "single_step_target": {
+        "mode": "single_step_target",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              -0.013399784445992548,
+              0.05962707138124471,
+              -0.09236388296951417,
+              0.16669408598467325,
+              -0.10148989865880781,
+              0.07436386133410207,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.000897066568548672,
+              0.12043128196437192,
+              -0.7489461681446791
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 60,
+            "normalization_scale": 1.1473890686554555,
+            "normalized_residual": 3.153504798922542e-05,
+            "prior_residual_norm": 2.0955096062221862e-05,
+            "projected": [
+              -0.0008954747714723099,
+              0.12043653787789838,
+              -0.7489819319367809
+            ],
+            "reference": "Hips",
+            "residual": 3.6182969342362455e-05,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged/with_residual",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.00011059679907783515,
+              -0.013205710333086235,
+              -0.016750074529674676,
+              2.39497445647034e-07,
+              -0.013385080319035238,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999775446002,
+              0.17774986112400337,
+              -0.032574117417993875
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 18,
+            "normalization_scale": 0.6080774395896767,
+            "normalized_residual": 3.224860187669872e-09,
+            "prior_residual_norm": 6.612283976862676e-07,
+            "projected": [
+              0.18824999901229275,
+              0.17774986109365307,
+              -0.032574118922094386
+            ],
+            "reference": "Chest",
+            "residual": 1.9609647259529804e-09,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.07242032468235686,
+              -0.07458660030521323,
+              -0.1355272675424157,
+              0.24208260618438376,
+              -0.010585290008952086,
+              0.24045132826267201,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.00379698115503751,
+              -0.07868697512509473,
+              -0.7544657302840374
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 32,
+            "normalization_scale": 1.1175513681088411,
+            "normalized_residual": 0.0013954788504679644,
+            "prior_residual_norm": 2.8273408766171995e-05,
+            "projected": [
+              -0.0038407916870469017,
+              -0.0788876368918864,
+              -0.7529197949894503
+            ],
+            "reference": "Hips",
+            "residual": 0.0015595192985074266,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged/with_residual",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999774001303,
+              -0.1777498602891056,
+              -0.033569991501208984
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774461026073,
+            "normalized_residual": 5.477376434898148e-16,
+            "prior_residual_norm": 4.4126695990009286e-11,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 3.3306690738754696e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -2.655871698809475e-23,
+              9.281425795291266e-18,
+              -1.7627216027903858e-22
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 2.9543695890673675e-18,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "reference": "Hips",
+            "residual": 9.281425797003138e-18,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=1",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "squat": {
+        "mode": "squat",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0004356522606119153,
+              0.026755712813064325,
+              -0.09616595195536748,
+              0.018905787949841518,
+              0.055335708950554736,
+              -0.02877499038838011,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.045185288258663484,
+              0.09318018533311269,
+              -0.7514656372508838
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 110,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 2.536033256768057e-05,
+            "prior_residual_norm": 8.30024364345523e-06,
+            "projected": [
+              0.045183344195158154,
+              0.09317941715631262,
+              -0.7514363740652322
+            ],
+            "reference": "Hips",
+            "residual": 2.9337748942038514e-05,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged/with_residual",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.0001105967980229096,
+              -0.013205710333247517,
+              -0.016750074529637806,
+              2.394988240020379e-07,
+              -0.013385080319088083,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999775446002,
+              0.17774986112400337,
+              -0.032574117417993986
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 51,
+            "normalization_scale": 0.6153135122445876,
+            "normalized_residual": 3.186935768147237e-09,
+            "prior_residual_norm": 8.697971479092305e-07,
+            "projected": [
+              0.18824999901229275,
+              0.17774986109365307,
+              -0.032574118922094386
+            ],
+            "reference": "Chest",
+            "residual": 1.9609646407965793e-09,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.060316384274920365,
+              -0.08287308859832536,
+              -0.04293059831542894,
+              0.22036116049652613,
+              -0.10075985553941348,
+              0.20755395404937552,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.04640469753557249,
+              -0.09347336751875782,
+              -0.7513547290758141
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 38,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 1.4215722158130303e-06,
+            "prior_residual_norm": 3.468216716563484e-05,
+            "projected": [
+              -0.04640439038099066,
+              -0.0934735117787633,
+              -0.7513562996193541
+            ],
+            "reference": "Hips",
+            "residual": 1.6067862015055273e-06,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged/with_residual",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0652379164952791e-08,
+              1.1609431316284002e-07,
+              1.1187085210973002e-07,
+              -1.2233156321261873e-08,
+              1.3797085140765386e-06
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999774001303,
+              -0.17774986028910558,
+              -0.033569991501208984
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 35,
+            "normalization_scale": 0.5207385564378513,
+            "normalized_residual": 1.1634418769720344e-09,
+            "prior_residual_norm": 8.20307090636525e-06,
+            "projected": [
+              0.18824999774002665,
+              -0.1777498608540898,
+              -0.033569991282471956
+            ],
+            "reference": "Chest",
+            "residual": 6.058490435137614e-10,
+            "solver_message": "`xtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -2.655871698809475e-23,
+              9.281425795291266e-18,
+              -1.7627216027903858e-22
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 2.9543695890673675e-18,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "reference": "Hips",
+            "residual": 9.281425797003138e-18,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=1",
+            "status": "converged",
+            "target": "Chest"
+          }
+        }
+      },
+      "torso_pitch": {
+        "mode": "torso_pitch",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.449820831340919e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999775446,
+              0.17774986112400332,
+              -0.032574117417993875
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 6.123893049448988e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.18824999775445966,
+              0.17774986112400315,
+              -0.032574117417993875
+            ],
+            "reference": "Chest",
+            "residual": 3.7238012298709097e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554273602961411e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999774001294,
+              -0.17774986028910555,
+              -0.033569991501208984
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 4.4018254745692945e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 2.6766507790745728e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.23429762450165356,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.08760498298564301,
+              1.4738937574059797e-08,
+              0.23414817307868313
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 5,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 0.027821825614839882,
+            "prior_residual_norm": 6.323413982350825e-06,
+            "projected": [
+              0.0,
+              0.0,
+              0.23429760883303014
+            ],
+            "reference": "Hips",
+            "residual": 0.0874048429610373,
+            "solver_message": "`ftol` termination condition is satisfied.; deterministic_start_count=1",
+            "status": "converged/with_residual",
+            "target": "Chest"
+          }
+        }
+      },
+      "torso_roll": {
+        "mode": "torso_roll",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.449820831340919e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999775446008,
+              0.17774986112400334,
+              -0.032574117417993986
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 7.773029998196753e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.18824999775445966,
+              0.17774986112400315,
+              -0.032574117417993875
+            ],
+            "reference": "Chest",
+            "residual": 4.726604209672303e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554273602961411e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.188249997740013,
+              -0.17774986028910558,
+              -0.033569991501209095
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 6.48734552863154e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 3.9448084808579573e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.08800728453615284,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.2341481730772296,
+              -8.755533814192148e-07,
+              0.0876049829851543
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 5,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 0.07450771580883071,
+            "prior_residual_norm": 3.258061649031501e-06,
+            "projected": [
+              0.0,
+              0.0,
+              0.0880072813814736
+            ],
+            "reference": "Hips",
+            "residual": 0.23407289262077866,
+            "solver_message": "`ftol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged/with_residual",
+            "target": "Chest"
+          }
+        }
+      },
+      "torso_yaw": {
+        "mode": "torso_yaw",
+        "skipped": {},
+        "target_source": "SemanticTargets.transforms",
+        "tasks": {
+          "left_foot": {
+            "active_coordinates": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.003164001241133302,
+              0.08192499917748307,
+              -0.7541240911073748
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1568361283805402,
+            "normalized_residual": 4.449820831340919e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.003164001245633371,
+              0.08192499917748314,
+              -0.7541240911098744
+            ],
+            "reference": "Hips",
+            "residual": 5.147713502515505e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "LeftFoot"
+          },
+          "left_hand": {
+            "active_coordinates": [
+              19,
+              20,
+              21,
+              22,
+              23
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999775445997,
+              0.17774986112400343,
+              -0.032574117417993764
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774435154396,
+            "normalized_residual": 7.026928229326192e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.18824999775445966,
+              0.17774986112400315,
+              -0.032574117417993875
+            ],
+            "reference": "Chest",
+            "residual": 4.272916553455145e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "LeftHand"
+          },
+          "right_foot": {
+            "active_coordinates": [
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              -0.0031645892467428317,
+              -0.08192499921785291,
+              -0.754123912345517
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 1.1302881300241008,
+            "normalized_residual": 4.554273602961411e-12,
+            "prior_residual_norm": 4e-15,
+            "projected": [
+              -0.0031645892512428796,
+              -0.08192499921785286,
+              -0.7541239123480166
+            ],
+            "reference": "Hips",
+            "residual": 5.147641394309378e-12,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=3",
+            "status": "converged",
+            "target": "RightFoot"
+          },
+          "right_hand": {
+            "active_coordinates": [
+              24,
+              25,
+              26,
+              27,
+              28
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              0.18824999774001297,
+              -0.1777498602891056,
+              -0.033569991501208984
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 1,
+            "normalization_scale": 0.6080774429923247,
+            "normalized_residual": 4.916095827252452e-16,
+            "prior_residual_norm": 0.0,
+            "projected": [
+              0.1882499977400128,
+              -0.1777498602891055,
+              -0.03356999150120876
+            ],
+            "reference": "Chest",
+            "residual": 2.9893669801409083e-16,
+            "solver_message": "`gtol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged",
+            "target": "RightHand"
+          },
+          "torso": {
+            "active_coordinates": [
+              18
+            ],
+            "chain_q": [
+              0.0,
+              0.0,
+              0.75,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              2.924475623888867e-07,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "converged": true,
+            "desired": [
+              8.252017161566735e-07,
+              0.24999999999846648,
+              2.9300697500638513e-07
+            ],
+            "desired_source": "canonical_targets.transforms",
+            "iterations": 2,
+            "normalization_scale": 3.141592653589793,
+            "normalized_residual": 0.07957747154589276,
+            "prior_residual_norm": 1.6795228231526532e-06,
+            "projected": [
+              0.0,
+              0.0,
+              2.924475666077321e-07
+            ],
+            "reference": "Hips",
+            "residual": 0.2499999999998275,
+            "solver_message": "`ftol` termination condition is satisfied.; deterministic_start_count=2",
+            "status": "converged/with_residual",
+            "target": "Chest"
+          }
+        }
+      }
+    },
+    "target_source": "canonical_semantic_targets",
+    "unreachable_demands": [],
+    "warnings": []
+  },
   "canonical_target_validation": {
     "calibration_error_check": {
-      "matches_recorded_calibration_errors": false,
+      "matches_recorded_calibration_errors": true,
       "reconstructed_max_orientation_error": 0.0,
       "reconstructed_max_position_error": 0.0,
-      "recorded_max_orientation_error": Infinity,
-      "recorded_max_position_error": Infinity
+      "recorded_max_orientation_error": 0.0,
+      "recorded_max_position_error": 4.86032246606382e-17
     },
     "failures": [],
     "global_root_yaw_equivariant": true,
@@ -84,10 +3886,6 @@
     "arms_forward": {
       "mode": "arms_forward",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -203,58 +4001,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -306,68 +4052,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "elbow_bend": {
       "mode": "elbow_bend",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -483,58 +4173,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -586,68 +4224,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "global_root_yaw": {
       "mode": "global_root_yaw",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -763,58 +4345,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             0.9466940458732527,
@@ -866,68 +4396,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "mixed_torso_rotation": {
       "mode": "mixed_torso_rotation",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -1043,58 +4517,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -1146,68 +4568,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "neutral": {
       "mode": "neutral",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -1323,58 +4689,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -1426,68 +4740,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "overhead_reach": {
       "mode": "overhead_reach",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -1603,58 +4861,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -1706,68 +4912,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "root_translation": {
       "mode": "root_translation",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -1883,58 +5033,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -1986,68 +5084,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "single_step_target": {
       "mode": "single_step_target",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -2163,58 +5205,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -2266,68 +5256,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "squat": {
       "mode": "squat",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -2443,58 +5377,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -2546,68 +5428,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "torso_pitch": {
       "mode": "torso_pitch",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -2723,58 +5549,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -2826,68 +5600,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "torso_roll": {
       "mode": "torso_roll",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -3003,58 +5721,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -3106,68 +5772,12 @@
             0.0,
             1.0
           ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
         ]
       }
     },
     "torso_yaw": {
       "mode": "torso_yaw",
       "provenance": {
-        "LeftHeel:fallback": "not_on_calibrated_semantic_edge",
-        "LeftToe:fallback": "not_on_calibrated_semantic_edge",
-        "RightHeel:fallback": "not_on_calibrated_semantic_edge",
-        "RightToe:fallback": "not_on_calibrated_semantic_edge",
         "builder": "source_rest_semantic_frames+edge_alignment_rotations+robot_segment_lengths",
         "source_provenance": "soma_pose_json:soma_retargeter/assets/standard_human_pos/human_t_pose.json;skeleton_spec:soma_retargeter/configs/soma/soma_skeleton_spec.json"
       },
@@ -3283,58 +5893,6 @@
             1.0
           ]
         ],
-        "LeftHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216400360559276
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "LeftToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583600112332602
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            0.08192499917748314
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004124091107374404
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
         "RightFoot": [
           [
             1.0000000000000004,
@@ -3379,58 +5937,6 @@
             8.530681966351712e-07,
             0.9689124217106895,
             0.7429787114321632
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightHeel": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            -0.08216459222611223
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
-          ],
-          [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        ],
-        "RightToe": [
-          [
-            1.0,
-            0.0,
-            0.0,
-            0.07583541373262648
-          ],
-          [
-            0.0,
-            1.0,
-            0.0,
-            -0.08192499921785286
-          ],
-          [
-            0.0,
-            0.0,
-            1.0,
-            -0.004123912345516519
           ],
           [
             0.0,
@@ -3665,10 +6171,8 @@
       "task": "torso"
     }
   },
-  "deterministic_hash": "a06dff31b6065eeecb7890547144684991cc6a26d518df4495ed6b5c997feee2",
-  "failures": [
-    "neutral exactness gate failed"
-  ],
+  "deterministic_hash": "cd6d2f2a12cd3ae27074d6d2c3bb220e2cb5ed00ed9e181f0251a6f605f14f3f",
+  "failures": [],
   "manifest_entry": {
     "description_name": null,
     "expected_capability": "positive",
@@ -9742,31 +12246,44 @@
       "torso": "conditioned_edge_frame:edge_direction+bilateral_feet:wahba_residual=0.00201"
     },
     "fallbacks": [],
-    "max_orientation_error": Infinity,
-    "max_position_error": Infinity,
+    "max_orientation_error": 0.0,
+    "max_position_error": 4.86032246606382e-17,
     "neutral_orientation_errors": {
       "Chest": 0.0,
       "Hips": 0.0,
       "LeftFoot": 0.0,
       "LeftHand": 0.0,
-      "LeftHeel": Infinity,
-      "LeftToe": Infinity,
       "RightFoot": 0.0,
-      "RightHand": 0.0,
-      "RightHeel": Infinity,
-      "RightToe": Infinity
+      "RightHand": 0.0
     },
     "neutral_position_errors": {
       "Chest": 3.469446951955156e-18,
       "Hips": 0.0,
       "LeftFoot": 4.4641752907004823e-17,
       "LeftHand": 2.7755575615628914e-17,
-      "LeftHeel": Infinity,
-      "LeftToe": Infinity,
       "RightFoot": 4.86032246606382e-17,
-      "RightHand": 0.0,
-      "RightHeel": Infinity,
-      "RightToe": Infinity
+      "RightHand": 0.0
+    },
+    "recomputed_neutral_errors": {
+      "max_orientation_error": 0.0,
+      "max_position_error": 4.86032246606382e-17,
+      "orientation_errors": {
+        "Chest": 0.0,
+        "Hips": 0.0,
+        "LeftFoot": 0.0,
+        "LeftHand": 0.0,
+        "RightFoot": 0.0,
+        "RightHand": 0.0
+      },
+      "position_errors": {
+        "Chest": 3.469446951955156e-18,
+        "Hips": 0.0,
+        "LeftFoot": 4.4641752907004823e-17,
+        "LeftHand": 2.7755575615628914e-17,
+        "RightFoot": 4.86032246606382e-17,
+        "RightHand": 0.0
+      },
+      "source": "independent_source_rest_reconstruction_vs_runtime_neutral_fk"
     },
     "robot_neutral_site_transforms": {
       "Chest": [
@@ -9873,58 +12390,6 @@
           1.0
         ]
       ],
-      "LeftHeel": [
-        [
-          1.0,
-          0.0,
-          0.0,
-          -0.08216400360559276
-        ],
-        [
-          0.0,
-          1.0,
-          0.0,
-          0.08192499917748314
-        ],
-        [
-          0.0,
-          0.0,
-          1.0,
-          -0.004124091107374404
-        ],
-        [
-          0.0,
-          0.0,
-          0.0,
-          1.0
-        ]
-      ],
-      "LeftToe": [
-        [
-          1.0,
-          0.0,
-          0.0,
-          0.07583600112332602
-        ],
-        [
-          0.0,
-          1.0,
-          0.0,
-          0.08192499917748314
-        ],
-        [
-          0.0,
-          0.0,
-          1.0,
-          -0.004124091107374404
-        ],
-        [
-          0.0,
-          0.0,
-          0.0,
-          1.0
-        ]
-      ],
       "RightFoot": [
         [
           1.0,
@@ -9969,58 +12434,6 @@
           0.0,
           1.0,
           0.7836300135532651
-        ],
-        [
-          0.0,
-          0.0,
-          0.0,
-          1.0
-        ]
-      ],
-      "RightHeel": [
-        [
-          1.0,
-          0.0,
-          0.0,
-          -0.08216459222611223
-        ],
-        [
-          0.0,
-          1.0,
-          0.0,
-          -0.08192499921785286
-        ],
-        [
-          0.0,
-          0.0,
-          1.0,
-          -0.004123912345516519
-        ],
-        [
-          0.0,
-          0.0,
-          0.0,
-          1.0
-        ]
-      ],
-      "RightToe": [
-        [
-          1.0,
-          0.0,
-          0.0,
-          0.07583541373262648
-        ],
-        [
-          0.0,
-          1.0,
-          0.0,
-          -0.08192499921785286
-        ],
-        [
-          0.0,
-          0.0,
-          1.0,
-          -0.004123912345516519
         ],
         [
           0.0,
@@ -10624,42 +13037,6 @@
       "semantic_name": "LeftHand",
       "source": "verified_geometry_bounds"
     },
-    "LeftHeel": {
-      "body_name": "left_ankle_roll_link",
-      "confidence": 0.85,
-      "local_position": [
-        -0.05400000428651622,
-        0.009425001263645708,
-        -0.04500000282002089
-      ],
-      "local_rotation_xyzw": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "reason": "explicit_site",
-      "semantic_name": "LeftHeel",
-      "source": "verified_geometry_bounds"
-    },
-    "LeftToe": {
-      "body_name": "left_ankle_roll_link",
-      "confidence": 0.85,
-      "local_position": [
-        0.10400000044240255,
-        0.009425001263645708,
-        -0.04500000282002089
-      ],
-      "local_rotation_xyzw": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "reason": "explicit_site",
-      "semantic_name": "LeftToe",
-      "source": "verified_geometry_bounds"
-    },
     "RightFoot": {
       "body_name": "right_ankle_roll_link",
       "confidence": 0.85,
@@ -10695,48 +13072,12 @@
       "reason": "explicit_site",
       "semantic_name": "RightHand",
       "source": "verified_geometry_bounds"
-    },
-    "RightHeel": {
-      "body_name": "right_ankle_roll_link",
-      "confidence": 0.85,
-      "local_position": [
-        -0.05400000058587824,
-        -0.009425001304015428,
-        -0.04500000287209733
-      ],
-      "local_rotation_xyzw": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "reason": "explicit_site",
-      "semantic_name": "RightHeel",
-      "source": "verified_geometry_bounds"
-    },
-    "RightToe": {
-      "body_name": "right_ankle_roll_link",
-      "confidence": 0.85,
-      "local_position": [
-        0.10400000537286047,
-        -0.009425001304015428,
-        -0.04500000287209733
-      ],
-      "local_rotation_xyzw": [
-        0.0,
-        0.0,
-        0.0,
-        1.0
-      ],
-      "reason": "explicit_site",
-      "semantic_name": "RightToe",
-      "source": "verified_geometry_bounds"
     }
   },
-  "status": "algorithm_failed",
-  "status_reason": "compiler recorded algorithm failures",
+  "status": "passed",
+  "status_reason": "profile completed without recorded failures",
   "timing": {
-    "compile_seconds": 7.618217922747135
+    "compile_seconds": 18.397776767611504
   },
   "warnings": []
 }

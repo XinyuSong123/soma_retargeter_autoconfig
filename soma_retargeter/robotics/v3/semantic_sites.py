@@ -42,19 +42,11 @@ def load_semantic_map(path: str | Path, *, include_auxiliary: bool = False) -> d
     return {name: entry for name, entry in semantics.items() if name not in auxiliary}
 
 
-def default_rpo_semantic_map() -> dict[str, str | dict]:
-    verified = _ROBOT_ZOO_SEMANTIC_MAPS / "roboparty_rpo_local.json"
-    if verified.exists():
-        semantic_map = load_semantic_map(verified)
-        return {name: semantic_map[name] for name in REQUIRED_SEMANTICS if name in semantic_map}
-    return {
-        "Hips": "base_link",
-        "Chest": "torso_link",
-        "LeftHand": "left_elbow_yaw_link",
-        "RightHand": "right_elbow_yaw_link",
-        "LeftFoot": "left_ankle_roll_link",
-        "RightFoot": "right_ankle_roll_link",
-    }
+def load_robot_zoo_semantic_map(model_id: str, *, include_auxiliary: bool = False) -> dict[str, str | dict]:
+    semantic_map = load_semantic_map(_ROBOT_ZOO_SEMANTIC_MAPS / f"{model_id}.json", include_auxiliary=include_auxiliary)
+    if include_auxiliary:
+        return semantic_map
+    return {name: semantic_map[name] for name in REQUIRED_SEMANTICS if name in semantic_map}
 
 
 def build_semantic_sites(

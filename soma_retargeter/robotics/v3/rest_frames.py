@@ -46,6 +46,13 @@ class RestCalibration:
             "robot_support_height": self.robot_support_height,
             "neutral_position_errors": self.neutral_position_errors,
             "neutral_orientation_errors": self.neutral_orientation_errors,
+            "recomputed_neutral_errors": {
+                "source": "independent_source_rest_reconstruction_vs_runtime_neutral_fk",
+                "position_errors": self.neutral_position_errors,
+                "orientation_errors": self.neutral_orientation_errors,
+                "max_position_error": self.max_position_error,
+                "max_orientation_error": self.max_orientation_error,
+            },
             "max_position_error": self.max_position_error,
             "max_orientation_error": self.max_orientation_error,
             "bilateral_symmetry": self.bilateral_symmetry,

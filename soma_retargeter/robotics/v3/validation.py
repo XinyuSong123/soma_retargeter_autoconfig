@@ -27,7 +27,7 @@ from .robot_zoo import (
     resolve_robot_source,
     sha256_file,
 )
-from .semantic_sites import default_rpo_semantic_map, infer_semantic_map_from_body_names
+from .semantic_sites import infer_semantic_map_from_body_names
 from .semantic_sites import load_semantic_map
 
 
@@ -62,6 +62,7 @@ def write_validation_artifacts(
 
     del include_missing_required_reports
     manifest = load_robot_zoo_manifest(manifest_path)
+    pre_generation_git = _git_snapshot()
     out = Path(output_dir)
     per_robot = out / "per_robot"
     failures_dir = out / "failures"
@@ -112,7 +113,7 @@ def write_validation_artifacts(
 
     cross_format = _cross_format_report(reports, per_robot)
     deterministic = _deterministic_rerun_report(reports, deterministic_rerun=deterministic_rerun)
-    environment = _environment_report(manifest)
+    environment = _environment_report(manifest, git_snapshot=pre_generation_git)
     validation_command = reproduction_validate_command(
         manifest_path=command_manifest_path,
         output_dir=command_artifact_root,
@@ -336,12 +337,6 @@ def _semantic_map_for_entry(entry: RobotZooEntry, resolved: ResolvedRobotSource,
             "source": "verified_semantic_map",
             "path": display_path(explicit),
         }
-    if entry.id == "roboparty_rpo_local":
-        return default_rpo_semantic_map(), {
-            "status": "available",
-            "source": "default_rpo_semantic_map",
-            "path": display_path(Path("assets/robot_zoo/semantic_maps/roboparty_rpo_local.json")),
-        }
     adapter = NewtonRuntimeModelAdapter(resolved.path, model_format=entry.model_format)
     try:
         return infer_semantic_map_from_body_names(adapter), {
@@ -542,13 +537,14 @@ def _deterministic_rerun_report(reports: dict[str, dict], *, deterministic_rerun
     }
 
 
-def _environment_report(manifest) -> dict:
+def _environment_report(manifest, *, git_snapshot: dict[str, str] | None = None) -> dict:
+    git_snapshot = git_snapshot or _git_snapshot()
     return {
         "python": sys.version,
         "platform": platform.platform(),
         "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "git_head": _git(["rev-parse", "HEAD"]),
-        "git_status_short": _git(["status", "--short"]),
+        "git_head": git_snapshot["head"],
+        "git_status_short": git_snapshot["status_short"],
         "package_versions": _package_versions(),
         "manifest": {
             "path": display_path(manifest.path),
@@ -625,6 +621,13 @@ def _git(args: list[str]) -> str:
         return subprocess.check_output(["git", *args], text=True, stderr=subprocess.DEVNULL).strip()
     except Exception:
         return ""
+
+
+def _git_snapshot() -> dict[str, str]:
+    return {
+        "head": _git(["rev-parse", "HEAD"]),
+        "status_short": _git(["status", "--short"]),
+    }
 
 
 def isolated_validation_run(*, manifest_path: str | Path, low_discrepancy_count: int = 1) -> dict:

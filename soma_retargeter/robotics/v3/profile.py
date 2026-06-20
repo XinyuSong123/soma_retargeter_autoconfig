@@ -8,6 +8,7 @@ import hashlib
 import json
 import time
 
+from .canonical_projection import project_canonical_motion_sequence
 from .chain_projection import project_endpoint_position, project_torso_orientation
 from .kinematic_paths import TASKS, KinematicPath, discover_paths
 from .model_adapter import MuJoCoRuntimeModelAdapter, NewtonRuntimeModelAdapter, SemanticSite
@@ -31,6 +32,7 @@ class KinematicProfileV3:
     rest_calibration: RestCalibration
     canonical_targets: dict
     canonical_target_validation: dict
+    canonical_projection_reports: dict
     projection_reports: dict
     failures: list[str]
     warnings: list[str]
@@ -50,6 +52,7 @@ class KinematicProfileV3:
             "rest_calibration": self.rest_calibration.to_json(),
             "canonical_targets": self.canonical_targets,
             "canonical_target_validation": self.canonical_target_validation,
+            "canonical_projection_reports": self.canonical_projection_reports,
             "projection_reports": self.projection_reports,
             "failures": self.failures,
             "warnings": self.warnings,
@@ -135,6 +138,13 @@ def compile_kinematic_profile_v3(
     canonical_validation = validate_canonical_targets(calibration, canonical_objects)
     if canonical_validation["failures"]:
         failures.extend(f"canonical target validation failed: {failure}" for failure in canonical_validation["failures"])
+    canonical_projection = project_canonical_motion_sequence(
+        adapter,
+        sites,
+        paths,
+        canonical_objects,
+        neutral_q=q0,
+    )
     canonical = {k: v.to_json() for k, v in canonical_objects.items()}
     elapsed = time.perf_counter() - start
     return KinematicProfileV3(
@@ -160,6 +170,7 @@ def compile_kinematic_profile_v3(
         rest_calibration=calibration,
         canonical_targets=canonical,
         canonical_target_validation=canonical_validation,
+        canonical_projection_reports=canonical_projection.to_json(),
         projection_reports=projection_reports,
         failures=failures,
         warnings=warnings,

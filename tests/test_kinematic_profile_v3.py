@@ -14,7 +14,7 @@ from soma_retargeter.robotics.v3.numerical_jacobian import (
 )
 from soma_retargeter.robotics.v3.profile import compile_kinematic_profile_v3
 from soma_retargeter.robotics.v3.reachability import analyze_reachability, deterministic_chain_samples
-from soma_retargeter.robotics.v3.semantic_sites import build_semantic_sites, default_rpo_semantic_map
+from soma_retargeter.robotics.v3.semantic_sites import build_semantic_sites, load_robot_zoo_semantic_map
 from soma_retargeter.robotics.v3.spatial import frame_from_yz, relative_transform, so3_exp, so3_log, transform, wahba_alignment
 from soma_retargeter.robotics.v3.validation import REQUIRED_ARTIFACT_IDS, write_validation_artifacts
 
@@ -51,7 +51,7 @@ def test_frame_from_yz_reports_degenerate_parallel_hints():
 
 def test_rpo_full_chain_paths_exclude_common_torso_coordinate():
     adapter = MuJoCoRuntimeModelAdapter("assets/robots/atom01/mjcf/atom01.xml")
-    sites = build_semantic_sites(adapter, default_rpo_semantic_map())
+    sites = build_semantic_sites(adapter, load_robot_zoo_semantic_map("roboparty_rpo_local"))
     paths = discover_paths(adapter, sites)
 
     assert paths["torso"].coordinate_labels == ["torso_joint"]
@@ -74,7 +74,7 @@ def test_rpo_full_chain_paths_exclude_common_torso_coordinate():
 
 def test_rpo_torso_rotation_jacobian_rank_one():
     adapter = MuJoCoRuntimeModelAdapter("assets/robots/atom01/mjcf/atom01.xml")
-    sites = build_semantic_sites(adapter, default_rpo_semantic_map())
+    sites = build_semantic_sites(adapter, load_robot_zoo_semantic_map("roboparty_rpo_local"))
     paths = discover_paths(adapter, sites)
     jac = numerical_relative_jacobian(
         adapter,
@@ -90,7 +90,7 @@ def test_rpo_torso_rotation_jacobian_rank_one():
 
 def test_newton_rpo_backend_matches_full_chain_contract():
     adapter = NewtonRuntimeModelAdapter("assets/robots/atom01/mjcf/atom01.xml")
-    sites = build_semantic_sites(adapter, default_rpo_semantic_map())
+    sites = build_semantic_sites(adapter, load_robot_zoo_semantic_map("roboparty_rpo_local"))
     paths = discover_paths(adapter, sites)
 
     assert adapter.nq == 30
@@ -769,7 +769,7 @@ def test_lower_body_only_partial_humanoid_has_no_hand_chains(tmp_path: Path):
 def test_compile_rpo_profile_v3_smoke():
     profile = compile_kinematic_profile_v3(
         "assets/robots/atom01/mjcf/atom01.xml",
-        default_rpo_semantic_map(),
+        load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         low_discrepancy_count=1,
     )
@@ -792,7 +792,7 @@ def test_compile_rpo_profile_v3_smoke():
 def test_canonical_target_validation_records_motion_diagnostics():
     profile = compile_kinematic_profile_v3(
         "assets/robots/atom01/mjcf/atom01.xml",
-        default_rpo_semantic_map(),
+        load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         backend="newton",
         low_discrepancy_count=1,
@@ -807,7 +807,7 @@ def test_canonical_target_validation_records_motion_diagnostics():
 def test_profile_deterministic_hash_ignores_timing():
     kwargs = dict(
         model_path="assets/robots/atom01/mjcf/atom01.xml",
-        semantic_map=default_rpo_semantic_map(),
+        semantic_map=load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         backend="newton",
         low_discrepancy_count=1,
@@ -820,7 +820,7 @@ def test_profile_deterministic_hash_ignores_timing():
 def test_compile_rpo_profile_v3_newton_backend():
     profile = compile_kinematic_profile_v3(
         "assets/robots/atom01/mjcf/atom01.xml",
-        default_rpo_semantic_map(),
+        load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         backend="newton",
         low_discrepancy_count=1,
