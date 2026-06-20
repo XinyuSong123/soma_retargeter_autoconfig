@@ -2,21 +2,15 @@
 
 Agent: **F - Reproducibility, CI & Independent Red Team**  
 Reasoning strength: **xhigh**  
-Status: **BLOCKED**  
-Worktree: `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig`  
+Status: **FALSE-POSITIVE AUDIT PASS; FULL STEP 2 NOT COMPLETE**  
 Branch: `agent-b-xhigh-verified-semantics`
 
 ## Input Reviewed
 
-- `goal.md`, including the xhigh subagent requirement and the ten listed false positives.
-- `docs/retargeting_v3/STEP1_MATHEMATICAL_SPEC.md`
-- `docs/retargeting_v3/STEP1_COMPLETE_MODEL_CROSSCHECK.md`
-- `docs/retargeting_v3/THREE_STEP_ROADMAP.md`
-- `docs/retargeting_v3/CODE_AUDIT.md`
-- Prior Agent F worktree `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig_agent_f`
-- Prior Agent F commits:
-  - `67f726b test: add retargeting v3 step2 acceptance audit`
-  - `84f5439 docs: record agent f audit commit`
+- `goal.md`, including the xhigh subagent requirement and false-positive list.
+- Step 1 mathematical specification, complete-model cross-check, roadmap, and
+  code audit.
+- Prior Agent F audit work and the integrated A-E xhigh changes.
 
 ## Files
 
@@ -28,7 +22,6 @@ Branch: `agent-b-xhigh-verified-semantics`
 - `docs/retargeting_v3/subagents/step2_agent_f_red_team.md`
 - `artifacts/retargeting_v3_step2/test_results/acceptance_audit.json`
 - `artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml`
-- `artifacts/retargeting_v3_step2/test_results/pytest_acceptance_gates.junit.xml`
 
 ## Commands and Results
 
@@ -40,62 +33,27 @@ python scripts/audit_retargeting_v3_step2.py \
   --junit-xml artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml
 ```
 
-Result: **BLOCKED**, exit code 1, 6 blocking findings.
+Result: **PASS**, exit code 0, 0 blocking findings.
 
 ```bash
-python -m pytest tests/v3/test_acceptance_gates_*.py \
-  --junitxml=artifacts/retargeting_v3_step2/test_results/pytest_acceptance_gates.junit.xml
+python -m pytest -q
 ```
 
-Result: **FAILED**, exit code 1, 1 failed, 0 passed. JUnit written.
+Result: **124 passed, 10 skipped**.
 
 ## Numeric Results
 
-| Gate | Count |
-|---|---:|
-| hardcoded zero calibration | 0 |
-| neutral-to-neutral fake projection | 0 |
-| canonical targets without projection | 1 |
-| zero-offset RPO hand/sole | 0 |
-| body-name depth heuristic | 0 |
-| TALOS proximal foot mapping | 0 |
-| Booster Hips=Chest hiding waist | 0 |
-| arbitrary G1 equivalence | 1 |
-| dirty artifact metadata | 2 |
-| absolute cache paths | 0 |
-| inferred semantics confidence=1 | 0 |
-| rank0 false pass | 0 |
-| robot-name special cases | 2 |
-| legacy offsets | 0 |
-| missing formal red-team artifacts | 0 |
+All audited false-positive gates have 0 blocking findings. The no-fetch Robot
+Zoo validation summary is:
 
-Total: **6** blocking findings.
+```text
+passed=1
+source_unavailable=45
+algorithm_pass_count=1
+```
 
-## Assumptions
+## Red-Team Conclusion
 
-- Agent F remains independent and does not implement Agent A-E core compiler, semantic, calibration, projection, or validation design.
-- The current `artifacts/retargeting_v3_step2` working tree is the acceptance target for this red-team pass.
-- It is valid for corrected gates to have zero current findings when coverage remains explicit; `body_name_depth_heuristic` is covered and currently clean in source.
-- All six subagent handoffs are present; Agent F's handoff records xhigh and an explicit BLOCKED result.
-
-## Failures
-
-- `roboparty_rpo_local` has canonical targets without per-motion projection reports.
-- G1 equivalence is missing or non-strict in `validation_checks.json`.
-- Artifact metadata is dirty and records an older generation commit.
-- `semantic_sites.py` still contains RPO-specific default semantic-map logic.
-- Formal handoff coverage is now present for Agents A-F.
-
-## Risks
-
-- The CI workflow is intentionally red until A-E close the blockers.
-- Future artifact schema changes should preserve the same evidence requirements rather than bypassing checks by renaming fields.
-- The audit is read-only and prevents false-positive acceptance; it does not prove a corrected implementation.
-
-## Integration Order
-
-1. Merge Agent F audit gate after confirming it touches only Agent F-owned files.
-2. Integrate A-E fixes for the remaining algorithm/artifact blockers.
-3. Regenerate artifacts from a clean final commit.
-4. Rerun the audit and pytest gate.
-5. Update ledger, implementation report, handoff, and test-result artifacts only after the gate returns PASS.
+The false-positive gate is clean. Full Step 2 remains incomplete because most
+Robot Zoo sources are unavailable in the current no-fetch run and deterministic
+rerun is still not executed.

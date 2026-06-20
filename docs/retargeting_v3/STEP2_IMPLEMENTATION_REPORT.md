@@ -1,92 +1,47 @@
-# Step 2 Implementation Report - Agent F Red Team
+# Step 2 Implementation Report
 
-Status: **BLOCKED**  
-Agent: **F - Reproducibility, CI & Independent Red Team**  
-Reasoning strength: **xhigh**  
-Worktree: `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig`  
-Input reviewed: prior Agent F commits `67f726b` and `84f5439`.
+Status: **IN PROGRESS**  
+False-positive audit: **PASS**  
+Subagent reasoning strength: **xhigh**
 
-## Scope
+## Summary
 
-Agent F owns only reproducibility, CI, acceptance audit tests, acceptance ledger,
-test-result artifacts and the independent red-team report. This report does not
-implement Agent A-E compiler, semantic, calibration, projection or Robot Zoo
-core design.
+This pass integrated the xhigh A-F subagent work and closed the explicit
+false-positive classes listed in `goal.md`. The offline compiler now records
+runtime/fingerprint provenance, verified RPO semantic sites, independent rest
+calibration evidence, canonical per-motion projection reports, manifest-driven
+Robot Zoo statuses, and an independent red-team audit result.
 
-## Files
+The overall Step 2 objective is not complete. The current no-fetch validation
+run has `status_counts={"passed": 1, "source_unavailable": 45}` and
+`deterministic_rerun.status="not_run"`.
 
-- `.github/workflows/retargeting_v3_step2.yml`
-- `scripts/audit_retargeting_v3_step2.py`
-- `tests/v3/test_acceptance_gates_audit.py`
-- `docs/retargeting_v3/STEP2_ACCEPTANCE_LEDGER.md`
-- `docs/retargeting_v3/STEP2_IMPLEMENTATION_REPORT.md`
-- `docs/retargeting_v3/subagents/step2_agent_f_red_team.md`
-- `artifacts/retargeting_v3_step2/test_results/acceptance_audit.json`
-- `artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml`
-- `artifacts/retargeting_v3_step2/test_results/pytest_acceptance_gates.junit.xml`
+## Current Results
 
-## Current Result
+- `python -m pytest -q`: `124 passed, 10 skipped`.
+- `scripts/audit_retargeting_v3_step2.py`: `PASS`, 0 blocking findings.
+- `roboparty_rpo_local`: `passed`.
+- G1 same-source URDF to canonical MJCF strict equivalence: `passed`.
+- Full Robot Zoo: 46 manifest entries materialized, 45 currently
+  `source_unavailable` in no-fetch mode.
 
-Final result for this Agent F pass: **BLOCKED** with **6** blocking findings.
+## Key Integrated Changes
 
-The acceptance audit explicitly covers all ten false positives listed in
-`goal.md`, including the previously implicit body-name-depth heuristic,
-canonical-target-without-projection evidence, and missing formal six-subagent
-handoff evidence.
+- `profile.py` writes `canonical_projection_reports` using real canonical
+  semantic targets.
+- `semantic_sites.py` removed the RPO-specific default semantic-map function
+  from core code and uses generic Robot Zoo semantic-map loading.
+- `rest_frames.py` serializes recomputed neutral reconstruction evidence.
+- `validation.py` writes schema-v4 manifest results, pre-generation clean git
+  metadata, `validation_checks.json`, and the G1 same-source strict check.
+- Tests were updated from the old `compiled_count` schema to status-count based
+  validation.
 
-Current blocker counts from the final Agent F audit artifact:
+## Remaining Work
 
-| Gate | Count |
-|---|---:|
-| hardcoded zero calibration | 0 |
-| neutral-to-neutral fake projection | 0 |
-| canonical targets without projection | 1 |
-| zero-offset RPO hand/sole | 0 |
-| body-name depth heuristic | 0 |
-| TALOS proximal foot mapping | 0 |
-| Booster Hips=Chest hiding waist | 0 |
-| arbitrary G1 equivalence | 1 |
-| dirty artifact metadata | 2 |
-| absolute cache paths | 0 |
-| inferred semantics confidence=1 | 0 |
-| rank0 false pass | 0 |
-| robot-name special cases | 2 |
-| legacy offsets | 0 |
-| missing formal red-team artifacts | 0 |
-
-Total: **6**.
-
-Numeric blocker counts are recorded in:
-
-- `docs/retargeting_v3/STEP2_ACCEPTANCE_LEDGER.md`
-- `docs/retargeting_v3/subagents/step2_agent_f_red_team.md`
-- `artifacts/retargeting_v3_step2/test_results/acceptance_audit.json`
-
-## Commands
-
-```bash
-python scripts/audit_retargeting_v3_step2.py \
-  --artifact-dir artifacts/retargeting_v3_step2 \
-  --source-root . \
-  --output-json artifacts/retargeting_v3_step2/test_results/acceptance_audit.json \
-  --junit-xml artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml
-```
-
-```bash
-python -m pytest tests/v3/test_acceptance_gates_*.py \
-  --junitxml=artifacts/retargeting_v3_step2/test_results/pytest_acceptance_gates.junit.xml
-```
-
-## Assumptions
-
-- Current checked-in Step-2 artifacts are the audit target.
-- Exact zero neutral calibration is allowed only with independent measurement
-  evidence; direct zero initialization remains a blocker.
-- Local absolute paths in artifacts are not reproducible commands.
-- Agent F reports handoff coverage but does not fabricate missing agent results.
-
-## Integration Notes
-
-Agent F gate must remain red until A-E close the blocking findings, regenerate
-artifacts from a clean final commit, and rerun the audit plus pytest acceptance
-gate without xfail, skip, or lowered thresholds.
+- Resolve or fetch the required Robot Zoo sources and run the positive humanoid
+  algorithm gates beyond RPO.
+- Produce the deterministic two-run artifact instead of the current `not_run`
+  scaffold.
+- Commit/regenerate final artifacts according to the repository's final
+  clean-generation protocol once the full Robot Zoo run is available.
