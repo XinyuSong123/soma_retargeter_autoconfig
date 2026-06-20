@@ -2,7 +2,10 @@
 
 - Agent: D-xhigh, Reachability, Canonical Chain Projection & Mathematical Gates.
 - Reasoning requirement: satisfied as an xhigh-designated subagent run; no lower-reasoning subagent was used for this handoff.
-- Branch/commit: `agent-b-xhigh-verified-semantics` / `63630cc feat: harden chain projection gates`.
+- Branch/commits:
+  - `63630cc feat: harden chain projection gates`
+  - `af9a258 fix: classify rank zero canonical demand`
+  - `28c51c3 docs: add agent d xhigh handoff`
 - Prior worktree reviewed: `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig_agent_d`; used only as reference, not assumed correct.
 
 ## Files
@@ -26,6 +29,7 @@
 - Added range-normalized neutral and continuity priors to endpoint and torso projection costs.
 - Added deterministic multi-starts from seed, neutral, previous, and midpoint candidates with deterministic tie-breaking.
 - Added `canonical_projection.py` to consume real `SemanticTargets.transforms` for per-motion torso/hand/foot projection instead of neutral FK placeholders.
+- Separated canonical `unreachable/rank_zero` nonzero demand into `unreachable_demands` instead of treating expected fixed-chain downgrade as a solver failure.
 
 ## Commands
 
@@ -41,7 +45,8 @@
 ## Tests
 
 - PASS: `PYTHONPATH=. pytest -q tests/v3/test_numerical_jacobian_gates.py tests/v3/test_reachability_gates.py tests/v3/test_chain_projection_gates.py`
-  - Result: `7 passed in 1.05s`.
+  - Initial result: `7 passed in 1.05s`.
+  - Final result after rank-zero canonical classification: `8 passed in 0.97s`.
 - PASS: `PYTHONPATH=. pytest -q tests/test_kinematic_profile_v3_math.py tests/test_kinematic_profile_v3.py -k 'jacobian or reachability or projection or rank_zero or canonical'`
   - Result: `13 passed, 22 deselected in 9.07s`.
 - PASS: `PYTHONPATH=. python -m py_compile ...`
@@ -84,6 +89,12 @@
   - neutral desired differed from arms-forward desired;
   - projected `[0.15, 0.0, 0.0]`;
   - desired source recorded as `canonical_targets.transforms`.
+- Canonical fixed-torso nonzero demand:
+  - `torso_yaw.torso.status` was `unreachable/rank_zero`;
+  - desired rotation log `[0.0, 0.0, 0.2]`;
+  - projected rotation log `[0.0, 0.0, 0.0]`;
+  - residual `> 0.19`;
+  - recorded under `unreachable_demands`, not `failures`.
 
 ## Assumptions
 
