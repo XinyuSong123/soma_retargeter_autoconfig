@@ -40,7 +40,7 @@ python scripts/audit_retargeting_v3_step2.py \
   --junit-xml artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml
 ```
 
-Result: **BLOCKED**, exit code 1, 7 blocking findings.
+Result: **BLOCKED**, exit code 1, 6 blocking findings.
 
 ```bash
 python -m pytest tests/v3/test_acceptance_gates_*.py \
@@ -67,16 +67,16 @@ Result: **FAILED**, exit code 1, 1 failed, 0 passed. JUnit written.
 | rank0 false pass | 0 |
 | robot-name special cases | 2 |
 | legacy offsets | 0 |
-| missing formal red-team artifacts | 1 |
+| missing formal red-team artifacts | 0 |
 
-Total: **7** blocking findings.
+Total: **6** blocking findings.
 
 ## Assumptions
 
 - Agent F remains independent and does not implement Agent A-E core compiler, semantic, calibration, projection, or validation design.
-- The current `artifacts/retargeting_v3_step2` working tree at `6d4488c` is the acceptance target for this red-team pass.
+- The current `artifacts/retargeting_v3_step2` working tree at `9861f1a` is the acceptance target for this red-team pass.
 - It is valid for corrected gates to have zero current findings when coverage remains explicit; `body_name_depth_heuristic` is covered and currently clean in source.
-- The missing Agent B handoff remains a blocker; Agent F reports it but does not fabricate it.
+- All six subagent handoffs are present; Agent F's handoff records xhigh and an explicit BLOCKED result.
 
 ## Failures
 
@@ -84,7 +84,7 @@ Total: **7** blocking findings.
 - G1 equivalence is missing or non-strict in `validation_checks.json`.
 - Artifact metadata is dirty and records an older generation commit.
 - `semantic_sites.py` still contains RPO-specific default semantic-map logic.
-- Agent B handoff is missing.
+- Formal handoff coverage is now present for Agents A-F.
 
 ## Risks
 
@@ -95,7 +95,7 @@ Total: **7** blocking findings.
 ## Integration Order
 
 1. Merge Agent F audit gate after confirming it touches only Agent F-owned files.
-2. Integrate A-E fixes and complete the missing Agent B handoff.
+2. Integrate A-E fixes for the remaining algorithm/artifact blockers.
 3. Regenerate artifacts from a clean final commit.
 4. Rerun the audit and pytest gate.
 5. Update ledger, implementation report, handoff, and test-result artifacts only after the gate returns PASS.

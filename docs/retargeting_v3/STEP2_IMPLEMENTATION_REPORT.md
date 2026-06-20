@@ -27,14 +27,14 @@ core design.
 
 ## Current Result
 
-Final result for this Agent F pass: **BLOCKED** with **7** blocking findings.
+Final result for this Agent F pass: **BLOCKED** with **6** blocking findings.
 
 The acceptance audit explicitly covers all ten false positives listed in
 `goal.md`, including the previously implicit body-name-depth heuristic,
 canonical-target-without-projection evidence, and missing formal six-subagent
 handoff evidence.
 
-Current blocker counts against `HEAD` `6d4488c`:
+Current blocker counts against `HEAD` `9861f1a`:
 
 | Gate | Count |
 |---|---:|
@@ -52,9 +52,9 @@ Current blocker counts against `HEAD` `6d4488c`:
 | rank0 false pass | 0 |
 | robot-name special cases | 2 |
 | legacy offsets | 0 |
-| missing formal red-team artifacts | 1 |
+| missing formal red-team artifacts | 0 |
 
-Total: **7**.
+Total: **6**.
 
 Numeric blocker counts are recorded in:
 
@@ -83,7 +83,7 @@ python -m pytest tests/v3/test_acceptance_gates_*.py \
 - Exact zero neutral calibration is allowed only with independent measurement
   evidence; direct zero initialization remains a blocker.
 - Local absolute paths in artifacts are not reproducible commands.
-- Agent F may report missing Agent B-E handoffs but must not fabricate them.
+- Agent F reports handoff coverage but does not fabricate missing agent results.
 
 ## Integration Notes
 

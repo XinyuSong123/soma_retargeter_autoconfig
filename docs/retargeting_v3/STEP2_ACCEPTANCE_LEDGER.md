@@ -23,9 +23,9 @@ Audit artifact: `artifacts/retargeting_v3_step2/test_results/acceptance_audit.js
 | rank0 false pass | 0 | PASS |
 | robot-name special cases | 2 | BLOCKED |
 | legacy offsets | 0 | PASS |
-| missing formal red-team artifacts | 1 | BLOCKED |
+| missing formal red-team artifacts | 0 | PASS |
 
-Total: **7 blocking findings**.
+Total: **6 blocking findings**.
 
 ## Traceability To `goal.md` False Positives
 
@@ -48,7 +48,7 @@ Total: **7 blocking findings**.
 - `validation_checks.g1_mjcf_urdf_equivalence` is missing or non-strict, so G1 equivalence is not a pass.
 - `environment.json` records artifacts generated from a dirty worktree and a git head different from the audited checkout.
 - `semantic_sites.py` still contains `default_rpo_semantic_map()` and the RPO-specific verified-map path.
-- Agent B handoff is missing.
+- All six subagent handoffs are present; Agent F's handoff records xhigh and the explicit BLOCKED result.
 
 ## Commands
 
@@ -60,7 +60,7 @@ python scripts/audit_retargeting_v3_step2.py \
   --junit-xml artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml
 ```
 
-Result: **BLOCKED**, exit code 1, 7 blockers.
+Result: **BLOCKED**, exit code 1, 6 blockers.
 
 ```bash
 python -m pytest tests/v3/test_acceptance_gates_*.py \
