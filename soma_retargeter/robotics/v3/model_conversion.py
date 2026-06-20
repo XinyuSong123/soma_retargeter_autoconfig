@@ -14,6 +14,7 @@ from .model_fingerprint import sha256_file
 from .numerical_jacobian import matrix_rank_and_singular_values, numerical_relative_jacobian
 from .semantic_sites import build_semantic_sites
 from .spatial import rotation_error
+from .target_builder import CANONICAL_MOTION_NAMES
 
 
 DEFAULT_CONVERSION_SETTINGS = {
@@ -21,6 +22,16 @@ DEFAULT_CONVERSION_SETTINGS = {
     "canonical_format": "mjcf",
     "preserve_runtime_topology": True,
 }
+
+CANONICAL_PROJECTION_TARGET_SOURCE = "canonical_semantic_targets"
+CANONICAL_PROJECTION_DESIRED_SOURCE = "canonical_targets.transforms"
+REQUIRED_CANONICAL_PROJECTION_TASKS = (
+    "torso",
+    "left_hand",
+    "right_hand",
+    "left_foot",
+    "right_foot",
+)
 
 
 def convert_urdf_to_canonical_mjcf(
@@ -103,7 +114,8 @@ def compare_runtime_models(
 
     left_sites: dict[str, SemanticSite] | None = None
     right_sites: dict[str, SemanticSite] | None = None
-    if semantic_map:
+    semantic_map_evidence = _semantic_map_evidence(semantic_map)
+    if semantic_map and semantic_map_evidence["verified"]:
         try:
             left_sites = build_semantic_sites(left, semantic_map)
             right_sites = build_semantic_sites(right, semantic_map)
@@ -118,7 +130,8 @@ def compare_runtime_models(
         except Exception as exc:
             semantic_fk = _failed_section("semantic_map_build_failed", f"{type(exc).__name__}: {exc}")
     else:
-        semantic_fk = _unavailable_section("semantic_map_not_provided")
+        reason = "semantic_map_not_provided" if not semantic_map else "verified_semantic_map_not_provided"
+        semantic_fk = _unavailable_section(reason, semantic_map_evidence=semantic_map_evidence)
     failures.extend(semantic_fk["failures"])
 
     if left_sites is None or right_sites is None:
@@ -164,6 +177,7 @@ def compare_runtime_models(
         "left_signature": left_sig,
         "right_signature": right_sig,
         "coordinate_comparison": coordinate_comparison,
+        "semantic_map_evidence": semantic_map_evidence,
         "semantic_fk": semantic_fk,
         "active_chains": active_chains,
         "rank_summary": rank_summary,
@@ -379,6 +393,20 @@ def _compare_canonical_projection_reports(
     if reports is None:
         return _unavailable_section("canonical_projection_reports_not_provided")
     left_report, right_report = reports
+    left_evidence = _canonical_projection_evidence(left_report)
+    right_evidence = _canonical_projection_evidence(right_report)
+    if left_evidence["status"] != "passed" or right_evidence["status"] != "passed":
+        reasons = []
+        reasons.extend(f"left:{reason}" for reason in left_evidence["reasons"])
+        reasons.extend(f"right:{reason}" for reason in right_evidence["reasons"])
+        return _unavailable_section(
+            _canonical_projection_unavailable_reason(left_evidence, right_evidence),
+            evidence={
+                "left": left_evidence,
+                "right": right_evidence,
+            },
+            incomplete_reasons=reasons,
+        )
     left_summary = _canonical_projection_summary(left_report)
     right_summary = _canonical_projection_summary(right_report)
     if not left_summary.get("motions") and not right_summary.get("motions"):
@@ -393,6 +421,10 @@ def _compare_canonical_projection_reports(
     return {
         "status": "passed" if not failures else "failed",
         "passed": not failures,
+        "evidence": {
+            "left": left_evidence,
+            "right": right_evidence,
+        },
         "left": left_summary,
         "right": right_summary,
         "failures": failures,
@@ -416,8 +448,6 @@ def _canonical_projection_summary(report: dict) -> dict:
                             "converged",
                             "residual",
                             "normalized_residual",
-                            "normalization_scale",
-                            "iterations",
                             "active_coordinates",
                             "desired_source",
                             "reference",
@@ -460,6 +490,115 @@ def _compare_projection_values(first, second, *, path: str, mismatch_paths: list
         return
     if first != second:
         mismatch_paths.append(path or "$")
+
+
+def _semantic_map_evidence(semantic_map: dict[str, str | dict] | None) -> dict:
+    if not semantic_map:
+        return {
+            "verified": False,
+            "semantic_count": 0,
+            "verified_semantics": [],
+            "unverified_semantics": [],
+            "reason": "semantic_map_not_provided",
+        }
+    verified: list[str] = []
+    unverified: list[str] = []
+    for semantic, entry in sorted(semantic_map.items()):
+        if isinstance(entry, dict) and str(entry.get("source", "")).startswith("verified"):
+            verified.append(semantic)
+        else:
+            unverified.append(semantic)
+    return {
+        "verified": bool(verified) and not unverified,
+        "semantic_count": len(semantic_map),
+        "verified_semantics": verified,
+        "unverified_semantics": unverified,
+        "reason": "verified_semantic_map" if verified and not unverified else "unverified_semantic_entries",
+    }
+
+
+def _canonical_projection_evidence(report: dict) -> dict:
+    reasons: list[str] = []
+    if not isinstance(report, dict):
+        return {
+            "status": "failed",
+            "reasons": ["canonical_projection_report_not_a_dict"],
+            "motion_count": 0,
+            "task_coverage": [],
+            "target_source": None,
+        }
+
+    target_source = report.get("target_source")
+    if target_source != CANONICAL_PROJECTION_TARGET_SOURCE:
+        reasons.append(f"target_source_not_canonical:{target_source!r}")
+
+    motion_order = [str(item) for item in report.get("motion_order", []) if isinstance(item, str)]
+    motions = report.get("motions", {})
+    if not isinstance(motions, dict):
+        motions = {}
+    motion_names = list(motion_order) or sorted(str(name) for name in motions)
+    if set(motion_names) == {"neutral"}:
+        reasons.append("canonical_projection_reports_neutral_only")
+    missing_motions = [name for name in CANONICAL_MOTION_NAMES if name not in set(motion_names)]
+    if missing_motions:
+        reasons.append("canonical_motion_coverage_insufficient")
+
+    task_coverage: set[str] = set()
+    bad_desired_sources: list[str] = []
+    missing_task_motions: list[str] = []
+    for motion_name in motion_names:
+        motion_payload = motions.get(motion_name, {})
+        tasks = motion_payload.get("tasks", {}) if isinstance(motion_payload, dict) else {}
+        if not isinstance(tasks, dict):
+            tasks = {}
+        motion_task_names = {str(task_name) for task_name in tasks}
+        task_coverage.update(motion_task_names)
+        missing_for_motion = [task for task in REQUIRED_CANONICAL_PROJECTION_TASKS if task not in motion_task_names]
+        if missing_for_motion:
+            missing_task_motions.append(motion_name)
+        for task_name, task_payload in sorted(tasks.items()):
+            if not isinstance(task_payload, dict):
+                bad_desired_sources.append(f"{motion_name}:{task_name}:missing_payload")
+                continue
+            desired_source = task_payload.get("desired_source")
+            if desired_source != CANONICAL_PROJECTION_DESIRED_SOURCE:
+                bad_desired_sources.append(f"{motion_name}:{task_name}:{desired_source!r}")
+    missing_tasks = [task for task in REQUIRED_CANONICAL_PROJECTION_TASKS if task not in task_coverage]
+    if missing_tasks:
+        reasons.append("canonical_task_coverage_insufficient")
+    if missing_task_motions:
+        reasons.append("canonical_task_coverage_incomplete_per_motion")
+    if bad_desired_sources:
+        reasons.append("canonical_desired_source_not_real")
+
+    return {
+        "status": "passed" if not reasons else "failed",
+        "reasons": reasons,
+        "motion_count": len(set(motion_names)),
+        "required_motion_count": len(CANONICAL_MOTION_NAMES),
+        "missing_motions": missing_motions,
+        "task_coverage": sorted(task_coverage),
+        "required_tasks": list(REQUIRED_CANONICAL_PROJECTION_TASKS),
+        "missing_tasks": missing_tasks,
+        "motions_missing_required_tasks": missing_task_motions,
+        "bad_desired_sources": bad_desired_sources,
+        "target_source": target_source,
+    }
+
+
+def _canonical_projection_unavailable_reason(left_evidence: dict, right_evidence: dict) -> str:
+    reasons = set(left_evidence.get("reasons", [])) | set(right_evidence.get("reasons", []))
+    if "canonical_projection_reports_neutral_only" in reasons:
+        return "canonical_projection_reports_neutral_only"
+    if any(str(reason).startswith("target_source_not_canonical") for reason in reasons):
+        return "canonical_projection_target_source_not_canonical"
+    if "canonical_desired_source_not_real" in reasons:
+        return "canonical_projection_desired_source_not_real"
+    if "canonical_motion_coverage_insufficient" in reasons:
+        return "canonical_projection_motion_coverage_insufficient"
+    if "canonical_task_coverage_insufficient" in reasons or "canonical_task_coverage_incomplete_per_motion" in reasons:
+        return "canonical_projection_task_coverage_insufficient"
+    return "canonical_projection_evidence_incomplete"
 
 
 def _gate_a_status(failures: list[str], sections: dict[str, dict]) -> str:

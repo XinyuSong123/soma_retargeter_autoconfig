@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import inspect
 import importlib.metadata
 import json
 import math
@@ -24,6 +25,7 @@ from .robot_zoo import (
     RobotValidationStatus,
     RobotZooEntry,
     ResolvedRobotSource,
+    TERMINAL_PASS_STATUSES,
     allowed_status_values,
     display_path,
     load_robot_zoo_manifest,
@@ -134,7 +136,12 @@ def write_validation_artifacts(
         if report["status"] in _FAILURE_ARTIFACT_STATUSES:
             _write_json(failures_dir / f"{entry.id}.json", report)
 
-    validation_checks = _validation_checks(out)
+    validation_checks = _run_validation_checks(
+        out,
+        manifest_path=manifest.path,
+        full_reports=full_reports,
+        resolved_sources=resolved_sources,
+    )
     cross_format = _cross_format_report(reports, per_robot, validation_checks=validation_checks)
     deterministic = _deterministic_rerun_report(
         manifest.entries,
@@ -705,7 +712,7 @@ def _cross_format_report(reports: dict[str, dict], per_robot: Path, *, validatio
         "schema_version": 2,
         "gates": {
             "same_source_strict": _same_source_strict_gate(validation_checks or {}),
-            "variant_compatibility": _variant_compatibility_gate(pairs),
+            "variant_compatibility": _variant_compatibility_gate(pairs, per_robot=per_robot),
         },
         "pairs": pairs,
     }
@@ -773,49 +780,288 @@ def _same_source_gate_reason(check: dict, gate_status: str) -> str:
     return "same-source strict comparison has no validation evidence"
 
 
-def _variant_compatibility_gate(pairs: dict[str, dict]) -> dict:
-    return {
-        "status": "blocked",
-        "reason": (
-            "variant compatibility requires semantic FK, common-chain, rank, DoF-difference, "
-            "and projection evidence for independently passing variants"
-        ),
-        "pair_count": len(pairs),
-        "pair_statuses": {
-            family: {
-                "status": pair["status"],
-                "urdf_status": pair["inputs"]["urdf_status"],
-                "mjcf_status": pair["inputs"]["mjcf_status"],
+def _variant_compatibility_gate(pairs: dict[str, dict], *, per_robot: Path) -> dict:
+    pair_statuses = {}
+    eligible_count = 0
+    passed_count = 0
+    for family, pair in sorted(pairs.items()):
+        urdf_status = pair["inputs"]["urdf_status"]
+        mjcf_status = pair["inputs"]["mjcf_status"]
+        if urdf_status not in TERMINAL_PASS_STATUSES or mjcf_status not in TERMINAL_PASS_STATUSES:
+            pair_statuses[family] = {
+                "status": "not_eligible",
+                "urdf_status": urdf_status,
+                "mjcf_status": mjcf_status,
+                "reason": "variant compatibility only runs when both variants independently pass profile gates",
             }
-            for family, pair in sorted(pairs.items())
-        },
-    }
+            continue
+        eligible_count += 1
+        result = _variant_pair_compatibility(pair, per_robot=per_robot)
+        if result["status"] == "passed":
+            passed_count += 1
+        pair_statuses[family] = result
 
-
-def _validation_checks(output_dir: Path) -> dict:
+    if eligible_count == 0:
+        status = "blocked"
+        reason = "no independently passing URDF/MJCF variant pair is available for compatibility evidence"
+    elif passed_count == eligible_count:
+        status = "passed"
+        reason = "all independently passing URDF/MJCF variant pairs have compatibility evidence"
+    else:
+        status = "failed"
+        reason = "one or more independently passing URDF/MJCF variant pairs failed compatibility evidence"
     return {
-        "g1_mjcf_urdf_equivalence": _g1_same_source_strict_check(output_dir),
+        "status": status,
+        "reason": reason,
+        "pair_count": len(pairs),
+        "eligible_pair_count": eligible_count,
+        "passed_pair_count": passed_count,
+        "pair_statuses": pair_statuses,
     }
 
 
-def _g1_same_source_strict_check(output_dir: Path) -> dict:
-    source = _find_g1_same_source_urdf()
+def _variant_pair_compatibility(pair: dict, *, per_robot: Path) -> dict:
+    urdf_report = _load_pair_report(per_robot, pair["urdf"])
+    mjcf_report = _load_pair_report(per_robot, pair["mjcf"])
+    evidence = {
+        "semantic_sites": _variant_semantic_site_evidence(urdf_report, mjcf_report),
+        "common_chains": _variant_chain_evidence(urdf_report, mjcf_report),
+        "rank_summary": _variant_rank_evidence(urdf_report, mjcf_report),
+        "dof_difference": _variant_dof_evidence(urdf_report, mjcf_report),
+        "canonical_projection": _variant_projection_evidence(urdf_report, mjcf_report),
+    }
+    failures = {
+        name: payload.get("failures", [])
+        for name, payload in evidence.items()
+        if payload.get("status") != "passed"
+    }
+    return {
+        "status": "passed" if not failures else "failed",
+        "urdf_status": pair["inputs"]["urdf_status"],
+        "mjcf_status": pair["inputs"]["mjcf_status"],
+        "urdf": pair["urdf"],
+        "mjcf": pair["mjcf"],
+        "comparison_mode": "variant_compatibility",
+        "strict_equivalence": False,
+        "evidence": evidence,
+        "failures": failures,
+    }
+
+
+def _load_pair_report(per_robot: Path, model_id: str) -> dict:
+    path = per_robot / f"{model_id}.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())
+
+
+def _variant_semantic_site_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
+    required = ("Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot")
+    urdf_sites = urdf_report.get("semantic_sites", {}) if isinstance(urdf_report, dict) else {}
+    mjcf_sites = mjcf_report.get("semantic_sites", {}) if isinstance(mjcf_report, dict) else {}
+    failures = []
+    per_semantic = {}
+    for semantic in required:
+        left = urdf_sites.get(semantic, {})
+        right = mjcf_sites.get(semantic, {})
+        left_source = str(left.get("source", ""))
+        right_source = str(right.get("source", ""))
+        passed = bool(left) and bool(right) and left_source.startswith("verified") and right_source.startswith("verified")
+        if semantic != "Hips":
+            passed = passed and left.get("body_name") == right.get("body_name")
+        if not passed:
+            failures.append(f"semantic_site_mismatch:{semantic}")
+        per_semantic[semantic] = {
+            "passed": passed,
+            "urdf_body": left.get("body_name"),
+            "mjcf_body": right.get("body_name"),
+            "urdf_source": left_source,
+            "mjcf_source": right_source,
+        }
+    return {"status": "passed" if not failures else "failed", "per_semantic": per_semantic, "failures": failures}
+
+
+def _variant_chain_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
+    urdf_chains = urdf_report.get("chains", {}) if isinstance(urdf_report, dict) else {}
+    mjcf_chains = mjcf_report.get("chains", {}) if isinstance(mjcf_report, dict) else {}
+    common = sorted(set(urdf_chains) & set(mjcf_chains))
+    failures = []
+    per_task = {}
+    for task in common:
+        left = urdf_chains[task]
+        right = mjcf_chains[task]
+        task_failures = []
+        for key in ("reference", "target", "coordinate_labels", "joint_types"):
+            if left.get(key) != right.get(key):
+                task_failures.append(key)
+        if task_failures:
+            failures.extend(f"chain_mismatch:{task}:{key}" for key in task_failures)
+        per_task[task] = {
+            "passed": not task_failures,
+            "urdf_active_velocity_coordinates": left.get("active_velocity_coordinates"),
+            "mjcf_active_velocity_coordinates": right.get("active_velocity_coordinates"),
+            "coordinate_labels": left.get("coordinate_labels"),
+            "failures": task_failures,
+        }
+    missing = sorted(set(urdf_chains) ^ set(mjcf_chains))
+    failures.extend(f"chain_missing:{task}" for task in missing)
+    return {"status": "passed" if common and not failures else "failed", "per_task": per_task, "failures": failures}
+
+
+def _variant_rank_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
+    urdf_rank = urdf_report.get("rank_stability", {}) if isinstance(urdf_report, dict) else {}
+    mjcf_rank = mjcf_report.get("rank_stability", {}) if isinstance(mjcf_report, dict) else {}
+    common = sorted(set(urdf_rank) & set(mjcf_rank))
+    failures = []
+    per_task = {}
+    for task in common:
+        left = urdf_rank[task]
+        right = mjcf_rank[task]
+        keys = (
+            ("nominal_rank_rotation", "regular_rank_rotation")
+            if task == "torso"
+            else ("nominal_rank_translation", "regular_rank_translation")
+        )
+        task_failures = [key for key in keys if left.get(key) != right.get(key)]
+        if not left.get("epsilon_stability_gate_passed") or not right.get("epsilon_stability_gate_passed"):
+            task_failures.append("epsilon_stability_gate_passed")
+        failures.extend(f"rank_mismatch:{task}:{key}" for key in task_failures)
+        per_task[task] = {
+            "passed": not task_failures,
+            "urdf": {key: left.get(key) for key in keys},
+            "mjcf": {key: right.get(key) for key in keys},
+            "rank_contract": "torso_rotation" if task == "torso" else "endpoint_translation",
+            "failures": task_failures,
+        }
+    failures.extend(f"rank_missing:{task}" for task in sorted(set(urdf_rank) ^ set(mjcf_rank)))
+    return {"status": "passed" if common and not failures else "failed", "per_task": per_task, "failures": failures}
+
+
+def _variant_dof_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
+    urdf_runtime = urdf_report.get("runtime_adapter", {}) if isinstance(urdf_report, dict) else {}
+    mjcf_runtime = mjcf_report.get("runtime_adapter", {}) if isinstance(mjcf_report, dict) else {}
+    return {
+        "status": "passed" if urdf_runtime and mjcf_runtime else "failed",
+        "urdf_nq": urdf_runtime.get("nq"),
+        "urdf_nv": urdf_runtime.get("nv"),
+        "mjcf_nq": mjcf_runtime.get("nq"),
+        "mjcf_nv": mjcf_runtime.get("nv"),
+        "reason": "variant DoF differences are recorded and allowed only with matching semantic chain labels",
+        "failures": [] if urdf_runtime and mjcf_runtime else ["runtime_dimensions_missing"],
+    }
+
+
+def _variant_projection_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
+    required_tasks = ("torso", "left_hand", "right_hand", "left_foot", "right_foot")
+    failures = []
+    per_side = {}
+    for side, report in (("urdf", urdf_report), ("mjcf", mjcf_report)):
+        projection = report.get("canonical_projection_reports", {}) if isinstance(report, dict) else {}
+        motions = projection.get("motions", {}) if isinstance(projection, dict) else {}
+        motion_order = projection.get("motion_order", []) if isinstance(projection, dict) else []
+        side_failures = []
+        if len(motion_order) < 15:
+            side_failures.append("canonical_motion_coverage_insufficient")
+        if projection.get("failures"):
+            side_failures.append("canonical_projection_failures_present")
+        task_coverage = set()
+        for motion in motions.values():
+            tasks = motion.get("tasks", {}) if isinstance(motion, dict) else {}
+            task_coverage.update(tasks)
+        missing_tasks = [task for task in required_tasks if task not in task_coverage]
+        if missing_tasks:
+            side_failures.append("canonical_projection_task_coverage_insufficient")
+        failures.extend(f"{side}:{failure}" for failure in side_failures)
+        per_side[side] = {
+            "passed": not side_failures,
+            "motion_count": len(motion_order),
+            "task_coverage": sorted(task_coverage),
+            "missing_tasks": missing_tasks,
+            "failures": side_failures,
+        }
+    return {"status": "passed" if not failures else "failed", "per_side": per_side, "failures": failures}
+
+
+def _run_validation_checks(
+    output_dir: Path,
+    *,
+    manifest_path: Path,
+    full_reports: dict[str, dict],
+    resolved_sources: dict[str, ResolvedRobotSource],
+) -> dict:
+    """Call validation checks while preserving old one-arg test monkeypatches."""
+
+    kwargs = {
+        "manifest_path": manifest_path,
+        "full_reports": full_reports,
+        "resolved_sources": resolved_sources,
+    }
+    try:
+        signature = inspect.signature(_validation_checks)
+    except (TypeError, ValueError):
+        return _validation_checks(output_dir)
+    has_var_kwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values())
+    accepted = {
+        key: value
+        for key, value in kwargs.items()
+        if has_var_kwargs or key in signature.parameters
+    }
+    return _validation_checks(output_dir, **accepted)
+
+
+def _validation_checks(
+    output_dir: Path,
+    *,
+    manifest_path: Path = ROBOT_ZOO_MANIFEST_PATH,
+    full_reports: dict[str, dict] | None = None,
+    resolved_sources: dict[str, ResolvedRobotSource] | None = None,
+) -> dict:
+    return {
+        "g1_mjcf_urdf_equivalence": _g1_same_source_strict_check(
+            output_dir,
+            manifest_path=manifest_path,
+            full_reports=full_reports,
+            resolved_sources=resolved_sources,
+        ),
+    }
+
+
+def _g1_same_source_strict_check(
+    output_dir: Path,
+    *,
+    manifest_path: Path = ROBOT_ZOO_MANIFEST_PATH,
+    full_reports: dict[str, dict] | None = None,
+    resolved_sources: dict[str, ResolvedRobotSource] | None = None,
+) -> dict:
+    source = _find_g1_same_source_urdf_compat(manifest_path=manifest_path, resolved_sources=resolved_sources)
     if source is None:
         return {
             "status": "source_unavailable",
             "gate_a_status": "blocked",
             "gate_a_evidence_complete": False,
-            "reason": "fixed G1 same-source URDF cache was not found",
+            "reason": "manifest-backed fixed G1 same-source URDF was not resolved",
             "differences": {"source": "unavailable"},
-            "evidence_incomplete_reasons": {"source": "fixed G1 same-source URDF cache was not found"},
+            "evidence_incomplete_reasons": {"source": "manifest-backed fixed G1 same-source URDF was not resolved"},
         }
+    semantic_map, semantic_map_resolution = _g1_same_source_semantic_map(manifest_path=manifest_path, source=source)
     generated = output_dir / "cross_format" / "unitree_g1_same_source_canonical.xml"
     try:
         conversion = convert_urdf_to_canonical_mjcf(source, generated)
+        projection_resolution = _g1_same_source_projection_reports(
+            source,
+            generated,
+            semantic_map=semantic_map,
+            full_reports=full_reports,
+        )
         left = MuJoCoRuntimeModelAdapter(source, model_format="urdf")
         right = MuJoCoRuntimeModelAdapter(generated, model_format="xml")
         try:
-            equivalence = compare_runtime_models(left, right)
+            equivalence = _compare_runtime_models_for_gate_a(
+                left,
+                right,
+                semantic_map=semantic_map,
+                canonical_projection_reports=projection_resolution["reports"],
+            )
         finally:
             left.close()
             right.close()
@@ -840,6 +1086,9 @@ def _g1_same_source_strict_check(output_dir: Path) -> dict:
         "source_sha256": conversion["source_sha256"],
         "generated_sha256": sha256_file(generated),
         "generated_runtime_sha256": conversion["output_sha256"],
+        "source_resolution": _g1_same_source_resolution_payload(source, manifest_path=manifest_path),
+        "semantic_map_resolution": semantic_map_resolution,
+        "projection_report_resolution": projection_resolution["resolution"],
         "generated_artifact_sanitization": {
             "status": "applied",
             "path_placeholders": [
@@ -894,15 +1143,226 @@ def _same_source_evidence_incomplete_reasons(evidence_sections: dict[str, dict])
     return reasons
 
 
-def _find_g1_same_source_urdf() -> Path | None:
-    candidates = [
-        Path.home() / ".cache/newton/newton-assets_unitree_g1_308a72cd/unitree_g1/urdf/g1_29dof.urdf",
-        Path.home() / ".cache/robot_descriptions/unitree_ros/robots/g1_description/g1_29dof.urdf",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return None
+def _find_g1_same_source_urdf(
+    *,
+    manifest_path: Path = ROBOT_ZOO_MANIFEST_PATH,
+    resolved_sources: dict[str, ResolvedRobotSource] | None = None,
+) -> Path | None:
+    resolved = _resolve_g1_same_source_urdf(manifest_path=manifest_path, resolved_sources=resolved_sources)
+    return resolved.path if resolved and resolved.available else None
+
+
+def _find_g1_same_source_urdf_compat(
+    *,
+    manifest_path: Path,
+    resolved_sources: dict[str, ResolvedRobotSource] | None,
+) -> Path | None:
+    """Call the manifest-backed resolver while tolerating old test monkeypatches."""
+
+    try:
+        signature = inspect.signature(_find_g1_same_source_urdf)
+    except (TypeError, ValueError):
+        return _find_g1_same_source_urdf()
+    has_var_kwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values())
+    kwargs = {}
+    if has_var_kwargs or "manifest_path" in signature.parameters:
+        kwargs["manifest_path"] = manifest_path
+    if has_var_kwargs or "resolved_sources" in signature.parameters:
+        kwargs["resolved_sources"] = resolved_sources
+    return _find_g1_same_source_urdf(**kwargs)
+
+
+def _resolve_g1_same_source_urdf(
+    *,
+    manifest_path: Path = ROBOT_ZOO_MANIFEST_PATH,
+    resolved_sources: dict[str, ResolvedRobotSource] | None = None,
+) -> ResolvedRobotSource | None:
+    manifest = load_robot_zoo_manifest(manifest_path)
+    entry = manifest.model_by_id.get("unitree_g1_urdf")
+    if entry is None:
+        return None
+    if resolved_sources and "unitree_g1_urdf" in resolved_sources:
+        return resolved_sources["unitree_g1_urdf"]
+    return resolve_robot_source(entry, allow_fetch=False)
+
+
+def _g1_same_source_resolution_payload(source: Path, *, manifest_path: Path) -> dict:
+    resolved = _resolve_g1_same_source_urdf(manifest_path=manifest_path)
+    if resolved is None:
+        return {
+            "status": "available",
+            "resolver": "test_override",
+            "path": display_path(source),
+            "local_file_sha256": sha256_file(source),
+            "manifest_model_id": None,
+        }
+    manifest = load_robot_zoo_manifest(manifest_path)
+    payload = resolved.to_json(manifest_path=manifest.path, manifest_sha256=manifest.sha256)
+    payload["manifest_model_id"] = "unitree_g1_urdf"
+    return payload
+
+
+def _g1_same_source_semantic_map(*, manifest_path: Path, source: Path) -> tuple[dict[str, str | dict] | None, dict]:
+    try:
+        manifest = load_robot_zoo_manifest(manifest_path)
+        entry = manifest.model_by_id.get("unitree_g1_urdf")
+        if entry is None:
+            return None, {
+                "status": "missing",
+                "source": "verified_semantic_map",
+                "reason": "manifest entry unitree_g1_urdf is missing",
+            }
+        semantic_path = _resolve_verified_semantic_map_path(entry, manifest_path=manifest.path)
+        if semantic_path is None:
+            return None, {
+                "status": "missing",
+                "source": "verified_semantic_map",
+                "reason": "manifest-backed verified semantic map was not found",
+            }
+        payload = json.loads(semantic_path.read_text())
+        expected_sha = payload.get("source_model", {}).get("local_file_sha256")
+        actual_sha = sha256_file(source)
+        if expected_sha and expected_sha != actual_sha:
+            return None, {
+                "status": "failed",
+                "source": "verified_semantic_map",
+                "path": display_path(semantic_path),
+                "manifest_model_id": "unitree_g1_urdf",
+                "reason": "verified semantic map source hash does not match manifest-resolved G1 URDF",
+                "expected_source_sha256": expected_sha,
+                "actual_source_sha256": actual_sha,
+            }
+        return load_semantic_map(semantic_path), {
+            "status": "available",
+            "source": "verified_semantic_map",
+            "path": display_path(semantic_path),
+            "manifest_model_id": "unitree_g1_urdf",
+        }
+    except Exception as exc:
+        return None, {
+            "status": "failed",
+            "source": "verified_semantic_map",
+            "reason": f"{type(exc).__name__}: {exc}",
+        }
+
+
+def _g1_same_source_projection_reports(
+    source: Path,
+    generated: Path,
+    *,
+    semantic_map: dict[str, str | dict] | None,
+    full_reports: dict[str, dict] | None,
+) -> dict:
+    source_report = _canonical_projection_report_for_model("unitree_g1_urdf", full_reports)
+    generated_report = None
+    source_error = None
+    generated_error = None
+    if semantic_map is not None:
+        try:
+            source_report = _compile_same_source_canonical_projection(
+                source,
+                semantic_map=semantic_map,
+                model_format="urdf",
+                model_id="unitree_g1_same_source_source_urdf",
+            )
+        except Exception as exc:
+            source_error = f"{type(exc).__name__}: {exc}"
+        try:
+            generated_report = _compile_same_source_canonical_projection(
+                generated,
+                semantic_map=semantic_map,
+                model_format="mjcf",
+                model_id="unitree_g1_same_source_canonical_mjcf",
+            )
+        except Exception as exc:
+            generated_error = f"{type(exc).__name__}: {exc}"
+    reasons: dict[str, str] = {}
+    if source_error:
+        reasons["source"] = source_error
+    elif source_report is None:
+        reasons["source"] = "unitree_g1_urdf canonical_projection_reports were not available from manifest validation"
+    if semantic_map is None:
+        reasons["semantic_map"] = "verified semantic map was not available for canonical projection"
+    if generated_error:
+        reasons["generated"] = generated_error
+    elif source_report is not None and generated_report is None:
+        reasons["generated"] = "generated canonical MJCF projection report was not materialized"
+    reports = (source_report, generated_report) if source_report is not None and generated_report is not None else None
+    return {
+        "reports": reports,
+        "resolution": {
+            "status": "available" if reports is not None else "incomplete",
+            "source_report": "available" if source_report is not None else "missing",
+            "generated_report": "available" if generated_report is not None else "missing",
+            "generated_model": display_path(generated),
+            "source_model": display_path(source),
+            "reasons": reasons,
+        },
+    }
+
+
+def _canonical_projection_report_for_model(model_id: str, full_reports: dict[str, dict] | None) -> dict | None:
+    if not full_reports:
+        return None
+    report = full_reports.get(model_id, {})
+    if not isinstance(report, dict):
+        return None
+    projection = report.get("canonical_projection_reports")
+    return projection if isinstance(projection, dict) and projection else None
+
+
+def _compile_same_source_canonical_projection(
+    model_path: Path,
+    *,
+    semantic_map: dict[str, str | dict],
+    model_format: str,
+    model_id: str,
+) -> dict:
+    profile = compile_kinematic_profile_v3(
+        model_path,
+        semantic_map,
+        model_id=model_id,
+        model_format=model_format,
+        backend="mujoco",
+        low_discrepancy_count=1,
+        reproduction_command=(
+            "python -m soma_retargeter.tools.compile_kinematic_profile_v3 "
+            f"--robot-id {model_id} --backend mujoco"
+        ),
+    )
+    return profile.to_json().get("canonical_projection_reports", {})
+
+
+def _compare_runtime_models_for_gate_a(
+    left,
+    right,
+    *,
+    semantic_map: dict[str, str | dict] | None,
+    canonical_projection_reports: tuple[dict, dict] | None,
+) -> dict:
+    kwargs = {}
+    try:
+        signature = inspect.signature(compare_runtime_models)
+    except (TypeError, ValueError):
+        signature = None
+    has_var_kwargs = False
+    if signature is not None:
+        has_var_kwargs = any(param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values())
+    if semantic_map is not None and (signature is None or has_var_kwargs or "semantic_map" in signature.parameters):
+        kwargs["semantic_map"] = semantic_map
+    if (
+        canonical_projection_reports is not None
+        and (signature is None or has_var_kwargs or "canonical_projection_reports" in signature.parameters)
+    ):
+        kwargs["canonical_projection_reports"] = canonical_projection_reports
+    for key, value in {
+        "position_atol": 1e-6,
+        "rotation_atol": 2e-6,
+        "projection_atol": 1e-7,
+    }.items():
+        if signature is None or has_var_kwargs or key in signature.parameters:
+            kwargs[key] = value
+    return compare_runtime_models(left, right, **kwargs)
 
 
 def _deterministic_rerun_report(

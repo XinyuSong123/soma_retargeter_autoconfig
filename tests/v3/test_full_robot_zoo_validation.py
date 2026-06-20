@@ -591,7 +591,7 @@ def test_cross_format_same_source_gate_passes_only_complete_evidence(tmp_path: P
     assert same_source["validation_check_status"] == "passed"
     assert same_source["gate_a_status"] == "complete_passed"
     assert same_source["gate_a_evidence_complete"]
-    assert cross_format["gates"]["variant_compatibility"]["status"] == "blocked"
+    assert cross_format["gates"]["variant_compatibility"]["status"] == "failed"
 
 
 def _unstable_epsilon_profile_payload(source: Path, *, model_id: str) -> dict:

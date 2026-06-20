@@ -8,6 +8,7 @@ from scripts.audit_retargeting_v3_step2 import (
     GOAL_FALSE_POSITIVE_TRACEABILITY,
     REQUIRED_ARTIFACT_FILES,
     REQUIRED_CANONICAL_MOTIONS,
+    main as audit_main,
     run_audit,
 )
 
@@ -62,6 +63,57 @@ def test_audit_blocks_local_absolute_paths_anywhere_in_artifacts(tmp_path: Path)
     assert "${LOCAL_SOURCE_PATH}/model.obj" in payload
 
 
+def test_audit_allows_sanitized_placeholders_in_test_result_artifacts(tmp_path: Path):
+    artifact_dir = _write_baseline_artifacts(tmp_path)
+    (artifact_dir / "test_results" / "pytest.txt").write_text(
+        "${LOCAL_SOURCE_PATH}/tests/v3/test_acceptance_gates_audit.py:12: passed\n"
+    )
+    (artifact_dir / "test_results" / "junit.xml").write_text(
+        '<testsuite><testcase file="${LOCAL_SOURCE_PATH}/tests/v3/test_acceptance_gates_audit.py"/></testsuite>\n'
+    )
+    (artifact_dir / "test_results" / "coverage.json").write_text(
+        json.dumps(
+            {
+                "files": {
+                    "${LOCAL_SOURCE_PATH}/scripts/audit_retargeting_v3_step2.py": {},
+                    "${ROBOT_DESCRIPTIONS_CACHE}/unitree/g1.urdf": {},
+                    "${NEWTON_CACHE}/models/g1.xml": {},
+                }
+            }
+        )
+        + "\n"
+    )
+
+    result = run_audit(artifact_dir=artifact_dir, source_root=Path("."))
+
+    assert result.gate_counts["absolute_cache_paths"] == 0
+    assert result.status == "PASS"
+
+
+def test_audit_blocks_real_absolute_paths_in_test_result_artifacts(tmp_path: Path):
+    artifact_dir = _write_baseline_artifacts(tmp_path)
+    (artifact_dir / "test_results" / "pytest.txt").write_text(
+        'E   File "/mnt/ssd1/song/project/tests/test_failure.py", line 7\n'
+    )
+    (artifact_dir / "test_results" / "junit.xml").write_text(
+        '<testsuite><testcase file="/tmp/pytest-of-user/test_failure.py"/></testsuite>\n'
+    )
+    (artifact_dir / "test_results" / "coverage.json").write_text(
+        '{"/private/var/folders/run/pkg/module.py": {"executed_lines": [1]}}\n'
+    )
+
+    result = run_audit(artifact_dir=artifact_dir, source_root=Path("."))
+    payload = json.dumps(result.to_json())
+
+    assert result.gate_counts["absolute_cache_paths"] == 3
+    assert result.status == "BLOCKED"
+    assert "/mnt/ssd1/song" not in payload
+    assert "/tmp/pytest-of-user" not in payload
+    assert "/private/var/folders" not in payload
+    assert "${LOCAL_SOURCE_PATH}/test_failure.py" in payload
+    assert "${LOCAL_SOURCE_PATH}/module.py" in payload
+
+
 def test_audit_blocks_missing_required_reproducibility_artifacts(tmp_path: Path):
     artifact_dir = _write_baseline_artifacts(tmp_path, include_required_artifacts=False)
 
@@ -69,6 +121,33 @@ def test_audit_blocks_missing_required_reproducibility_artifacts(tmp_path: Path)
 
     assert result.gate_counts["missing_required_artifacts"] == len(REQUIRED_ARTIFACT_FILES)
     assert result.status == "BLOCKED"
+
+
+def test_audit_cli_reaudits_after_writing_acceptance_ledger(tmp_path: Path, capsys):
+    artifact_dir = _write_baseline_artifacts(
+        tmp_path,
+        omitted_required_artifacts={"acceptance_ledger.json"},
+    )
+    ledger = artifact_dir / "acceptance_ledger.json"
+
+    exit_code = audit_main(
+        [
+            "--artifact-dir",
+            str(artifact_dir),
+            "--source-root",
+            ".",
+            "--output-json",
+            str(ledger),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(ledger.read_text())
+    printed = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["status"] == "PASS"
+    assert payload["gate_counts"]["missing_required_artifacts"] == 0
+    assert printed["status"] == "PASS"
 
 
 def test_audit_blocks_cross_format_gates_left_not_run(tmp_path: Path):
@@ -118,6 +197,7 @@ def _write_baseline_artifacts(
     include_required_artifacts: bool = True,
     cross_format: dict | None = None,
     reports: dict[str, dict] | None = None,
+    omitted_required_artifacts: set[str] | None = None,
 ) -> Path:
     artifact_dir = tmp_path / "artifacts"
     (artifact_dir / "per_robot").mkdir(parents=True)
@@ -144,7 +224,10 @@ def _write_baseline_artifacts(
     for robot_id, report in (reports or {}).items():
         (artifact_dir / "per_robot" / f"{robot_id}.json").write_text(json.dumps(report) + "\n")
     if include_required_artifacts:
+        omitted = omitted_required_artifacts or set()
         for relative in REQUIRED_ARTIFACT_FILES:
+            if relative in omitted:
+                continue
             (artifact_dir / relative).write_text("{}\n")
     return artifact_dir
 
@@ -163,7 +246,10 @@ def _first_finding(result, gate: str):
 
 def _artifact_tree_has_local_absolute_paths(artifact_dir: Path) -> bool:
     return any(
-        any(prefix in path.read_text(errors="ignore") for prefix in ("/mnt/", "/home/", "/Users/"))
+        any(
+            prefix in path.read_text(errors="ignore")
+            for prefix in ("/mnt/", "/home/", "/Users/", "/tmp/", "/var/", "/private/var/")
+        )
         for path in artifact_dir.rglob("*")
         if path.is_file()
     )

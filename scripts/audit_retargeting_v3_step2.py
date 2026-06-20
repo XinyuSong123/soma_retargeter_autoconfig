@@ -22,7 +22,9 @@ import xml.etree.ElementTree as ET
 DEFAULT_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step2")
 DEFAULT_SOURCE_ROOT = Path(".")
 ZERO_TOL = 1e-12
-ABSOLUTE_LOCAL_PREFIXES = ("/mnt/", "/home/", "/Users/")
+LOCAL_ABSOLUTE_PATH_RE = re.compile(
+    r"(?<![\w$])/(?:mnt|home|Users|tmp|var|private/var)/[^\s\"'<>),\]}`:]+"
+)
 FULL_HUMANOID_REPORTS = (
     "roboparty_rpo",
     "unitree_g1_mjcf",
@@ -897,8 +899,7 @@ def _vectors_close(a: object, b: object) -> bool:
 
 
 def _absolute_local_hits(text: str) -> list[str]:
-    pattern = r"(?<![\w$])/(?:mnt|home|Users)/[^\s\"'<>),\]}`]+"
-    return [match.group(0).rstrip(".,;:") for match in re.finditer(pattern, text)]
+    return [match.group(0).rstrip(".,;") for match in LOCAL_ABSOLUTE_PATH_RE.finditer(text)]
 
 
 def _sanitize_audit_payload(value):
@@ -914,15 +915,13 @@ def _sanitize_audit_payload(value):
 
 
 def _sanitize_audit_string(value: str) -> str:
-    pattern = r"(?<![\w$])/(?:mnt|home|Users|tmp|var|private/var)/[^\s\"'<>),\]}`:]+"
-
     def replace(match: re.Match[str]) -> str:
         token = match.group(0)
         path_text = token.rstrip(".,;")
         suffix = token[len(path_text) :]
         return f"{_display_audit_path(Path(path_text))}{suffix}"
 
-    return re.sub(pattern, replace, value)
+    return LOCAL_ABSOLUTE_PATH_RE.sub(replace, value)
 
 
 def _display_audit_path(path: Path) -> str:
@@ -1020,6 +1019,19 @@ def write_junit(result: AuditResult, path: Path) -> None:
     tree.write(path, encoding="utf-8", xml_declaration=True)
 
 
+def _write_audit_json(result: AuditResult, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(result.to_json(), indent=2, sort_keys=True) + "\n")
+
+
+def _is_required_artifact_output(path: Path, artifact_dir: Path) -> bool:
+    try:
+        relative = path.resolve().relative_to(artifact_dir.resolve())
+    except ValueError:
+        return False
+    return relative.as_posix() in REQUIRED_ARTIFACT_FILES
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifact-dir", type=Path, default=DEFAULT_ARTIFACT_DIR)
@@ -1029,10 +1041,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     result = run_audit(args.artifact_dir, args.source_root)
-    payload = result.to_json()
     if args.output_json:
-        args.output_json.parent.mkdir(parents=True, exist_ok=True)
-        args.output_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        _write_audit_json(result, args.output_json)
+        if _is_required_artifact_output(args.output_json, args.artifact_dir):
+            result = run_audit(args.artifact_dir, args.source_root)
+            _write_audit_json(result, args.output_json)
     if args.junit_xml:
         write_junit(result, args.junit_xml)
 

@@ -19,6 +19,44 @@
 
 ---
 
+## 0.0 2026-06-21 状态同步
+
+Docs/status worker: Step2 docs/status worker
+Reasoning strength: **xhigh**
+
+当前 Step 2 状态是 **BLOCKED**。不得宣称 Step 2 完成或 `PASS`。
+
+最新正式 pytest artifact：
+
+```text
+artifacts/retargeting_v3_step2/test_results/pytest.txt
+209 passed, 10 skipped
+```
+
+最新 acceptance audit artifact：
+
+```text
+artifacts/retargeting_v3_step2/acceptance_ledger.json
+status=BLOCKED
+blocking_count=3
+```
+
+当前剩余硬 blocker：
+
+1. `arbitrary_g1_equivalence`：`validation_checks.g1_mjcf_urdf_equivalence`
+   仍为 `status="incomplete"`，不能视为严格 G1 等价通过。
+2. `cross_format.gates.same_source_strict`：Gate A 仍为
+   `status="incomplete"`，缺 semantic FK、active-chain、rank-summary 和
+   canonical-projection 证据。
+3. `cross_format.gates.variant_compatibility`：Gate B 仍为
+   `status="blocked"`，缺独立通过变体的 semantic FK、common-chain、rank、
+   DoF-difference 和 projection 证据。
+
+旧文档或旧 artifact 中关于 false-positive audit `PASS`、G1 strict
+equivalence `passed`、`124 passed, 10 skipped`、`passed=1/source_unavailable=45`
+或 deterministic rerun `not_run` 的说法均为 **superseded/stale**，仅保留为
+历史记录，不代表当前事实。
+
 ## 0. 当前审计结论：本轮必须逐项关闭
 
 | 项目 | 当前判定 | 本轮要求 |
@@ -127,6 +165,8 @@
 ## 4. 六个专业 Subagent：必须全部启用
 
 主 Codex 为 **Integrator**。启动后一次创建 6 个专业 subagent。六个 agent 必须全部工作，不能只把任务名列出来。
+
+硬性推理强度要求：所有新建、继续使用、重新启动或补充启动的 subagent 都必须使用 `xhigh` 推理强度；handoff 中必须明确记录实际使用的推理强度。
 
 每个 agent 必须：
 

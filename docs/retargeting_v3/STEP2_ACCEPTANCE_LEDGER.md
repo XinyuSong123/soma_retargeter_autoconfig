@@ -1,55 +1,66 @@
 # Step 2 Acceptance Ledger
 
-Status: **FALSE-POSITIVE AUDIT PASS; FULL STEP 2 NOT COMPLETE**  
-Owner: Agent F - Reproducibility, CI & Independent Red Team  
-Reasoning strength: **xhigh**  
-Audit artifact: `artifacts/retargeting_v3_step2/test_results/acceptance_audit.json`
+Status: **BLOCKED**
+Owner: Step2 docs/status worker
+Reasoning strength: **xhigh**
+Formal pytest artifact: `artifacts/retargeting_v3_step2/test_results/pytest.txt`
+Acceptance audit artifact: `artifacts/retargeting_v3_step2/acceptance_ledger.json`
 
-## Gate Results
+## Current Status
 
-| Gate | Blocking findings | Current result |
-|---|---:|---|
-| hardcoded zero calibration | 0 | PASS |
-| neutral-to-neutral fake projection | 0 | PASS |
-| canonical targets without projection | 0 | PASS |
-| zero-offset RPO hand/sole | 0 | PASS |
-| body-name depth heuristic | 0 | PASS |
-| TALOS proximal foot mapping | 0 | PASS |
-| Booster Hips=Chest hiding waist | 0 | PASS |
-| arbitrary G1 equivalence | 0 | PASS |
-| dirty artifact metadata | 0 | PASS |
-| absolute cache paths | 0 | PASS |
-| inferred semantics confidence=1 | 0 | PASS |
-| rank0 false pass | 0 | PASS |
-| robot-name special cases | 0 | PASS |
-| legacy offsets | 0 | PASS |
-| missing formal red-team artifacts | 0 | PASS |
+The current formal pytest artifact is green:
 
-Total: **0 blocking findings**.
-
-## Current Evidence
-
-- `scripts/audit_retargeting_v3_step2.py` returns `PASS`.
-- `tests/v3/test_acceptance_gates_audit.py` passes.
-- G1 same-source URDF to canonical MJCF strict equivalence is recorded as `passed` in `validation_checks.json`.
-- `roboparty_rpo_local` includes per-motion canonical projection reports and passes the no-fetch validation run.
-- Full Step 2 is still not complete: the current no-fetch Robot Zoo run reports `passed=1` and `source_unavailable=45`, and deterministic rerun remains `not_run`.
-
-## Commands
-
-```bash
-python scripts/audit_retargeting_v3_step2.py \
-  --artifact-dir artifacts/retargeting_v3_step2 \
-  --source-root . \
-  --output-json artifacts/retargeting_v3_step2/test_results/acceptance_audit.json \
-  --junit-xml artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml
+```text
+209 passed, 10 skipped, 146 warnings in 2630.08s (0:43:50)
 ```
 
-Result: **PASS**, exit code 0, 0 blockers.
+This is not a Step 2 acceptance pass. The current acceptance ledger is
+`BLOCKED` with `blocking_count=3`.
+
+| Gate | Subject | Current evidence |
+|---|---|---|
+| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `status="incomplete"`; the same-source generated MJCF coordinate comparison exists, but strict Step 2 Gate A evidence is not complete. |
+| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `status="incomplete"`; Gate A is missing semantic FK, active-chain, rank-summary, and canonical-projection evidence. |
+| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `status="blocked"`; Gate B still requires semantic FK, common-chain, rank, DoF-difference, and projection evidence for independently passing variants. |
+
+`validation_checks.json` and `cross_format.json` must not be read as a G1
+strict equivalence pass. Current Step 2 remains blocked until Gate A, Gate B,
+and the arbitrary-G1-equivalence audit finding are closed.
+
+## Current Artifact Summary
+
+- Robot Zoo status counts: `passed=7`, `negative_control_passed=4`,
+  `algorithm_failed=14`, `semantic_failed=3`, `model_load_failed=2`,
+  `source_unavailable=16`.
+- `algorithm_pass_count=11`.
+- `deterministic_rerun.status="passed"` with 11 matched models, 16
+  source-unavailable models, and 19 skipped non-pass statuses.
+- `cross_format.gates.same_source_strict.status="incomplete"`.
+- `cross_format.gates.variant_compatibility.status="blocked"`.
+
+## Superseded Historical Record
+
+The following Agent F record is retained for provenance only. It is
+**superseded/stale** and must not be cited as current acceptance status.
+
+Historical status: **FALSE-POSITIVE AUDIT PASS; FULL STEP 2 NOT COMPLETE**
+Historical owner: Agent F - Reproducibility, CI & Independent Red Team
+Historical reasoning strength: **xhigh**
+Historical audit artifact:
+`artifacts/retargeting_v3_step2/test_results/acceptance_audit.json`
+
+The old record stated that `scripts/audit_retargeting_v3_step2.py` returned
+`PASS`, `tests/v3/test_acceptance_gates_audit.py` passed, the G1 same-source
+URDF-to-canonical-MJCF equivalence was recorded as `passed`, and the full
+no-fetch Robot Zoo run had `passed=1` and `source_unavailable=45`.
+
+Those statements describe an earlier false-positive-audit snapshot. They are
+not current: the formal pytest artifact now reports `209 passed, 10 skipped`,
+and the current acceptance audit is `BLOCKED` on the G1/cross-format findings
+listed above.
 
 ## Acceptance Rule
 
-The false-positive audit gate is clean. The overall Step 2 goal may not be
-reported complete until all required Robot Zoo sources are resolved or
-legitimately classified, required positive humanoids run algorithm gates, and
-the deterministic rerun artifact is produced.
+Step 2 may not be reported complete or `PASS` while any acceptance audit
+finding remains. A green pytest run is necessary evidence, but it is not
+sufficient acceptance evidence.

@@ -5,9 +5,49 @@ Date: 2026-06-20
 Repository: `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig`  
 Verdict: **Step 2: BLOCKED**
 
-## Audit Scope
+## Current Status Override
+
+Status sync date: 2026-06-21
+Docs/status worker reasoning strength: **xhigh**
+Current verdict: **Step 2: BLOCKED**
+
+This section supersedes the older command outcomes below where they conflict.
+The older audit snapshot is retained for provenance, but it must not be read as
+current Step 2 status.
+
+Current formal artifact evidence:
+
+- `artifacts/retargeting_v3_step2/test_results/pytest.txt`:
+  `209 passed, 10 skipped`.
+- `artifacts/retargeting_v3_step2/acceptance_ledger.json`:
+  `status="BLOCKED"`, `blocking_count=3`.
+- `artifacts/retargeting_v3_step2/summary.json` status counts:
+  `passed=7`, `negative_control_passed=4`, `algorithm_failed=14`,
+  `semantic_failed=3`, `model_load_failed=2`, `source_unavailable=16`.
+- `deterministic_rerun.status="passed"`.
+
+Current acceptance blockers:
+
+| Gate | Subject | Current evidence |
+|---|---|---|
+| `arbitrary_g1_equivalence` | `validation_checks.g1_mjcf_urdf_equivalence` | `status="incomplete"`; the G1 same-source comparison is not a strict equivalence pass. |
+| `cross_format_gates_not_run` | `cross_format.gates.same_source_strict` | `status="incomplete"`; Gate A lacks semantic FK, active-chain, rank-summary, and canonical-projection evidence. |
+| `cross_format_gates_not_run` | `cross_format.gates.variant_compatibility` | `status="blocked"`; Gate B lacks the required variant compatibility evidence. |
+
+Formal pytest passing does not change the acceptance verdict. Step 2 cannot be
+declared complete or `PASS` until these blockers are closed and the acceptance
+audit passes.
+
+All current, continued, or newly launched Step 2 subagents must use `xhigh`
+reasoning strength and record that fact in handoff artifacts.
+
+## Superseded Historical Audit Scope
 
 This audit checks the current repository state against the numbered requirements in `goal.md`, not only the false-positive audit gates. It does not implement Agent A-I features or change compiler behavior.
+
+The following scope, tables, and command results are a 2026-06-20 snapshot.
+They are **superseded/stale** where they conflict with the 2026-06-21 status
+override above.
 
 Current checkout evidence:
 
@@ -20,7 +60,7 @@ Current checkout evidence:
   `soma_retargeter/robotics/v3/validation.py`,
   and untracked tests under `tests/v3/`. Agent J did not edit or revert them.
 
-## Blocking Summary
+## Superseded Historical Blocking Summary
 
 | ID | Blocker | Evidence |
 |---|---|---|
@@ -37,7 +77,7 @@ Current checkout evidence:
 | B11 | Reports/handoffs explicitly say full Step 2 is incomplete. | `STEP2_IMPLEMENTATION_REPORT.md`, `STEP2_ACCEPTANCE_LEDGER.md`, and Agent F all say full Step 2 is not complete. |
 | B12 | Required report file is missing. | Goal §14 requires `docs/retargeting_v3/STEP2_KNOWN_LIMITATIONS.md`; only `known_limitations.md` exists. |
 
-## Requirement Table
+## Superseded Historical Requirement Table
 
 | Goal ref | Requirement | Current status | Expected completion evidence | Current artifacts/docs |
 |---|---|---|---|---|
@@ -95,7 +135,7 @@ Current checkout evidence:
 | §19 | Codex startup/final workflow. | **BLOCKED** | Required branch, six agents, final clean rerun, push commits. | Current branch mismatch; no final clean rerun or push evidence. |
 | §20 | Step 2 completion definition. | **BLOCKED** | All boxes checked simultaneously. | Multiple hard gates above fail. |
 
-## Artifact Findings
+## Superseded Historical Artifact Findings
 
 | Artifact | Proves | Contradicts or misses |
 |---|---|---|
@@ -110,7 +150,7 @@ Current checkout evidence:
 | `docs/retargeting_v3/STEP2_ACCEPTANCE_LEDGER.md` | Documents false-positive gate claims. | Says full Step 2 not complete; live audit contradicts saved false-positive PASS. |
 | `docs/retargeting_v3/subagents/*.md` | A-F handoffs exist. | Several handoffs explicitly list unresolved blockers; Agent F is not a full completion PASS. |
 
-## Commands Run
+## Superseded Historical Commands Run
 
 ```bash
 pwd && rg --files -g 'goal.md' -g 'docs/**' -g 'tests/**'
@@ -171,7 +211,21 @@ Notable command outcomes:
 - `PYTHONPATH=. python -m pytest -q tests/v3/test_acceptance_gates_audit.py` -> `1 failed`.
 - `PYTHONPATH=. python -m pytest -q` -> `8 failed, 112 passed, 10 skipped, 4 errors in 202.56s`.
 
-## Completion Decision
+## Current Completion Decision
+
+Step 2 cannot be declared complete. The current minimum unblock path is:
+
+1. Close the arbitrary G1 equivalence audit finding.
+2. Complete cross-format Gate A for same-source G1 URDF to canonical MJCF,
+   including semantic FK, active-chain, rank-summary, and canonical-projection
+   evidence.
+3. Complete cross-format Gate B for G1 vendor URDF versus Menagerie MJCF
+   variant compatibility, including semantic FK, common-chain, rank,
+   DoF-difference, and projection evidence for independently passing variants.
+4. Rerun and record both formal pytest and acceptance audit from the final
+   current artifact set.
+
+## Superseded Historical Completion Decision
 
 Step 2 cannot be declared complete. The minimum unblock path is:
 
@@ -184,4 +238,3 @@ Step 2 cannot be declared complete. The minimum unblock path is:
 7. Execute deterministic two-run validation.
 8. Replace the one-job CI workflow with the required Step 2 matrix and record current commit CI pass.
 9. Produce final reports, including `STEP2_KNOWN_LIMITATIONS.md`, with Agent F final full-Step-2 `PASS`.
-

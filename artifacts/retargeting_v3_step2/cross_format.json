@@ -2,88 +2,403 @@
   "gates": {
     "same_source_strict": {
       "differences": {},
-      "evidence_incomplete_reasons": {
-        "active_chains": "semantic_sites_unavailable",
-        "canonical_projection": "canonical_projection_reports_not_provided",
-        "rank_summary": "semantic_sites_unavailable",
-        "semantic_fk": "semantic_map_not_provided"
-      },
+      "evidence_incomplete_reasons": {},
       "evidence_statuses": {
-        "active_chains": "unavailable",
-        "canonical_projection": "unavailable",
-        "rank_summary": "unavailable",
-        "semantic_fk": "unavailable"
+        "active_chains": "passed",
+        "canonical_projection": "passed",
+        "rank_summary": "passed",
+        "semantic_fk": "passed"
       },
-      "gate_a_evidence_complete": false,
+      "gate_a_evidence_complete": true,
       "gate_a_required_sections": [
         "semantic_fk",
         "active_chains",
         "rank_summary",
         "canonical_projection"
       ],
-      "gate_a_status": "incomplete",
+      "gate_a_status": "complete_passed",
       "generated": "artifacts/retargeting_v3_step2/cross_format/unitree_g1_same_source_canonical.xml",
-      "generated_sha256": "a19c0556fccca06903782868654d727078c0aa8cad11739904d50791f6d6f606",
+      "generated_sha256": "59de892d1e0a123ec9b84768b95475031b3e5494dbd7a45ad4c869e8363fac54",
       "mode": "same_source_urdf_to_canonical_mjcf",
-      "reason": "same-source conversion was compared, but Gate A semantic/projection evidence is incomplete",
-      "source": "${NEWTON_CACHE}/newton-assets_unitree_g1_308a72cd/unitree_g1/urdf/g1_29dof.urdf",
-      "source_sha256": "95fbf660614e9c9b6fbf10ae8c12aaa8b97b9c25b230098597ef66de98718b51",
-      "status": "incomplete",
+      "reason": "same-source Gate A evidence is complete and passed",
+      "source": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/g1_description/g1_29dof.urdf",
+      "source_sha256": "e1dc89366bf96aa33ba4ef211884f6d81320ddd2ac6f8b1ad82986e64008be31",
+      "status": "passed",
       "strict_equivalent": true,
       "validation_check": "g1_mjcf_urdf_equivalence",
-      "validation_check_status": "incomplete"
+      "validation_check_status": "passed"
     },
     "variant_compatibility": {
+      "eligible_pair_count": 1,
       "pair_count": 9,
       "pair_statuses": {
         "booster_t1": {
           "mjcf_status": "algorithm_failed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "algorithm_failed"
         },
         "cassie": {
           "mjcf_status": "negative_control_passed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "source_unavailable"
         },
         "elf2": {
           "mjcf_status": "algorithm_failed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "algorithm_failed"
         },
         "fourier_n1": {
           "mjcf_status": "algorithm_failed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "algorithm_failed"
         },
         "jvrc": {
           "mjcf_status": "passed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "model_load_failed"
         },
         "unitree_g1": {
+          "comparison_mode": "variant_compatibility",
+          "evidence": {
+            "canonical_projection": {
+              "failures": [],
+              "per_side": {
+                "mjcf": {
+                  "failures": [],
+                  "missing_tasks": [],
+                  "motion_count": 15,
+                  "passed": true,
+                  "task_coverage": [
+                    "left_foot",
+                    "left_hand",
+                    "right_foot",
+                    "right_hand",
+                    "torso"
+                  ]
+                },
+                "urdf": {
+                  "failures": [],
+                  "missing_tasks": [],
+                  "motion_count": 15,
+                  "passed": true,
+                  "task_coverage": [
+                    "left_foot",
+                    "left_hand",
+                    "right_foot",
+                    "right_hand",
+                    "torso"
+                  ]
+                }
+              },
+              "status": "passed"
+            },
+            "common_chains": {
+              "failures": [],
+              "per_task": {
+                "left_foot": {
+                  "coordinate_labels": [
+                    "left_hip_pitch_joint",
+                    "left_hip_roll_joint",
+                    "left_hip_yaw_joint",
+                    "left_knee_joint",
+                    "left_ankle_pitch_joint",
+                    "left_ankle_roll_joint"
+                  ],
+                  "failures": [],
+                  "mjcf_active_velocity_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "passed": true,
+                  "urdf_active_velocity_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ]
+                },
+                "left_hand": {
+                  "coordinate_labels": [
+                    "left_shoulder_pitch_joint",
+                    "left_shoulder_roll_joint",
+                    "left_shoulder_yaw_joint",
+                    "left_elbow_joint",
+                    "left_wrist_roll_joint",
+                    "left_wrist_pitch_joint",
+                    "left_wrist_yaw_joint"
+                  ],
+                  "failures": [],
+                  "mjcf_active_velocity_coordinates": [
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27
+                  ],
+                  "passed": true,
+                  "urdf_active_velocity_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ]
+                },
+                "right_foot": {
+                  "coordinate_labels": [
+                    "right_hip_pitch_joint",
+                    "right_hip_roll_joint",
+                    "right_hip_yaw_joint",
+                    "right_knee_joint",
+                    "right_ankle_pitch_joint",
+                    "right_ankle_roll_joint"
+                  ],
+                  "failures": [],
+                  "mjcf_active_velocity_coordinates": [
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17
+                  ],
+                  "passed": true,
+                  "urdf_active_velocity_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ]
+                },
+                "right_hand": {
+                  "coordinate_labels": [
+                    "right_shoulder_pitch_joint",
+                    "right_shoulder_roll_joint",
+                    "right_shoulder_yaw_joint",
+                    "right_elbow_joint",
+                    "right_wrist_roll_joint",
+                    "right_wrist_pitch_joint",
+                    "right_wrist_yaw_joint"
+                  ],
+                  "failures": [],
+                  "mjcf_active_velocity_coordinates": [
+                    28,
+                    29,
+                    30,
+                    31,
+                    32,
+                    33,
+                    34
+                  ],
+                  "passed": true,
+                  "urdf_active_velocity_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ]
+                },
+                "torso": {
+                  "coordinate_labels": [
+                    "waist_yaw_joint",
+                    "waist_roll_joint",
+                    "waist_pitch_joint"
+                  ],
+                  "failures": [],
+                  "mjcf_active_velocity_coordinates": [
+                    18,
+                    19,
+                    20
+                  ],
+                  "passed": true,
+                  "urdf_active_velocity_coordinates": [
+                    12,
+                    13,
+                    14
+                  ]
+                }
+              },
+              "status": "passed"
+            },
+            "dof_difference": {
+              "failures": [],
+              "mjcf_nq": 36,
+              "mjcf_nv": 35,
+              "reason": "variant DoF differences are recorded and allowed only with matching semantic chain labels",
+              "status": "passed",
+              "urdf_nq": 29,
+              "urdf_nv": 29
+            },
+            "rank_summary": {
+              "failures": [],
+              "per_task": {
+                "left_foot": {
+                  "failures": [],
+                  "mjcf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  },
+                  "passed": true,
+                  "rank_contract": "endpoint_translation",
+                  "urdf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  }
+                },
+                "left_hand": {
+                  "failures": [],
+                  "mjcf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  },
+                  "passed": true,
+                  "rank_contract": "endpoint_translation",
+                  "urdf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  }
+                },
+                "right_foot": {
+                  "failures": [],
+                  "mjcf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  },
+                  "passed": true,
+                  "rank_contract": "endpoint_translation",
+                  "urdf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  }
+                },
+                "right_hand": {
+                  "failures": [],
+                  "mjcf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  },
+                  "passed": true,
+                  "rank_contract": "endpoint_translation",
+                  "urdf": {
+                    "nominal_rank_translation": 3,
+                    "regular_rank_translation": 3
+                  }
+                },
+                "torso": {
+                  "failures": [],
+                  "mjcf": {
+                    "nominal_rank_rotation": 3,
+                    "regular_rank_rotation": 3
+                  },
+                  "passed": true,
+                  "rank_contract": "torso_rotation",
+                  "urdf": {
+                    "nominal_rank_rotation": 3,
+                    "regular_rank_rotation": 3
+                  }
+                }
+              },
+              "status": "passed"
+            },
+            "semantic_sites": {
+              "failures": [],
+              "per_semantic": {
+                "Chest": {
+                  "mjcf_body": "torso_link",
+                  "mjcf_source": "verified_semantic_map",
+                  "passed": true,
+                  "urdf_body": "torso_link",
+                  "urdf_source": "verified_semantic_map"
+                },
+                "Hips": {
+                  "mjcf_body": "pelvis",
+                  "mjcf_source": "verified_semantic_map",
+                  "passed": true,
+                  "urdf_body": "world",
+                  "urdf_source": "verified_semantic_map"
+                },
+                "LeftFoot": {
+                  "mjcf_body": "left_ankle_roll_link",
+                  "mjcf_source": "verified_geometry_bounds",
+                  "passed": true,
+                  "urdf_body": "left_ankle_roll_link",
+                  "urdf_source": "verified_geometry_bounds"
+                },
+                "LeftHand": {
+                  "mjcf_body": "left_wrist_yaw_link",
+                  "mjcf_source": "verified_geometry_bounds",
+                  "passed": true,
+                  "urdf_body": "left_wrist_yaw_link",
+                  "urdf_source": "verified_geometry_bounds"
+                },
+                "RightFoot": {
+                  "mjcf_body": "right_ankle_roll_link",
+                  "mjcf_source": "verified_geometry_bounds",
+                  "passed": true,
+                  "urdf_body": "right_ankle_roll_link",
+                  "urdf_source": "verified_geometry_bounds"
+                },
+                "RightHand": {
+                  "mjcf_body": "right_wrist_yaw_link",
+                  "mjcf_source": "verified_geometry_bounds",
+                  "passed": true,
+                  "urdf_body": "right_wrist_yaw_link",
+                  "urdf_source": "verified_geometry_bounds"
+                }
+              },
+              "status": "passed"
+            }
+          },
+          "failures": {},
+          "mjcf": "unitree_g1_mjcf",
           "mjcf_status": "passed",
-          "status": "not_run",
+          "status": "passed",
+          "strict_equivalence": false,
+          "urdf": "unitree_g1_urdf",
           "urdf_status": "passed"
         },
         "unitree_go2": {
           "mjcf_status": "negative_control_passed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "model_load_failed"
         },
         "unitree_h1": {
           "mjcf_status": "algorithm_failed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "semantic_failed"
         },
         "unitree_h1_2": {
           "mjcf_status": "algorithm_failed",
-          "status": "not_run",
+          "reason": "variant compatibility only runs when both variants independently pass profile gates",
+          "status": "not_eligible",
           "urdf_status": "algorithm_failed"
         }
       },
-      "reason": "variant compatibility requires semantic FK, common-chain, rank, DoF-difference, and projection evidence for independently passing variants",
-      "status": "blocked"
+      "passed_pair_count": 1,
+      "reason": "all independently passing URDF/MJCF variant pairs have compatibility evidence",
+      "status": "passed"
     }
   },
   "pairs": {
