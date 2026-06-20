@@ -16,6 +16,7 @@ from soma_retargeter.pipelines.ik_objectives import (
     IKObjectivePoleVector,
     IKObjectivePerEnvGroundHeightBarrier,
     IKObjectivePerEnvWeightedPosition,
+    IKObjectiveProjectedPosition,
     IKObjectiveSphereCollisionBarrier,
     IKRangeNormalizedJointLimitBarrier,
     IKTemporalJointRegularizer,
@@ -406,6 +407,23 @@ class NewtonPipeline:
             direction_analytic = sum(1 for *_, analytic in self.mapped_body_link_direction_data if analytic)
             pole_analytic = sum(1 for *_, analytic in self.mapped_body_link_pole_vector_data if analytic)
             jacobian_mode = self._select_ik_jacobian_mode(ik_solver_active_objectives)
+            sparse_residual_dim = sum(
+                int(objective.residual_dim())
+                for objective in [
+                    *position_objectives,
+                    *rotation_objectives,
+                    *direction_objectives,
+                    *pole_vector_objectives,
+                ]
+            )
+            autodiff_sparse_residual_dim = sum(
+                int(objective.residual_dim())
+                for objective in [
+                    *direction_objectives,
+                    *pole_vector_objectives,
+                ]
+                if not objective.supports_analytic()
+            )
             self.ik_objective_summary = {
                 "batch_size": int(num_envs),
                 "ik_iterations": int(self.ik_iterations),
@@ -426,20 +444,8 @@ class NewtonPipeline:
                 "temporal_velocity": int(self.temporal_velocity_weight > 0.0),
                 "temporal_acceleration": int(self.temporal_acceleration_weight > 0.0),
                 "active_objectives": int(len(ik_solver_active_objectives)),
-                "sparse_residual_dim": int(
-                    3 * (
-                        len(position_objectives)
-                        + len(rotation_objectives)
-                        + len(direction_objectives)
-                        + len(pole_vector_objectives)
-                    )
-                ),
-                "autodiff_sparse_residual_dim": int(
-                    3 * (
-                        (len(direction_objectives) - direction_analytic)
-                        + (len(pole_vector_objectives) - pole_analytic)
-                    )
-                ),
+                "sparse_residual_dim": int(sparse_residual_dim),
+                "autodiff_sparse_residual_dim": int(autodiff_sparse_residual_dim),
             }
 
             ik_solver = ik.IKSolver(
@@ -493,7 +499,7 @@ class NewtonPipeline:
                     if frame > (len(self.input_targets[env]) - 1):
                         continue
                     frame_targets = self.input_targets[env][frame]
-                    for i, (effector_idx, _, _, _) in enumerate(self.mapped_body_link_pos_data):
+                    for i, (effector_idx, _, _, _, _) in enumerate(self.mapped_body_link_pos_data):
                         target = frame_targets[effector_idx]
                         position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
                     for i, (effector_idx, _, _, basis) in enumerate(self.mapped_body_link_rot_data):
@@ -706,7 +712,8 @@ class NewtonPipeline:
                 link_offset = np.asarray(mapping_data.get("v2_position_link_offset", [0.0, 0.0, 0.0]), dtype=np.float32)
                 if link_offset.shape != (3,) or not np.all(np.isfinite(link_offset)):
                     link_offset = np.zeros(3, dtype=np.float32)
-                mapped_body_link_pos_data.append((effector_idx, t_link_idx, float(mapping_data['t_weight']), link_offset))
+                position_basis = self._normalize_position_basis(mapping_data.get("v2_position_basis"))
+                mapped_body_link_pos_data.append((effector_idx, t_link_idx, float(mapping_data['t_weight']), link_offset, position_basis))
             if float(mapping_data.get('r_weight', 0.0)) > 0.0:
                 mapped_body_link_rot_data.append((
                     effector_idx,
@@ -798,7 +805,7 @@ class NewtonPipeline:
         body_q = state.body_q.numpy()
         for env in range(num_envs):
             base = env * self.num_body_count
-            for ee_idx, (_, link_idx, _, link_offset) in enumerate(self.mapped_body_link_pos_data):
+            for ee_idx, (_, link_idx, _, link_offset, _) in enumerate(self.mapped_body_link_pos_data):
                 body_transform = body_q[base + link_idx]
                 body_pos = np.asarray(body_transform[0:3], dtype=np.float32)
                 body_rot = wp.quat(*body_transform[3:7])
@@ -848,12 +855,20 @@ class NewtonPipeline:
         self.pole_vector_fallback_counts = np.zeros(pole_num_ees, dtype=np.int64)
 
         position_objectives = []
-        for i, (_, link_idx, w, link_offset) in enumerate(self.mapped_body_link_pos_data):
-            objective = ik.IKObjectivePosition(
-                link_index=link_idx,
-                link_offset=wp.vec3(*link_offset),
-                target_positions=pos_target_arrays[i],
-                weight=w)
+        for i, (_, link_idx, w, link_offset, position_basis) in enumerate(self.mapped_body_link_pos_data):
+            if position_basis is None:
+                objective = ik.IKObjectivePosition(
+                    link_index=link_idx,
+                    link_offset=wp.vec3(*link_offset),
+                    target_positions=pos_target_arrays[i],
+                    weight=w)
+            else:
+                objective = IKObjectiveProjectedPosition(
+                    link_index=link_idx,
+                    link_offset=wp.vec3(*link_offset),
+                    target_positions=pos_target_arrays[i],
+                    basis_vectors=position_basis,
+                    weight=w)
             position_objectives.append(objective)
 
         rotation_objectives = []
@@ -1109,6 +1124,31 @@ class NewtonPipeline:
         if basis.shape[1] >= 3:
             return None
         return basis
+
+    @staticmethod
+    def _normalize_position_basis(raw_basis):
+        if raw_basis is None:
+            return None
+        basis = np.asarray(raw_basis, dtype=np.float64)
+        if basis.ndim != 2:
+            return None
+        if basis.shape[1] == 3:
+            vectors = basis
+        elif basis.shape[0] == 3:
+            vectors = basis.T
+        else:
+            return None
+        if vectors.shape[0] >= 3 or vectors.shape[0] <= 0:
+            return None
+        if not np.all(np.isfinite(vectors)):
+            return None
+        normalized = []
+        for vector in vectors:
+            norm = float(np.linalg.norm(vector))
+            if norm <= 1.0e-8:
+                return None
+            normalized.append((vector / norm).astype(np.float32))
+        return np.asarray(normalized, dtype=np.float32)
 
     @staticmethod
     def _project_rotation_target(quat_xyzw, basis):

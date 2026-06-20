@@ -568,6 +568,38 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["pole_vector_tasks"] = []
         config["benchmark_compare_mode"] = compare_mode
         return config
+    if compare_mode == "v2_pos_projected":
+        raw_path = get_profile_path(robot, "retargeter_config")
+        profile_path = get_profile_path(robot, "compiled_retarget_profile")
+        if raw_path is None:
+            raise FileNotFoundError(f"Retargeter config is not registered for robot {robot!r}")
+        if profile_path is None or not profile_path.exists():
+            raise FileNotFoundError(f"Compiled retarget profile is not registered for robot {robot!r}")
+        config = build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
+        profile = io_utils.load_json(profile_path)
+        chains = profile.get("chains", {})
+        for semantic, mapping in config.get("ik_map", {}).items():
+            if not isinstance(mapping, dict):
+                continue
+            chain = chains.get(semantic)
+            if not isinstance(chain, dict):
+                continue
+            try:
+                rank = int(chain.get("translational_rank", 3))
+            except (TypeError, ValueError):
+                rank = 3
+            if rank <= 0:
+                mapping["t_weight"] = 0.0
+                mapping["v2_position_disabled_reason"] = "benchmark experiment: rank-0 translational basis"
+                continue
+            if rank >= 3:
+                continue
+            basis = chain.get("translational_basis")
+            if isinstance(basis, list) and len(basis) == 3:
+                mapping["v2_position_basis"] = basis
+                mapping["v2_position_weight_source"] = "benchmark experiment: projected to translational basis"
+        config["benchmark_compare_mode"] = compare_mode
+        return config
     if compare_mode.startswith("v2_pole_keep_"):
         raw_path = get_profile_path(robot, "retargeter_config")
         if raw_path is None:
@@ -662,7 +694,7 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["benchmark_compare_mode"] = compare_mode if pole_analytic_weight_scale == 1.0 else f"{compare_mode}_w{pole_analytic_weight_scale:g}"
         return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', or 'v2_pole_analytic'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', or 'v2_pole_analytic'."
     )
 
 
@@ -1593,7 +1625,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--compare",
         nargs="+",
         default=["legacy", "v2"],
-        help="Compare modes: legacy, v2, v2_no_pole, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
+        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, or v2_pole_analytic_w<scale>.",
     )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)

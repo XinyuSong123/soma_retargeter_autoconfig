@@ -477,6 +477,59 @@ def _per_env_position_jac_analytic(
 
 
 @wp.kernel
+def _projected_position_residuals(
+    body_q: wp.array2d(dtype=wp.transform),
+    target_pos: wp.array1d(dtype=wp.vec3),
+    basis_vectors: wp.array1d(dtype=wp.vec3),
+    link_index: int,
+    link_offset: wp.vec3,
+    weight: wp.float32,
+    start_idx: int,
+    problem_idx_map: wp.array1d(dtype=wp.int32),
+    residuals: wp.array2d(dtype=wp.float32),
+):
+    row, basis_idx = wp.tid()
+    base = problem_idx_map[row]
+
+    body_tf = body_q[row, link_index]
+    ee_pos = wp.transform_point(body_tf, link_offset)
+    error = target_pos[base] - ee_pos
+    basis = basis_vectors[basis_idx]
+    residuals[row, start_idx + basis_idx] = weight * wp.dot(basis, error)
+
+
+@wp.kernel
+def _projected_position_jac_analytic(
+    link_index: int,
+    link_offset: wp.vec3,
+    affects_dof: wp.array1d(dtype=wp.uint8),
+    basis_vectors: wp.array1d(dtype=wp.vec3),
+    body_q: wp.array2d(dtype=wp.transform),
+    joint_S_s: wp.array2d(dtype=wp.spatial_vector),
+    weight: wp.float32,
+    start_idx: int,
+    n_dofs: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem_idx, basis_idx, dof_idx = wp.tid()
+
+    if affects_dof[dof_idx] == 0:
+        return
+
+    body_tf = body_q[problem_idx, link_index]
+    rot_w = wp.quat(body_tf[3], body_tf[4], body_tf[5], body_tf[6])
+    pos_w = wp.vec3(body_tf[0], body_tf[1], body_tf[2])
+    ee_pos_world = pos_w + wp.quat_rotate(rot_w, link_offset)
+
+    S = joint_S_s[problem_idx, dof_idx]
+    v_orig = wp.vec3(S[0], S[1], S[2])
+    omega = wp.vec3(S[3], S[4], S[5])
+    v_ee = v_orig + wp.cross(omega, ee_pos_world)
+    basis = basis_vectors[basis_idx]
+    jacobian[problem_idx, start_idx + basis_idx, dof_idx] = -weight * wp.dot(basis, v_ee)
+
+
+@wp.kernel
 def _ground_height_barrier_residuals(
     body_q: wp.array2d(dtype=wp.transform),
     weights: wp.array1d(dtype=wp.float32),
@@ -704,6 +757,108 @@ class IKObjectivePerEnvWeightedPosition(ik.IKObjective):
                 self.weights,
                 body_q,
                 joint_S_s,
+                start_idx,
+                n_dofs,
+            ],
+            outputs=[jacobian],
+            device=self.device,
+        )
+
+
+class IKObjectiveProjectedPosition(ik.IKObjective):
+    """Position objective projected onto a fixed world-space reachable basis."""
+
+    def __init__(self, link_index, link_offset, target_positions, basis_vectors, weight=1.0):
+        super().__init__()
+        self.link_index = link_index
+        self.link_offset = link_offset
+        self.target_positions = target_positions
+        basis_np = np.asarray(basis_vectors, dtype=np.float32)
+        if basis_np.ndim != 2 or basis_np.shape[1] != 3 or basis_np.shape[0] <= 0 or basis_np.shape[0] > 3:
+            raise ValueError("basis_vectors must have shape [rank, 3] with rank in [1, 3]")
+        self.basis_rank = int(basis_np.shape[0])
+        self.basis_vectors = wp.array(basis_np, dtype=wp.vec3)
+        self.weight = float(weight)
+        self.affects_dof = None
+
+    def init_buffers(self, model, jacobian_mode):
+        self._require_batch_layout()
+        if jacobian_mode not in (IKJacobianType.ANALYTIC, IKJacobianType.MIXED):
+            raise NotImplementedError("IKObjectiveProjectedPosition currently supports analytic or mixed Jacobian mode only")
+
+        joint_qd_start_np = model.joint_qd_start.numpy()
+        dof_to_joint_np = np.empty(joint_qd_start_np[-1], dtype=np.int32)
+        for j in range(len(joint_qd_start_np) - 1):
+            dof_to_joint_np[joint_qd_start_np[j]:joint_qd_start_np[j + 1]] = j
+
+        joint_child_np = model.joint_child.numpy()
+        body_to_joint_np = np.full(model.body_count, -1, np.int32)
+        for j in range(model.joint_count):
+            child = joint_child_np[j]
+            if child != -1:
+                body_to_joint_np[child] = j
+
+        joint_q_start_np = model.joint_q_start.numpy()
+        ancestors = np.zeros(len(joint_q_start_np) - 1, dtype=bool)
+        joint_parent_np = model.joint_parent.numpy()
+        body = self.link_index
+        while body != -1:
+            j = body_to_joint_np[body]
+            if j != -1:
+                ancestors[j] = True
+            body = joint_parent_np[j] if j != -1 else -1
+        self.affects_dof = wp.array(ancestors[dof_to_joint_np].astype(np.uint8), device=self.device)
+        self.basis_vectors = self.basis_vectors.to(self.device)
+
+    def supports_analytic(self):
+        return True
+
+    def residual_dim(self):
+        return self.basis_rank
+
+    def set_target_position(self, problem_idx, new_position):
+        self._require_batch_layout()
+        wp.launch(
+            _update_position_target_at_index,
+            dim=1,
+            inputs=[problem_idx, new_position],
+            outputs=[self.target_positions],
+            device=self.device,
+        )
+
+    def compute_residuals(self, body_q, joint_q, model, residuals, start_idx, problem_idx):
+        wp.launch(
+            _projected_position_residuals,
+            dim=[body_q.shape[0], self.basis_rank],
+            inputs=[
+                body_q,
+                self.target_positions,
+                self.basis_vectors,
+                self.link_index,
+                self.link_offset,
+                self.weight,
+                start_idx,
+                problem_idx,
+            ],
+            outputs=[residuals],
+            device=self.device,
+        )
+
+    def compute_jacobian_analytic(self, body_q, joint_q, model, jacobian, joint_S_s, start_idx):
+        if self.affects_dof is None:
+            raise RuntimeError("IKObjectiveProjectedPosition analytic buffers are not initialized")
+        n_dofs = model.joint_dof_count
+        wp.launch(
+            _projected_position_jac_analytic,
+            dim=[body_q.shape[0], self.basis_rank, n_dofs],
+            inputs=[
+                self.link_index,
+                self.link_offset,
+                self.affects_dof,
+                self.basis_vectors,
+                body_q,
+                joint_S_s,
+                self.weight,
                 start_idx,
                 n_dofs,
             ],

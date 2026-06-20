@@ -54,6 +54,15 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["pole_vector_tasks"], [])
         self.assertTrue(cfg["direction_tasks"])
 
+    def test_projected_position_compare_mode_uses_profile_translation_basis(self):
+        cfg = _runtime_retargeter_config("e3_v2", "v2_pos_projected")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_pos_projected")
+        self.assertEqual(cfg["ik_map"]["LeftHand"]["t_weight"], 0.0)
+        self.assertIn("rank-0", cfg["ik_map"]["LeftHand"]["v2_position_disabled_reason"])
+        self.assertIn("v2_position_basis", cfg["ik_map"]["LeftFoot"])
+        self.assertEqual(len(cfg["ik_map"]["LeftFoot"]["v2_position_basis"]), 3)
+        self.assertEqual(len(cfg["ik_map"]["LeftFoot"]["v2_position_basis"][0]), 1)
+
     def test_pole_keep_compare_mode_filters_pole_tasks_by_semantic_selector(self):
         cfg = _runtime_retargeter_config("unitree_g1", "v2_pole_keep_hand")
         self.assertEqual(cfg["benchmark_compare_mode"], "v2_pole_keep_hand")

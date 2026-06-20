@@ -4,7 +4,7 @@ import numpy as np
 import newton.ik as ik
 import warp as wp
 
-from soma_retargeter.pipelines.ik_objectives import IKObjectivePoleVector, IKObjectiveSphereCollisionBarrier
+from soma_retargeter.pipelines.ik_objectives import IKObjectivePoleVector, IKObjectiveProjectedPosition, IKObjectiveSphereCollisionBarrier
 from soma_retargeter.pipelines.newton_pipeline import NewtonPipeline
 from soma_retargeter.robotics.reachability import quat_xyzw_to_rotation_vector, rotation_vector_to_quat_xyzw
 
@@ -270,6 +270,53 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
         self.assertEqual(objective.affects_parent_dof.numpy().tolist(), [1, 1, 1, 0, 0, 0, 0])
         self.assertEqual(objective.affects_middle_dof.numpy().tolist(), [1, 1, 1, 1, 0, 0, 0])
         self.assertEqual(objective.affects_child_dof.numpy().tolist(), [1, 1, 1, 1, 1, 1, 1])
+
+    def test_projected_position_residual_and_jacobian_match_basis_projection(self):
+        body_pos = np.array([0.4, -0.2, 0.1], dtype=np.float64)
+        target = np.array([0.9, 0.3, -0.1], dtype=np.float64)
+        basis = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]], dtype=np.float32)
+        linear_velocity = np.array([0.17, -0.11, 0.07], dtype=np.float64)
+        angular_velocity = np.array([0.13, -0.19, 0.23], dtype=np.float64)
+        weight = 3.0
+        objective = IKObjectiveProjectedPosition(
+            link_index=0,
+            link_offset=wp.vec3(0.0, 0.0, 0.0),
+            target_positions=wp.array([wp.vec3(*target)], dtype=wp.vec3),
+            basis_vectors=basis,
+            weight=weight,
+        )
+        objective.bind_device(wp.get_device())
+        objective.set_batch_layout(total_residuals=2, residual_offset=0, n_batch=1)
+        objective.affects_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+        body_q = wp.array([[wp.transform(wp.vec3(*body_pos), wp.quat_identity())]], dtype=wp.transform)
+        problem_idx = wp.array(np.array([0], dtype=np.int32), dtype=wp.int32)
+        residuals = wp.zeros((1, 2), dtype=wp.float32)
+        objective.compute_residuals(body_q, None, None, residuals, 0, problem_idx)
+        wp.synchronize()
+
+        expected_residual = weight * basis @ (target - body_pos)
+        self.assertTrue(np.allclose(residuals.numpy()[0], expected_residual, atol=1.0e-6))
+
+        joint_s = wp.array(
+            [[
+                wp.spatial_vector(
+                    float(linear_velocity[0]),
+                    float(linear_velocity[1]),
+                    float(linear_velocity[2]),
+                    float(angular_velocity[0]),
+                    float(angular_velocity[1]),
+                    float(angular_velocity[2]),
+                )
+            ]],
+            dtype=wp.spatial_vector,
+        )
+        jacobian = wp.zeros((1, 2, 1), dtype=wp.float32)
+        model = type("M", (), {"joint_dof_count": 1})()
+        objective.compute_jacobian_analytic(body_q, None, model, jacobian, joint_s, 0)
+        wp.synchronize()
+        velocity = linear_velocity + np.cross(angular_velocity, body_pos)
+        expected_jacobian = -weight * basis @ velocity
+        self.assertTrue(np.allclose(jacobian.numpy()[0, :, 0], expected_jacobian, atol=1.0e-6))
 
     def test_collision_objectives_are_created_from_compiled_pairs_when_weighted(self):
         pipe = NewtonPipeline.__new__(NewtonPipeline)
