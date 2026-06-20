@@ -403,16 +403,41 @@ def _audit_dirty_artifact_metadata(environment: dict, source_root: Path) -> list
     current_head = _git(source_root, "rev-parse", "HEAD")
     artifact_head = environment.get("git_head")
     if current_head and artifact_head and current_head != artifact_head:
-        findings.append(
-            Finding(
-                "dirty_artifact_metadata",
-                "error",
-                "environment.json",
-                "artifact git_head does not match the audited checkout HEAD",
-                {"artifact_git_head": artifact_head, "current_git_head": current_head},
+        source_drift = _source_changes_since_artifact_head(source_root, str(artifact_head), current_head)
+        if source_drift:
+            findings.append(
+                Finding(
+                    "dirty_artifact_metadata",
+                    "error",
+                    "environment.json",
+                    "artifact git_head does not match the audited checkout HEAD",
+                    {
+                        "artifact_git_head": artifact_head,
+                        "current_git_head": current_head,
+                        "source_changes_since_artifact_head": source_drift[:50],
+                    },
+                )
             )
-        )
     return findings
+
+
+def _source_changes_since_artifact_head(source_root: Path, artifact_head: str, current_head: str) -> list[str]:
+    """Return non-artifact changes between the source commit and audited HEAD.
+
+    Committed generated artifacts cannot record the commit hash that contains
+    themselves. A clean artifact commit is acceptable only when every change
+    after ``artifact_head`` is inside the generated artifact directory.
+    """
+
+    changed = _git(source_root, "diff", "--name-only", artifact_head, current_head)
+    if not changed:
+        return []
+    artifact_prefix = "artifacts/retargeting_v3_step2/"
+    return [
+        path
+        for path in changed.splitlines()
+        if path and not path.startswith(artifact_prefix)
+    ]
 
 
 def _audit_absolute_paths(commands_text: str, per_robot: dict[str, dict]) -> list[Finding]:
