@@ -25,9 +25,12 @@ class ProjectionResult:
     active_coordinates: list[int] = field(default_factory=list)
     prior_residual_norm: float = 0.0
     solver_message: str = ""
+    demand_residual: float | None = None
+    unreachable_demand: bool | None = None
+    rank_zero_reason: str | None = None
 
     def to_json(self) -> dict:
-        return {
+        payload = {
             "desired": self.desired.tolist(),
             "projected": self.projected.tolist(),
             "chain_q": self.chain_q.tolist(),
@@ -41,6 +44,21 @@ class ProjectionResult:
             "prior_residual_norm": self.prior_residual_norm,
             "solver_message": self.solver_message,
         }
+        if self.status in {"rank_zero", "unreachable/rank_zero"}:
+            demand_residual = self.residual if self.demand_residual is None else self.demand_residual
+            payload["demand_residual"] = demand_residual
+            payload["unreachable_demand"] = (
+                demand_residual > 1e-10 if self.unreachable_demand is None else self.unreachable_demand
+            )
+            payload["rank_zero_reason"] = self.rank_zero_reason or _rank_zero_reason(demand_residual)
+        else:
+            if self.demand_residual is not None:
+                payload["demand_residual"] = self.demand_residual
+            if self.unreachable_demand is not None:
+                payload["unreachable_demand"] = self.unreachable_demand
+            if self.rank_zero_reason is not None:
+                payload["rank_zero_reason"] = self.rank_zero_reason
+        return payload
 
 
 def project_endpoint_position(
@@ -72,6 +90,9 @@ def project_endpoint_position(
             residual_abs <= 1e-10,
             _rank_zero_status(residual_abs),
             active_coordinates=[],
+            demand_residual=residual_abs,
+            unreachable_demand=residual_abs > 1e-10,
+            rank_zero_reason=_rank_zero_reason(residual_abs),
         )
     x0, lo, hi = _initial_and_bounds(adapter, q_seed, active_coordinates)
     prior = _prior_context(
@@ -136,6 +157,9 @@ def project_torso_orientation(
             residual_abs <= 1e-10,
             _rank_zero_status(residual_abs),
             active_coordinates=[],
+            demand_residual=residual_abs,
+            unreachable_demand=residual_abs > 1e-10,
+            rank_zero_reason=_rank_zero_reason(residual_abs),
         )
     x0, lo, hi = _initial_and_bounds(adapter, q_seed, active_coordinates)
     prior = _prior_context(
@@ -221,6 +245,12 @@ def _rank_zero_status(residual_abs: float) -> str:
     if residual_abs <= 1e-10:
         return "rank_zero"
     return "unreachable/rank_zero"
+
+
+def _rank_zero_reason(demand_residual: float) -> str:
+    if demand_residual <= 1e-10:
+        return "no_active_coordinates_zero_demand"
+    return "no_active_coordinates_nonzero_demand"
 
 
 def _solver_status(success: bool, residual_abs: float) -> str:

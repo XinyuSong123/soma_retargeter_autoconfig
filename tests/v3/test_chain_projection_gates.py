@@ -61,6 +61,8 @@ def test_rank_zero_endpoint_preserves_nonzero_demand_as_unreachable(tmp_path: Pa
     np.testing.assert_allclose(result.projected, [0.0, 0.0, 0.0])
     assert abs(result.residual - 0.1) < 1e-12
     assert result.to_json()["status"] == "unreachable/rank_zero"
+    assert result.to_json()["demand_residual"] == result.residual
+    assert result.to_json()["unreachable_demand"] is True
 
 
 def test_rank_zero_torso_preserves_nonzero_rotation_demand_as_unreachable(tmp_path: Path):
@@ -102,6 +104,8 @@ def test_rank_zero_torso_preserves_nonzero_rotation_demand_as_unreachable(tmp_pa
     np.testing.assert_allclose(result.desired, [0.0, 0.0, 0.2], atol=1e-12)
     np.testing.assert_allclose(result.projected, [0.0, 0.0, 0.0], atol=1e-12)
     assert abs(result.residual - 0.2) < 1e-12
+    assert result.to_json()["demand_residual"] == result.residual
+    assert result.to_json()["unreachable_demand"] is True
 
 
 def test_projection_uses_range_normalized_continuity_prior_for_redundant_chain(tmp_path: Path):

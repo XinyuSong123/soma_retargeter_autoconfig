@@ -431,6 +431,8 @@ def test_rank_zero_torso_compiles(tmp_path: Path):
     assert profile.capability_status == "partial_humanoid"
     assert profile.rank_stability["torso"].regular_rank_rotation == 0
     assert profile.projection_reports["torso"]["status"] == "rank_zero"
+    assert profile.projection_reports["torso"]["demand_residual"] == 0.0
+    assert profile.projection_reports["torso"]["unreachable_demand"] is False
 
 
 def test_bounded_single_axis_torso_projection_respects_limits(tmp_path: Path):
