@@ -101,6 +101,20 @@ class TestBenchmarkRetargeting(unittest.TestCase):
             ],
         )
 
+    def test_direction_analytic_compare_mode_filters_direction_tasks_by_selector(self):
+        cfg = _runtime_retargeter_config("roboparty_rpo", "v2_direction_analytic_leg")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_direction_analytic_leg")
+        analytic_by_name = {task["name"]: task["analytic_jacobian"] for task in cfg["direction_tasks"]}
+        self.assertFalse(analytic_by_name["LeftArm_direction"])
+        self.assertFalse(analytic_by_name["RightForeArm_direction"])
+        self.assertTrue(analytic_by_name["LeftLeg_direction"])
+        self.assertTrue(analytic_by_name["RightShin_direction"])
+        self.assertTrue(all(not task["analytic_jacobian"] for task in cfg["pole_vector_tasks"]))
+        self.assertIn("direction by selector leg", cfg["direction_tasks"][2]["jacobian_schedule_reason"])
+
+        all_cfg = _runtime_retargeter_config("roboparty_rpo", "v2_direction_analytic_all")
+        self.assertTrue(all(task["analytic_jacobian"] for task in all_cfg["direction_tasks"]))
+
     def test_iteration_compare_mode_changes_only_iteration_count(self):
         baseline = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic")
         cfg = _runtime_retargeter_config("unitree_g1", "v2_iter4")
@@ -119,6 +133,25 @@ class TestBenchmarkRetargeting(unittest.TestCase):
         self.assertEqual(cfg["ik_map"]["RightHand"]["t_weight"], 200.0)
         self.assertNotEqual(cfg["ik_map"]["LeftFoot"]["t_weight"], 200.0)
         self.assertIn("benchmark experiment", cfg["ik_map"]["LeftHand"]["v2_position_weight_source"])
+
+    def test_foot_weight_compare_mode_overrides_only_foot_position_weights(self):
+        cfg = _runtime_retargeter_config("roboparty_rpo", "v2_foot_w1500")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_foot_w1500")
+        self.assertEqual(cfg["ik_map"]["LeftFoot"]["t_weight"], 1500.0)
+        self.assertEqual(cfg["ik_map"]["RightFoot"]["t_weight"], 1500.0)
+        self.assertNotEqual(cfg["ik_map"]["LeftHand"]["t_weight"], 1500.0)
+        self.assertIn("override foot position weight", cfg["ik_map"]["LeftFoot"]["v2_position_weight_source"])
+
+    def test_hips_rotation_compare_mode_overrides_hips_rotation_weight(self):
+        cfg = _runtime_retargeter_config("roboparty_rpo", "v2_hips_r2")
+        self.assertEqual(cfg["benchmark_compare_mode"], "v2_hips_r2")
+        self.assertEqual(cfg["ik_map"]["Hips"]["r_weight"], 2.0)
+        self.assertIn("override hips rotation weight", cfg["ik_map"]["Hips"]["v2_rotation_weight_source"])
+
+        combined = _runtime_retargeter_config("roboparty_rpo", "v2_hand_w10_hips_r2")
+        self.assertEqual(combined["benchmark_compare_mode"], "v2_hand_w10_hips_r2")
+        self.assertEqual(combined["ik_map"]["LeftHand"]["t_weight"], 10.0)
+        self.assertEqual(combined["ik_map"]["Hips"]["r_weight"], 2.0)
 
     def test_weighted_pole_analytic_compare_mode_scales_pole_weights(self):
         baseline = _runtime_retargeter_config("unitree_g1", "v2_pole_analytic")

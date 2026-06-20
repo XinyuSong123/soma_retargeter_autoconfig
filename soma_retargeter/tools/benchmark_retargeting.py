@@ -638,6 +638,48 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["pole_vector_tasks"] = kept_tasks
         config["benchmark_compare_mode"] = compare_mode
         return config
+    if compare_mode.startswith("v2_direction_analytic_"):
+        config = _build_v2_runtime_retargeter_config(robot)
+        tokens = [
+            token
+            for token in compare_mode.removeprefix("v2_direction_analytic_").replace("+", "_").split("_")
+            if token
+        ]
+        if not tokens:
+            raise ValueError(f"Invalid direction analytic selector in compare mode {compare_mode!r}")
+        for task in config.get("direction_tasks", []):
+            if not isinstance(task, dict):
+                continue
+            task_name = str(task.get("name", "")).lower()
+            target_site = str(task.get("target_site", "")).lower()
+            reference_site = str(task.get("reference_site", "")).lower()
+            selector_text = f"{task_name} {target_site} {reference_site}"
+            enable = False
+            for token in tokens:
+                if token == "all":
+                    enable = True
+                elif token == "arm":
+                    enable = enable or "arm" in selector_text or "forearm" in selector_text or "hand" in selector_text
+                elif token == "leg":
+                    enable = enable or "leg" in selector_text or "shin" in selector_text or "foot" in selector_text
+                elif token == "hand":
+                    enable = enable or "arm" in selector_text or "forearm" in selector_text or "hand" in selector_text
+                elif token == "foot":
+                    enable = enable or "leg" in selector_text or "shin" in selector_text or "foot" in selector_text
+                elif token == "proximal":
+                    enable = enable or (
+                        ("arm_direction" in task_name and "forearm" not in task_name)
+                        or ("leg_direction" in task_name and "shin" not in task_name)
+                    )
+                elif token == "distal":
+                    enable = enable or "forearm_direction" in task_name or "shin_direction" in task_name
+                else:
+                    enable = enable or token in selector_text
+            if enable:
+                task["analytic_jacobian"] = True
+                task["jacobian_schedule_reason"] = f"benchmark experiment: force analytic direction by selector {','.join(tokens)}"
+        config["benchmark_compare_mode"] = compare_mode
+        return config
     if compare_mode.startswith("v2_iter"):
         try:
             ik_iterations = int(compare_mode.removeprefix("v2_iter"))
@@ -667,7 +709,18 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
             raise ValueError(f"Invalid combined compare mode {compare_mode!r}")
         config = _build_v2_runtime_retargeter_config(robot)
         _force_analytic_pole_tasks(config, pole_analytic_weight_scale)
-        _override_hand_position_weights(config, hand_weight)
+        _override_position_weights(config, ("LeftHand", "RightHand"), hand_weight, "hand")
+        config["benchmark_compare_mode"] = compare_mode
+        return config
+    hand_hips_match = re.fullmatch(r"v2_hand_w([0-9]+(?:\.[0-9]+)?)_hips_r([0-9]+(?:\.[0-9]+)?)", compare_mode)
+    if hand_hips_match:
+        hand_weight = float(hand_hips_match.group(1))
+        hips_rotation_weight = float(hand_hips_match.group(2))
+        if hand_weight < 0.0 or hips_rotation_weight < 0.0:
+            raise ValueError(f"Invalid hand/hips compare mode {compare_mode!r}")
+        config = _build_v2_runtime_retargeter_config(robot)
+        _override_position_weights(config, ("LeftHand", "RightHand"), hand_weight, "hand")
+        _override_rotation_weight(config, "Hips", hips_rotation_weight, "hips")
         config["benchmark_compare_mode"] = compare_mode
         return config
     if compare_mode.startswith("v2_hand_w"):
@@ -678,7 +731,29 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         if hand_weight < 0.0:
             raise ValueError(f"Invalid hand weight in compare mode {compare_mode!r}")
         config = _build_v2_runtime_retargeter_config(robot)
-        _override_hand_position_weights(config, hand_weight)
+        _override_position_weights(config, ("LeftHand", "RightHand"), hand_weight, "hand")
+        config["benchmark_compare_mode"] = compare_mode
+        return config
+    if compare_mode.startswith("v2_foot_w"):
+        try:
+            foot_weight = float(compare_mode.removeprefix("v2_foot_w"))
+        except ValueError as exc:
+            raise ValueError(f"Invalid foot weight in compare mode {compare_mode!r}") from exc
+        if foot_weight < 0.0:
+            raise ValueError(f"Invalid foot weight in compare mode {compare_mode!r}")
+        config = _build_v2_runtime_retargeter_config(robot)
+        _override_position_weights(config, ("LeftFoot", "RightFoot"), foot_weight, "foot")
+        config["benchmark_compare_mode"] = compare_mode
+        return config
+    if compare_mode.startswith("v2_hips_r"):
+        try:
+            hips_rotation_weight = float(compare_mode.removeprefix("v2_hips_r"))
+        except ValueError as exc:
+            raise ValueError(f"Invalid hips rotation weight in compare mode {compare_mode!r}") from exc
+        if hips_rotation_weight < 0.0:
+            raise ValueError(f"Invalid hips rotation weight in compare mode {compare_mode!r}")
+        config = _build_v2_runtime_retargeter_config(robot)
+        _override_rotation_weight(config, "Hips", hips_rotation_weight, "hips")
         config["benchmark_compare_mode"] = compare_mode
         return config
     pole_analytic_weight_scale = 1.0
@@ -699,7 +774,7 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         config["benchmark_compare_mode"] = compare_mode
         return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_pole_analytic_iter<N>', 'v2_hand_w<weight>', 'v2_pole_analytic', 'v2_pole_analytic_w<scale>', 'v2_pole_analytic_w<scale>_hand_w<weight>', or 'v2_pole_tangent_analytic'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_direction_analytic_<selector>', 'v2_iter<N>', 'v2_pole_analytic_iter<N>', 'v2_hand_w<weight>', 'v2_foot_w<weight>', 'v2_hips_r<weight>', 'v2_hand_w<weight>_hips_r<weight>', 'v2_pole_analytic', 'v2_pole_analytic_w<scale>', 'v2_pole_analytic_w<scale>_hand_w<weight>', or 'v2_pole_tangent_analytic'."
     )
 
 
@@ -722,11 +797,21 @@ def _force_analytic_pole_tasks(config: dict[str, Any], weight_scale: float, resi
                 task["residual_mode_reason"] = "benchmark experiment: tangent-space pole-vector residual"
 
 
-def _override_hand_position_weights(config: dict[str, Any], hand_weight: float) -> None:
-    for semantic in ("LeftHand", "RightHand"):
+def _override_position_weights(config: dict[str, Any], semantics: tuple[str, ...], weight: float, label: str) -> None:
+    for semantic in semantics:
         if semantic in config.get("ik_map", {}):
-            config["ik_map"][semantic]["t_weight"] = hand_weight
-            config["ik_map"][semantic]["v2_position_weight_source"] = "benchmark experiment: override hand position weight"
+            config["ik_map"][semantic]["t_weight"] = weight
+            config["ik_map"][semantic]["v2_position_weight_source"] = (
+                f"benchmark experiment: override {label} position weight"
+            )
+
+
+def _override_rotation_weight(config: dict[str, Any], semantic: str, weight: float, label: str) -> None:
+    if semantic in config.get("ik_map", {}):
+        config["ik_map"][semantic]["r_weight"] = weight
+        config["ik_map"][semantic]["v2_rotation_weight_source"] = (
+            f"benchmark experiment: override {label} rotation weight"
+        )
 
 
 def _metric_payload(value: float | int | None, **extra: Any) -> dict[str, Any]:
@@ -1727,7 +1812,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--compare",
         nargs="+",
         default=["legacy", "v2"],
-        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_pole_analytic_iter<N>, v2_hand_w<weight>, v2_pole_analytic, v2_pole_analytic_w<scale>, v2_pole_analytic_w<scale>_hand_w<weight>, or v2_pole_tangent_analytic.",
+        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_direction_analytic_<selector>, v2_iter<N>, v2_pole_analytic_iter<N>, v2_hand_w<weight>, v2_foot_w<weight>, v2_hips_r<weight>, v2_hand_w<weight>_hips_r<weight>, v2_pole_analytic, v2_pole_analytic_w<scale>, v2_pole_analytic_w<scale>_hand_w<weight>, or v2_pole_tangent_analytic.",
     )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)
