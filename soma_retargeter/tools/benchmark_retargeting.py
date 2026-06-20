@@ -679,8 +679,13 @@ def _runtime_retargeter_config(robot: str, compare_mode: str) -> dict[str, Any] 
         _force_analytic_pole_tasks(config, pole_analytic_weight_scale)
         config["benchmark_compare_mode"] = compare_mode if pole_analytic_weight_scale == 1.0 else f"{compare_mode}_w{pole_analytic_weight_scale:g}"
         return config
+    if compare_mode == "v2_pole_tangent_analytic":
+        config = _build_v2_runtime_retargeter_config(robot)
+        _force_analytic_pole_tasks(config, 1.0, residual_mode="tangent2")
+        config["benchmark_compare_mode"] = compare_mode
+        return config
     raise ValueError(
-        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', 'v2_pole_analytic', 'v2_pole_analytic_w<scale>', or 'v2_pole_analytic_w<scale>_hand_w<weight>'."
+        f"Unsupported compare mode {compare_mode!r}; expected 'legacy', 'v2', 'v2_no_pole', 'v2_pos_projected', 'v2_pole_keep_<selector>', 'v2_iter<N>', 'v2_hand_w<weight>', 'v2_pole_analytic', 'v2_pole_analytic_w<scale>', 'v2_pole_analytic_w<scale>_hand_w<weight>', or 'v2_pole_tangent_analytic'."
     )
 
 
@@ -691,13 +696,16 @@ def _build_v2_runtime_retargeter_config(robot: str) -> dict[str, Any]:
     return build_runtime_retargeter_config(robot, io_utils.load_json(raw_path))
 
 
-def _force_analytic_pole_tasks(config: dict[str, Any], weight_scale: float) -> None:
+def _force_analytic_pole_tasks(config: dict[str, Any], weight_scale: float, residual_mode: str | None = None) -> None:
     for task in config.get("pole_vector_tasks", []):
         if isinstance(task, dict):
             task["analytic_jacobian"] = True
             task["weight"] = float(task.get("weight", 0.0)) * weight_scale
             task["normalized_weight"] = float(task.get("normalized_weight", 0.0)) * weight_scale
             task["jacobian_schedule_reason"] = "benchmark experiment: force analytic pole-vector Jacobian"
+            if residual_mode is not None:
+                task["residual_mode"] = residual_mode
+                task["residual_mode_reason"] = "benchmark experiment: tangent-space pole-vector residual"
 
 
 def _override_hand_position_weights(config: dict[str, Any], hand_weight: float) -> None:
@@ -1635,7 +1643,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--compare",
         nargs="+",
         default=["legacy", "v2"],
-        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, v2_pole_analytic_w<scale>, or v2_pole_analytic_w<scale>_hand_w<weight>.",
+        help="Compare modes: legacy, v2, v2_no_pole, v2_pos_projected, v2_pole_keep_<selector>, v2_iter<N>, v2_hand_w<weight>, v2_pole_analytic, v2_pole_analytic_w<scale>, v2_pole_analytic_w<scale>_hand_w<weight>, or v2_pole_tangent_analytic.",
     )
     parser.add_argument("--output", default="artifacts/retargeting_v2")
     parser.add_argument("--seed", type=int, default=0)

@@ -121,6 +121,7 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
                     "target_site": "LeftHand",
                     "weight": 10.0,
                     "analytic_jacobian": False,
+                    "residual_mode": "normal3",
                 }
             ],
         }
@@ -129,7 +130,7 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
 
         self.assertEqual(
             pipe.mapped_body_link_pole_vector_data,
-            [(0, 1, 2, 0, 1, 2, 10.0, "LeftForeArm_pole_vector", False)],
+            [(0, 1, 2, 0, 1, 2, 10.0, "LeftForeArm_pole_vector", False, "normal3")],
         )
 
     def test_rotation_target_projection_drops_unreachable_components(self):
@@ -270,6 +271,99 @@ class TestNewtonV2SparseObjectives(unittest.TestCase):
         self.assertEqual(objective.affects_parent_dof.numpy().tolist(), [1, 1, 1, 0, 0, 0, 0])
         self.assertEqual(objective.affects_middle_dof.numpy().tolist(), [1, 1, 1, 1, 0, 0, 0])
         self.assertEqual(objective.affects_child_dof.numpy().tolist(), [1, 1, 1, 1, 1, 1, 1])
+
+    def test_pole_vector_tangent_analytic_jacobian_matches_finite_difference(self):
+        parent = np.array([0.2, -0.1, 0.3], dtype=np.float64)
+        middle = np.array([0.9, 0.4, 0.2], dtype=np.float64)
+        child = np.array([0.6, 1.3, 0.9], dtype=np.float64)
+        target = np.array([0.2, -0.4, 0.9], dtype=np.float64)
+        target = target / np.linalg.norm(target)
+        linear_velocity = np.array([0.11, 0.07, -0.13], dtype=np.float64)
+        angular_velocity = np.array([-0.17, 0.19, 0.23], dtype=np.float64)
+        weight = 1.7
+        body_q = wp.array(
+            [[
+                wp.transform(wp.vec3(*parent), wp.quat_identity()),
+                wp.transform(wp.vec3(*middle), wp.quat_identity()),
+                wp.transform(wp.vec3(*child), wp.quat_identity()),
+            ]],
+            dtype=wp.transform,
+        )
+        objective = IKObjectivePoleVector(
+            0,
+            1,
+            2,
+            wp.array([wp.vec3(*target)], dtype=wp.vec3),
+            weight=weight,
+            analytic_jacobian=True,
+            residual_mode="tangent2",
+        )
+        objective.bind_device(wp.get_device())
+        objective.set_batch_layout(total_residuals=2, residual_offset=0, n_batch=1)
+        objective.affects_parent_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+        objective.affects_middle_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+        objective.affects_child_dof = wp.array(np.array([1], dtype=np.uint8), dtype=wp.uint8)
+
+        problem_idx = wp.array(np.array([0], dtype=np.int32), dtype=wp.int32)
+        residuals = wp.zeros((1, 2), dtype=wp.float32)
+        objective.compute_residuals(body_q, None, None, residuals, 0, problem_idx)
+        wp.synchronize()
+        self.assertEqual(objective.residual_dim(), 2)
+
+        def tangent_basis(n):
+            helper = np.array([1.0, 0.0, 0.0], dtype=np.float64)
+            if abs(float(n[0])) > 0.8:
+                helper = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+            tangent0 = np.cross(n, helper)
+            tangent0 = tangent0 / np.linalg.norm(tangent0)
+            tangent1 = np.cross(n, tangent0)
+            return tangent0, tangent1
+
+        def body_velocity(position):
+            return linear_velocity + np.cross(angular_velocity, position)
+
+        def residual(p, m, ch):
+            current = np.cross(m - p, ch - m)
+            current = current / np.linalg.norm(current)
+            tangent0, tangent1 = tangent_basis(target)
+            error = target - current
+            return weight * np.array([np.dot(tangent0, error), np.dot(tangent1, error)], dtype=np.float64)
+
+        expected_residual = residual(parent, middle, child)
+        self.assertTrue(np.allclose(residuals.numpy()[0], expected_residual, atol=1.0e-6))
+
+        joint_s = wp.array(
+            [[
+                wp.spatial_vector(
+                    float(linear_velocity[0]),
+                    float(linear_velocity[1]),
+                    float(linear_velocity[2]),
+                    float(angular_velocity[0]),
+                    float(angular_velocity[1]),
+                    float(angular_velocity[2]),
+                )
+            ]],
+            dtype=wp.spatial_vector,
+        )
+        jacobian = wp.zeros((1, 2, 1), dtype=wp.float32)
+        model = type("M", (), {"joint_dof_count": 1})()
+        objective.compute_jacobian_analytic(body_q, None, model, jacobian, joint_s, 0)
+        wp.synchronize()
+
+        eps = 1.0e-5
+        finite_difference = (
+            residual(
+                parent + eps * body_velocity(parent),
+                middle + eps * body_velocity(middle),
+                child + eps * body_velocity(child),
+            )
+            - residual(
+                parent - eps * body_velocity(parent),
+                middle - eps * body_velocity(middle),
+                child - eps * body_velocity(child),
+            )
+        ) / (2.0 * eps)
+        self.assertTrue(np.allclose(jacobian.numpy()[0, :, 0], finite_difference, atol=5.0e-5))
 
     def test_projected_position_residual_and_jacobian_match_basis_projection(self):
         body_pos = np.array([0.4, -0.2, 0.1], dtype=np.float64)

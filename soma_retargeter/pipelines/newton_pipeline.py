@@ -452,7 +452,7 @@ class NewtonPipeline:
                 ik_solver_active_objectives.append(temporal_acceleration_objective)
 
             direction_analytic = sum(1 for *_, analytic in self.mapped_body_link_direction_data if analytic)
-            pole_analytic = sum(1 for *_, analytic in self.mapped_body_link_pole_vector_data if analytic)
+            pole_analytic = sum(1 for entry in self.mapped_body_link_pole_vector_data if bool(entry[8]))
             jacobian_mode = self._select_ik_jacobian_mode(ik_solver_active_objectives)
             sparse_residual_dim = sum(
                 int(objective.residual_dim())
@@ -556,7 +556,7 @@ class NewtonPipeline:
                     for i, (reference_idx, target_idx, _, _, _, _, _) in enumerate(self.mapped_body_link_direction_data):
                         target_direction = self._direction_between_targets(frame_targets[reference_idx], frame_targets[target_idx])
                         direction_objectives[i].set_target_direction(env, wp.vec3(*target_direction))
-                    for i, (reference_idx, middle_idx, target_idx, _, _, _, _, _, _) in enumerate(self.mapped_body_link_pole_vector_data):
+                    for i, (reference_idx, middle_idx, target_idx, _, _, _, _, _, _, _) in enumerate(self.mapped_body_link_pole_vector_data):
                         target_normal, used_fallback = self._pole_normal_between_targets(
                             frame_targets[reference_idx],
                             frame_targets[middle_idx],
@@ -824,6 +824,7 @@ class NewtonPipeline:
                     weight,
                     str(task.get("name") or f"{middle_site}_pole_vector"),
                     bool(task.get("analytic_jacobian", False)),
+                    str(task.get("residual_mode", "normal3")),
                 )
             )
         self.mapped_body_link_pole_vector_data = mapped_body_link_pole_vector_data
@@ -868,7 +869,7 @@ class NewtonPipeline:
                         body_q[base + child_link_idx][0:3],
                     )
                 )
-            for ee_idx, (_, _, _, parent_link_idx, middle_link_idx, child_link_idx, _, _, _) in enumerate(self.mapped_body_link_pole_vector_data):
+            for ee_idx, (_, _, _, parent_link_idx, middle_link_idx, child_link_idx, _, _, _, _) in enumerate(self.mapped_body_link_pole_vector_data):
                 pole_targets[env, ee_idx] = wp.vec3(
                     *self._pole_normal_between_positions(
                         body_q[base + parent_link_idx][0:3],
@@ -938,14 +939,15 @@ class NewtonPipeline:
             direction_objectives.append(objective)
 
         pole_vector_objectives = []
-        for i, (_, _, _, parent_link_idx, middle_link_idx, child_link_idx, w, _, analytic_jacobian) in enumerate(self.mapped_body_link_pole_vector_data):
+        for i, (_, _, _, parent_link_idx, middle_link_idx, child_link_idx, w, _, analytic_jacobian, residual_mode) in enumerate(self.mapped_body_link_pole_vector_data):
             objective = IKObjectivePoleVector(
                 parent_link_index=parent_link_idx,
                 middle_link_index=middle_link_idx,
                 child_link_index=child_link_idx,
                 target_normals=pole_target_arrays[i],
                 weight=w,
-                analytic_jacobian=analytic_jacobian)
+                analytic_jacobian=analytic_jacobian,
+                residual_mode=residual_mode)
             pole_vector_objectives.append(objective)
 
         joint_limit_objective = ik.IKObjectiveJointLimit(

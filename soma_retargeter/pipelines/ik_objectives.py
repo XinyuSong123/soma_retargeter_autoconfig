@@ -360,6 +360,137 @@ def _pole_vector_jac_analytic(
     jacobian[problem_idx, start_idx + 2, dof_idx] = -weight * projected[2]
 
 
+@wp.func
+def _pole_target_tangent0(target_normal: wp.vec3):
+    target = target_normal
+    length = wp.length(target)
+    if length <= 1.0e-6:
+        target = wp.vec3(0.0, 0.0, 1.0)
+    else:
+        target = target / length
+    helper = wp.vec3(1.0, 0.0, 0.0)
+    if wp.abs(target[0]) > 0.8:
+        helper = wp.vec3(0.0, 1.0, 0.0)
+    tangent = wp.cross(target, helper)
+    tangent_length = wp.length(tangent)
+    if tangent_length <= 1.0e-6:
+        tangent = wp.vec3(1.0, 0.0, 0.0)
+    else:
+        tangent = tangent / tangent_length
+    return tangent
+
+
+@wp.func
+def _pole_target_tangent1(target_normal: wp.vec3, tangent0: wp.vec3):
+    target = target_normal
+    length = wp.length(target)
+    if length <= 1.0e-6:
+        target = wp.vec3(0.0, 0.0, 1.0)
+    else:
+        target = target / length
+    return wp.cross(target, tangent0)
+
+
+@wp.kernel
+def _pole_vector_tangent_residuals(
+    body_q: wp.array2d(dtype=wp.transform),
+    target_normals: wp.array1d(dtype=wp.vec3),
+    parent_link_index: int,
+    middle_link_index: int,
+    child_link_index: int,
+    weight: wp.float32,
+    start_idx: int,
+    problem_idx_map: wp.array1d(dtype=wp.int32),
+    residuals: wp.array2d(dtype=wp.float32),
+):
+    row = wp.tid()
+    base = problem_idx_map[row]
+
+    parent_tf = body_q[row, parent_link_index]
+    middle_tf = body_q[row, middle_link_index]
+    child_tf = body_q[row, child_link_index]
+    parent_pos = wp.vec3(parent_tf[0], parent_tf[1], parent_tf[2])
+    middle_pos = wp.vec3(middle_tf[0], middle_tf[1], middle_tf[2])
+    child_pos = wp.vec3(child_tf[0], child_tf[1], child_tf[2])
+
+    normal = wp.cross(middle_pos - parent_pos, child_pos - middle_pos)
+    length = wp.length(normal)
+    current = wp.vec3(0.0, 0.0, 0.0)
+    if length > 1.0e-6:
+        current = normal / length
+
+    target = target_normals[base]
+    tangent0 = _pole_target_tangent0(target)
+    tangent1 = _pole_target_tangent1(target, tangent0)
+    error = target - current
+    residuals[row, start_idx + 0] = weight * wp.dot(tangent0, error)
+    residuals[row, start_idx + 1] = weight * wp.dot(tangent1, error)
+
+
+@wp.kernel
+def _pole_vector_tangent_jac_analytic(
+    parent_link_index: int,
+    middle_link_index: int,
+    child_link_index: int,
+    affects_parent_dof: wp.array1d(dtype=wp.uint8),
+    affects_middle_dof: wp.array1d(dtype=wp.uint8),
+    affects_child_dof: wp.array1d(dtype=wp.uint8),
+    target_normals: wp.array1d(dtype=wp.vec3),
+    body_q: wp.array2d(dtype=wp.transform),
+    joint_S_s: wp.array2d(dtype=wp.spatial_vector),
+    weight: wp.float32,
+    start_idx: int,
+    n_dofs: int,
+    jacobian: wp.array3d(dtype=wp.float32),
+):
+    problem_idx, dof_idx = wp.tid()
+
+    affects_parent = affects_parent_dof[dof_idx] != 0
+    affects_middle = affects_middle_dof[dof_idx] != 0
+    affects_child = affects_child_dof[dof_idx] != 0
+    if not affects_parent and not affects_middle and not affects_child:
+        return
+
+    parent_tf = body_q[problem_idx, parent_link_index]
+    middle_tf = body_q[problem_idx, middle_link_index]
+    child_tf = body_q[problem_idx, child_link_index]
+    parent_pos = wp.vec3(parent_tf[0], parent_tf[1], parent_tf[2])
+    middle_pos = wp.vec3(middle_tf[0], middle_tf[1], middle_tf[2])
+    child_pos = wp.vec3(child_tf[0], child_tf[1], child_tf[2])
+
+    a = middle_pos - parent_pos
+    b = child_pos - middle_pos
+    normal = wp.cross(a, b)
+    length = wp.length(normal)
+    if length <= 1.0e-6:
+        return
+
+    current = normal / length
+    S = joint_S_s[problem_idx, dof_idx]
+    v_orig = wp.vec3(S[0], S[1], S[2])
+    omega = wp.vec3(S[3], S[4], S[5])
+    v_parent = wp.vec3(0.0, 0.0, 0.0)
+    v_middle = wp.vec3(0.0, 0.0, 0.0)
+    v_child = wp.vec3(0.0, 0.0, 0.0)
+    if affects_parent:
+        v_parent = v_orig + wp.cross(omega, parent_pos)
+    if affects_middle:
+        v_middle = v_orig + wp.cross(omega, middle_pos)
+    if affects_child:
+        v_child = v_orig + wp.cross(omega, child_pos)
+
+    da = v_middle - v_parent
+    db = v_child - v_middle
+    d_normal = wp.cross(da, b) + wp.cross(a, db)
+    d_current = (d_normal - current * wp.dot(current, d_normal)) / length
+    target = target_normals[problem_idx]
+    tangent0 = _pole_target_tangent0(target)
+    tangent1 = _pole_target_tangent1(target, tangent0)
+
+    jacobian[problem_idx, start_idx + 0, dof_idx] = -weight * wp.dot(tangent0, d_current)
+    jacobian[problem_idx, start_idx + 1, dof_idx] = -weight * wp.dot(tangent1, d_current)
+
+
 @wp.kernel
 def _autodiff_jac_fill(
     q_grad: wp.array2d(dtype=wp.float32),
@@ -1206,6 +1337,7 @@ class IKObjectivePoleVector(ik.IKObjective):
         target_normals,
         weight=1.0,
         analytic_jacobian=False,
+        residual_mode="normal3",
     ):
         super().__init__()
         self.parent_link_index = parent_link_index
@@ -1214,6 +1346,11 @@ class IKObjectivePoleVector(ik.IKObjective):
         self.target_normals = target_normals
         self.weight = float(weight)
         self.analytic_jacobian = bool(analytic_jacobian)
+        self.residual_mode = str(residual_mode or "normal3")
+        if self.residual_mode not in ("normal3", "tangent2"):
+            raise ValueError("IKObjectivePoleVector residual_mode must be 'normal3' or 'tangent2'")
+        if self.residual_mode == "tangent2" and not self.analytic_jacobian:
+            raise NotImplementedError("tangent2 pole-vector residuals require analytic_jacobian=True")
         self.affects_parent_dof = None
         self.affects_middle_dof = None
         self.affects_child_dof = None
@@ -1252,7 +1389,7 @@ class IKObjectivePoleVector(ik.IKObjective):
             self.affects_child_dof = ancestor_dof_mask(self.child_link_index)
         else:
             self.e_arrays = []
-            for component in range(3):
+            for component in range(self.residual_dim()):
                 e = np.zeros((self.n_batch, self.total_residuals), dtype=np.float32)
                 for prob_idx in range(self.n_batch):
                     e[prob_idx, self.residual_offset + component] = 1.0
@@ -1262,7 +1399,7 @@ class IKObjectivePoleVector(ik.IKObjective):
         return bool(self.analytic_jacobian)
 
     def residual_dim(self):
-        return 3
+        return 2 if self.residual_mode == "tangent2" else 3
 
     def set_target_normal(self, problem_idx, new_normal):
         self._require_batch_layout()
@@ -1275,25 +1412,45 @@ class IKObjectivePoleVector(ik.IKObjective):
         )
 
     def compute_residuals(self, body_q, joint_q, model, residuals, start_idx, problem_idx):
-        wp.launch(
-            _pole_vector_residuals,
-            dim=body_q.shape[0],
-            inputs=[
-                body_q,
-                self.target_normals,
-                self.parent_link_index,
-                self.middle_link_index,
-                self.child_link_index,
-                self.weight,
-                start_idx,
-                problem_idx,
-            ],
-            outputs=[residuals],
-            device=self.device,
-        )
+        if self.residual_mode == "tangent2":
+            wp.launch(
+                _pole_vector_tangent_residuals,
+                dim=body_q.shape[0],
+                inputs=[
+                    body_q,
+                    self.target_normals,
+                    self.parent_link_index,
+                    self.middle_link_index,
+                    self.child_link_index,
+                    self.weight,
+                    start_idx,
+                    problem_idx,
+                ],
+                outputs=[residuals],
+                device=self.device,
+            )
+        else:
+            wp.launch(
+                _pole_vector_residuals,
+                dim=body_q.shape[0],
+                inputs=[
+                    body_q,
+                    self.target_normals,
+                    self.parent_link_index,
+                    self.middle_link_index,
+                    self.child_link_index,
+                    self.weight,
+                    start_idx,
+                    problem_idx,
+                ],
+                outputs=[residuals],
+                device=self.device,
+            )
 
     def compute_jacobian_autodiff(self, tape, model, jacobian, start_idx, dq_dof):
         self._require_batch_layout()
+        if self.residual_mode == "tangent2":
+            raise NotImplementedError("tangent2 pole-vector residuals require analytic Jacobian mode")
         if self.e_arrays is None:
             raise RuntimeError("IKObjectivePoleVector buffers are not initialized")
         n_dofs = model.joint_dof_count
@@ -1313,6 +1470,28 @@ class IKObjectivePoleVector(ik.IKObjective):
         if self.affects_parent_dof is None or self.affects_middle_dof is None or self.affects_child_dof is None:
             raise RuntimeError("IKObjectivePoleVector analytic buffers are not initialized")
         n_dofs = model.joint_dof_count
+        if self.residual_mode == "tangent2":
+            wp.launch(
+                _pole_vector_tangent_jac_analytic,
+                dim=[body_q.shape[0], n_dofs],
+                inputs=[
+                    self.parent_link_index,
+                    self.middle_link_index,
+                    self.child_link_index,
+                    self.affects_parent_dof,
+                    self.affects_middle_dof,
+                    self.affects_child_dof,
+                    self.target_normals,
+                    body_q,
+                    joint_S_s,
+                    self.weight,
+                    start_idx,
+                    n_dofs,
+                ],
+                outputs=[jacobian],
+                device=self.device,
+            )
+            return
         wp.launch(
             _pole_vector_jac_analytic,
             dim=[body_q.shape[0], n_dofs],
