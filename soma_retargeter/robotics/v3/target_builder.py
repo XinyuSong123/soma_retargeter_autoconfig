@@ -10,6 +10,25 @@ from .rest_frames import EDGES, RestCalibration
 from .spatial import invert_transform, normalize, rotation_error, so3_exp
 
 
+CANONICAL_MOTION_NAMES = (
+    "neutral",
+    "root_translation",
+    "global_root_yaw",
+    "torso_pitch",
+    "torso_roll",
+    "torso_yaw",
+    "mixed_torso_rotation",
+    "arms_forward",
+    "elbow_bend",
+    "overhead_reach",
+    "squat",
+    "single_step",
+    "asymmetric_arm_reach",
+    "crossed_body_reach",
+    "extreme_but_valid_joint_limit_stress",
+)
+
+
 @dataclass(frozen=True)
 class SemanticTargets:
     transforms: dict[str, np.ndarray]
@@ -48,11 +67,18 @@ def canonical_motion_targets(calibration: RestCalibration) -> dict[str, Semantic
         "elbow_bend": _move_arms(base, np.array([0.08, 0.0, -0.05])),
         "overhead_reach": _move_arms(base, np.array([0.05, 0.0, 0.22])),
         "squat": _squat(base),
-        "single_step_target": _single_step(base),
+        "single_step": _single_step(base),
+        "asymmetric_arm_reach": _asymmetric_arm_reach(base),
+        "crossed_body_reach": _crossed_body_reach(base),
+        "extreme_but_valid_joint_limit_stress": _extreme_but_valid_joint_limit_stress(base),
     }
+    missing = [name for name in CANONICAL_MOTION_NAMES if name not in source_motions]
+    if missing:
+        raise AssertionError(f"missing canonical motion target definitions: {missing}")
     return {
         name: build_targets_from_source_semantic_frames(calibration, source_pose, mode=name)
-        for name, source_pose in source_motions.items()
+        for name in CANONICAL_MOTION_NAMES
+        for source_pose in (source_motions[name],)
     }
 
 
@@ -289,6 +315,30 @@ def _single_step(base: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     out = {k: v.copy() for k, v in base.items()}
     _redirect_endpoint(out, "Hips", "LeftFoot", np.array([0.12, 0.0, 0.03]))
     _redirect_endpoint(out, "Hips", "RightFoot", np.array([-0.04, 0.0, 0.0]))
+    return out
+
+
+def _asymmetric_arm_reach(base: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    out = {k: v.copy() for k, v in base.items()}
+    _redirect_endpoint(out, "Chest", "LeftHand", np.array([0.22, 0.05, 0.06]))
+    _redirect_endpoint(out, "Chest", "RightHand", np.array([-0.04, -0.02, -0.03]))
+    return out
+
+
+def _crossed_body_reach(base: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    out = {k: v.copy() for k, v in base.items()}
+    _redirect_endpoint(out, "Chest", "LeftHand", np.array([0.16, -0.35, 0.02]))
+    _redirect_endpoint(out, "Chest", "RightHand", np.array([0.16, 0.35, 0.02]))
+    return out
+
+
+def _extreme_but_valid_joint_limit_stress(base: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    out = _rotate_child(base, "Hips", "Chest", so3_exp(np.array([0.22, -0.18, 0.28])))
+    out = _translated(out, np.array([0.0, 0.0, -0.1]), names=["Hips", "Chest", "LeftHand", "RightHand"])
+    _redirect_endpoint(out, "Chest", "LeftHand", np.array([0.08, 0.05, 0.28]))
+    _redirect_endpoint(out, "Chest", "RightHand", np.array([0.2, -0.08, -0.04]))
+    _redirect_endpoint(out, "Hips", "LeftFoot", np.array([0.11, 0.03, 0.04]))
+    _redirect_endpoint(out, "Hips", "RightFoot", np.array([-0.07, -0.03, 0.02]))
     return out
 
 

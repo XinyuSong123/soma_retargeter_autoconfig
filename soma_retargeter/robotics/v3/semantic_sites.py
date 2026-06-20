@@ -63,11 +63,14 @@ def build_semantic_sites(
     for semantic, entry in semantic_map.items():
         source = "configured_body"
         confidence = 0.95
+        evidence: list[str] = []
+        provenance: dict[str, object] = {}
         if isinstance(entry, str):
             body = entry
             pos = [0.0, 0.0, 0.0]
             quat = [0.0, 0.0, 0.0, 1.0]
             reason = "explicit_body"
+            evidence = [f"configured_body:{body}"]
         elif "site" in entry or "model_site" in entry:
             site_name = str(entry.get("site", entry.get("model_site")))
             body, site_pos, site_quat = adapter.model_site_frame(site_name)
@@ -81,22 +84,32 @@ def build_semantic_sites(
             quat = matrix_to_quat_xyzw(local_t[:3, :3])
             reason = "explicit_model_site" if np.allclose(offset_pos, 0.0) else "explicit_model_site_offset"
             source, confidence = _entry_source_and_confidence(entry, default_source="configured_model_site")
+            evidence = _entry_evidence(entry, fallback=[f"model_site:{site_name}", f"body:{body}"])
+            provenance = _entry_provenance(entry)
+            provenance["model_site"] = site_name
+            site_frame_provenance = getattr(adapter, "site_frame_provenance", {}).get(site_name)
+            if site_frame_provenance:
+                provenance["site_frame"] = site_frame_provenance
         else:
             body = str(entry["body"])
             pos = entry.get("local_position", [0.0, 0.0, 0.0])
             quat = entry.get("local_rotation_xyzw", [0.0, 0.0, 0.0, 1.0])
             reason = "explicit_site"
             source, confidence = _entry_source_and_confidence(entry, default_source="configured_site")
+            evidence = _entry_evidence(entry, fallback=[f"body:{body}"])
+            provenance = _entry_provenance(entry)
         if semantic in foot_offsets:
             pos = foot_offsets[semantic]
             reason = "explicit_sole_offset"
             source = "configured_distal_offset"
             confidence = min(confidence, 0.9)
+            evidence.append("configured_foot_offset")
         if semantic in hand_offsets:
             pos = hand_offsets[semantic]
             reason = "explicit_distal_hand_offset"
             source = "configured_distal_offset"
             confidence = min(confidence, 0.9)
+            evidence.append("configured_hand_offset")
         if require_distal_site_offsets and semantic in DISTAL_SEMANTICS:
             enforce_nonzero_origin(semantic, pos, source=source)
         sites[semantic] = SemanticSite(
@@ -107,6 +120,8 @@ def build_semantic_sites(
             source=source,
             confidence=confidence,
             reason=reason,
+            evidence=tuple(evidence),
+            provenance=provenance,
         )
     return sites
 
@@ -184,6 +199,21 @@ def _entry_source_and_confidence(entry: dict, *, default_source: str) -> tuple[s
     elif source.startswith("configured"):
         confidence = min(confidence, 0.95)
     return source, confidence
+
+
+def _entry_evidence(entry: dict, *, fallback: list[str]) -> list[str]:
+    evidence = entry.get("evidence", fallback)
+    if not isinstance(evidence, list | tuple):
+        return list(fallback)
+    out = [str(item) for item in evidence if isinstance(item, str)]
+    return out or list(fallback)
+
+
+def _entry_provenance(entry: dict) -> dict[str, object]:
+    provenance = entry.get("provenance", {})
+    if not isinstance(provenance, dict):
+        return {}
+    return dict(provenance)
 
 
 def _topology_depth(adapter: MuJoCoRuntimeModelAdapter, body_name: str) -> int | None:

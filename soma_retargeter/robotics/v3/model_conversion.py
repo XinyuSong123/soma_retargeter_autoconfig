@@ -8,8 +8,10 @@ import json
 import mujoco
 import numpy as np
 
+from .kinematic_paths import discover_paths
 from .model_adapter import MuJoCoRuntimeModelAdapter, SemanticSite
 from .model_fingerprint import sha256_file
+from .numerical_jacobian import matrix_rank_and_singular_values, numerical_relative_jacobian
 from .semantic_sites import build_semantic_sites
 from .spatial import rotation_error
 
@@ -78,8 +80,11 @@ def compare_runtime_models(
     right: MuJoCoRuntimeModelAdapter,
     *,
     semantic_map: dict[str, str | dict] | None = None,
+    canonical_projection_reports: tuple[dict, dict] | None = None,
     position_atol: float = 1e-7,
     rotation_atol: float = 1e-7,
+    rank_singular_value_atol: float = 1e-6,
+    projection_atol: float = 1e-9,
 ) -> dict:
     """Compare same-source runtime kinematics with explicit tolerances."""
 
@@ -96,23 +101,62 @@ def compare_runtime_models(
     if coordinate_comparison["failures"]:
         failures.append("coordinate_signature_mismatch")
 
-    semantic_fk = {}
+    left_sites: dict[str, SemanticSite] | None = None
+    right_sites: dict[str, SemanticSite] | None = None
     if semantic_map:
-        left_sites = build_semantic_sites(left, semantic_map)
-        right_sites = build_semantic_sites(right, semantic_map)
-        semantic_fk = _compare_semantic_fk(
-            left,
-            right,
-            left_sites,
-            right_sites,
-            position_atol=position_atol,
-            rotation_atol=rotation_atol,
-        )
-        failures.extend(semantic_fk["failures"])
+        try:
+            left_sites = build_semantic_sites(left, semantic_map)
+            right_sites = build_semantic_sites(right, semantic_map)
+            semantic_fk = _compare_semantic_fk(
+                left,
+                right,
+                left_sites,
+                right_sites,
+                position_atol=position_atol,
+                rotation_atol=rotation_atol,
+            )
+        except Exception as exc:
+            semantic_fk = _failed_section("semantic_map_build_failed", f"{type(exc).__name__}: {exc}")
+    else:
+        semantic_fk = _unavailable_section("semantic_map_not_provided")
+    failures.extend(semantic_fk["failures"])
+
+    if left_sites is None or right_sites is None:
+        active_chains = _unavailable_section("semantic_sites_unavailable")
+        rank_summary = _unavailable_section("semantic_sites_unavailable")
+    else:
+        active_chains = _compare_active_chains(left, right, left_sites, right_sites)
+        failures.extend(active_chains["failures"])
+        if active_chains["status"] == "failed":
+            rank_summary = _unavailable_section("active_chain_comparison_failed")
+        else:
+            rank_summary = _compare_rank_summary(
+                left,
+                right,
+                left_sites,
+                right_sites,
+                singular_value_atol=rank_singular_value_atol,
+            )
+            failures.extend(rank_summary["failures"])
+
+    canonical_projection = _compare_canonical_projection_reports(
+        canonical_projection_reports,
+        projection_atol=projection_atol,
+    )
+    failures.extend(canonical_projection["failures"])
+    gate_sections = {
+        "semantic_fk": semantic_fk,
+        "active_chains": active_chains,
+        "rank_summary": rank_summary,
+        "canonical_projection": canonical_projection,
+    }
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "comparison_mode": "same_source_strict",
+        "gate_a_status": _gate_a_status(failures, gate_sections),
+        "gate_a_evidence_complete": _gate_a_evidence_complete(gate_sections),
+        "gate_a_required_sections": list(gate_sections),
         "strict_equivalent": not failures,
         "failures": failures,
         "left_fingerprint": left.fingerprint,
@@ -121,9 +165,14 @@ def compare_runtime_models(
         "right_signature": right_sig,
         "coordinate_comparison": coordinate_comparison,
         "semantic_fk": semantic_fk,
+        "active_chains": active_chains,
+        "rank_summary": rank_summary,
+        "canonical_projection": canonical_projection,
         "tolerances": {
             "position_atol": position_atol,
             "rotation_atol": rotation_atol,
+            "rank_singular_value_atol": rank_singular_value_atol,
+            "projection_atol": projection_atol,
         },
     }
 
@@ -187,7 +236,253 @@ def _compare_semantic_fk(
         }
         if not per_site[name]["passed"]:
             failures.append(f"semantic_fk_mismatch:{name}")
-    return {"per_site": per_site, "failures": failures}
+    if not per_site:
+        return _unavailable_section("no_common_semantic_sites", per_site=per_site)
+    return {"status": "passed" if not failures else "failed", "passed": not failures, "per_site": per_site, "failures": failures}
+
+
+def _compare_active_chains(
+    left: MuJoCoRuntimeModelAdapter,
+    right: MuJoCoRuntimeModelAdapter,
+    left_sites: dict[str, SemanticSite],
+    right_sites: dict[str, SemanticSite],
+) -> dict:
+    left_paths = discover_paths(left, left_sites)
+    right_paths = discover_paths(right, right_sites)
+    per_task = {}
+    failures: list[str] = []
+    for task in sorted(set(left_paths) | set(right_paths)):
+        if task not in left_paths or task not in right_paths:
+            failures.append(f"active_chain_missing:{task}")
+            per_task[task] = {
+                "passed": False,
+                "left": left_paths.get(task).to_json() if task in left_paths else None,
+                "right": right_paths.get(task).to_json() if task in right_paths else None,
+                "failures": [f"missing_{'left' if task not in left_paths else 'right'}"],
+            }
+            continue
+        left_payload = _chain_signature(left_paths[task].to_json())
+        right_payload = _chain_signature(right_paths[task].to_json())
+        task_failures = [
+            key
+            for key in sorted(set(left_payload) | set(right_payload))
+            if left_payload.get(key) != right_payload.get(key)
+        ]
+        if task_failures:
+            failures.extend(f"active_chain_mismatch:{task}:{key}" for key in task_failures)
+        per_task[task] = {
+            "passed": not task_failures,
+            "left": left_payload,
+            "right": right_payload,
+            "failures": task_failures,
+        }
+    if not per_task:
+        return _unavailable_section("no_comparable_semantic_paths", per_task=per_task)
+    return {"status": "passed" if not failures else "failed", "passed": not failures, "per_task": per_task, "failures": failures}
+
+
+def _chain_signature(path_payload: dict) -> dict:
+    keys = (
+        "reference",
+        "target",
+        "reference_body",
+        "target_body",
+        "lca_body",
+        "body_path",
+        "reference_branch_bodies",
+        "target_branch_bodies",
+        "active_velocity_coordinates",
+        "coordinate_labels",
+        "joint_types",
+    )
+    return {key: path_payload.get(key) for key in keys}
+
+
+def _compare_rank_summary(
+    left: MuJoCoRuntimeModelAdapter,
+    right: MuJoCoRuntimeModelAdapter,
+    left_sites: dict[str, SemanticSite],
+    right_sites: dict[str, SemanticSite],
+    *,
+    singular_value_atol: float,
+) -> dict:
+    left_paths = discover_paths(left, left_sites)
+    right_paths = discover_paths(right, right_sites)
+    common_tasks = sorted(set(left_paths) & set(right_paths))
+    if not common_tasks:
+        return _unavailable_section("no_common_semantic_paths", per_task={})
+    per_task = {}
+    failures: list[str] = []
+    for task in common_tasks:
+        try:
+            left_rank = _neutral_rank_summary(left, left_sites, left_paths[task])
+            right_rank = _neutral_rank_summary(right, right_sites, right_paths[task])
+        except Exception as exc:
+            failures.append(f"rank_summary_failed:{task}:{type(exc).__name__}")
+            per_task[task] = {
+                "passed": False,
+                "left": None,
+                "right": None,
+                "failures": [f"{type(exc).__name__}: {exc}"],
+            }
+            continue
+        task_failures = _rank_summary_failures(task, left_rank, right_rank, singular_value_atol=singular_value_atol)
+        failures.extend(task_failures)
+        per_task[task] = {
+            "passed": not task_failures,
+            "left": left_rank,
+            "right": right_rank,
+            "failures": task_failures,
+        }
+    return {"status": "passed" if not failures else "failed", "passed": not failures, "per_task": per_task, "failures": failures}
+
+
+def _neutral_rank_summary(adapter: MuJoCoRuntimeModelAdapter, sites: dict[str, SemanticSite], path) -> dict:
+    jac = numerical_relative_jacobian(
+        adapter,
+        adapter.neutral_q(),
+        sites[path.reference],
+        sites[path.target],
+        path.active_velocity_coordinates,
+    )
+    translation_rank, translation_singular_values = matrix_rank_and_singular_values(jac.translation)
+    rotation_rank, rotation_singular_values = matrix_rank_and_singular_values(jac.rotation)
+    return {
+        "active_coordinate_count": len(path.active_velocity_coordinates),
+        "translation_rank": translation_rank,
+        "rotation_rank": rotation_rank,
+        "translation_singular_values": translation_singular_values.tolist(),
+        "rotation_singular_values": rotation_singular_values.tolist(),
+        "stability_gate_passed": jac.stability_gate_passed,
+        "unstable_columns": jac.unstable_columns,
+    }
+
+
+def _rank_summary_failures(task: str, left: dict, right: dict, *, singular_value_atol: float) -> list[str]:
+    failures: list[str] = []
+    for key in ("active_coordinate_count", "translation_rank", "rotation_rank", "stability_gate_passed", "unstable_columns"):
+        if left[key] != right[key]:
+            failures.append(f"rank_summary_mismatch:{task}:{key}")
+    for key in ("translation_singular_values", "rotation_singular_values"):
+        left_values = np.asarray(left[key], dtype=float)
+        right_values = np.asarray(right[key], dtype=float)
+        if left_values.shape != right_values.shape or np.max(np.abs(left_values - right_values), initial=0.0) > singular_value_atol:
+            failures.append(f"rank_summary_mismatch:{task}:{key}")
+    return failures
+
+
+def _compare_canonical_projection_reports(
+    reports: tuple[dict, dict] | None,
+    *,
+    projection_atol: float,
+) -> dict:
+    if reports is None:
+        return _unavailable_section("canonical_projection_reports_not_provided")
+    left_report, right_report = reports
+    left_summary = _canonical_projection_summary(left_report)
+    right_summary = _canonical_projection_summary(right_report)
+    if not left_summary.get("motions") and not right_summary.get("motions"):
+        return _unavailable_section(
+            "canonical_projection_reports_empty",
+            left=left_summary,
+            right=right_summary,
+        )
+    mismatch_paths: list[str] = []
+    _compare_projection_values(left_summary, right_summary, path="", mismatch_paths=mismatch_paths, atol=projection_atol)
+    failures = [f"canonical_projection_mismatch:{path}" for path in mismatch_paths]
+    return {
+        "status": "passed" if not failures else "failed",
+        "passed": not failures,
+        "left": left_summary,
+        "right": right_summary,
+        "failures": failures,
+    }
+
+
+def _canonical_projection_summary(report: dict) -> dict:
+    motions = report.get("motions", {}) if isinstance(report, dict) else {}
+    return {
+        "motion_order": report.get("motion_order", []) if isinstance(report, dict) else [],
+        "target_source": report.get("target_source") if isinstance(report, dict) else None,
+        "failures": report.get("failures", []) if isinstance(report, dict) else [],
+        "unreachable_demands": report.get("unreachable_demands", []) if isinstance(report, dict) else [],
+        "motions": {
+            motion_name: {
+                "tasks": {
+                    task_name: {
+                        key: task_payload.get(key)
+                        for key in (
+                            "status",
+                            "converged",
+                            "residual",
+                            "normalized_residual",
+                            "normalization_scale",
+                            "iterations",
+                            "active_coordinates",
+                            "desired_source",
+                            "reference",
+                            "target",
+                        )
+                        if key in task_payload
+                    }
+                    for task_name, task_payload in sorted(motion_payload.get("tasks", {}).items())
+                }
+            }
+            for motion_name, motion_payload in sorted(motions.items())
+        },
+    }
+
+
+def _compare_projection_values(first, second, *, path: str, mismatch_paths: list[str], atol: float) -> None:
+    if isinstance(first, bool) or isinstance(second, bool):
+        if first != second:
+            mismatch_paths.append(path or "$")
+        return
+    if isinstance(first, (int, float)) and isinstance(second, (int, float)):
+        if abs(float(first) - float(second)) > atol:
+            mismatch_paths.append(path or "$")
+        return
+    if isinstance(first, dict) and isinstance(second, dict):
+        for key in sorted(set(first) | set(second)):
+            child_path = f"{path}.{key}" if path else str(key)
+            if key not in first or key not in second:
+                mismatch_paths.append(child_path)
+                continue
+            _compare_projection_values(first[key], second[key], path=child_path, mismatch_paths=mismatch_paths, atol=atol)
+        return
+    if isinstance(first, list) and isinstance(second, list):
+        if len(first) != len(second):
+            mismatch_paths.append(f"{path}.length" if path else "length")
+            return
+        for index, (left_item, right_item) in enumerate(zip(first, second)):
+            child_path = f"{path}[{index}]" if path else f"[{index}]"
+            _compare_projection_values(left_item, right_item, path=child_path, mismatch_paths=mismatch_paths, atol=atol)
+        return
+    if first != second:
+        mismatch_paths.append(path or "$")
+
+
+def _gate_a_status(failures: list[str], sections: dict[str, dict]) -> str:
+    if failures:
+        return "failed"
+    if _gate_a_evidence_complete(sections):
+        return "complete_passed"
+    return "incomplete"
+
+
+def _gate_a_evidence_complete(sections: dict[str, dict]) -> bool:
+    return all(section.get("status") == "passed" for section in sections.values())
+
+
+def _unavailable_section(reason: str, **extra) -> dict:
+    payload = {"status": "unavailable", "passed": False, "reason": reason, "failures": []}
+    payload.update(extra)
+    return payload
+
+
+def _failed_section(reason: str, detail: str) -> dict:
+    failure = f"{reason}:{detail}"
+    return {"status": "failed", "passed": False, "reason": reason, "detail": detail, "failures": [failure]}
 
 
 def _finite_or_none(value: float) -> float | None:

@@ -6,42 +6,270 @@ on:
     branches:
       - retargeting-v3-step2-kinematic-core
       - agent-f-repro-ci-red-team
+      - agent-b-xhigh-verified-semantics
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  ROBOT_ZOO_MANIFEST: assets/robot_zoo/robot_zoo_manifest.json
+  RETARGETING_V3_ARTIFACTS: artifacts/retargeting_v3_step2
+
 jobs:
-  acceptance-audit:
+  step2-unit-math:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install test dependencies
+      - name: Install test runner
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest
+      - name: Run math and projection unit gates
+        run: |
+          python -m pytest -q \
+            tests/test_kinematic_profile_v3_math.py \
+            tests/v3/test_numerical_jacobian_gates.py \
+            tests/v3/test_reachability_gates.py \
+            tests/v3/test_chain_projection_gates.py
 
-      - name: Run Step 2 false-positive audit
+  step2-runtime-adapter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run runtime adapter gates
+        run: |
+          python -m pytest -q \
+            tests/v3/test_model_adapter_runtime_truth.py \
+            tests/v3/test_cross_format_adapter_scaffolding.py \
+            tests/test_kinematic_profile_v3_adapter.py
+
+  step2-calibration-targets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run calibration and target-builder gates
+        run: |
+          python -m pytest -q \
+            tests/v3/test_rest_calibration_validation.py \
+            tests/v3/test_target_builder_calibrated_geometry.py \
+            tests/test_kinematic_profile_v3_calibration_targets.py
+
+  step2-rpo-g1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate RPO and G1 artifacts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          artifact_dir = Path("artifacts/retargeting_v3_step2")
+          required_motions = {
+              "neutral",
+              "root_translation",
+              "global_root_yaw",
+              "torso_pitch",
+              "torso_roll",
+              "torso_yaw",
+              "mixed_torso_rotation",
+              "arms_forward",
+              "elbow_bend",
+              "overhead_reach",
+              "squat",
+              "single_step",
+              "asymmetric_arm_reach",
+              "crossed_body_reach",
+              "extreme_but_valid_joint_limit_stress",
+          }
+          blockers = []
+          for robot_id in ("roboparty_rpo_local", "unitree_g1_mjcf", "unitree_g1_urdf"):
+              path = artifact_dir / "per_robot" / f"{robot_id}.json"
+              if not path.exists():
+                  blockers.append(f"{robot_id}: missing per-robot report")
+                  continue
+              report = json.loads(path.read_text())
+              if report.get("status") != "passed":
+                  blockers.append(f"{robot_id}: status={report.get('status')!r}")
+              motion_order = report.get("canonical_projection_reports", {}).get("motion_order", [])
+              missing = sorted(required_motions - set(motion_order))
+              if missing:
+                  blockers.append(f"{robot_id}: missing canonical motions {missing}")
+              unstable = [
+                  chain
+                  for chain, payload in report.get("rank_stability", {}).items()
+                  if isinstance(payload, dict) and payload.get("epsilon_stability_gate_passed") is False
+              ]
+              if unstable:
+                  blockers.append(f"{robot_id}: unstable epsilon gates {unstable}")
+          if blockers:
+              raise SystemExit("\n".join(blockers))
+          PY
+
+  step2-full-permissive-zoo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run manifest validation unit gates
+        run: |
+          python -m pytest -q \
+            tests/v3/test_full_robot_zoo_validation.py \
+            tests/v3/test_semantic_map_coverage_manifest.py
+      - name: Validate required positive robot reports
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("assets/robot_zoo/robot_zoo_manifest.json").read_text())
+          artifact_dir = Path("artifacts/retargeting_v3_step2/per_robot")
+          blockers = []
+          for entry in manifest["models"]:
+              if entry.get("expected_capability") != "positive" or not entry.get("required", True):
+                  continue
+              path = artifact_dir / f"{entry['id']}.json"
+              if not path.exists():
+                  blockers.append(f"{entry['id']}: missing report")
+                  continue
+              status = json.loads(path.read_text()).get("status")
+              if status not in {"passed", "partial_passed"}:
+                  blockers.append(f"{entry['id']}: status={status!r}")
+          if blockers:
+              raise SystemExit("\n".join(blockers))
+          PY
+
+  step2-negative-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate negative-control reports
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("assets/robot_zoo/robot_zoo_manifest.json").read_text())
+          artifact_dir = Path("artifacts/retargeting_v3_step2/per_robot")
+          blockers = []
+          for entry in manifest["models"]:
+              if entry.get("expected_capability") != "negative_control" or not entry.get("required", True):
+                  continue
+              path = artifact_dir / f"{entry['id']}.json"
+              if not path.exists():
+                  blockers.append(f"{entry['id']}: missing report")
+                  continue
+              status = json.loads(path.read_text()).get("status")
+              if status != "negative_control_passed":
+                  blockers.append(f"{entry['id']}: status={status!r}")
+          if blockers:
+              raise SystemExit("\n".join(blockers))
+          PY
+
+  step2-reproducibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run deterministic rerun tests
+        run: |
+          python -m pytest -q tests/v3/test_deterministic_rerun_validation.py
+      - name: Validate reproducibility artifacts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          artifact_dir = Path("artifacts/retargeting_v3_step2")
+          required = [
+              "acceptance_ledger.json",
+              "test_results/pytest.txt",
+              "test_results/junit.xml",
+              "test_results/coverage.json",
+          ]
+          blockers = [f"missing or empty {name}" for name in required if not (artifact_dir / name).is_file() or (artifact_dir / name).stat().st_size == 0]
+          deterministic = json.loads((artifact_dir / "deterministic_rerun.json").read_text())
+          if deterministic.get("status") != "passed":
+              blockers.append(f"deterministic_rerun.status={deterministic.get('status')!r}")
+          environment = json.loads((artifact_dir / "environment.json").read_text())
+          if environment.get("git_status_short", "").strip():
+              blockers.append("environment.json records dirty generation")
+          for path in artifact_dir.rglob("*"):
+              if path.is_file() and any(prefix in path.read_text(errors="ignore") for prefix in ("/mnt/", "/home/", "/Users/")):
+                  blockers.append(f"local absolute path leaked in {path}")
+          if blockers:
+              raise SystemExit("\n".join(blockers[:80]))
+          PY
+
+  step2-red-team-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run Step 2 acceptance audit
         run: |
           python scripts/audit_retargeting_v3_step2.py \
             --artifact-dir artifacts/retargeting_v3_step2 \
             --source-root . \
             --output-json artifacts/retargeting_v3_step2/test_results/acceptance_audit.json \
             --junit-xml artifacts/retargeting_v3_step2/test_results/acceptance_audit.junit.xml
-
-      - name: Run pytest acceptance gates
+      - name: Run audit gate tests
         run: |
-          python -m pytest tests/v3/test_acceptance_gates_*.py
-
-      - name: Upload acceptance audit results
+          python -m pytest -q tests/v3/test_acceptance_gates_audit.py
+      - name: Upload red-team audit results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: retargeting-v3-step2-acceptance-audit
+          name: retargeting-v3-step2-red-team-audit
           path: artifacts/retargeting_v3_step2/test_results/

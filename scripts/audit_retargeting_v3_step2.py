@@ -44,6 +44,30 @@ CANONICAL_PROJECTION_KEYS = (
     "canonical_motion_projection_reports",
     "per_motion_projection_reports",
 )
+REQUIRED_CANONICAL_MOTIONS = (
+    "neutral",
+    "root_translation",
+    "global_root_yaw",
+    "torso_pitch",
+    "torso_roll",
+    "torso_yaw",
+    "mixed_torso_rotation",
+    "arms_forward",
+    "elbow_bend",
+    "overhead_reach",
+    "squat",
+    "single_step",
+    "asymmetric_arm_reach",
+    "crossed_body_reach",
+    "extreme_but_valid_joint_limit_stress",
+)
+PROFILE_PASS_STATUSES = ("passed", "partial_passed")
+REQUIRED_ARTIFACT_FILES = (
+    "acceptance_ledger.json",
+    "test_results/pytest.txt",
+    "test_results/junit.xml",
+    "test_results/coverage.json",
+)
 REQUIRED_SUBAGENT_HANDOFFS = (
     "step2_agent_a_handoff.md",
     "step2_agent_b_handoff.md",
@@ -68,6 +92,10 @@ GOAL_FALSE_POSITIVE_GATES = (
     "robot_name_special_cases",
     "legacy_offsets",
     "missing_formal_red_team_artifacts",
+    "missing_required_artifacts",
+    "cross_format_gates_not_run",
+    "canonical_motion_suite_incomplete",
+    "epsilon_stability_failed",
 )
 
 GOAL_FALSE_POSITIVE_TRACEABILITY = {
@@ -84,6 +112,10 @@ GOAL_FALSE_POSITIVE_TRACEABILITY = {
     "fp08_g1_equivalence_documented_limitation": ("arbitrary_g1_equivalence",),
     "fp09_dirty_absolute_artifacts": ("dirty_artifact_metadata", "absolute_cache_paths"),
     "fp10_missing_formal_results_handoffs_red_team": ("missing_formal_red_team_artifacts",),
+    "fp11_missing_junit_pytest_coverage_artifacts": ("missing_required_artifacts",),
+    "fp12_cross_format_scaffold_not_run": ("cross_format_gates_not_run",),
+    "fp13_incomplete_canonical_motion_suite": ("canonical_motion_suite_incomplete",),
+    "fp14_unstable_jacobian_marked_pass": ("epsilon_stability_failed",),
 }
 
 
@@ -125,24 +157,30 @@ def run_audit(
     findings: list[Finding] = []
 
     summary = _read_json(artifact_dir / "summary.json")
+    cross_format = _read_json(artifact_dir / "cross_format.json")
     validation_checks = _read_json(artifact_dir / "validation_checks.json")
     environment = _read_json(artifact_dir / "environment.json")
     commands_text = _read_text(artifact_dir / "commands.txt")
     per_robot = _load_per_robot(artifact_dir / "per_robot")
     semantic_maps = _load_per_robot(artifact_dir / "semantic_maps")
 
+    findings.extend(_audit_required_artifact_files(artifact_dir))
     findings.extend(_audit_hardcoded_zero_calibration(source_root, per_robot))
     findings.extend(_audit_neutral_projection_only(per_robot))
     findings.extend(_audit_canonical_targets_projected(per_robot))
+    findings.extend(_audit_canonical_motion_suite(per_robot))
     findings.extend(_audit_rpo_zero_endpoint_sites(per_robot.get("roboparty_rpo", {}), validation_checks))
     findings.extend(_audit_body_name_depth_heuristic(source_root))
     findings.extend(_audit_talos_foot_mapping(per_robot.get("pal_talos", {}), semantic_maps.get("pal_talos", {})))
     findings.extend(_audit_booster_hips_chest(per_robot.get("booster_t1", {}), semantic_maps.get("booster_t1", {})))
     findings.extend(_audit_g1_equivalence(summary, validation_checks))
+    findings.extend(_audit_cross_format_gates(cross_format or summary.get("cross_format", {})))
     findings.extend(_audit_dirty_artifact_metadata(environment, source_root))
     findings.extend(_audit_absolute_paths(commands_text, per_robot))
+    findings.extend(_audit_artifact_absolute_paths(artifact_dir))
     findings.extend(_audit_inferred_semantics_confidence(per_robot, semantic_maps))
     findings.extend(_audit_rank_zero_false_pass(per_robot))
+    findings.extend(_audit_epsilon_stability(per_robot))
     findings.extend(_audit_robot_name_special_cases(source_root))
     findings.extend(_audit_legacy_offsets(source_root, per_robot))
     findings.extend(_audit_formal_red_team_artifacts(source_root))
@@ -263,6 +301,60 @@ def _audit_canonical_targets_projected(per_robot: dict[str, dict]) -> list[Findi
                 )
             )
     return findings
+
+
+def _audit_canonical_motion_suite(per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    required = set(REQUIRED_CANONICAL_MOTIONS)
+    for robot_id, report in sorted(per_robot.items()):
+        if report.get("status") not in PROFILE_PASS_STATUSES:
+            continue
+        motion_order = _canonical_motion_order(report)
+        if not motion_order:
+            findings.append(
+                Finding(
+                    "canonical_motion_suite_incomplete",
+                    "error",
+                    robot_id,
+                    "passed/partial profile has no canonical motion projection order",
+                    {"required_motions": list(REQUIRED_CANONICAL_MOTIONS)},
+                )
+            )
+            continue
+        present = set(motion_order)
+        missing = [motion for motion in REQUIRED_CANONICAL_MOTIONS if motion not in present]
+        duplicate_count = len(motion_order) - len(present)
+        if missing or len(present) < len(required) or duplicate_count:
+            findings.append(
+                Finding(
+                    "canonical_motion_suite_incomplete",
+                    "error",
+                    robot_id,
+                    "passed/partial profile does not include the full 15-motion canonical suite",
+                    {
+                        "motion_order": motion_order,
+                        "motion_count": len(present),
+                        "required_motion_count": len(required),
+                        "missing": missing,
+                        "duplicate_count": duplicate_count,
+                    },
+                )
+            )
+    return findings
+
+
+def _canonical_motion_order(report: dict) -> list[str]:
+    for key in CANONICAL_PROJECTION_KEYS:
+        payload = report.get(key)
+        if not isinstance(payload, dict):
+            continue
+        motion_order = payload.get("motion_order")
+        if isinstance(motion_order, list):
+            return [str(item) for item in motion_order]
+        motions = payload.get("motions")
+        if isinstance(motions, dict):
+            return [str(item) for item in motions]
+    return []
 
 
 def _audit_rpo_zero_endpoint_sites(report: dict, validation_checks: dict) -> list[Finding]:
@@ -387,6 +479,36 @@ def _audit_g1_equivalence(summary: dict, validation_checks: dict) -> list[Findin
     return findings
 
 
+def _audit_cross_format_gates(cross_format: dict) -> list[Finding]:
+    findings: list[Finding] = []
+    gates = cross_format.get("gates", {}) if isinstance(cross_format, dict) else {}
+    required_gates = ("same_source_strict", "variant_compatibility")
+    for gate_name in required_gates:
+        gate = gates.get(gate_name, {})
+        status = gate.get("status")
+        if status != "passed":
+            findings.append(
+                Finding(
+                    "cross_format_gates_not_run",
+                    "error",
+                    f"cross_format.gates.{gate_name}",
+                    "required cross-format gate is not a completed pass",
+                    {"status": status, "reason": gate.get("reason")},
+                )
+            )
+    if not gates:
+        findings.append(
+            Finding(
+                "cross_format_gates_not_run",
+                "error",
+                "cross_format.json",
+                "cross-format artifact does not contain required gate results",
+                {"required_gates": list(required_gates)},
+            )
+        )
+    return findings
+
+
 def _audit_dirty_artifact_metadata(environment: dict, source_root: Path) -> list[Finding]:
     findings: list[Finding] = []
     status = environment.get("git_status_short", "")
@@ -440,6 +562,38 @@ def _source_changes_since_artifact_head(source_root: Path, artifact_head: str, c
     ]
 
 
+def _audit_required_artifact_files(artifact_dir: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for relative in REQUIRED_ARTIFACT_FILES:
+        path = artifact_dir / relative
+        if not path.exists():
+            findings.append(
+                Finding(
+                    "missing_required_artifacts",
+                    "error",
+                    relative,
+                    "required reproducibility/test artifact is missing",
+                    {"artifact_dir": str(artifact_dir)},
+                )
+            )
+            continue
+        try:
+            empty = path.stat().st_size == 0
+        except OSError:
+            empty = True
+        if empty:
+            findings.append(
+                Finding(
+                    "missing_required_artifacts",
+                    "error",
+                    relative,
+                    "required reproducibility/test artifact is empty",
+                    {"artifact_dir": str(artifact_dir)},
+                )
+            )
+    return findings
+
+
 def _audit_absolute_paths(commands_text: str, per_robot: dict[str, dict]) -> list[Finding]:
     findings: list[Finding] = []
     for idx, line in enumerate(commands_text.splitlines(), start=1):
@@ -479,6 +633,33 @@ def _audit_absolute_paths(commands_text: str, per_robot: dict[str, dict]) -> lis
                     {"paths": hits},
                 )
             )
+    return findings
+
+
+def _audit_artifact_absolute_paths(artifact_dir: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    if not artifact_dir.exists():
+        return findings
+    for path in sorted(item for item in artifact_dir.rglob("*") if item.is_file()):
+        text = _read_text(path)
+        if not text:
+            continue
+        hits = _absolute_local_hits(text)
+        if not hits:
+            continue
+        try:
+            subject = str(path.relative_to(artifact_dir))
+        except ValueError:
+            subject = str(path)
+        findings.append(
+            Finding(
+                "absolute_cache_paths",
+                "error",
+                subject,
+                "artifact file contains local absolute path string(s)",
+                {"paths": sorted(set(hits))[:20], "path_count": len(hits)},
+            )
+        )
     return findings
 
 
@@ -527,6 +708,29 @@ def _audit_rank_zero_false_pass(per_robot: dict[str, dict]) -> list[Finding]:
                             },
                         )
                     )
+    return findings
+
+
+def _audit_epsilon_stability(per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    for robot_id, report in sorted(per_robot.items()):
+        if report.get("status") not in PROFILE_PASS_STATUSES:
+            continue
+        unstable_paths = [
+            path
+            for path, value in _walk_json(report.get("rank_stability", {}))
+            if path.endswith("epsilon_stability_gate_passed") and value is False
+        ]
+        if unstable_paths:
+            findings.append(
+                Finding(
+                    "epsilon_stability_failed",
+                    "error",
+                    robot_id,
+                    "passed/partial profile contains epsilon_stability_gate_passed=false",
+                    {"unstable_paths": unstable_paths[:50], "unstable_count": len(unstable_paths)},
+                )
+            )
     return findings
 
 
@@ -665,7 +869,7 @@ def _read_json(path: Path) -> dict:
 def _read_text(path: Path) -> str:
     if not path.exists():
         return ""
-    return path.read_text()
+    return path.read_text(errors="replace")
 
 
 def _is_zero(value: object) -> bool:
@@ -692,12 +896,24 @@ def _vectors_close(a: object, b: object) -> bool:
 
 
 def _absolute_local_hits(text: str) -> list[str]:
-    hits: list[str] = []
-    for token in re.split(r"\s+", text):
-        stripped = token.strip("'\"")
-        if stripped.startswith(ABSOLUTE_LOCAL_PREFIXES):
-            hits.append(stripped)
-    return hits
+    pattern = r"(?<![\w$])/(?:mnt|home|Users)/[^\s\"'<>),\]}`]+"
+    return [match.group(0).rstrip(".,;:") for match in re.finditer(pattern, text)]
+
+
+def _walk_json(value: object, prefix: str = "") -> list[tuple[str, object]]:
+    if isinstance(value, dict):
+        items: list[tuple[str, object]] = []
+        for key, child in value.items():
+            child_prefix = f"{prefix}.{key}" if prefix else str(key)
+            items.extend(_walk_json(child, child_prefix))
+        return items
+    if isinstance(value, list):
+        items = []
+        for idx, child in enumerate(value):
+            child_prefix = f"{prefix}[{idx}]" if prefix else f"[{idx}]"
+            items.extend(_walk_json(child, child_prefix))
+        return items
+    return [(prefix, value)]
 
 
 def _git(source_root: Path, *args: str) -> str:

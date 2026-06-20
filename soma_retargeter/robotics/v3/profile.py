@@ -15,7 +15,7 @@ from .model_adapter import MuJoCoRuntimeModelAdapter, NewtonRuntimeModelAdapter,
 from .numerical_jacobian import engine_translation_jacobian_crosscheck, numerical_relative_jacobian
 from .reachability import ReachabilityReport, analyze_reachability
 from .rest_frames import RestCalibration, calibrate_rest_frames, neutral_exactness_passed
-from .semantic_sites import build_semantic_sites, missing_required_semantics
+from .semantic_sites import DISTAL_SEMANTICS, build_semantic_sites, missing_required_semantics
 from .source_rest import load_soma_source_rest_frames
 from .target_builder import canonical_motion_targets, validate_canonical_targets
 
@@ -78,12 +78,19 @@ def compile_kinematic_profile_v3(
     backend: str = "mujoco",
     low_discrepancy_count: int = 32,
     reproduction_command: str = "",
+    require_distal_site_offsets: bool | None = None,
 ) -> KinematicProfileV3:
     start = time.perf_counter()
     failures: list[str] = []
     warnings: list[str] = []
     adapter = _make_adapter(model_path, model_format=model_format, backend=backend)
-    sites = build_semantic_sites(adapter, semantic_map)
+    if require_distal_site_offsets is None:
+        require_distal_site_offsets = _requires_verified_distal_offsets(semantic_map)
+    sites = build_semantic_sites(
+        adapter,
+        semantic_map,
+        require_distal_site_offsets=require_distal_site_offsets,
+    )
     missing = missing_required_semantics(sites)
     capability_status = _capability_status(sites, missing)
     if missing and capability_status == "partial_humanoid":
@@ -202,3 +209,13 @@ def _capability_status(sites: dict[str, SemanticSite], missing: list[str]) -> st
     if lower_body_ready and only_upper_missing:
         return "partial_humanoid"
     return "semantic_incomplete"
+
+
+def _requires_verified_distal_offsets(semantic_map: dict[str, str | dict]) -> bool:
+    for semantic_name, entry in semantic_map.items():
+        if semantic_name not in DISTAL_SEMANTICS or not isinstance(entry, dict):
+            continue
+        source = str(entry.get("source", ""))
+        if source.startswith("verified"):
+            return True
+    return False

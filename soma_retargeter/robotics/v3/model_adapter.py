@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 import hashlib
@@ -44,6 +44,8 @@ class SemanticSite:
     source: str = "explicit_semantic_override"
     confidence: float = 1.0
     reason: str = "configured"
+    evidence: tuple[str, ...] = field(default_factory=tuple)
+    provenance: dict[str, object] = field(default_factory=dict)
 
     def to_json(self) -> dict:
         return {
@@ -54,6 +56,8 @@ class SemanticSite:
             "source": self.source,
             "confidence": self.confidence,
             "reason": self.reason,
+            "evidence": list(self.evidence),
+            "provenance": self.provenance,
         }
 
 
