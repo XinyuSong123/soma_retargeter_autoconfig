@@ -5,7 +5,8 @@ Branch/worktree: `agent-e-full-robot-zoo-validation` at `/mnt/ssd1/song/Desktop/
 
 ## Commits
 
-- Pending local commit at handoff time.
+- `b25b5f1 feat: add manifest-driven robot zoo validation`
+- `9549b9e artifacts: publish manifest robot zoo validation scaffold`
 
 ## Files
 
@@ -52,6 +53,7 @@ Branch/worktree: `agent-e-full-robot-zoo-validation` at `/mnt/ssd1/song/Desktop/
 
 ## Assumptions
 
+- Agent E was spawned before the Integrator added the hard requirement that all subagents use xhigh reasoning. Tool parameters cannot be changed in-place for this already-running agent; subsequent work continued with the highest diligence possible under the original high-effort spawn.
 - No-fetch mode is the default because importing some `robot_descriptions` modules can clone upstream repositories as an import side effect.
 - Full source-fetch validation should be run only with explicit opt-in after cache/network policy is confirmed.
 - Agent E did not edit Agent B semantics code, so inferred semantic confidence issues remain owned by Agent B/F gates.
@@ -63,6 +65,7 @@ Branch/worktree: `agent-e-full-robot-zoo-validation` at `/mnt/ssd1/song/Desktop/
 - `deterministic_rerun.json` is scaffolding only and reports `not_run`.
 - `cross_format.json` is scaffolding only and reports `not_run` gates.
 - Generated artifacts were produced from a dirty Agent E worktree, so they are not final clean Step-2 artifacts.
+- Reasoning-effort provenance limitation: this handoff was produced by a pre-xhigh Agent E instance and should be treated as high-diligence but not xhigh-spawned evidence.
 
 ## Integration Notes
 
