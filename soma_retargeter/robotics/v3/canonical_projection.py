@@ -19,6 +19,7 @@ class CanonicalProjectionReport:
     motions: dict[str, dict]
     warnings: list[str]
     failures: list[str]
+    unreachable_demands: list[str]
     target_source: str = "canonical_semantic_targets"
 
     def to_json(self) -> dict:
@@ -27,6 +28,7 @@ class CanonicalProjectionReport:
             "motions": self.motions,
             "warnings": self.warnings,
             "failures": self.failures,
+            "unreachable_demands": self.unreachable_demands,
             "target_source": self.target_source,
         }
 
@@ -54,6 +56,7 @@ def project_canonical_motion_sequence(
     previous_q_by_task: dict[str, np.ndarray] = {}
     warnings: list[str] = []
     failures: list[str] = []
+    unreachable_demands: list[str] = []
     motions: dict[str, dict] = {}
 
     for motion_name in order:
@@ -113,7 +116,7 @@ def project_canonical_motion_sequence(
             result_json["desired_source"] = "canonical_targets.transforms"
             motion_report["tasks"][task_name] = result_json
             if result.status == "unreachable/rank_zero":
-                failures.append(f"{motion_name}:{task_name}: rank-zero chain has nonzero demand")
+                unreachable_demands.append(f"{motion_name}:{task_name}: rank-zero chain has nonzero demand")
         motions[motion_name] = motion_report
 
     return CanonicalProjectionReport(
@@ -121,6 +124,7 @@ def project_canonical_motion_sequence(
         motions=motions,
         warnings=warnings,
         failures=failures,
+        unreachable_demands=unreachable_demands,
     )
 
 

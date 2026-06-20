@@ -223,3 +223,56 @@ def test_canonical_projection_consumes_non_neutral_semantic_targets(tmp_path: Pa
     assert left_hand["desired"] != report["motions"]["neutral"]["tasks"]["left_hand"]["desired"]
     assert report["target_source"] == "canonical_semantic_targets"
     assert report["failures"] == []
+    assert report["unreachable_demands"] == []
+
+
+def test_canonical_projection_records_rank_zero_demand_without_zeroing_or_failing(tmp_path: Path):
+    model = _write(
+        tmp_path / "fixed_canonical_torso.xml",
+        """
+<mujoco model="fixed_canonical_torso">
+  <worldbody>
+    <body name="hips">
+      <body name="chest" pos="0 0 1"><geom type="sphere" size="0.01"/></body>
+    </body>
+  </worldbody>
+</mujoco>
+""",
+    )
+    adapter = MuJoCoRuntimeModelAdapter(model)
+    sites = build_semantic_sites(
+        adapter,
+        {
+            "Hips": "hips",
+            "Chest": "chest",
+            "LeftFoot": "hips",
+            "RightFoot": "hips",
+        },
+    )
+    paths = discover_paths(adapter, sites)
+    neutral = {
+        "Hips": transform(),
+        "Chest": transform([0.0, 0.0, 1.0]),
+        "LeftFoot": transform(),
+        "RightFoot": transform(),
+    }
+    torso_yaw = {name: value.copy() for name, value in neutral.items()}
+    torso_yaw["Chest"] = transform([0.0, 0.0, 1.0], so3_exp([0.0, 0.0, 0.2]))
+
+    report = project_canonical_motion_sequence(
+        adapter,
+        sites,
+        paths,
+        {
+            "neutral": SemanticTargets(neutral, {}, mode="neutral"),
+            "torso_yaw": SemanticTargets(torso_yaw, {}, mode="torso_yaw"),
+        },
+    ).to_json()
+
+    torso = report["motions"]["torso_yaw"]["tasks"]["torso"]
+    assert torso["status"] == "unreachable/rank_zero"
+    assert torso["residual"] > 0.19
+    np.testing.assert_allclose(torso["desired"], [0.0, 0.0, 0.2], atol=1e-12)
+    np.testing.assert_allclose(torso["projected"], [0.0, 0.0, 0.0], atol=1e-12)
+    assert report["failures"] == []
+    assert report["unreachable_demands"] == ["torso_yaw:torso: rank-zero chain has nonzero demand"]
