@@ -174,7 +174,7 @@ def _edge_target_transform(
     neutral_source_rel = invert_transform(neutral_source_parent) @ neutral_source_child
     source_edge = source_rel[:3, 3]
     if np.linalg.norm(source_edge) <= 1e-9:
-        return _apply_global_delta(robot_child_neutral, global_delta)
+        return parent_target @ neutral_rel_robot
 
     mapped_direction_parent = alignment @ normalize(source_edge)
     out[:3, 3] = parent_target[:3, 3] + parent_target[:3, :3] @ mapped_direction_parent * float(length)

@@ -8,7 +8,7 @@ import hashlib
 import json
 import time
 
-from .chain_projection import project_endpoint_position, project_torso_orientation
+from .canonical_projection import canonical_projection_json, project_canonical_targets
 from .kinematic_paths import TASKS, KinematicPath, discover_paths
 from .model_adapter import MuJoCoRuntimeModelAdapter, NewtonRuntimeModelAdapter, SemanticSite
 from .numerical_jacobian import engine_translation_jacobian_crosscheck, numerical_relative_jacobian
@@ -80,79 +80,77 @@ def compile_kinematic_profile_v3(
     failures: list[str] = []
     warnings: list[str] = []
     adapter = _make_adapter(model_path, model_format=model_format, backend=backend)
-    sites = build_semantic_sites(adapter, semantic_map)
-    missing = missing_required_semantics(sites)
-    capability_status = _capability_status(sites, missing)
-    if missing and capability_status == "partial_humanoid":
-        warnings.append(f"partial humanoid downgrade; unavailable semantics: {', '.join(missing)}")
-    elif missing:
-        failures.append(f"missing required semantics: {', '.join(missing)}")
-    paths = discover_paths(adapter, sites)
-    q0 = adapter.neutral_q()
-    neutral_jacobians = {}
-    reachability = {}
-    projection_reports = {}
-    for task, path in paths.items():
-        ref = sites[path.reference]
-        target = sites[path.target]
-        jac = numerical_relative_jacobian(adapter, q0, ref, target, path.active_velocity_coordinates)
-        jac_json = jac.to_json()
-        jac_json["engine_translation_crosscheck"] = engine_translation_jacobian_crosscheck(
-            adapter, q0, ref, target, path.active_velocity_coordinates, jac.translation
-        )
-        neutral_jacobians[task] = jac_json
-        reachability[task] = analyze_reachability(
-            adapter,
-            ref,
-            target,
-            path.active_velocity_coordinates,
-            low_discrepancy_count=low_discrepancy_count,
-        )
-        neutral_rel = adapter.relative_transform(adapter.forward_kinematics(q0), ref, target)
-        if task == "torso":
-            projection_reports[task] = project_torso_orientation(
-                adapter, q0, ref, target, path.active_velocity_coordinates, neutral_rel[:3, :3]
-            ).to_json()
-        else:
-            projection_reports[task] = project_endpoint_position(
-                adapter, q0, ref, target, path.active_velocity_coordinates, neutral_rel[:3, 3]
-            ).to_json()
     try:
-        source_rest_transforms, source_provenance = load_soma_source_rest_frames()
-    except Exception as exc:
-        source_rest_transforms = None
-        source_provenance = "robot_neutral_proxy_no_external_source_rest_supplied"
-        warnings.append(f"source rest load failed; using robot-neutral proxy: {type(exc).__name__}: {exc}")
-    calibration = calibrate_rest_frames(
-        adapter,
-        sites,
-        source_rest_transforms=source_rest_transforms,
-        source_provenance=source_provenance,
-    )
-    if not neutral_exactness_passed(calibration):
-        failures.append("neutral exactness gate failed")
-    canonical_objects = canonical_motion_targets(calibration)
-    canonical_validation = validate_canonical_targets(calibration, canonical_objects)
-    if canonical_validation["failures"]:
-        failures.extend(f"canonical target validation failed: {failure}" for failure in canonical_validation["failures"])
-    canonical = {k: v.to_json() for k, v in canonical_objects.items()}
-    elapsed = time.perf_counter() - start
-    return KinematicProfileV3(
-        schema_version=3,
-        model={
+        sites = build_semantic_sites(adapter, semantic_map)
+        missing = missing_required_semantics(sites)
+        capability_status = _capability_status(sites, missing)
+        if missing and capability_status == "partial_humanoid":
+            warnings.append(f"partial humanoid downgrade; unavailable semantics: {', '.join(missing)}")
+        elif missing:
+            failures.append(f"missing required semantics: {', '.join(missing)}")
+        paths = discover_paths(adapter, sites)
+        q0 = adapter.neutral_q()
+        neutral_jacobians = {}
+        reachability = {}
+        for task, path in paths.items():
+            ref = sites[path.reference]
+            target = sites[path.target]
+            jac = numerical_relative_jacobian(adapter, q0, ref, target, path.active_velocity_coordinates)
+            jac_json = jac.to_json()
+            jac_json["engine_translation_crosscheck"] = engine_translation_jacobian_crosscheck(
+                adapter, q0, ref, target, path.active_velocity_coordinates, jac.translation
+            )
+            neutral_jacobians[task] = jac_json
+            reachability[task] = analyze_reachability(
+                adapter,
+                ref,
+                target,
+                path.active_velocity_coordinates,
+                low_discrepancy_count=low_discrepancy_count,
+            )
+        try:
+            source_rest_transforms, source_provenance = load_soma_source_rest_frames()
+        except Exception as exc:
+            source_rest_transforms = None
+            source_provenance = "robot_neutral_proxy_no_external_source_rest_supplied"
+            warnings.append(f"source rest load failed; using robot-neutral proxy: {type(exc).__name__}: {exc}")
+        calibration = calibrate_rest_frames(
+            adapter,
+            sites,
+            source_rest_transforms=source_rest_transforms,
+            source_provenance=source_provenance,
+        )
+        if not neutral_exactness_passed(calibration):
+            failures.append("neutral exactness gate failed")
+        canonical_objects = canonical_motion_targets(calibration)
+        canonical_validation = validate_canonical_targets(calibration, canonical_objects)
+        if canonical_validation["failures"]:
+            failures.extend(f"canonical target validation failed: {failure}" for failure in canonical_validation["failures"])
+        canonical_projections = project_canonical_targets(adapter, sites, paths, canonical_objects)
+        projection_reports = canonical_projection_json(canonical_projections)
+        failures.extend(_projection_failures(paths, projection_reports))
+        canonical = {k: v.to_json() for k, v in canonical_objects.items()}
+        model_payload = {
             "id": model_id or Path(model_path).stem,
             "path": str(model_path),
             "format": adapter.model_format,
             "backend": backend,
             "fingerprint": adapter.fingerprint,
-        },
-        runtime_adapter={
+        }
+        runtime_payload = {
             "backend": backend,
             "nq": adapter.nq,
             "nv": adapter.nv,
             "body_count": len(adapter.body_names),
             "coordinates": [c.to_json() for c in adapter.coordinate_info],
-        },
+        }
+    finally:
+        adapter.close()
+    elapsed = time.perf_counter() - start
+    return KinematicProfileV3(
+        schema_version=3,
+        model=model_payload,
+        runtime_adapter=runtime_payload,
         semantic_sites=sites,
         chains=paths,
         neutral_jacobians=neutral_jacobians,
@@ -191,3 +189,25 @@ def _capability_status(sites: dict[str, SemanticSite], missing: list[str]) -> st
     if lower_body_ready and only_upper_missing:
         return "partial_humanoid"
     return "semantic_incomplete"
+
+
+def _projection_failures(paths: dict[str, KinematicPath], projection_reports: dict) -> list[str]:
+    failures: list[str] = []
+    if "neutral" not in projection_reports:
+        failures.append("canonical projection coverage missing neutral motion")
+    expected_motions = {"torso_pitch", "torso_roll", "torso_yaw", "arms_forward", "overhead_reach", "squat", "single_step_target"}
+    missing_motions = sorted(expected_motions - set(projection_reports))
+    if missing_motions:
+        failures.append(f"canonical projection coverage missing motions: {', '.join(missing_motions)}")
+    for motion, task_reports in projection_reports.items():
+        missing_tasks = sorted(set(paths) - set(task_reports))
+        if missing_tasks:
+            failures.append(f"{motion}: canonical projection missing tasks: {', '.join(missing_tasks)}")
+        for task, report in task_reports.items():
+            if report.get("desired_source") != "canonical_semantic_target_relative_transform":
+                failures.append(f"{motion}/{task}: projection desired_source is not canonical semantic target")
+            if report.get("neutral_as_desired") is not False:
+                failures.append(f"{motion}/{task}: neutral_as_desired must be false")
+            if not report.get("active_coordinates") and "rank_zero" not in str(report.get("status", "")):
+                failures.append(f"{motion}/{task}: rank-zero projection lacks rank_zero status")
+    return failures
