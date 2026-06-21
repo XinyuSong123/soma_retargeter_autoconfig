@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "lock_name": "soma-retargeter-v3-public-robot-assets",
+  "providers": {
+    "robot_descriptions": {
+      "package": "robot_descriptions",
+      "version": "2.0.0",
+      "repository": "https://github.com/robot-descriptions/robot_descriptions.py",
+      "ref": "v2.0.0",
+      "commit": "2431c405312001e10cb0a8d5315dbb2e90f0c732",
+      "repository_index_blob_sha": "6ceed0db9ee7c9ea30c4a9e1c731dd01e9687244",
+      "description_index_blob_sha": "3333aa57d07cdbb19d3351d4684ac53be767ad73",
+      "cache_environment_variable": "ROBOT_DESCRIPTIONS_CACHE",
+      "pull_command": "python -m robot_descriptions pull <description_name>"
+    },
+    "mujoco_menagerie": {
+      "repository": "https://github.com/google-deepmind/mujoco_menagerie.git",
+      "commit": "feadf76d42f8a2162426f7d226a3b539556b3bf5",
+      "cache_subdirectory": "mujoco_menagerie"
+    },
+    "unitree_ros": {
+      "repository": "https://github.com/unitreerobotics/unitree_ros.git",
+      "commit": "267182b8521c8d6a631bab1fe63836873237a525",
+      "cache_subdirectory": "unitree_ros"
+    }
+  },
+  "dependencies": {
+    "python": ">=3.12",
+    "robot_descriptions": "==2.0.0",
+    "mujoco": "==3.8.1",
+    "pycollada": ">=0.8,<1",
+    "gitpython": "==3.1.46"
+  },
+  "policy": {
+    "allow_private_or_unlisted_assets": false,
+    "fetch_only_assets_are_never_committed": true,
+    "visual_meshes_are_not_committed_by_default": true,
+    "required_source_unavailable_is_failure": true
+  },
+  "counts": {
+    "model_count": 48,
+    "required_count": 43,
+    "required_positive_count": 34,
+    "required_negative_control_count": 9
+  },
+  "direct_sources": {
+    "roboparty_rpo_local": {
+      "provider": "local",
+      "path": "assets/robots/atom01/mjcf/atom01.xml"
+    },
+    "unitree_g1_23dof_urdf": {
+      "provider": "unitree_ros",
+      "path": "robots/g1_description/g1_23dof.urdf"
+    },
+    "unitree_g1_23dof_mjcf": {
+      "provider": "unitree_ros",
+      "path": "robots/g1_description/g1_23dof.xml"
+    },
+    "pal_talos_mjcf_direct": {
+      "provider": "mujoco_menagerie",
+      "directory": "pal_talos",
+      "candidates": [
+        "pal_talos.xml",
+        "model.xml",
+        "scene.xml"
+      ]
+    },
+    "berkeley_humanoid_mjcf_direct": {
+      "provider": "mujoco_menagerie",
+      "directory": "berkeley_humanoid",
+      "candidates": [
+        "berkeley_humanoid.xml",
+        "model.xml",
+        "scene.xml"
+      ]
+    }
+  }
+}
