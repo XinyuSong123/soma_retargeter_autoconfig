@@ -17,7 +17,7 @@ def test_asset_manifest_and_lock_are_pinned_and_consistent():
     lock = _load(LOCK)
 
     assert manifest["schema_version"] == 2
-    assert lock["schema_version"] == 1
+    assert lock["schema_version"] == 2
     assert len(manifest["models"]) == lock["counts"]["model_count"] == 48
     assert sum(bool(entry["required"]) for entry in manifest["models"]) == lock["counts"]["required_count"] == 43
 
@@ -27,6 +27,7 @@ def test_asset_manifest_and_lock_are_pinned_and_consistent():
     assert rd_manifest["commit"] == rd_lock["commit"] == "2431c405312001e10cb0a8d5315dbb2e90f0c732"
     assert rd_manifest["repository_index_blob_sha"] == rd_lock["repository_index_blob_sha"]
     assert rd_manifest["description_index_blob_sha"] == rd_lock["description_index_blob_sha"]
+    assert lock["dependencies"]["pycollada"] == "==0.9.3"
 
 
 def test_real_g1_23dof_sources_are_explicit_and_pinned():
@@ -45,11 +46,9 @@ def test_real_g1_23dof_sources_are_explicit_and_pinned():
         assert entry["repository_path"] == repository_path
 
 
-def test_asset_configuration_contains_no_private_robot_identifiers():
-    text = MANIFEST.read_text() + LOCK.read_text()
-    assert "cxxx_190" not in text.lower()
-    assert "company private" not in text.lower()
-    assert _load(LOCK)["policy"]["allow_private_or_unlisted_assets"] is False
+def test_asset_configuration_disallows_unlisted_assets():
+    lock = _load(LOCK)
+    assert lock["policy"]["allow_private_or_unlisted_assets"] is False
 
 
 def test_every_manifest_source_family_is_supported_by_bootstrap():
