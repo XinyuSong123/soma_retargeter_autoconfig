@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - retargeting-v3-step2-kinematic-core
-      - agent-f-repro-ci-red-team
+      - retargeting-v3-step2-integrated-review
   workflow_dispatch:
 
 jobs:
@@ -29,6 +29,7 @@ jobs:
 
       - name: Run Step 2 false-positive audit
         run: |
+          mkdir -p artifacts/retargeting_v3_step2/test_results
           python scripts/audit_retargeting_v3_step2.py \
             --artifact-dir artifacts/retargeting_v3_step2 \
             --source-root . \
