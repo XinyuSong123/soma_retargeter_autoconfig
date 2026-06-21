@@ -63,29 +63,41 @@ This must not be confused with an Agent D self-attestation.
 
 ## How to run
 
+The source branch must have a clean worktree. Run the script with `bash`; do
+not use `chmod +x`, because changing the executable bit makes Git report the
+tracked script as modified on filesystems that track mode changes.
+
 ```bash
 git checkout retargeting-v3-step2-kinematic-core
 git pull --ff-only
-chmod +x scripts/apply_step2_agent_merges.sh
-./scripts/apply_step2_agent_merges.sh
+git status --short
+bash scripts/apply_step2_agent_merges.sh
+```
+
+If setup bundles or other untracked files are inside the repository, move them
+outside the checkout or stash them first:
+
+```bash
+git stash push -u -m "temporary local setup files before Step 2 integration"
+bash scripts/apply_step2_agent_merges.sh
 ```
 
 To use another local integration branch name:
 
 ```bash
-./scripts/apply_step2_agent_merges.sh my-step2-integration
+bash scripts/apply_step2_agent_merges.sh my-step2-integration
 ```
 
 To rebuild an existing local integration branch:
 
 ```bash
-FORCE_RESET=1 ./scripts/apply_step2_agent_merges.sh
+FORCE_RESET=1 bash scripts/apply_step2_agent_merges.sh
 ```
 
 To merge without running the selected pytest suite:
 
 ```bash
-RUN_TESTS=0 ./scripts/apply_step2_agent_merges.sh
+RUN_TESTS=0 bash scripts/apply_step2_agent_merges.sh
 ```
 
 ## Expected outcome
