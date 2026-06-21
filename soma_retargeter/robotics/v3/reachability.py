@@ -19,12 +19,17 @@ class ReachabilityReport:
     singularity_fraction_translation: float
     singularity_fraction_rotation: float
     epsilon_unstable_fraction: float
+    epsilon_unstable_sample_fraction: float
+    epsilon_stability_gate_passed: bool
+    epsilon_unstable_columns: list[int]
     conditioning_percentiles_translation: dict[str, float | None]
     conditioning_percentiles_rotation: dict[str, float | None]
     samples: int
     selected_singular_values_translation: list[list[float]]
     selected_singular_values_rotation: list[list[float]]
     sample_diagnostics: list[dict]
+    rank_method: str = "per-sample-local-rank-regular-fraction"
+    regular_rank_fraction_threshold: float = 0.20
 
     def to_json(self) -> dict:
         return self.__dict__.copy()
@@ -67,18 +72,28 @@ def analyze_reachability(
     active_coordinates: list[int],
     *,
     low_discrepancy_count: int = 32,
+    raise_on_unstable: bool = False,
 ) -> ReachabilityReport:
     ranks_p: list[int] = []
     ranks_r: list[int] = []
     cond_p: list[float] = []
     cond_r: list[float] = []
     unstable = 0
+    unstable_samples = 0
+    unstable_columns_seen: set[int] = set()
     sv_p_selected: list[list[float]] = []
     sv_r_selected: list[list[float]] = []
     sample_diagnostics: list[dict] = []
     samples = deterministic_chain_samples(adapter, active_coordinates, low_discrepancy_count=low_discrepancy_count)
     for sample_idx, q in enumerate(samples):
-        jac = numerical_relative_jacobian(adapter, q, reference, target, active_coordinates)
+        jac = numerical_relative_jacobian(
+            adapter,
+            q,
+            reference,
+            target,
+            active_coordinates,
+            raise_on_unstable=raise_on_unstable,
+        )
         rp, sp = matrix_rank_and_singular_values(jac.translation)
         rr, sr = matrix_rank_and_singular_values(jac.rotation)
         cp = _conditioning(sp, rp)
@@ -90,6 +105,9 @@ def analyze_reachability(
         if cr is not None:
             cond_r.append(cr)
         unstable += len(jac.unstable_columns)
+        if not jac.stability_gate_passed:
+            unstable_samples += 1
+            unstable_columns_seen.update(jac.unstable_columns)
         sample_diagnostics.append(
             {
                 "sample_index": sample_idx,
@@ -105,6 +123,7 @@ def analyze_reachability(
                 },
                 "unstable_columns": list(jac.unstable_columns),
                 "epsilon_discrepancies": jac.epsilon_discrepancies,
+                "epsilon_stability_gate_passed": jac.stability_gate_passed,
             }
         )
         if sample_idx < 3:
@@ -120,6 +139,9 @@ def analyze_reachability(
         singularity_fraction_translation=_fraction_below(ranks_p, regular_p),
         singularity_fraction_rotation=_fraction_below(ranks_r, regular_r),
         epsilon_unstable_fraction=float(unstable / max(1, len(samples) * max(1, len(active_coordinates)))),
+        epsilon_unstable_sample_fraction=float(unstable_samples / max(1, len(samples))),
+        epsilon_stability_gate_passed=unstable == 0,
+        epsilon_unstable_columns=sorted(unstable_columns_seen),
         conditioning_percentiles_translation=_percentiles(cond_p),
         conditioning_percentiles_rotation=_percentiles(cond_r),
         samples=len(samples),

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 import hashlib
@@ -32,7 +32,11 @@ _NEWTON_JOINT_TYPES = {
     2: "ball",
     3: "fixed",
     4: "free",
+    5: "distance",
+    6: "d6",
+    7: "cable",
 }
+_NEWTON_WORLD_BODY_ID = -1
 
 
 @dataclass(frozen=True)
@@ -44,6 +48,8 @@ class SemanticSite:
     source: str = "explicit_semantic_override"
     confidence: float = 1.0
     reason: str = "configured"
+    evidence: tuple[str, ...] = field(default_factory=tuple)
+    provenance: dict[str, object] = field(default_factory=dict)
 
     def to_json(self) -> dict:
         return {
@@ -54,6 +60,8 @@ class SemanticSite:
             "source": self.source,
             "confidence": self.confidence,
             "reason": self.reason,
+            "evidence": list(self.evidence),
+            "provenance": self.provenance,
         }
 
 
@@ -399,6 +407,54 @@ def _patch_xml_for_mujoco_loading(text: str, model_path: Path) -> _XmlPatchResul
     return _XmlPatchResult(patched, provenance)
 
 
+def _patch_xml_for_newton_loading(text: str, model_path: Path) -> _XmlPatchResult:
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError:
+        return _XmlPatchResult(text, [])
+    provenance: list[dict] = []
+    for option in root.findall(".//option"):
+        solver = option.attrib.get("solver")
+        if solver is None or solver.strip().lstrip("+-").isdigit():
+            continue
+        del option.attrib["solver"]
+        provenance.append(
+            {
+                "type": "newton_unsupported_mjcf_option",
+                "element": "option",
+                "attribute": "solver",
+                "value": solver,
+                "note": "Newton's MJCF loader rejects named solver enums; solver selection is a dynamics option and is omitted only in the temporary kinematic load copy.",
+            }
+        )
+    assetdir = root.find("compiler").attrib.get("assetdir") if root.find("compiler") is not None else None
+    if assetdir:
+        asset_root = model_path.parent / assetdir
+        for asset in root.findall(".//asset/*"):
+            filename = asset.attrib.get("file")
+            if not filename or Path(filename).is_absolute() or Path(filename).parts[:1] == Path(assetdir).parts[:1]:
+                continue
+            direct = model_path.parent / filename
+            declared = asset_root / filename
+            if direct.exists() or not declared.exists():
+                continue
+            patched = Path(assetdir) / filename
+            asset.set("file", patched.as_posix())
+            provenance.append(
+                {
+                    "type": "newton_mjcf_assetdir_file",
+                    "element": asset.tag,
+                    "attribute": "file",
+                    "from": filename,
+                    "to": patched.as_posix(),
+                    "note": "Newton's MJCF loader does not honor compiler assetdir; asset paths are rewritten only in the temporary kinematic load copy.",
+                }
+            )
+    if not provenance:
+        return _XmlPatchResult(text, [])
+    return _XmlPatchResult(ET.tostring(root, encoding="unicode"), provenance)
+
+
 def _absolutize_urdf_meshes(text: str, base_dir: Path) -> tuple[str, list[dict]]:
     try:
         root = ET.fromstring(text)
@@ -468,11 +524,7 @@ class NewtonRuntimeModelAdapter:
             "patches": [],
         }
         self.site_frame_provenance: dict[str, dict] = {}
-        builder = newton.ModelBuilder()
-        if self.model_format == "urdf":
-            builder.add_urdf(str(self.model_path))
-        else:
-            builder.add_mjcf(str(self.model_path))
+        builder = self._load_builder()
         self.model = builder.finalize(device="cpu")
         self.nq = int(self.model.joint_coord_count)
         self.nv = int(self.model.joint_dof_count)
@@ -480,8 +532,10 @@ class NewtonRuntimeModelAdapter:
         self._body_names = [_leaf_label(label) for label in self._body_labels]
         self._body_id_by_name = {name: i for i, name in enumerate(self._body_names)}
         self._body_id_by_name.update({label: i for i, label in enumerate(self._body_labels)})
+        self._body_id_by_name["world"] = _NEWTON_WORLD_BODY_ID
         self._norm_body_id = {normalize_label(name): i for i, name in enumerate(self._body_names)}
         self._norm_body_id.update({normalize_label(label): i for i, label in enumerate(self._body_labels)})
+        self._norm_body_id["world"] = _NEWTON_WORLD_BODY_ID
         self._joint_type = _to_numpy(self.model.joint_type).astype(int)
         self._joint_child = _to_numpy(self.model.joint_child).astype(int)
         self._joint_parent = _to_numpy(self.model.joint_parent).astype(int)
@@ -506,7 +560,7 @@ class NewtonRuntimeModelAdapter:
 
     @property
     def body_names(self) -> list[str]:
-        return list(self._body_names)
+        return ["world", *self._body_names]
 
     @property
     def coordinate_info(self) -> list[CoordinateInfo]:
@@ -540,6 +594,11 @@ class NewtonRuntimeModelAdapter:
                     current = Rotation.from_quat(out[q_start : q_start + 4])
                     out[q_start : q_start + 4] = (Rotation.from_rotvec(rot_delta) * current).as_quat()
                 out[q_start : q_start + 4] = _normalize_quat_xyzw(out[q_start : q_start + 4])
+            elif jtype == 6:
+                q_width = self._joint_position_width(jid)
+                v_width = self._joint_velocity_width(jid)
+                if q_width == v_width:
+                    out[q_start : q_start + q_width] += delta[qd_start : qd_start + v_width]
         return out
 
     def forward_kinematics(self, q: np.ndarray) -> RobotKinematicState:
@@ -556,16 +615,10 @@ class NewtonRuntimeModelAdapter:
 
     def resolve_body_name(self, body_name: str) -> str:
         if body_name in self._body_id_by_name:
-            return self._body_names[self._body_id_by_name[body_name]]
+            return self._body_name_from_id(self._body_id_by_name[body_name])
         key = normalize_label(body_name)
         if key in self._norm_body_id:
-            return self._body_names[self._norm_body_id[key]]
-        if key == "world":
-            warnings.warn(
-                "Newton models do not expose a synthetic world body; free-root paths relative to world are unavailable.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
+            return self._body_name_from_id(self._norm_body_id[key])
         raise KeyError(f"unknown body {body_name!r}")
 
     def body_id(self, body_name: str) -> int:
@@ -608,6 +661,8 @@ class NewtonRuntimeModelAdapter:
 
     def body_transform(self, state: RobotKinematicState, body_name: str) -> np.ndarray:
         bid = self.body_id(body_name)
+        if bid == _NEWTON_WORLD_BODY_ID:
+            return np.eye(4)
         return transform(state.body_xpos[bid], state.body_xmat[bid])
 
     def site_transform(self, state: RobotKinematicState, site: SemanticSite) -> np.ndarray:
@@ -627,7 +682,7 @@ class NewtonRuntimeModelAdapter:
                 continue
             for jid in self._joints_on_body(bid):
                 adr = int(self._joint_qd_start[jid])
-                width = _newton_joint_nv(int(self._joint_type[jid]))
+                width = self._joint_velocity_width(jid)
                 active.extend(range(adr, adr + width))
         return sorted(set(active))
 
@@ -643,15 +698,15 @@ class NewtonRuntimeModelAdapter:
         return ref_branch + [lca] + list(reversed(tgt_branch))
 
     def body_path(self, reference_body: str, target_body: str) -> list[str]:
-        return [self._body_names[i] for i in self.body_path_ids(reference_body, target_body)]
+        return [self._body_name_from_id(i) for i in self.body_path_ids(reference_body, target_body)]
 
     def lca_body(self, reference_body: str, target_body: str) -> str:
         ref_anc = self._ancestors(self.body_id(reference_body))
         tgt_anc = set(self._ancestors(self.body_id(target_body)))
         for bid in ref_anc:
             if bid in tgt_anc:
-                return self._body_names[bid]
-        return self._body_names[0]
+                return self._body_name_from_id(bid)
+        return "world"
 
     def coordinate(self, index: int) -> CoordinateInfo:
         return self._coordinate_info[index]
@@ -676,12 +731,15 @@ class NewtonRuntimeModelAdapter:
         return 0.0
 
     def _ancestors(self, body_id: int) -> list[int]:
+        if body_id == _NEWTON_WORLD_BODY_ID:
+            return [_NEWTON_WORLD_BODY_ID]
         out = []
         cur = int(body_id)
         while cur >= 0:
             out.append(cur)
             parent = self._parent_body(cur)
             if parent < 0:
+                out.append(_NEWTON_WORLD_BODY_ID)
                 break
             cur = parent
         return out
@@ -692,7 +750,49 @@ class NewtonRuntimeModelAdapter:
         return -1
 
     def _joints_on_body(self, body_id: int) -> list[int]:
+        if body_id == _NEWTON_WORLD_BODY_ID:
+            return []
         return [jid for jid, child in enumerate(self._joint_child) if int(child) == int(body_id)]
+
+    def _body_name_from_id(self, body_id: int) -> str:
+        if body_id == _NEWTON_WORLD_BODY_ID:
+            return "world"
+        return self._body_names[body_id]
+
+    def _load_builder(self):
+        def load(path: Path):
+            builder = self._newton.ModelBuilder()
+            if self.model_format == "urdf":
+                builder.add_urdf(str(path))
+            else:
+                builder.add_mjcf(str(path))
+            return builder
+
+        try:
+            return load(self.model_path)
+        except ValueError as exc:
+            if self.model_format == "urdf":
+                raise
+            text = self.model_path.read_text()
+            patch = _patch_xml_for_newton_loading(text, self.model_path)
+            if patch.text == text:
+                raise
+            with tempfile.NamedTemporaryFile("w", suffix=self.model_path.suffix, dir=str(self.model_path.parent), delete=False) as f:
+                f.write(patch.text)
+                tmp = Path(f.name)
+            self.loader_provenance["temporary_load_copy"] = {
+                "used": True,
+                "directory": "model_parent",
+                "suffix": self.model_path.suffix,
+                "note": "ephemeral path intentionally omitted from deterministic fingerprint",
+            }
+            self.loader_provenance["patches"] = patch.provenance
+            try:
+                return load(tmp)
+            except Exception:
+                raise exc
+            finally:
+                tmp.unlink(missing_ok=True)
 
     def _build_coordinate_info(self) -> list[CoordinateInfo]:
         infos: list[CoordinateInfo | None] = [None] * self.nv
@@ -701,7 +801,7 @@ class NewtonRuntimeModelAdapter:
             joint_type = _NEWTON_JOINT_TYPES.get(jtype, f"joint_type_{jtype}")
             qpos_adr = int(self._joint_q_start[jid])
             dof_adr = int(self._joint_qd_start[jid])
-            width = _newton_joint_nv(jtype)
+            width = self._joint_velocity_width(jid)
             joint_name = _leaf_label(label)
             for k in range(width):
                 idx = dof_adr + k
@@ -724,6 +824,26 @@ class NewtonRuntimeModelAdapter:
             missing = [i for i, x in enumerate(infos) if x is None]
             raise RuntimeError(f"missing Newton coordinate metadata for dofs {missing}")
         return [x for x in infos if x is not None]
+
+    def _joint_velocity_width(self, joint_id: int) -> int:
+        jtype = int(self._joint_type[joint_id])
+        fixed_width = _newton_joint_nv(jtype)
+        if fixed_width > 0 or jtype in {3, 5, 7}:
+            return fixed_width
+        start = int(self._joint_qd_start[joint_id])
+        if start < 0:
+            return 0
+        later_starts = [int(value) for value in self._joint_qd_start if int(value) > start]
+        end = min(later_starts) if later_starts else self.nv
+        return max(0, end - start)
+
+    def _joint_position_width(self, joint_id: int) -> int:
+        start = int(self._joint_q_start[joint_id])
+        if start < 0:
+            return 0
+        later_starts = [int(value) for value in self._joint_q_start if int(value) > start]
+        end = min(later_starts) if later_starts else self.nq
+        return max(0, end - start)
 
     def _compiled_summary(self) -> dict:
         return {

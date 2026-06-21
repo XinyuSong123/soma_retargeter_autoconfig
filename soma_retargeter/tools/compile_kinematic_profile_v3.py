@@ -16,7 +16,7 @@ from soma_retargeter.robotics.v3.robot_zoo import (
     reproduction_compile_command,
     resolve_robot_source,
 )
-from soma_retargeter.robotics.v3.semantic_sites import default_rpo_semantic_map, load_semantic_map
+from soma_retargeter.robotics.v3.semantic_sites import load_robot_zoo_semantic_map, load_semantic_map
 from soma_retargeter.robotics.v3.semantic_sites import infer_semantic_map_from_body_names
 from soma_retargeter.robotics.v3.validation import DEFAULT_LOW_DISCREPANCY_COUNT, augment_validation_report_metadata
 
@@ -52,16 +52,17 @@ def main() -> None:
         model_format = entry.model_format
     if args.semantic_map:
         semantic_map = load_semantic_map(args.semantic_map)
-    elif args.robot_id == "roboparty_rpo_local":
-        semantic_map = default_rpo_semantic_map()
     elif args.robot_id:
-        adapter = NewtonRuntimeModelAdapter(model, model_format=model_format)
         try:
-            semantic_map = infer_semantic_map_from_body_names(adapter)
-        finally:
-            adapter.close()
+            semantic_map = load_robot_zoo_semantic_map(args.robot_id)
+        except FileNotFoundError:
+            adapter = NewtonRuntimeModelAdapter(model, model_format=model_format)
+            try:
+                semantic_map = infer_semantic_map_from_body_names(adapter)
+            finally:
+                adapter.close()
     else:
-        semantic_map = default_rpo_semantic_map()
+        raise SystemExit("--semantic-map is required when compiling a direct --model")
     if args.robot_id:
         reproduction_command = reproduction_compile_command(
             args.robot_id,

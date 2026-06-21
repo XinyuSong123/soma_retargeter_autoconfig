@@ -1,0 +1,96 @@
+{
+  "failures": [],
+  "manifest_entry": {
+    "description_name": "atlas_v4_description",
+    "expected_capability": "positive",
+    "format": "urdf",
+    "id": "atlas_v4_urdf",
+    "license": "MIT",
+    "notes": "",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "humanoid",
+    "source_family": "robot_descriptions"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "urdf",
+    "id": "atlas_v4_urdf",
+    "local_file_sha256": {
+      "reason": "model path is unavailable",
+      "status": "unavailable"
+    },
+    "manifest": {
+      "entry": {
+        "description_name": "atlas_v4_description",
+        "expected_capability": "positive",
+        "format": "urdf",
+        "id": "atlas_v4_urdf",
+        "license": "MIT",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "robot_descriptions"
+      },
+      "manifest_model_id": "atlas_v4_urdf",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": null,
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": "atlas_v4_description",
+        "expected_capability": "positive",
+        "format": "urdf",
+        "id": "atlas_v4_urdf",
+        "license": "MIT",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "robot_descriptions"
+      },
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": "robot_descriptions.atlas_v4_description",
+      "path": null,
+      "path_attr": "URDF_PATH",
+      "reason": "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/roboschool/roboschool/models_robot/atlas_description/urdf/atlas_v4_with_multisense.urdf",
+      "resolver": "robot_descriptions_local_cache",
+      "status": "source_unavailable"
+    }
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id atlas_v4_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/atlas_v4_urdf.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_urdf",
+      "model_format": "urdf"
+    },
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "status": "source_unavailable",
+  "status_reason": "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/roboschool/roboschool/models_robot/atlas_description/urdf/atlas_v4_with_multisense.urdf",
+  "warnings": [
+    "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/roboschool/roboschool/models_robot/atlas_description/urdf/atlas_v4_with_multisense.urdf"
+  ]
+}

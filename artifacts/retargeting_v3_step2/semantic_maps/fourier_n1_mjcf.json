@@ -1,0 +1,150 @@
+{
+  "model_id": "fourier_n1_mjcf",
+  "resolution": {
+    "path": "assets/robot_zoo/semantic_maps/fourier_n1_mjcf.json",
+    "source": "verified_semantic_map",
+    "status": "available"
+  },
+  "schema_version": 1,
+  "semantics": {
+    "Chest": {
+      "body": "torso_link",
+      "confidence": 0.99,
+      "evidence": [
+        "name:torso_link",
+        "topology:child_of_base_link_via_waist_yaw_link",
+        "joint_chain:waist_yaw_joint"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "Hips": {
+      "body": "base_link",
+      "confidence": 0.99,
+      "evidence": [
+        "name:base_link",
+        "topology:floating_root_body",
+        "neutral_position:leg_and_waist_parent"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "LeftFoot": {
+      "body": "left_foot_pitch_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_foot_pitch_link",
+        "topology:base_link_to_left_foot_pitch_link_full_leg_chain",
+        "side:left",
+        "compiled_mesh_vertices:10",
+        "compiled_mesh_vertices:11",
+        "sole:min_z"
+      ],
+      "local_position": [
+        0.03349999684391886,
+        8.455718764066589e-11,
+        -0.04446614209010222
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    },
+    "LeftHand": {
+      "body": "left_end_effector_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_end_effector_link",
+        "topology:torso_link_to_left_end_effector_link_full_arm_chain",
+        "side:left",
+        "compiled_mesh_vertices:37",
+        "compiled_geom_extent:38:type=2",
+        "distal_axis:negative_z_terminal_effector"
+      ],
+      "local_position": [
+        -7.106090714298699e-06,
+        8.328447237415659e-10,
+        -0.029999999785003877
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    },
+    "RightFoot": {
+      "body": "right_foot_pitch_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_foot_pitch_link",
+        "topology:base_link_to_right_foot_pitch_link_full_leg_chain",
+        "side:right",
+        "compiled_mesh_vertices:20",
+        "compiled_mesh_vertices:21",
+        "sole:min_z"
+      ],
+      "local_position": [
+        0.033499995946083896,
+        1.4839733955551715e-10,
+        -0.04419999992917455
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    },
+    "RightHand": {
+      "body": "right_end_effector_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_end_effector_link",
+        "topology:torso_link_to_right_end_effector_link_full_arm_chain",
+        "side:right",
+        "compiled_mesh_vertices:47",
+        "compiled_geom_extent:48:type=2",
+        "distal_axis:negative_z_terminal_effector"
+      ],
+      "local_position": [
+        7.106090714298699e-06,
+        -8.328447272110129e-10,
+        -0.029999999785003877
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    }
+  },
+  "source": "verified_semantic_map"
+}

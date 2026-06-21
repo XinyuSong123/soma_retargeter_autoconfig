@@ -1,0 +1,409 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: ${WORKSPACE}
+configfile: pyproject.toml
+plugins: hydra-core-1.3.2, anyio-4.13.0
+collected 225 items
+
+tests/test_batch_config.py ...                                           [  1%]
+tests/test_foot_anchors.py ...                                           [  2%]
+tests/test_foot_contact_inference.py ........                            [  6%]
+tests/test_kinematic_profile_v3.py ..............................        [ 19%]
+tests/test_kinematic_profile_v3_adapter.py ........                      [ 23%]
+tests/test_kinematic_profile_v3_calibration_targets.py .....             [ 25%]
+tests/test_kinematic_profile_v3_math.py .....                            [ 27%]
+tests/test_kinematic_profile_v3_validation_artifacts.py .......          [ 30%]
+tests/test_newton_contact_sources.py ssssssssss                          [ 35%]
+tests/test_retargeter_contact_config.py ........                         [ 38%]
+tests/test_stance_width_diagnostics.py ....                              [ 40%]
+tests/v3/test_acceptance_gates_audit.py ..........                       [ 44%]
+tests/v3/test_chain_projection_gates.py .....                            [ 47%]
+tests/v3/test_cross_format_adapter_scaffolding.py .........              [ 51%]
+tests/v3/test_deterministic_rerun_validation.py ...                      [ 52%]
+tests/v3/test_full_robot_zoo_validation.py ................              [ 59%]
+tests/v3/test_model_adapter_runtime_truth.py ..........                  [ 64%]
+tests/v3/test_numerical_jacobian_gates.py ..                             [ 64%]
+tests/v3/test_rank_zero_projection_evidence.py ....                      [ 66%]
+tests/v3/test_reachability_gates.py .                                    [ 67%]
+tests/v3/test_rest_calibration_validation.py ....                        [ 68%]
+tests/v3/test_robot_zoo_source_resolution_local_cache.py ....            [ 70%]
+tests/v3/test_semantic_map_coverage_manifest.py .....                    [ 72%]
+tests/v3/test_semantic_maps_berkeley_partial.py ....                     [ 74%]
+tests/v3/test_semantic_maps_compact_batch2.py .....                      [ 76%]
+tests/v3/test_semantic_maps_humanoid_batch3_verified.py ......           [ 79%]
+tests/v3/test_semantic_maps_humanoid_batch4_verified.py ......           [ 82%]
+tests/v3/test_semantic_maps_unitree_h1_remaining.py .......              [ 85%]
+tests/v3/test_semantic_maps_unitree_verified.py ..........               [ 89%]
+tests/v3/test_semantic_sites_verified.py .............                   [ 95%]
+tests/v3/test_site_geometry_helpers.py ....                              [ 97%]
+tests/v3/test_target_builder_calibrated_geometry.py ......               [100%]
+
+=============================== warnings summary ===============================
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  soma_retargeter/robotics/v3/model_adapter.py:528: UserWarning: Inertia validation corrected 36 bodies. Set validate_inertia_detailed=True for detailed per-body warnings.
+    self.model = builder.finalize(device="cpu")
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_root_link.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hip_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hip_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hip_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_upper_leg.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_lower_leg.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_ankle_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_ankle_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_foot_front.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_foot_rear.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hip_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hip_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hip_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_upper_leg.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_lower_leg.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_ankle_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_ankle_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_foot_front.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_foot_rear.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_torso_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_torso_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-3_chest.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_head_neck_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_head_neck_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_head.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_realsense.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_shoulder_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_shoulder_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_shoulder_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_upperarm.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_forearm.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_wrist_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_wrist_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_palm.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_index_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_index_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_index_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_middle_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_middle_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_pinkie_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_pinkie_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_ring_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_ring_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_thumb_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_thumb_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_l_hand_thumb_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_shoulder_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_shoulder_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_shoulder_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_upperarm.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_forearm.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_wrist_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_wrist_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_palm.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_index_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_index_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_index_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_middle_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_middle_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_pinkie_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_pinkie_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_ring_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_ring_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_thumb_1.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_thumb_2.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_urdf.py:489: UserWarning: Warning: asset file ${ROBOT_DESCRIPTIONS_CACHE}/ergocub-software/urdf/ergoCub/robots/ergoCub/meshes/simmechanics/sim_ecub_1-1_r_hand_thumb_3.obj does not exist
+    resolved, file_tmp = resolve_urdf_asset(filename)
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_mjcf.py:1174: UserWarning: explicit mass (15.0) on geom 'base_link_geom_0' with type 'mesh' is not supported — mass will be ignored
+    parse_shapes(
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_mjcf.py:1174: UserWarning: explicit mass (1.8285) on geom 'link_mast_geom_0' with type 'mesh' is not supported — mass will be ignored
+    parse_shapes(
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_mjcf.py:1174: UserWarning: explicit mass (0.833027236718691) on geom 'link_head_geom_0' with type 'mesh' is not supported — mass will be ignored
+    parse_shapes(
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_mjcf.py:1174: UserWarning: explicit mass (1.5) on geom 'link_lift_geom_7' with type 'mesh' is not supported — mass will be ignored
+    parse_shapes(
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_mjcf.py:1174: UserWarning: explicit mass (1.5) on geom 'link_lift_geom_8' with type 'mesh' is not supported — mass will be ignored
+    parse_shapes(
+
+tests/test_kinematic_profile_v3.py::test_validation_artifacts_include_required_reports
+tests/test_kinematic_profile_v3_validation_artifacts.py::test_summary_failure_artifacts_match_true_failure_statuses
+  ${PYTHON_ENV}/lib/python3.12/site-packages/newton/_src/utils/import_mjcf.py:1174: UserWarning: explicit mass (0.168095) on geom 'link_arm_l4_geom_0' with type 'mesh' is not supported — mass will be ignored
+    parse_shapes(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: artifacts/retargeting_v3_step2/test_results/junit.xml -
+========== 215 passed, 10 skipped, 146 warnings in 3064.30s (0:51:04) ==========

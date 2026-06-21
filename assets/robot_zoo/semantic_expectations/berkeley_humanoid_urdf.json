@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "model_id": "berkeley_humanoid_urdf",
+  "expected_capability": "partial_humanoid",
+  "verification_status": "partial_blocked",
+  "coverage_status": "structurally_incomplete",
+  "required_semantics": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+  "supported_semantics": ["LeftFoot", "RightFoot"],
+  "missing_required_semantics": ["Hips", "Chest", "LeftHand", "RightHand"],
+  "available_distal_references": ["LL_FOOT_frame", "LR_FOOT_frame"],
+  "blocker": {
+    "code": "structurally_incomplete",
+    "source_path": "${ROBOT_DESCRIPTIONS_CACHE}/berkeley_humanoid_description/urdf/robot.urdf",
+    "local_file_sha256": "d92c2fbaa9829f3c122cc2defb59e69bd5b0958209403020f55580031eb27931",
+    "compiled_model_fingerprint": "131555b02c811abee04a30a89e0904202f72f2ec2ce1364bdb0fe144f404a008",
+    "observed_compiled_bodies": [
+      "world",
+      "ll_hr",
+      "ll_haa",
+      "ll_hfe",
+      "ll_kfe",
+      "ll_ffe",
+      "ll_faa",
+      "lr_hr",
+      "lr_haa",
+      "lr_hfe",
+      "lr_kfe",
+      "lr_ffe",
+      "lr_faa"
+    ],
+    "observed_compiled_sites": [],
+    "absent_upper_body_tokens": ["shoulder", "arm", "elbow", "wrist", "hand", "palm", "effector"],
+    "evidence": [
+      "compiled MuJoCo URDF body tree contains world plus ll_/lr_ leg bodies only",
+      "source URDF has no shoulder, arm, elbow, wrist, hand, palm, or end-effector links",
+      "URDF compilation does not preserve a separate torso, pelvis, or chest body for Hips/Chest semantics",
+      "no distal hand geometry exists to justify LeftHand or RightHand semantics"
+    ]
+  },
+  "blockers": [
+    "compiled MuJoCo URDF body tree contains world plus ll_/lr_ leg bodies only",
+    "no shoulder, arm, elbow, wrist, hand, palm, or end-effector body exists in the local cached model",
+    "no separate pelvis/chest body remains after URDF compilation; legs attach to compiled world"
+  ],
+  "notes": "No verified semantic map is emitted for this ID because the local cached URDF cannot evidence the full Hips/Chest/Hands/Feet set. The model is reported as structurally_incomplete instead of requiring fabricated hand semantics."
+}

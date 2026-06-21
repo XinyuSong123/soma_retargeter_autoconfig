@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from scipy.optimize import least_squares
@@ -21,13 +21,16 @@ class ProjectionResult:
     normalization_scale: float
     converged: bool
     status: str
-    iterations: int
-    active_coordinates: list[int]
+    iterations: int = 0
+    active_coordinates: list[int] = field(default_factory=list)
     prior_residual_norm: float = 0.0
     solver_message: str = ""
+    demand_residual: float | None = None
+    unreachable_demand: bool | None = None
+    rank_zero_reason: str | None = None
 
     def to_json(self) -> dict:
-        return {
+        payload = {
             "desired": self.desired.tolist(),
             "projected": self.projected.tolist(),
             "chain_q": self.chain_q.tolist(),
@@ -41,6 +44,21 @@ class ProjectionResult:
             "prior_residual_norm": self.prior_residual_norm,
             "solver_message": self.solver_message,
         }
+        if self.status in {"rank_zero", "unreachable/rank_zero"}:
+            demand_residual = self.residual if self.demand_residual is None else self.demand_residual
+            payload["demand_residual"] = demand_residual
+            payload["unreachable_demand"] = (
+                demand_residual > 1e-10 if self.unreachable_demand is None else self.unreachable_demand
+            )
+            payload["rank_zero_reason"] = self.rank_zero_reason or _rank_zero_reason(demand_residual)
+        else:
+            if self.demand_residual is not None:
+                payload["demand_residual"] = self.demand_residual
+            if self.unreachable_demand is not None:
+                payload["unreachable_demand"] = self.unreachable_demand
+            if self.rank_zero_reason is not None:
+                payload["rank_zero_reason"] = self.rank_zero_reason
+        return payload
 
 
 def project_endpoint_position(
@@ -57,7 +75,7 @@ def project_endpoint_position(
     continuity_prior_weight: float = 1e-8,
 ) -> ProjectionResult:
     scale = _position_normalization_scale(adapter, q_seed, reference, target, active_coordinates)
-    desired_reference_position = np.asarray(desired_reference_position, dtype=float)
+    desired_reference_position = np.asarray(desired_reference_position, dtype=float).copy()
     if not active_coordinates:
         state = adapter.forward_kinematics(q_seed)
         current = adapter.relative_transform(state, reference, target)[:3, 3]
@@ -71,8 +89,10 @@ def project_endpoint_position(
             scale,
             residual_abs <= 1e-10,
             _rank_zero_status(residual_abs),
-            0,
-            [],
+            active_coordinates=[],
+            demand_residual=residual_abs,
+            unreachable_demand=residual_abs > 1e-10,
+            rank_zero_reason=_rank_zero_reason(residual_abs),
         )
     x0, lo, hi = _initial_and_bounds(adapter, q_seed, active_coordinates)
     prior = _prior_context(
@@ -89,7 +109,7 @@ def project_endpoint_position(
         pos = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, 3]
         return np.concatenate([(pos - desired_reference_position) / scale, _prior_residual(x, prior)])
 
-    res = least_squares(residual, x0, bounds=(lo, hi), xtol=1e-10, ftol=1e-10, gtol=1e-10, max_nfev=200)
+    res, start_count = _solve_deterministic_multistart(residual, x0, lo, hi, prior)
     q = adapter.set_velocity_coordinates(q_seed, active_coordinates, res.x)
     projected = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, 3]
     residual_abs = float(np.linalg.norm(projected - desired_reference_position))
@@ -101,11 +121,11 @@ def project_endpoint_position(
         float(residual_abs / scale),
         scale,
         bool(res.success),
-        "converged" if res.success else "failed",
-        int(res.nfev),
-        list(active_coordinates),
-        float(np.linalg.norm(_prior_residual(res.x, prior))),
-        str(res.message),
+        _solver_status(bool(res.success), residual_abs),
+        iterations=int(res.nfev),
+        active_coordinates=list(active_coordinates),
+        prior_residual_norm=float(np.linalg.norm(_prior_residual(res.x, prior))),
+        solver_message=f"{res.message}; deterministic_start_count={start_count}",
     )
 
 
@@ -123,7 +143,7 @@ def project_torso_orientation(
     continuity_prior_weight: float = 1e-8,
 ) -> ProjectionResult:
     scale = np.pi
-    desired_relative_rotation = np.asarray(desired_relative_rotation, dtype=float)
+    desired_relative_rotation = np.asarray(desired_relative_rotation, dtype=float).copy()
     if not active_coordinates:
         current = adapter.relative_transform(adapter.forward_kinematics(q_seed), reference, target)[:3, :3]
         residual_abs = float(np.linalg.norm(so3_log(current.T @ desired_relative_rotation)))
@@ -136,8 +156,10 @@ def project_torso_orientation(
             scale,
             residual_abs <= 1e-10,
             _rank_zero_status(residual_abs),
-            0,
-            [],
+            active_coordinates=[],
+            demand_residual=residual_abs,
+            unreachable_demand=residual_abs > 1e-10,
+            rank_zero_reason=_rank_zero_reason(residual_abs),
         )
     x0, lo, hi = _initial_and_bounds(adapter, q_seed, active_coordinates)
     prior = _prior_context(
@@ -154,7 +176,7 @@ def project_torso_orientation(
         rot = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, :3]
         return np.concatenate([so3_log(rot.T @ desired_relative_rotation) / scale, _prior_residual(x, prior)])
 
-    res = least_squares(residual, x0, bounds=(lo, hi), xtol=1e-10, ftol=1e-10, gtol=1e-10, max_nfev=200)
+    res, start_count = _solve_deterministic_multistart(residual, x0, lo, hi, prior)
     q = adapter.set_velocity_coordinates(q_seed, active_coordinates, res.x)
     rot = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, :3]
     err = so3_log(rot.T @ desired_relative_rotation)
@@ -167,11 +189,11 @@ def project_torso_orientation(
         float(residual_abs / scale),
         scale,
         bool(res.success),
-        "converged" if res.success else "failed",
-        int(res.nfev),
-        list(active_coordinates),
-        float(np.linalg.norm(_prior_residual(res.x, prior))),
-        str(res.message),
+        _solver_status(bool(res.success), residual_abs),
+        iterations=int(res.nfev),
+        active_coordinates=list(active_coordinates),
+        prior_residual_norm=float(np.linalg.norm(_prior_residual(res.x, prior))),
+        solver_message=f"{res.message}; deterministic_start_count={start_count}",
     )
 
 
@@ -225,6 +247,20 @@ def _rank_zero_status(residual_abs: float) -> str:
     return "unreachable/rank_zero"
 
 
+def _rank_zero_reason(demand_residual: float) -> str:
+    if demand_residual <= 1e-10:
+        return "no_active_coordinates_zero_demand"
+    return "no_active_coordinates_nonzero_demand"
+
+
+def _solver_status(success: bool, residual_abs: float) -> str:
+    if not success:
+        return "failed"
+    if residual_abs <= 1e-8:
+        return "converged"
+    return "converged/with_residual"
+
+
 def _prior_context(
     adapter: MuJoCoRuntimeModelAdapter,
     active_coordinates: list[int],
@@ -261,6 +297,48 @@ def _prior_residual(x: np.ndarray, prior: dict[str, np.ndarray | float | None]) 
     if not residuals:
         return np.zeros(0)
     return np.concatenate(residuals)
+
+
+def _solve_deterministic_multistart(
+    residual,
+    x0: np.ndarray,
+    lo: np.ndarray,
+    hi: np.ndarray,
+    prior: dict[str, np.ndarray | float | None],
+):
+    starts = _deterministic_starts(x0, lo, hi, prior)
+    best = None
+    best_cost = np.inf
+    for start in starts:
+        res = least_squares(residual, start, bounds=(lo, hi), xtol=1e-10, ftol=1e-10, gtol=1e-10, max_nfev=200)
+        cost = float(np.dot(res.fun, res.fun))
+        if best is None or cost < best_cost - 1e-15 or (abs(cost - best_cost) <= 1e-15 and tuple(res.x) < tuple(best.x)):
+            best = res
+            best_cost = cost
+    assert best is not None
+    return best, len(starts)
+
+
+def _deterministic_starts(
+    x0: np.ndarray,
+    lo: np.ndarray,
+    hi: np.ndarray,
+    prior: dict[str, np.ndarray | float | None],
+) -> list[np.ndarray]:
+    candidates = [np.clip(np.asarray(x0, dtype=float), lo, hi)]
+    neutral_values = prior["neutral_values"]
+    if isinstance(neutral_values, np.ndarray):
+        candidates.append(np.clip(neutral_values, lo, hi))
+    previous_values = prior["previous_values"]
+    if isinstance(previous_values, np.ndarray):
+        candidates.append(np.clip(previous_values, lo, hi))
+    finite_mid = np.where(np.isfinite(lo) & np.isfinite(hi), 0.5 * (lo + hi), candidates[0])
+    candidates.append(np.clip(finite_mid, lo, hi))
+    unique: list[np.ndarray] = []
+    for candidate in candidates:
+        if not any(np.allclose(candidate, seen, rtol=0.0, atol=1e-12) for seen in unique):
+            unique.append(candidate.copy())
+    return unique
 
 
 def _coordinate_values(adapter: MuJoCoRuntimeModelAdapter, q: np.ndarray, active_coordinates: list[int]) -> np.ndarray:

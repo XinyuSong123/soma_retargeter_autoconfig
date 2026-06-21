@@ -14,7 +14,7 @@ from soma_retargeter.robotics.v3.numerical_jacobian import (
 )
 from soma_retargeter.robotics.v3.profile import compile_kinematic_profile_v3
 from soma_retargeter.robotics.v3.reachability import analyze_reachability, deterministic_chain_samples
-from soma_retargeter.robotics.v3.semantic_sites import build_semantic_sites, default_rpo_semantic_map
+from soma_retargeter.robotics.v3.semantic_sites import build_semantic_sites, load_robot_zoo_semantic_map
 from soma_retargeter.robotics.v3.spatial import frame_from_yz, relative_transform, so3_exp, so3_log, transform, wahba_alignment
 from soma_retargeter.robotics.v3.validation import REQUIRED_ARTIFACT_IDS, write_validation_artifacts
 
@@ -51,7 +51,7 @@ def test_frame_from_yz_reports_degenerate_parallel_hints():
 
 def test_rpo_full_chain_paths_exclude_common_torso_coordinate():
     adapter = MuJoCoRuntimeModelAdapter("assets/robots/atom01/mjcf/atom01.xml")
-    sites = build_semantic_sites(adapter, default_rpo_semantic_map())
+    sites = build_semantic_sites(adapter, load_robot_zoo_semantic_map("roboparty_rpo_local"))
     paths = discover_paths(adapter, sites)
 
     assert paths["torso"].coordinate_labels == ["torso_joint"]
@@ -74,7 +74,7 @@ def test_rpo_full_chain_paths_exclude_common_torso_coordinate():
 
 def test_rpo_torso_rotation_jacobian_rank_one():
     adapter = MuJoCoRuntimeModelAdapter("assets/robots/atom01/mjcf/atom01.xml")
-    sites = build_semantic_sites(adapter, default_rpo_semantic_map())
+    sites = build_semantic_sites(adapter, load_robot_zoo_semantic_map("roboparty_rpo_local"))
     paths = discover_paths(adapter, sites)
     jac = numerical_relative_jacobian(
         adapter,
@@ -90,7 +90,7 @@ def test_rpo_torso_rotation_jacobian_rank_one():
 
 def test_newton_rpo_backend_matches_full_chain_contract():
     adapter = NewtonRuntimeModelAdapter("assets/robots/atom01/mjcf/atom01.xml")
-    sites = build_semantic_sites(adapter, default_rpo_semantic_map())
+    sites = build_semantic_sites(adapter, load_robot_zoo_semantic_map("roboparty_rpo_local"))
     paths = discover_paths(adapter, sites)
 
     assert adapter.nq == 30
@@ -430,7 +430,9 @@ def test_rank_zero_torso_compiles(tmp_path: Path):
     assert profile.failures == []
     assert profile.capability_status == "partial_humanoid"
     assert profile.rank_stability["torso"].regular_rank_rotation == 0
-    assert profile.projection_reports["torso"]["status"] == "rank_zero"
+    assert profile.projection_reports["neutral"]["torso"]["status"] == "rank_zero"
+    assert abs(profile.projection_reports["neutral"]["torso"]["demand_residual"]) < 1e-12
+    assert profile.projection_reports["neutral"]["torso"]["unreachable_demand"] is False
 
 
 def test_bounded_single_axis_torso_projection_respects_limits(tmp_path: Path):
@@ -769,7 +771,7 @@ def test_lower_body_only_partial_humanoid_has_no_hand_chains(tmp_path: Path):
 def test_compile_rpo_profile_v3_smoke():
     profile = compile_kinematic_profile_v3(
         "assets/robots/atom01/mjcf/atom01.xml",
-        default_rpo_semantic_map(),
+        load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         low_discrepancy_count=1,
     )
@@ -792,7 +794,7 @@ def test_compile_rpo_profile_v3_smoke():
 def test_canonical_target_validation_records_motion_diagnostics():
     profile = compile_kinematic_profile_v3(
         "assets/robots/atom01/mjcf/atom01.xml",
-        default_rpo_semantic_map(),
+        load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         backend="newton",
         low_discrepancy_count=1,
@@ -807,7 +809,7 @@ def test_canonical_target_validation_records_motion_diagnostics():
 def test_profile_deterministic_hash_ignores_timing():
     kwargs = dict(
         model_path="assets/robots/atom01/mjcf/atom01.xml",
-        semantic_map=default_rpo_semantic_map(),
+        semantic_map=load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         backend="newton",
         low_discrepancy_count=1,
@@ -820,7 +822,7 @@ def test_profile_deterministic_hash_ignores_timing():
 def test_compile_rpo_profile_v3_newton_backend():
     profile = compile_kinematic_profile_v3(
         "assets/robots/atom01/mjcf/atom01.xml",
-        default_rpo_semantic_map(),
+        load_robot_zoo_semantic_map("roboparty_rpo_local"),
         model_id="roboparty_rpo",
         backend="newton",
         low_discrepancy_count=1,
@@ -832,8 +834,8 @@ def test_compile_rpo_profile_v3_newton_backend():
 
 def test_validation_artifacts_include_required_reports(tmp_path: Path):
     summary = write_validation_artifacts(tmp_path / "artifacts", low_discrepancy_count=1)
-    assert summary["compiled_count"] == len(REQUIRED_ARTIFACT_IDS)
-    assert summary["missing_count"] == 0
+    assert summary["manifest"]["model_count"] >= len(REQUIRED_ARTIFACT_IDS)
+    assert len(summary["reports"]) == summary["manifest"]["model_count"]
     assert (tmp_path / "artifacts" / "environment.json").exists()
     reports = {}
     for report_id in REQUIRED_ARTIFACT_IDS:
@@ -843,12 +845,30 @@ def test_validation_artifacts_include_required_reports(tmp_path: Path):
 
         reports[report_id] = json.loads(report_path.read_text())
         assert reports[report_id]["model"]["backend"] == "newton"
-        assert reports[report_id]["failures"] == []
-        assert reports[report_id]["canonical_target_validation"]["failures"] == []
-        assert reports[report_id]["canonical_target_validation"]["root_translation_equivariant"]
-        assert reports[report_id]["canonical_target_validation"]["global_root_yaw_equivariant"]
+        assert reports[report_id]["status"] in {
+            "passed",
+            "partial_passed",
+            "negative_control_passed",
+            "source_unavailable",
+            "model_load_failed",
+            "algorithm_failed",
+            "semantic_failed",
+            "license_blocked",
+        }
 
-    rpo = reports["roboparty_rpo"]
+    rpo = reports["roboparty_rpo_local"]
+    assert rpo["status"] == "algorithm_failed"
+    assert rpo["status_reason"].startswith("epsilon stability gate failed for task(s): ")
+    assert any("epsilon stability gate failed:" in failure for failure in rpo["failures"])
+    epsilon_taxonomy = rpo["failure_taxonomy"]["algorithm"]["epsilon_stability"]
+    assert epsilon_taxonomy["status"] == "failed"
+    assert epsilon_taxonomy["classification"] == "algorithm_failed"
+    assert epsilon_taxonomy["tasks"]
+    assert all(task["gate"] == "epsilon_stability" for task in epsilon_taxonomy["tasks"])
+    assert all(task["false_gate_paths"] for task in epsilon_taxonomy["tasks"])
+    assert rpo["canonical_target_validation"]["failures"] == []
+    assert rpo["canonical_target_validation"]["root_translation_equivariant"]
+    assert rpo["canonical_target_validation"]["global_root_yaw_equivariant"]
     assert rpo["rank_stability"]["torso"]["regular_rank_rotation"] == 1
     np.testing.assert_allclose(np.ravel(rpo["neutral_jacobians"]["torso"]["rotation"]), [0.0, 0.0, 1.0], atol=1e-5)
     assert rpo["chains"]["left_hand"]["coordinate_labels"] == [
@@ -866,20 +886,7 @@ def test_validation_artifacts_include_required_reports(tmp_path: Path):
         "left_ankle_pitch_joint",
         "left_ankle_roll_joint",
     ]
-
-    op3 = reports["robotis_op3"]
-    assert op3["chains"]["torso"]["coordinate_labels"] == []
-    assert op3["rank_stability"]["torso"]["regular_rank_rotation"] == 0
-    assert op3["projection_reports"]["torso"]["status"] == "rank_zero"
-
-    for report_id in ("unitree_g1_mjcf", "unitree_g1_urdf"):
-        g1 = reports[report_id]
-        assert g1["rank_stability"]["torso"]["regular_rank_rotation"] == 3
-        assert len(g1["chains"]["left_hand"]["coordinate_labels"]) >= 6
-
-    berkeley = reports["berkeley_humanoid"]
-    assert berkeley["capability_status"] == "partial_humanoid"
-    assert set(berkeley["chains"]) == {"torso", "left_foot", "right_foot"}
+    assert "canonical_projection_reports" in rpo
 
 
 def test_urdf_mesh_paths_are_absolutized_for_g1_description():

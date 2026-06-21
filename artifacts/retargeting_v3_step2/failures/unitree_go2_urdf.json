@@ -1,0 +1,108 @@
+{
+  "failure_taxonomy": {
+    "model_load": {
+      "missing_optional_dependency_pycollada": {
+        "blocker": "URDF references Collada DAE geometry but the runtime environment lacks pycollada support",
+        "classification": "model_load_failed",
+        "kind": "missing_optional_dependency_pycollada",
+        "local_fix_available": false,
+        "message": "missing `pip install pycollada`",
+        "next_action": "install the public pycollada dependency in the validation environment; do not strip geometry gates",
+        "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id unitree_go2_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/unitree_go2_urdf.json --low-discrepancy-count 32",
+        "status": "failed"
+      }
+    }
+  },
+  "failures": [
+    "ImportError: missing `pip install pycollada`"
+  ],
+  "manifest_entry": {
+    "description_name": "go2_description",
+    "expected_capability": "negative_control",
+    "format": "urdf",
+    "id": "unitree_go2_urdf",
+    "license": "BSD-3-Clause",
+    "notes": "",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "quadruped",
+    "source_family": "robot_descriptions"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "urdf",
+    "id": "unitree_go2_urdf",
+    "local_file_sha256": "7d19fe48e2e689ee1a032ab99f2a4a8b671d87e73de48d3e65811682a5b48b9e",
+    "manifest": {
+      "entry": {
+        "description_name": "go2_description",
+        "expected_capability": "negative_control",
+        "format": "urdf",
+        "id": "unitree_go2_urdf",
+        "license": "BSD-3-Clause",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "quadruped",
+        "source_family": "robot_descriptions"
+      },
+      "manifest_model_id": "unitree_go2_urdf",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/go2_description/urdf/go2_description.urdf",
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": "go2_description",
+        "expected_capability": "negative_control",
+        "format": "urdf",
+        "id": "unitree_go2_urdf",
+        "license": "BSD-3-Clause",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "quadruped",
+        "source_family": "robot_descriptions"
+      },
+      "local_file_sha256": "7d19fe48e2e689ee1a032ab99f2a4a8b671d87e73de48d3e65811682a5b48b9e",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": "robot_descriptions.go2_description",
+      "path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/go2_description/urdf/go2_description.urdf",
+      "path_attr": "URDF_PATH",
+      "reason": "",
+      "resolver": "robot_descriptions_local_cache",
+      "status": "available"
+    }
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id unitree_go2_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/unitree_go2_urdf.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_urdf",
+      "model_format": "urdf"
+    },
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "status": "model_load_failed",
+  "status_reason": "source resolved but runtime model loading or compilation failed",
+  "warnings": []
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "model_id": "unitree_h1_2_mjcf",
+  "expected_capability": "positive",
+  "verification_status": "verified",
+  "required_semantics": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+  "required_distal_sites": ["LeftHand", "RightHand", "LeftFoot", "RightFoot", "LeftToe", "RightToe", "LeftHeel", "RightHeel"],
+  "site_gates": {
+    "distal_local_position_norm_min_m": 1e-9,
+    "verified_confidence_max": 0.99
+  },
+  "notes": "Unitree H1-2 MJCF semantics are verified against the locally resolved MuJoCo-compiled MJCF. Hips use the floating pelvis body; distal hand, foot, toe, and heel sites use compiled body geometry bounds."
+}

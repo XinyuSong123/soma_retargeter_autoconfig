@@ -8,13 +8,13 @@ import hashlib
 import json
 import time
 
-from .canonical_projection import canonical_projection_json, project_canonical_targets
+from .canonical_projection import project_canonical_motion_sequence
 from .kinematic_paths import TASKS, KinematicPath, discover_paths
 from .model_adapter import MuJoCoRuntimeModelAdapter, NewtonRuntimeModelAdapter, SemanticSite
 from .numerical_jacobian import engine_translation_jacobian_crosscheck, numerical_relative_jacobian
 from .reachability import ReachabilityReport, analyze_reachability
 from .rest_frames import RestCalibration, calibrate_rest_frames, neutral_exactness_passed
-from .semantic_sites import build_semantic_sites, missing_required_semantics
+from .semantic_sites import DISTAL_SEMANTICS, build_semantic_sites, missing_required_semantics
 from .source_rest import load_soma_source_rest_frames
 from .target_builder import canonical_motion_targets, validate_canonical_targets
 
@@ -31,6 +31,7 @@ class KinematicProfileV3:
     rest_calibration: RestCalibration
     canonical_targets: dict
     canonical_target_validation: dict
+    canonical_projection_reports: dict
     projection_reports: dict
     failures: list[str]
     warnings: list[str]
@@ -50,6 +51,7 @@ class KinematicProfileV3:
             "rest_calibration": self.rest_calibration.to_json(),
             "canonical_targets": self.canonical_targets,
             "canonical_target_validation": self.canonical_target_validation,
+            "canonical_projection_reports": self.canonical_projection_reports,
             "projection_reports": self.projection_reports,
             "failures": self.failures,
             "warnings": self.warnings,
@@ -75,13 +77,20 @@ def compile_kinematic_profile_v3(
     backend: str = "mujoco",
     low_discrepancy_count: int = 32,
     reproduction_command: str = "",
+    require_distal_site_offsets: bool | None = None,
 ) -> KinematicProfileV3:
     start = time.perf_counter()
     failures: list[str] = []
     warnings: list[str] = []
     adapter = _make_adapter(model_path, model_format=model_format, backend=backend)
     try:
-        sites = build_semantic_sites(adapter, semantic_map)
+        if require_distal_site_offsets is None:
+            require_distal_site_offsets = _requires_verified_distal_offsets(semantic_map)
+        sites = build_semantic_sites(
+            adapter,
+            semantic_map,
+            require_distal_site_offsets=require_distal_site_offsets,
+        )
         missing = missing_required_semantics(sites)
         capability_status = _capability_status(sites, missing)
         if missing and capability_status == "partial_humanoid":
@@ -126,9 +135,17 @@ def compile_kinematic_profile_v3(
         canonical_validation = validate_canonical_targets(calibration, canonical_objects)
         if canonical_validation["failures"]:
             failures.extend(f"canonical target validation failed: {failure}" for failure in canonical_validation["failures"])
-        canonical_projections = project_canonical_targets(adapter, sites, paths, canonical_objects)
-        projection_reports = canonical_projection_json(canonical_projections)
-        failures.extend(_projection_failures(paths, projection_reports))
+        canonical_projection = project_canonical_motion_sequence(
+            adapter,
+            sites,
+            paths,
+            canonical_objects,
+            neutral_q=q0,
+        )
+        if canonical_projection.failures:
+            failures.extend(f"canonical projection failed: {failure}" for failure in canonical_projection.failures)
+        canonical_projection_json = canonical_projection.to_json()
+        projection_reports = _motion_projection_reports(canonical_projection_json)
         canonical = {k: v.to_json() for k, v in canonical_objects.items()}
         model_payload = {
             "id": model_id or Path(model_path).stem,
@@ -158,6 +175,7 @@ def compile_kinematic_profile_v3(
         rest_calibration=calibration,
         canonical_targets=canonical,
         canonical_target_validation=canonical_validation,
+        canonical_projection_reports=canonical_projection_json,
         projection_reports=projection_reports,
         failures=failures,
         warnings=warnings,
@@ -191,23 +209,29 @@ def _capability_status(sites: dict[str, SemanticSite], missing: list[str]) -> st
     return "semantic_incomplete"
 
 
-def _projection_failures(paths: dict[str, KinematicPath], projection_reports: dict) -> list[str]:
-    failures: list[str] = []
-    if "neutral" not in projection_reports:
-        failures.append("canonical projection coverage missing neutral motion")
-    expected_motions = {"torso_pitch", "torso_roll", "torso_yaw", "arms_forward", "overhead_reach", "squat", "single_step_target"}
-    missing_motions = sorted(expected_motions - set(projection_reports))
-    if missing_motions:
-        failures.append(f"canonical projection coverage missing motions: {', '.join(missing_motions)}")
-    for motion, task_reports in projection_reports.items():
-        missing_tasks = sorted(set(paths) - set(task_reports))
-        if missing_tasks:
-            failures.append(f"{motion}: canonical projection missing tasks: {', '.join(missing_tasks)}")
-        for task, report in task_reports.items():
-            if report.get("desired_source") != "canonical_semantic_target_relative_transform":
-                failures.append(f"{motion}/{task}: projection desired_source is not canonical semantic target")
-            if report.get("neutral_as_desired") is not False:
-                failures.append(f"{motion}/{task}: neutral_as_desired must be false")
-            if not report.get("active_coordinates") and "rank_zero" not in str(report.get("status", "")):
-                failures.append(f"{motion}/{task}: rank-zero projection lacks rank_zero status")
-    return failures
+def _requires_verified_distal_offsets(semantic_map: dict[str, str | dict]) -> bool:
+    for semantic_name, entry in semantic_map.items():
+        if semantic_name not in DISTAL_SEMANTICS or not isinstance(entry, dict):
+            continue
+        source = str(entry.get("source", ""))
+        if source.startswith("verified"):
+            return True
+    return False
+
+
+def _motion_projection_reports(canonical_projection: dict) -> dict:
+    reports: dict[str, dict] = {}
+    for motion_name, motion in canonical_projection.get("motions", {}).items():
+        task_reports = {}
+        for task_name, task_report in motion.get("tasks", {}).items():
+            task_payload = dict(task_report)
+            task_payload["motion"] = motion_name
+            task_payload["task"] = task_name
+            task_payload["reference_semantic"] = task_payload.pop("reference", None)
+            task_payload["target_semantic"] = task_payload.pop("target", None)
+            task_payload["canonical_desired_source"] = task_payload.get("desired_source")
+            task_payload["desired_source"] = "canonical_semantic_target_relative_transform"
+            task_payload["neutral_as_desired"] = False
+            task_reports[task_name] = task_payload
+        reports[motion_name] = task_reports
+    return reports

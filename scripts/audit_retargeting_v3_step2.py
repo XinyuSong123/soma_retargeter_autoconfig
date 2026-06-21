@@ -12,6 +12,7 @@ from pathlib import Path
 import argparse
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -21,7 +22,9 @@ import xml.etree.ElementTree as ET
 DEFAULT_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step2")
 DEFAULT_SOURCE_ROOT = Path(".")
 ZERO_TOL = 1e-12
-ABSOLUTE_LOCAL_PREFIXES = ("/mnt/", "/home/", "/Users/")
+LOCAL_ABSOLUTE_PATH_RE = re.compile(
+    r"(?<![\w$])/(?:mnt|home|Users|tmp|var|private/var)/[^\s\"'<>),\]}`:]+"
+)
 FULL_HUMANOID_REPORTS = (
     "roboparty_rpo",
     "unitree_g1_mjcf",
@@ -33,10 +36,55 @@ FULL_HUMANOID_REPORTS = (
     "pal_talos",
 )
 ENDPOINT_SEMANTICS = ("LeftHand", "RightHand", "LeftFoot", "RightFoot")
+CANONICAL_TARGET_KEYS = (
+    "canonical_targets",
+    "canonical_motions",
+    "canonical_motion_suite",
+    "canonical_source_motions",
+)
+CANONICAL_PROJECTION_KEYS = (
+    "canonical_projection_reports",
+    "canonical_motion_projection_reports",
+    "per_motion_projection_reports",
+)
+REQUIRED_CANONICAL_MOTIONS = (
+    "neutral",
+    "root_translation",
+    "global_root_yaw",
+    "torso_pitch",
+    "torso_roll",
+    "torso_yaw",
+    "mixed_torso_rotation",
+    "arms_forward",
+    "elbow_bend",
+    "overhead_reach",
+    "squat",
+    "single_step",
+    "asymmetric_arm_reach",
+    "crossed_body_reach",
+    "extreme_but_valid_joint_limit_stress",
+)
+PROFILE_PASS_STATUSES = ("passed", "partial_passed")
+REQUIRED_ARTIFACT_FILES = (
+    "acceptance_ledger.json",
+    "test_results/pytest.txt",
+    "test_results/junit.xml",
+    "test_results/coverage.json",
+)
+REQUIRED_SUBAGENT_HANDOFFS = (
+    "step2_agent_a_handoff.md",
+    "step2_agent_b_handoff.md",
+    "step2_agent_c_handoff.md",
+    "step2_agent_d_handoff.md",
+    "step2_agent_e_handoff.md",
+    "step2_agent_f_red_team.md",
+)
 GOAL_FALSE_POSITIVE_GATES = (
     "hardcoded_zero_calibration",
     "neutral_to_neutral_fake_projection",
+    "canonical_targets_without_projection",
     "zero_offset_rpo_hand_sole",
+    "body_name_depth_heuristic",
     "talos_proximal_foot_mapping",
     "booster_hips_chest_alias",
     "arbitrary_g1_equivalence",
@@ -46,7 +94,32 @@ GOAL_FALSE_POSITIVE_GATES = (
     "rank0_false_pass",
     "robot_name_special_cases",
     "legacy_offsets",
+    "missing_formal_red_team_artifacts",
+    "missing_required_artifacts",
+    "cross_format_gates_not_run",
+    "canonical_motion_suite_incomplete",
+    "epsilon_stability_failed",
 )
+
+GOAL_FALSE_POSITIVE_TRACEABILITY = {
+    "fp01_neutral_fk_projection": ("neutral_to_neutral_fake_projection",),
+    "fp02_hardcoded_zero_rest_calibration": ("hardcoded_zero_calibration",),
+    "fp03_rpo_endpoint_body_origin": ("zero_offset_rpo_hand_sole",),
+    "fp04_canonical_targets_not_projected": ("canonical_targets_without_projection",),
+    "fp05_body_name_length_depth": ("body_name_depth_heuristic",),
+    "fp06_inferred_semantics_as_explicit_confidence_one": ("inferred_semantics_confidence_one",),
+    "fp07_known_bad_talos_booster_semantics": (
+        "talos_proximal_foot_mapping",
+        "booster_hips_chest_alias",
+    ),
+    "fp08_g1_equivalence_documented_limitation": ("arbitrary_g1_equivalence",),
+    "fp09_dirty_absolute_artifacts": ("dirty_artifact_metadata", "absolute_cache_paths"),
+    "fp10_missing_formal_results_handoffs_red_team": ("missing_formal_red_team_artifacts",),
+    "fp11_missing_junit_pytest_coverage_artifacts": ("missing_required_artifacts",),
+    "fp12_cross_format_scaffold_not_run": ("cross_format_gates_not_run",),
+    "fp13_incomplete_canonical_motion_suite": ("canonical_motion_suite_incomplete",),
+    "fp14_unstable_jacobian_marked_pass": ("epsilon_stability_failed",),
+}
 
 
 @dataclass(frozen=True)
@@ -75,7 +148,7 @@ class AuditResult:
     def to_json(self) -> dict:
         payload = asdict(self)
         payload["findings"] = [asdict(finding) for finding in self.findings]
-        return payload
+        return _sanitize_audit_payload(payload)
 
 
 def run_audit(
@@ -87,24 +160,33 @@ def run_audit(
     findings: list[Finding] = []
 
     summary = _read_json(artifact_dir / "summary.json")
+    cross_format = _read_json(artifact_dir / "cross_format.json")
     validation_checks = _read_json(artifact_dir / "validation_checks.json")
     environment = _read_json(artifact_dir / "environment.json")
     commands_text = _read_text(artifact_dir / "commands.txt")
     per_robot = _load_per_robot(artifact_dir / "per_robot")
     semantic_maps = _load_per_robot(artifact_dir / "semantic_maps")
 
+    findings.extend(_audit_required_artifact_files(artifact_dir))
     findings.extend(_audit_hardcoded_zero_calibration(source_root, per_robot))
     findings.extend(_audit_neutral_projection_only(per_robot))
+    findings.extend(_audit_canonical_targets_projected(per_robot))
+    findings.extend(_audit_canonical_motion_suite(per_robot))
     findings.extend(_audit_rpo_zero_endpoint_sites(per_robot.get("roboparty_rpo", {}), validation_checks))
+    findings.extend(_audit_body_name_depth_heuristic(source_root))
     findings.extend(_audit_talos_foot_mapping(per_robot.get("pal_talos", {}), semantic_maps.get("pal_talos", {})))
     findings.extend(_audit_booster_hips_chest(per_robot.get("booster_t1", {}), semantic_maps.get("booster_t1", {})))
     findings.extend(_audit_g1_equivalence(summary, validation_checks))
+    findings.extend(_audit_cross_format_gates(cross_format or summary.get("cross_format", {})))
     findings.extend(_audit_dirty_artifact_metadata(environment, source_root))
     findings.extend(_audit_absolute_paths(commands_text, per_robot))
+    findings.extend(_audit_artifact_absolute_paths(artifact_dir))
     findings.extend(_audit_inferred_semantics_confidence(per_robot, semantic_maps))
     findings.extend(_audit_rank_zero_false_pass(per_robot))
+    findings.extend(_audit_epsilon_stability(per_robot))
     findings.extend(_audit_robot_name_special_cases(source_root))
     findings.extend(_audit_legacy_offsets(source_root, per_robot))
+    findings.extend(_audit_formal_red_team_artifacts(source_root))
 
     gate_counts = {gate: 0 for gate in GOAL_FALSE_POSITIVE_GATES}
     for finding in findings:
@@ -112,8 +194,8 @@ def run_audit(
     blocking = [finding for finding in findings if finding.severity == "error"]
     return AuditResult(
         status="PASS" if not blocking else "BLOCKED",
-        artifact_dir=str(artifact_dir),
-        source_root=str(source_root),
+        artifact_dir=_display_audit_path(artifact_dir),
+        source_root=_display_audit_path(source_root),
         finding_count=len(findings),
         blocking_count=len(blocking),
         gate_counts=gate_counts,
@@ -206,6 +288,78 @@ def _audit_neutral_projection_only(per_robot: dict[str, dict]) -> list[Finding]:
     return findings
 
 
+def _audit_canonical_targets_projected(per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    for robot_id, report in sorted(per_robot.items()):
+        target_keys = [key for key in CANONICAL_TARGET_KEYS if key in report]
+        projection_keys = [key for key in CANONICAL_PROJECTION_KEYS if key in report]
+        if target_keys and not projection_keys:
+            findings.append(
+                Finding(
+                    "canonical_targets_without_projection",
+                    "error",
+                    robot_id,
+                    "canonical targets or motions exist without per-motion torso/hand/foot projection reports",
+                    {"canonical_target_keys": target_keys, "canonical_projection_keys": projection_keys},
+                )
+            )
+    return findings
+
+
+def _audit_canonical_motion_suite(per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    required = set(REQUIRED_CANONICAL_MOTIONS)
+    for robot_id, report in sorted(per_robot.items()):
+        if report.get("status") not in PROFILE_PASS_STATUSES:
+            continue
+        motion_order = _canonical_motion_order(report)
+        if not motion_order:
+            findings.append(
+                Finding(
+                    "canonical_motion_suite_incomplete",
+                    "error",
+                    robot_id,
+                    "passed/partial profile has no canonical motion projection order",
+                    {"required_motions": list(REQUIRED_CANONICAL_MOTIONS)},
+                )
+            )
+            continue
+        present = set(motion_order)
+        missing = [motion for motion in REQUIRED_CANONICAL_MOTIONS if motion not in present]
+        duplicate_count = len(motion_order) - len(present)
+        if missing or len(present) < len(required) or duplicate_count:
+            findings.append(
+                Finding(
+                    "canonical_motion_suite_incomplete",
+                    "error",
+                    robot_id,
+                    "passed/partial profile does not include the full 15-motion canonical suite",
+                    {
+                        "motion_order": motion_order,
+                        "motion_count": len(present),
+                        "required_motion_count": len(required),
+                        "missing": missing,
+                        "duplicate_count": duplicate_count,
+                    },
+                )
+            )
+    return findings
+
+
+def _canonical_motion_order(report: dict) -> list[str]:
+    for key in CANONICAL_PROJECTION_KEYS:
+        payload = report.get(key)
+        if not isinstance(payload, dict):
+            continue
+        motion_order = payload.get("motion_order")
+        if isinstance(motion_order, list):
+            return [str(item) for item in motion_order]
+        motions = payload.get("motions")
+        if isinstance(motions, dict):
+            return [str(item) for item in motions]
+    return []
+
+
 def _audit_rpo_zero_endpoint_sites(report: dict, validation_checks: dict) -> list[Finding]:
     findings: list[Finding] = []
     sites = report.get("semantic_sites", {})
@@ -236,6 +390,26 @@ def _audit_rpo_zero_endpoint_sites(report: dict, validation_checks: dict) -> lis
                 {"status": rpo_check.get("status"), "scope_note": rpo_check.get("scope_note")},
             )
         )
+    return findings
+
+
+def _audit_body_name_depth_heuristic(source_root: Path) -> list[Finding]:
+    semantic_sites = source_root / "soma_retargeter/robotics/v3/semantic_sites.py"
+    text = _read_text(semantic_sites)
+    findings: list[Finding] = []
+    risky_patterns = (r"len\s*\(\s*original\s*\)", r"len\s*\(\s*body_name\s*\)")
+    if "body_path" in text:
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            if any(re.search(pattern, line) for pattern in risky_patterns):
+                findings.append(
+                    Finding(
+                        "body_name_depth_heuristic",
+                        "error",
+                        f"{semantic_sites.relative_to(source_root)}:{line_no}",
+                        "semantic depth falls back to body-name string length when runtime topology lacks a world body",
+                        {"line": line.strip()},
+                    )
+                )
     return findings
 
 
@@ -308,6 +482,36 @@ def _audit_g1_equivalence(summary: dict, validation_checks: dict) -> list[Findin
     return findings
 
 
+def _audit_cross_format_gates(cross_format: dict) -> list[Finding]:
+    findings: list[Finding] = []
+    gates = cross_format.get("gates", {}) if isinstance(cross_format, dict) else {}
+    required_gates = ("same_source_strict", "variant_compatibility")
+    for gate_name in required_gates:
+        gate = gates.get(gate_name, {})
+        status = gate.get("status")
+        if status != "passed":
+            findings.append(
+                Finding(
+                    "cross_format_gates_not_run",
+                    "error",
+                    f"cross_format.gates.{gate_name}",
+                    "required cross-format gate is not a completed pass",
+                    {"status": status, "reason": gate.get("reason")},
+                )
+            )
+    if not gates:
+        findings.append(
+            Finding(
+                "cross_format_gates_not_run",
+                "error",
+                "cross_format.json",
+                "cross-format artifact does not contain required gate results",
+                {"required_gates": list(required_gates)},
+            )
+        )
+    return findings
+
+
 def _audit_dirty_artifact_metadata(environment: dict, source_root: Path) -> list[Finding]:
     findings: list[Finding] = []
     status = environment.get("git_status_short", "")
@@ -324,15 +528,72 @@ def _audit_dirty_artifact_metadata(environment: dict, source_root: Path) -> list
     current_head = _git(source_root, "rev-parse", "HEAD")
     artifact_head = environment.get("git_head")
     if current_head and artifact_head and current_head != artifact_head:
-        findings.append(
-            Finding(
-                "dirty_artifact_metadata",
-                "error",
-                "environment.json",
-                "artifact git_head does not match the audited checkout HEAD",
-                {"artifact_git_head": artifact_head, "current_git_head": current_head},
+        source_drift = _source_changes_since_artifact_head(source_root, str(artifact_head), current_head)
+        if source_drift:
+            findings.append(
+                Finding(
+                    "dirty_artifact_metadata",
+                    "error",
+                    "environment.json",
+                    "artifact git_head does not match the audited checkout HEAD",
+                    {
+                        "artifact_git_head": artifact_head,
+                        "current_git_head": current_head,
+                        "source_changes_since_artifact_head": source_drift[:50],
+                    },
+                )
             )
-        )
+    return findings
+
+
+def _source_changes_since_artifact_head(source_root: Path, artifact_head: str, current_head: str) -> list[str]:
+    """Return non-artifact changes between the source commit and audited HEAD.
+
+    Committed generated artifacts cannot record the commit hash that contains
+    themselves. A clean artifact commit is acceptable only when every change
+    after ``artifact_head`` is inside the generated artifact directory.
+    """
+
+    changed = _git(source_root, "diff", "--name-only", artifact_head, current_head)
+    if not changed:
+        return []
+    artifact_prefix = "artifacts/retargeting_v3_step2/"
+    return [
+        path
+        for path in changed.splitlines()
+        if path and not path.startswith(artifact_prefix)
+    ]
+
+
+def _audit_required_artifact_files(artifact_dir: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    for relative in REQUIRED_ARTIFACT_FILES:
+        path = artifact_dir / relative
+        if not path.exists():
+            findings.append(
+                Finding(
+                    "missing_required_artifacts",
+                    "error",
+                    relative,
+                    "required reproducibility/test artifact is missing",
+                    {"artifact_dir": _display_audit_path(artifact_dir)},
+                )
+            )
+            continue
+        try:
+            empty = path.stat().st_size == 0
+        except OSError:
+            empty = True
+        if empty:
+            findings.append(
+                Finding(
+                    "missing_required_artifacts",
+                    "error",
+                    relative,
+                    "required reproducibility/test artifact is empty",
+                    {"artifact_dir": _display_audit_path(artifact_dir)},
+                )
+            )
     return findings
 
 
@@ -375,6 +636,33 @@ def _audit_absolute_paths(commands_text: str, per_robot: dict[str, dict]) -> lis
                     {"paths": hits},
                 )
             )
+    return findings
+
+
+def _audit_artifact_absolute_paths(artifact_dir: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    if not artifact_dir.exists():
+        return findings
+    for path in sorted(item for item in artifact_dir.rglob("*") if item.is_file()):
+        text = _read_text(path)
+        if not text:
+            continue
+        hits = _absolute_local_hits(text)
+        if not hits:
+            continue
+        try:
+            subject = str(path.relative_to(artifact_dir))
+        except ValueError:
+            subject = str(path)
+        findings.append(
+            Finding(
+                "absolute_cache_paths",
+                "error",
+                subject,
+                "artifact file contains local absolute path string(s)",
+                {"paths": sorted(set(hits))[:20], "path_count": len(hits)},
+            )
+        )
     return findings
 
 
@@ -423,6 +711,29 @@ def _audit_rank_zero_false_pass(per_robot: dict[str, dict]) -> list[Finding]:
                             },
                         )
                     )
+    return findings
+
+
+def _audit_epsilon_stability(per_robot: dict[str, dict]) -> list[Finding]:
+    findings: list[Finding] = []
+    for robot_id, report in sorted(per_robot.items()):
+        if report.get("status") not in PROFILE_PASS_STATUSES:
+            continue
+        unstable_paths = [
+            path
+            for path, value in _walk_json(report.get("rank_stability", {}))
+            if path.endswith("epsilon_stability_gate_passed") and value is False
+        ]
+        if unstable_paths:
+            findings.append(
+                Finding(
+                    "epsilon_stability_failed",
+                    "error",
+                    robot_id,
+                    "passed/partial profile contains epsilon_stability_gate_passed=false",
+                    {"unstable_paths": unstable_paths[:50], "unstable_count": len(unstable_paths)},
+                )
+            )
     return findings
 
 
@@ -501,6 +812,51 @@ def _audit_legacy_offsets(source_root: Path, per_robot: dict[str, dict]) -> list
     return findings
 
 
+def _audit_formal_red_team_artifacts(source_root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    required_files = (
+        source_root / "docs/retargeting_v3/STEP2_ACCEPTANCE_LEDGER.md",
+        source_root / "docs/retargeting_v3/STEP2_IMPLEMENTATION_REPORT.md",
+    )
+    for path in required_files:
+        if not path.exists():
+            findings.append(
+                Finding(
+                    "missing_formal_red_team_artifacts",
+                    "error",
+                    str(path.relative_to(source_root)),
+                    "required formal Step-2 acceptance/report artifact is missing",
+                    {},
+                )
+            )
+    handoff_dir = source_root / "docs/retargeting_v3/subagents"
+    for filename in REQUIRED_SUBAGENT_HANDOFFS:
+        path = handoff_dir / filename
+        if not path.exists():
+            findings.append(
+                Finding(
+                    "missing_formal_red_team_artifacts",
+                    "error",
+                    str(path.relative_to(source_root)),
+                    "required six-subagent handoff artifact is missing",
+                    {},
+                )
+            )
+    red_team = handoff_dir / "step2_agent_f_red_team.md"
+    text = _read_text(red_team)
+    if red_team.exists() and ("xhigh" not in text or ("PASS" not in text and "BLOCKED" not in text)):
+        findings.append(
+            Finding(
+                "missing_formal_red_team_artifacts",
+                "error",
+                str(red_team.relative_to(source_root)),
+                "Agent F handoff must record xhigh reasoning and an explicit PASS or BLOCKED result",
+                {"contains_xhigh": "xhigh" in text, "contains_result": "PASS" in text or "BLOCKED" in text},
+            )
+        )
+    return findings
+
+
 def _load_per_robot(directory: Path) -> dict[str, dict]:
     if not directory.exists():
         return {}
@@ -516,7 +872,7 @@ def _read_json(path: Path) -> dict:
 def _read_text(path: Path) -> str:
     if not path.exists():
         return ""
-    return path.read_text()
+    return path.read_text(errors="replace")
 
 
 def _is_zero(value: object) -> bool:
@@ -543,12 +899,77 @@ def _vectors_close(a: object, b: object) -> bool:
 
 
 def _absolute_local_hits(text: str) -> list[str]:
-    hits: list[str] = []
-    for token in re.split(r"\s+", text):
-        stripped = token.strip("'\"")
-        if stripped.startswith(ABSOLUTE_LOCAL_PREFIXES):
-            hits.append(stripped)
-    return hits
+    return [match.group(0).rstrip(".,;") for match in LOCAL_ABSOLUTE_PATH_RE.finditer(text)]
+
+
+def _sanitize_audit_payload(value):
+    if isinstance(value, dict):
+        return {key: _sanitize_audit_payload(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_audit_payload(child) for child in value]
+    if isinstance(value, tuple):
+        return [_sanitize_audit_payload(child) for child in value]
+    if isinstance(value, str):
+        return _sanitize_audit_string(value)
+    return value
+
+
+def _sanitize_audit_string(value: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        token = match.group(0)
+        path_text = token.rstrip(".,;")
+        suffix = token[len(path_text) :]
+        return f"{_display_audit_path(Path(path_text))}{suffix}"
+
+    return LOCAL_ABSOLUTE_PATH_RE.sub(replace, value)
+
+
+def _display_audit_path(path: Path) -> str:
+    if not path.is_absolute():
+        return str(path)
+    resolved = path.resolve()
+    for root in (Path.cwd(),):
+        try:
+            return str(resolved.relative_to(root.resolve()))
+        except Exception:
+            pass
+    for variable, root in _audit_placeholder_roots():
+        try:
+            return f"${{{variable}}}/" + str(resolved.relative_to(root.resolve()))
+        except Exception:
+            pass
+    return "${LOCAL_SOURCE_PATH}/" + resolved.name
+
+
+def _audit_placeholder_roots() -> list[tuple[str, Path]]:
+    descriptions_cache = os.environ.get("ROBOT_DESCRIPTIONS_CACHE")
+    newton_cache = os.environ.get("NEWTON_CACHE")
+    return [
+        (
+            "ROBOT_DESCRIPTIONS_CACHE",
+            Path(descriptions_cache).expanduser() if descriptions_cache else Path.home() / ".cache" / "robot_descriptions",
+        ),
+        (
+            "NEWTON_CACHE",
+            Path(newton_cache).expanduser() if newton_cache else Path.home() / ".cache" / "newton",
+        ),
+    ]
+
+
+def _walk_json(value: object, prefix: str = "") -> list[tuple[str, object]]:
+    if isinstance(value, dict):
+        items: list[tuple[str, object]] = []
+        for key, child in value.items():
+            child_prefix = f"{prefix}.{key}" if prefix else str(key)
+            items.extend(_walk_json(child, child_prefix))
+        return items
+    if isinstance(value, list):
+        items = []
+        for idx, child in enumerate(value):
+            child_prefix = f"{prefix}[{idx}]" if prefix else f"[{idx}]"
+            items.extend(_walk_json(child, child_prefix))
+        return items
+    return [(prefix, value)]
 
 
 def _git(source_root: Path, *args: str) -> str:
@@ -598,6 +1019,19 @@ def write_junit(result: AuditResult, path: Path) -> None:
     tree.write(path, encoding="utf-8", xml_declaration=True)
 
 
+def _write_audit_json(result: AuditResult, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(result.to_json(), indent=2, sort_keys=True) + "\n")
+
+
+def _is_required_artifact_output(path: Path, artifact_dir: Path) -> bool:
+    try:
+        relative = path.resolve().relative_to(artifact_dir.resolve())
+    except ValueError:
+        return False
+    return relative.as_posix() in REQUIRED_ARTIFACT_FILES
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifact-dir", type=Path, default=DEFAULT_ARTIFACT_DIR)
@@ -607,10 +1041,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     result = run_audit(args.artifact_dir, args.source_root)
-    payload = result.to_json()
     if args.output_json:
-        args.output_json.parent.mkdir(parents=True, exist_ok=True)
-        args.output_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        _write_audit_json(result, args.output_json)
+        if _is_required_artifact_output(args.output_json, args.artifact_dir):
+            result = run_audit(args.artifact_dir, args.source_root)
+            _write_audit_json(result, args.output_json)
     if args.junit_xml:
         write_junit(result, args.junit_xml)
 

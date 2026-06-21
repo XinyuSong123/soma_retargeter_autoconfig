@@ -1,0 +1,174 @@
+{
+  "schema_version": 2,
+  "model_id": "unitree_h1_mjcf",
+  "model_fingerprint": "ddcbcd290c29fd6833d0a1393cbc8120776a4f41f8212dd6762d4767b28bc969",
+  "verification_status": "verified",
+  "auxiliary_semantics": ["LeftToe", "RightToe", "LeftHeel", "RightHeel"],
+  "source_model": {
+    "resolver": "robot_descriptions_local_cache",
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/mujoco_menagerie/unitree_h1/h1.xml",
+    "local_file_sha256": "bdc9924af79cec7a4fe70a864abec2f97b418d4e8a573683b8a3949f00382455",
+    "format": "mjcf"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "pelvis",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.99,
+      "evidence": [
+        "name:pelvis",
+        "topology:floating_root_body",
+        "neutral_position:pelvis_reference",
+        "compiled_mesh_vertices:pelvis"
+      ]
+    },
+    "Chest": {
+      "body": "torso_link",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.99,
+      "evidence": [
+        "name:torso_link",
+        "topology:child_of_torso_yaw_joint",
+        "joint_chain:single_torso_yaw"
+      ]
+    },
+    "LeftHand": {
+      "body": "left_elbow_link",
+      "local_position": [0.3159998939037015, 0.0004998894982974275, -0.007366467977919858],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_elbow_link",
+        "topology:full_left_arm_chain",
+        "side:left",
+        "compiled_geom_bounds:distal_positive_x",
+        "compiled_mesh_vertices:42",
+        "compiled_geom_extent:43:type=3",
+        "compiled_geom_extent:44:type=2"
+      ]
+    },
+    "RightHand": {
+      "body": "right_elbow_link",
+      "local_position": [0.3159999009957901, -0.0004998892342714875, -0.007366469196975804],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_elbow_link",
+        "topology:full_right_arm_chain",
+        "side:right",
+        "compiled_geom_bounds:distal_positive_x",
+        "compiled_mesh_vertices:50",
+        "compiled_geom_extent:51:type=3",
+        "compiled_geom_extent:52:type=2"
+      ]
+    },
+    "LeftFoot": {
+      "body": "left_ankle_link",
+      "local_position": [0.05500112732531626, 0.0, -0.07247375535160748],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_ankle_link",
+        "topology:full_left_leg_chain",
+        "side:left",
+        "compiled_geom_bounds:foot",
+        "compiled_mesh_vertices:12",
+        "compiled_geom_extent:13:type=3",
+        "compiled_geom_extent:14:type=3",
+        "compiled_geom_extent:15:type=3"
+      ]
+    },
+    "RightFoot": {
+      "body": "right_ankle_link",
+      "local_position": [0.05500112651828221, 0.0, -0.07247375535160748],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_ankle_link",
+        "topology:full_right_leg_chain",
+        "side:right",
+        "compiled_geom_bounds:foot",
+        "compiled_mesh_vertices:27",
+        "compiled_geom_extent:28:type=3",
+        "compiled_geom_extent:29:type=3",
+        "compiled_geom_extent:30:type=3"
+      ]
+    },
+    "LeftToe": {
+      "body": "left_ankle_link",
+      "local_position": [0.17499999940434108, 0.0, -0.07247375535160748],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_ankle_link",
+        "topology:full_left_leg_chain",
+        "side:left",
+        "compiled_geom_bounds:toe",
+        "compiled_mesh_vertices:12",
+        "compiled_geom_extent:13:type=3",
+        "compiled_geom_extent:14:type=3",
+        "compiled_geom_extent:15:type=3"
+      ]
+    },
+    "RightToe": {
+      "body": "right_ankle_link",
+      "local_position": [0.17500000038267072, 0.0, -0.07247375535160748],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_ankle_link",
+        "topology:full_right_leg_chain",
+        "side:right",
+        "compiled_geom_bounds:toe",
+        "compiled_mesh_vertices:27",
+        "compiled_geom_extent:28:type=3",
+        "compiled_geom_extent:29:type=3",
+        "compiled_geom_extent:30:type=3"
+      ]
+    },
+    "LeftHeel": {
+      "body": "left_ankle_link",
+      "local_position": [-0.06499774475370856, 0.0, -0.07247375535160748],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_ankle_link",
+        "topology:full_left_leg_chain",
+        "side:left",
+        "compiled_geom_bounds:heel",
+        "compiled_mesh_vertices:12",
+        "compiled_geom_extent:13:type=3",
+        "compiled_geom_extent:14:type=3",
+        "compiled_geom_extent:15:type=3"
+      ]
+    },
+    "RightHeel": {
+      "body": "right_ankle_link",
+      "local_position": [-0.06499774734610629, 0.0, -0.07247375535160748],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_ankle_link",
+        "topology:full_right_leg_chain",
+        "side:right",
+        "compiled_geom_bounds:heel",
+        "compiled_mesh_vertices:27",
+        "compiled_geom_extent:28:type=3",
+        "compiled_geom_extent:29:type=3",
+        "compiled_geom_extent:30:type=3"
+      ]
+    }
+  }
+}

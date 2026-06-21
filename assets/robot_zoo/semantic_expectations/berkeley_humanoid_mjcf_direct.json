@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model_id": "berkeley_humanoid_mjcf_direct",
+  "expected_capability": "partial_humanoid",
+  "verification_status": "partial_blocked",
+  "coverage_status": "structurally_incomplete",
+  "required_semantics": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+  "supported_semantics": ["Hips", "Chest", "LeftFoot", "RightFoot"],
+  "missing_required_semantics": ["LeftHand", "RightHand"],
+  "available_distal_references": ["LL_FOOT", "LR_FOOT"],
+  "blocker": {
+    "code": "structurally_incomplete",
+    "source_path": "${ROBOT_DESCRIPTIONS_CACHE}/mujoco_menagerie/berkeley_humanoid/berkeley_humanoid.xml",
+    "local_file_sha256": "fdf0f53d0abd602662f58a52152b113c1f03d79e5e9c099a75ffabf819805047",
+    "compiled_model_fingerprint": "72d06aa6fe776821421b6c96b235526011efd93b162f77a7df9bf04637aedd2e",
+    "observed_compiled_bodies": [
+      "world",
+      "torso",
+      "ll_hr",
+      "ll_haa",
+      "ll_hfe",
+      "ll_kfe",
+      "ll_ffe",
+      "ll_faa",
+      "lr_hr",
+      "lr_haa",
+      "lr_hfe",
+      "lr_kfe",
+      "lr_ffe",
+      "lr_faa"
+    ],
+    "observed_compiled_sites": ["imu", "LL_FOOT", "LR_FOOT"],
+    "absent_upper_body_tokens": ["shoulder", "elbow", "wrist", "hand", "palm", "effector"],
+    "evidence": [
+      "compiled MuJoCo body tree contains torso plus ll_/lr_ leg bodies only",
+      "source MJCF has no shoulder, elbow, wrist, hand, palm, or end-effector bodies or sites",
+      "LL_FOOT and LR_FOOT are the only distal task sites in the cached model",
+      "no distal hand geometry exists to justify LeftHand or RightHand semantics"
+    ]
+  },
+  "blockers": [
+    "compiled MuJoCo body tree contains torso plus ll_/lr_ leg bodies only",
+    "no shoulder, elbow, wrist, hand, palm, or end-effector body exists in the local cached model",
+    "no distal hand geometry exists to justify LeftHand or RightHand semantics"
+  ],
+  "notes": "No verified semantic map is emitted for this ID because the local cached Menagerie model is lower-body-only. The model is reported as structurally_incomplete, not full_humanoid_ready."
+}

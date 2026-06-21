@@ -3,7 +3,12 @@ import numpy as np
 from soma_retargeter.robotics.v3.model_adapter import SemanticSite
 from soma_retargeter.robotics.v3.rest_frames import calibrate_rest_frames
 from soma_retargeter.robotics.v3.spatial import invert_transform, rotation_error, so3_exp, transform
-from soma_retargeter.robotics.v3.target_builder import build_targets_from_source_semantic_frames
+from soma_retargeter.robotics.v3.target_builder import (
+    CANONICAL_MOTION_NAMES,
+    build_targets_from_source_semantic_frames,
+    canonical_motion_targets,
+    validate_canonical_targets,
+)
 
 
 def _site(name: str) -> SemanticSite:
@@ -63,6 +68,54 @@ def _calibration():
     )
 
 
+def test_canonical_motion_targets_use_goal_required_names_exactly():
+    calibration = _calibration()
+
+    targets = canonical_motion_targets(calibration)
+    validation = validate_canonical_targets(calibration, targets)
+
+    assert tuple(targets) == CANONICAL_MOTION_NAMES
+    assert tuple(targets) == (
+        "neutral",
+        "root_translation",
+        "global_root_yaw",
+        "torso_pitch",
+        "torso_roll",
+        "torso_yaw",
+        "mixed_torso_rotation",
+        "arms_forward",
+        "elbow_bend",
+        "overhead_reach",
+        "squat",
+        "single_step",
+        "asymmetric_arm_reach",
+        "crossed_body_reach",
+        "extreme_but_valid_joint_limit_stress",
+    )
+    assert "single_step_target" not in targets
+    assert validation["failures"] == []
+    assert set(validation["per_motion"]) == set(targets)
+
+
+def test_new_required_canonical_motions_are_not_neutral_placeholders():
+    calibration = _calibration()
+    targets = canonical_motion_targets(calibration)
+    neutral = targets["neutral"].transforms
+
+    for motion_name in (
+        "single_step",
+        "asymmetric_arm_reach",
+        "crossed_body_reach",
+        "extreme_but_valid_joint_limit_stress",
+    ):
+        motion = targets[motion_name].transforms
+        max_delta = max(
+            np.linalg.norm(motion[name][:3, 3] - neutral[name][:3, 3])
+            for name in neutral.keys() & motion.keys()
+        )
+        assert max_delta > 1e-3, motion_name
+
+
 def test_relative_rotation_delta_is_mapped_by_calibrated_conjugation():
     calibration = _calibration()
     source_pose = {name: frame.copy() for name, frame in calibration.source_rest_semantic_frames.items()}
@@ -113,3 +166,23 @@ def test_common_source_yaw_preserves_local_limb_articulation():
         moved_rel = invert_transform(moved.transforms[parent]) @ moved.transforms[child]
         np.testing.assert_allclose(moved_rel[:3, 3], neutral_rel[:3, 3], atol=1e-12)
         assert rotation_error(moved_rel[:3, :3], neutral_rel[:3, :3]) < 1e-12
+
+
+def test_missing_edge_alignment_uses_robot_rest_relative_fallback():
+    robot = _robot_rest()
+    source = _source_rest()
+    source["LeftHand"] = source["Chest"].copy()
+    calibration = calibrate_rest_frames(
+        _RestAdapter(robot),
+        _sites(robot),
+        source_rest_transforms=source,
+        source_provenance="test_source_rest",
+    )
+
+    targets = build_targets_from_source_semantic_frames(calibration, source, mode="degenerate_source_arm")
+    expected = targets.transforms["Chest"] @ (
+        invert_transform(calibration.robot_neutral_site_transforms["Chest"])
+        @ calibration.robot_neutral_site_transforms["LeftHand"]
+    )
+
+    np.testing.assert_allclose(targets.transforms["LeftHand"], expected, atol=1e-12)

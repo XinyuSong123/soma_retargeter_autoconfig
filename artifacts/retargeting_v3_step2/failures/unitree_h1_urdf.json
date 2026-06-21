@@ -1,0 +1,116 @@
+{
+  "failure_taxonomy": {
+    "semantic": {
+      "verified_semantic_map": {
+        "classification": "semantic_failed",
+        "kind": "missing_verified_semantic_map",
+        "message": "missing verified semantic map for unitree_h1_urdf",
+        "next_action": "add a verified semantic map with topology/site evidence or classify the model as a structured partial/unsupported case",
+        "status": "failed"
+      }
+    }
+  },
+  "failures": [
+    "missing verified semantic map for unitree_h1_urdf"
+  ],
+  "manifest_entry": {
+    "description_name": "h1_description",
+    "expected_capability": "positive",
+    "format": "urdf",
+    "id": "unitree_h1_urdf",
+    "license": "BSD-3-Clause",
+    "notes": "",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "humanoid",
+    "source_family": "robot_descriptions"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "urdf",
+    "id": "unitree_h1_urdf",
+    "local_file_sha256": "1b692e435b78fc93030bb893be39c0cbcacd1571f37d0e7eb30412bade8cdf97",
+    "manifest": {
+      "entry": {
+        "description_name": "h1_description",
+        "expected_capability": "positive",
+        "format": "urdf",
+        "id": "unitree_h1_urdf",
+        "license": "BSD-3-Clause",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "robot_descriptions"
+      },
+      "manifest_model_id": "unitree_h1_urdf",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/h1_description/urdf/h1.urdf",
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": "h1_description",
+        "expected_capability": "positive",
+        "format": "urdf",
+        "id": "unitree_h1_urdf",
+        "license": "BSD-3-Clause",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "robot_descriptions"
+      },
+      "local_file_sha256": "1b692e435b78fc93030bb893be39c0cbcacd1571f37d0e7eb30412bade8cdf97",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": "robot_descriptions.h1_description",
+      "path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/h1_description/urdf/h1.urdf",
+      "path_attr": "URDF_PATH",
+      "reason": "",
+      "resolver": "robot_descriptions_local_cache",
+      "status": "available"
+    }
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id unitree_h1_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/unitree_h1_urdf.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_urdf",
+      "model_format": "urdf"
+    },
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "semantic_map_artifact": {
+    "reason": "verified semantic map was not available",
+    "status": "unavailable"
+  },
+  "semantic_map_resolution": {
+    "path": null,
+    "reason": "positive humanoid validation requires a verified semantic map; body-name inference is diagnostic only and cannot satisfy Step 2 gates",
+    "required": true,
+    "source": "verified_semantic_map",
+    "status": "missing"
+  },
+  "status": "semantic_failed",
+  "status_reason": "semantic_failed",
+  "warnings": []
+}

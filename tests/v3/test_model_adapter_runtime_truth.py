@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -95,6 +98,160 @@ def test_cross_branch_path_keeps_fixed_bodies_and_uses_both_lca_branches(tmp_pat
     assert torso.joint_types == ["revolute", "revolute"]
 
 
+def test_newton_exposes_synthetic_world_for_urdf_style_semantic_roots(tmp_path: Path):
+    model = _write(
+        tmp_path / "world_root.xml",
+        """
+<mujoco model="world_root">
+  <worldbody>
+    <body name="base">
+      <body name="tip">
+        <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+        <joint name="slide" type="slide" axis="1 0 0"/>
+        <geom type="sphere" size="0.01"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+""",
+    )
+    adapter = NewtonRuntimeModelAdapter(model)
+    try:
+        sites = build_semantic_sites(
+            adapter,
+            {
+                "Hips": "world",
+                "Chest": "tip",
+                "LeftHand": "tip",
+                "RightHand": "tip",
+                "LeftFoot": "tip",
+                "RightFoot": "tip",
+            },
+        )
+        paths = discover_paths(adapter, sites)
+
+        assert sites["Hips"].body_name == "world"
+        assert adapter.body_path("world", "tip") == ["world", "base", "tip"]
+        assert paths["torso"].lca_body == "world"
+        assert paths["torso"].coordinate_labels == ["slide"]
+        np.testing.assert_allclose(adapter.body_transform(adapter.forward_kinematics(adapter.neutral_q()), "world"), np.eye(4))
+    finally:
+        adapter.close()
+
+
+def test_newton_mjcf_named_solver_option_is_omitted_only_in_temporary_load_copy(tmp_path: Path):
+    model = _write(
+        tmp_path / "named_solver.xml",
+        """
+<mujoco model="named_solver">
+  <option solver="PGS"/>
+  <worldbody>
+    <body name="base">
+      <body name="tip">
+        <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+        <joint name="hinge" type="hinge" axis="0 0 1"/>
+        <geom type="sphere" size="0.01"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+""",
+    )
+    adapter = NewtonRuntimeModelAdapter(model, model_format="mjcf")
+    try:
+        assert adapter.nv == 1
+        assert adapter.loader_provenance["temporary_load_copy"]["used"]
+        assert adapter.loader_provenance["patches"] == [
+            {
+                "type": "newton_unsupported_mjcf_option",
+                "element": "option",
+                "attribute": "solver",
+                "value": "PGS",
+                "note": "Newton's MJCF loader rejects named solver enums; solver selection is a dynamics option and is omitted only in the temporary kinematic load copy.",
+            }
+        ]
+        assert 'solver="PGS"' in model.read_text()
+    finally:
+        adapter.close()
+
+
+def test_newton_mjcf_assetdir_is_applied_only_in_temporary_load_copy(tmp_path: Path):
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    _write(assets / "base.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3")
+    model = _write(
+        tmp_path / "assetdir.xml",
+        """
+<mujoco model="assetdir">
+  <compiler assetdir="assets"/>
+  <asset>
+    <mesh name="base_mesh" file="base.obj"/>
+  </asset>
+  <worldbody>
+    <body name="base">
+      <geom type="mesh" mesh="base_mesh"/>
+    </body>
+  </worldbody>
+</mujoco>
+""",
+    )
+    adapter = NewtonRuntimeModelAdapter(model, model_format="mjcf")
+    try:
+        assert adapter.nv == 0
+        assert adapter.loader_provenance["temporary_load_copy"]["used"]
+        assert adapter.loader_provenance["patches"] == [
+            {
+                "type": "newton_mjcf_assetdir_file",
+                "element": "mesh",
+                "attribute": "file",
+                "from": "base.obj",
+                "to": "assets/base.obj",
+                "note": "Newton's MJCF loader does not honor compiler assetdir; asset paths are rewritten only in the temporary kinematic load copy.",
+            }
+        ]
+        assert 'file="base.obj"' in model.read_text()
+    finally:
+        adapter.close()
+
+
+def test_newton_d6_joint_metadata_uses_inferred_variable_width(tmp_path: Path):
+    model = _write(
+        tmp_path / "d6.xml",
+        """
+<mujoco model="d6">
+  <worldbody>
+    <body name="base">
+      <body name="tip">
+        <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+        <joint name="x" type="hinge" axis="1 0 0"/>
+        <joint name="y" type="hinge" axis="0 1 0"/>
+        <geom type="sphere" size="0.01"/>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+""",
+    )
+    adapter = NewtonRuntimeModelAdapter(model, model_format="mjcf")
+    try:
+        assert [(coord.label, coord.joint_name, coord.joint_type) for coord in adapter.coordinate_info] == [
+            ("x_y[0]", "x_y", "d6"),
+            ("x_y[1]", "x_y", "d6"),
+        ]
+        q0 = adapter.neutral_q()
+        delta = np.zeros(adapter.nv)
+        delta[:] = [0.1, -0.05]
+        q1 = adapter.integrate(q0, delta)
+        assert not np.allclose(q1, q0)
+        assert np.allclose(q1, q0 + delta)
+
+        x0 = adapter.body_transform(adapter.forward_kinematics(q0), "tip")
+        x1 = adapter.body_transform(adapter.forward_kinematics(q1), "tip")
+        assert not np.allclose(x1[:3, :3], x0[:3, :3])
+    finally:
+        adapter.close()
+
+
 def test_fingerprint_records_primary_include_asset_loader_and_compiled_summary(tmp_path: Path):
     _write(tmp_path / "part.xml", "<mujoco><worldbody><body name='included'/></worldbody></mujoco>")
     _write(tmp_path / "mesh.stl", "solid mesh\nendsolid mesh")
@@ -127,6 +284,47 @@ def test_fingerprint_records_primary_include_asset_loader_and_compiled_summary(t
     assert payload["conversion_settings"] == {"canonical_format": "mjcf"}
     assert payload["compiled_summary"] == {"nq": 0, "nv": 0}
     assert len(payload["sha256"]) == 64
+
+
+def test_fingerprint_records_xacro_resolved_content_digest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    _write(
+        tmp_path / "part.xacro",
+        """
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="part">
+  <xacro:property name="length" value="1.0"/>
+</robot>
+""",
+    )
+    main = _write(
+        tmp_path / "main.xacro",
+        """
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="main">
+  <xacro:include filename="part.xacro"/>
+</robot>
+""",
+    )
+    resolved = "<robot name='expanded'/>"
+
+    monkeypatch.setitem(
+        sys.modules,
+        "xacro",
+        SimpleNamespace(process_file=lambda path: SimpleNamespace(toxml=lambda: resolved)),
+    )
+
+    payload = model_fingerprint_payload(
+        main,
+        backend="mujoco",
+        model_format="urdf",
+        loader_name="mujoco",
+        loader_version="test-loader",
+    )
+
+    roles = {(entry["role"], Path(entry["path"]).name) for entry in payload["files"]}
+    assert ("primary_model", "main.xacro") in roles
+    assert ("resolved_include", "part.xacro") in roles
+    assert payload["xacro_resolution"]["status"] == "resolved"
+    assert payload["xacro_resolution"]["resolved_sha256"] == hashlib.sha256(resolved.encode("utf-8")).hexdigest()
+    assert payload["xacro_resolution"]["resolved_size_bytes"] == len(resolved)
 
 
 def test_newton_model_site_frame_records_mujoco_compiled_crosscheck(tmp_path: Path):

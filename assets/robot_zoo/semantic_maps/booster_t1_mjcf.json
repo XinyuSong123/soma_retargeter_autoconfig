@@ -1,0 +1,89 @@
+{
+  "schema_version": 2,
+  "model_id": "booster_t1_mjcf",
+  "model_fingerprint": "5d767b53b12e780810ae9d4b13aecdd5c0818e44f10992a28139f38ca472e289",
+  "verification_status": "verified",
+  "auxiliary_semantics": ["LeftToe", "RightToe", "LeftHeel", "RightHeel"],
+  "semantics": {
+    "Hips": {
+      "body": "Waist",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.98,
+      "evidence": ["name:Waist", "topology:child_of_Trunk", "joint_chain:Waist", "neutral_position:pelvis_reference"]
+    },
+    "Chest": {
+      "body": "Trunk",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_model_site",
+      "confidence": 0.98,
+      "evidence": ["name:Trunk", "model_site:imu", "topology:Waist child via Waist joint", "active_chain:Hips->Chest=Waist"]
+    },
+    "LeftHand": {
+      "body": "left_hand_link",
+      "local_position": [0.0, 0.24750012727821374, 0.0002500010738323323],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:left_hand_link", "topology:Trunk->AL1->AL2->AL3->left_hand_link", "joint_chain:Left_Shoulder_Pitch,Left_Shoulder_Roll,Left_Elbow_Pitch,Left_Elbow_Yaw", "side:left", "compiled_mesh_vertices:distal_positive_y"]
+    },
+    "RightHand": {
+      "body": "right_hand_link",
+      "local_position": [0.0, -0.24750012727821374, 0.00025000053998604915],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:right_hand_link", "topology:Trunk->AR1->AR2->AR3->right_hand_link", "joint_chain:Right_Shoulder_Pitch,Right_Shoulder_Roll,Right_Elbow_Pitch,Right_Elbow_Yaw", "side:right", "compiled_mesh_vertices:distal_negative_y"]
+    },
+    "LeftFoot": {
+      "body": "left_foot_link",
+      "local_position": [0.010383875752404181, 2.3214477069821715e-08, -0.031000000418866448],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:left_foot_link", "topology:full_left_leg_chain_from_Waist", "joint_chain:Left_Hip_Pitch,Left_Hip_Roll,Left_Hip_Yaw,Left_Knee_Pitch,Left_Ankle_Pitch,Left_Ankle_Roll", "side:left", "compiled_mesh_vertices:sole_min_z"]
+    },
+    "RightFoot": {
+      "body": "right_foot_link",
+      "local_position": [0.010383874579932895, 2.1512662873313104e-08, -0.03100000045730085],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:right_foot_link", "topology:full_right_leg_chain_from_Waist", "joint_chain:Right_Hip_Pitch,Right_Hip_Roll,Right_Hip_Yaw,Right_Knee_Pitch,Right_Ankle_Pitch,Right_Ankle_Roll", "side:right", "compiled_mesh_vertices:sole_min_z"]
+    },
+    "LeftToe": {
+      "body": "left_foot_link",
+      "local_position": [0.12281804010170616, 2.3214477069821715e-08, -0.031000000418866448],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:left_foot_link", "side:left", "compiled_mesh_vertices:toe_positive_x"]
+    },
+    "RightToe": {
+      "body": "right_foot_link",
+      "local_position": [0.1228180410463402, 2.1512662873313104e-08, -0.03100000045730085],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:right_foot_link", "side:right", "compiled_mesh_vertices:toe_positive_x"]
+    },
+    "LeftHeel": {
+      "body": "left_foot_link",
+      "local_position": [-0.1020502885968978, 2.3214477069821715e-08, -0.031000000418866448],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:left_foot_link", "side:left", "compiled_mesh_vertices:heel_negative_x"]
+    },
+    "RightHeel": {
+      "body": "right_foot_link",
+      "local_position": [-0.10205029188647441, 2.1512662873313104e-08, -0.03100000045730085],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_geometry_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:right_foot_link", "side:right", "compiled_mesh_vertices:heel_negative_x"]
+    }
+  }
+}

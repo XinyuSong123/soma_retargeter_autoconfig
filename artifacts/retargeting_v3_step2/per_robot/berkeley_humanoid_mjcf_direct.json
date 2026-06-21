@@ -1,0 +1,116 @@
+{
+  "failure_taxonomy": {
+    "semantic": {
+      "verified_semantic_map": {
+        "classification": "semantic_failed",
+        "kind": "missing_verified_semantic_map",
+        "message": "missing verified semantic map for berkeley_humanoid_mjcf_direct",
+        "next_action": "add a verified semantic map with topology/site evidence or classify the model as a structured partial/unsupported case",
+        "status": "failed"
+      }
+    }
+  },
+  "failures": [
+    "missing verified semantic map for berkeley_humanoid_mjcf_direct"
+  ],
+  "manifest_entry": {
+    "description_name": null,
+    "expected_capability": "positive",
+    "format": "mjcf",
+    "id": "berkeley_humanoid_mjcf_direct",
+    "license": "BSD-3-Clause",
+    "notes": "Menagerie directory: berkeley_humanoid",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "humanoid",
+    "source_family": "mujoco_menagerie"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "mjcf",
+    "id": "berkeley_humanoid_mjcf_direct",
+    "local_file_sha256": "fdf0f53d0abd602662f58a52152b113c1f03d79e5e9c099a75ffabf819805047",
+    "manifest": {
+      "entry": {
+        "description_name": null,
+        "expected_capability": "positive",
+        "format": "mjcf",
+        "id": "berkeley_humanoid_mjcf_direct",
+        "license": "BSD-3-Clause",
+        "notes": "Menagerie directory: berkeley_humanoid",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "mujoco_menagerie"
+      },
+      "manifest_model_id": "berkeley_humanoid_mjcf_direct",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/mujoco_menagerie/berkeley_humanoid/berkeley_humanoid.xml",
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": null,
+        "expected_capability": "positive",
+        "format": "mjcf",
+        "id": "berkeley_humanoid_mjcf_direct",
+        "license": "BSD-3-Clause",
+        "notes": "Menagerie directory: berkeley_humanoid",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "mujoco_menagerie"
+      },
+      "local_file_sha256": "fdf0f53d0abd602662f58a52152b113c1f03d79e5e9c099a75ffabf819805047",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": null,
+      "path": "${ROBOT_DESCRIPTIONS_CACHE}/mujoco_menagerie/berkeley_humanoid/berkeley_humanoid.xml",
+      "path_attr": null,
+      "reason": "",
+      "resolver": "mujoco_menagerie_cache",
+      "status": "available"
+    }
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id berkeley_humanoid_mjcf_direct --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/berkeley_humanoid_mjcf_direct.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_mjcf",
+      "model_format": "mjcf"
+    },
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "semantic_map_artifact": {
+    "reason": "verified semantic map was not available",
+    "status": "unavailable"
+  },
+  "semantic_map_resolution": {
+    "path": null,
+    "reason": "positive humanoid validation requires a verified semantic map; body-name inference is diagnostic only and cannot satisfy Step 2 gates",
+    "required": true,
+    "source": "verified_semantic_map",
+    "status": "missing"
+  },
+  "status": "semantic_failed",
+  "status_reason": "semantic_failed",
+  "warnings": []
+}

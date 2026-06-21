@@ -8,36 +8,45 @@ import json
 import numpy as np
 
 from .model_adapter import MuJoCoRuntimeModelAdapter, SemanticSite
-from .spatial import matrix_to_quat_xyzw, quat_xyzw_to_matrix, transform
 from .site_geometry import enforce_nonzero_origin
+from .spatial import matrix_to_quat_xyzw, quat_xyzw_to_matrix, transform
 
 
 REQUIRED_SEMANTICS = ("Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot")
-DISTAL_SEMANTICS = ("LeftHand", "RightHand", "LeftFoot", "RightFoot", "LeftToe", "RightToe", "LeftHeel", "RightHeel")
+DISTAL_SEMANTICS = (
+    "LeftHand",
+    "RightHand",
+    "LeftFoot",
+    "RightFoot",
+    "LeftToe",
+    "RightToe",
+    "LeftHeel",
+    "RightHeel",
+)
 _ROBOT_ZOO_SEMANTIC_MAPS = Path(__file__).resolve().parents[3] / "assets" / "robot_zoo" / "semantic_maps"
 
 
-def load_semantic_map(path: str | Path) -> dict[str, str | dict]:
+def load_semantic_map(path: str | Path, *, include_auxiliary: bool = False) -> dict[str, str | dict]:
     data = json.loads(Path(path).read_text())
     if "ik_map" in data:
-        return data["ik_map"]
-    if "semantics" in data:
-        return data["semantics"]
-    return data
+        semantics = data["ik_map"]
+    elif "semantics" in data:
+        semantics = data["semantics"]
+    else:
+        semantics = data
+    if include_auxiliary:
+        return semantics
+    auxiliary = set(data.get("auxiliary_semantics", ())) if isinstance(data, dict) else set()
+    if not auxiliary:
+        return semantics
+    return {name: entry for name, entry in semantics.items() if name not in auxiliary}
 
 
-def default_rpo_semantic_map() -> dict[str, str | dict]:
-    verified = _ROBOT_ZOO_SEMANTIC_MAPS / "roboparty_rpo_local.json"
-    if verified.exists():
-        return load_semantic_map(verified)
-    return {
-        "Hips": "base_link",
-        "Chest": "torso_link",
-        "LeftHand": "left_elbow_yaw_link",
-        "RightHand": "right_elbow_yaw_link",
-        "LeftFoot": "left_ankle_roll_link",
-        "RightFoot": "right_ankle_roll_link",
-    }
+def load_robot_zoo_semantic_map(model_id: str, *, include_auxiliary: bool = False) -> dict[str, str | dict]:
+    semantic_map = load_semantic_map(_ROBOT_ZOO_SEMANTIC_MAPS / f"{model_id}.json", include_auxiliary=include_auxiliary)
+    if include_auxiliary:
+        return semantic_map
+    return {name: semantic_map[name] for name in REQUIRED_SEMANTICS if name in semantic_map}
 
 
 def build_semantic_sites(
@@ -54,11 +63,14 @@ def build_semantic_sites(
     for semantic, entry in semantic_map.items():
         source = "configured_body"
         confidence = 0.95
+        evidence: list[str] = []
+        provenance: dict[str, object] = {}
         if isinstance(entry, str):
             body = entry
             pos = [0.0, 0.0, 0.0]
             quat = [0.0, 0.0, 0.0, 1.0]
             reason = "explicit_body"
+            evidence = [f"configured_body:{body}"]
         elif "site" in entry or "model_site" in entry:
             site_name = str(entry.get("site", entry.get("model_site")))
             body, site_pos, site_quat = adapter.model_site_frame(site_name)
@@ -72,22 +84,32 @@ def build_semantic_sites(
             quat = matrix_to_quat_xyzw(local_t[:3, :3])
             reason = "explicit_model_site" if np.allclose(offset_pos, 0.0) else "explicit_model_site_offset"
             source, confidence = _entry_source_and_confidence(entry, default_source="configured_model_site")
+            evidence = _entry_evidence(entry, fallback=[f"model_site:{site_name}", f"body:{body}"])
+            provenance = _entry_provenance(entry)
+            provenance["model_site"] = site_name
+            site_frame_provenance = getattr(adapter, "site_frame_provenance", {}).get(site_name)
+            if site_frame_provenance:
+                provenance["site_frame"] = site_frame_provenance
         else:
             body = str(entry["body"])
             pos = entry.get("local_position", [0.0, 0.0, 0.0])
             quat = entry.get("local_rotation_xyzw", [0.0, 0.0, 0.0, 1.0])
             reason = "explicit_site"
             source, confidence = _entry_source_and_confidence(entry, default_source="configured_site")
+            evidence = _entry_evidence(entry, fallback=[f"body:{body}"])
+            provenance = _entry_provenance(entry)
         if semantic in foot_offsets:
             pos = foot_offsets[semantic]
             reason = "explicit_sole_offset"
             source = "configured_distal_offset"
             confidence = min(confidence, 0.9)
+            evidence.append("configured_foot_offset")
         if semantic in hand_offsets:
             pos = hand_offsets[semantic]
             reason = "explicit_distal_hand_offset"
             source = "configured_distal_offset"
             confidence = min(confidence, 0.9)
+            evidence.append("configured_hand_offset")
         if require_distal_site_offsets and semantic in DISTAL_SEMANTICS:
             enforce_nonzero_origin(semantic, pos, source=source)
         sites[semantic] = SemanticSite(
@@ -98,6 +120,8 @@ def build_semantic_sites(
             source=source,
             confidence=confidence,
             reason=reason,
+            evidence=tuple(evidence),
+            provenance=provenance,
         )
     return sites
 
@@ -133,7 +157,7 @@ def infer_semantic_map_from_body_names(adapter: MuJoCoRuntimeModelAdapter) -> di
                 "body": value,
                 "source": "inferred_body_name",
                 "confidence": _inferred_confidence(semantic),
-                "evidence": ["body_name_pattern", "topology_depth" if _topology_depth(adapter, value) is not None else "body_name_pattern_only"],
+                "evidence": _inference_evidence(adapter, value),
             }
     return out
 
@@ -163,16 +187,33 @@ def _deepest_match(adapter: MuJoCoRuntimeModelAdapter, lowered: dict[str, str], 
 
 def _entry_source_and_confidence(entry: dict, *, default_source: str) -> tuple[str, float]:
     source = str(entry.get("source", default_source))
-    confidence = min(float(entry.get("confidence", 0.95)), 0.99)
     if source == "explicit_semantic_override":
-        source = "configured_site"
-    if "verified" in source or entry.get("verification_status") == "verified":
-        confidence = min(confidence, 0.99)
+        source = default_source
+    try:
+        confidence = float(entry.get("confidence", 0.95))
+    except (TypeError, ValueError):
+        confidence = 0.95
+    confidence = max(0.0, min(confidence, 0.99))
     if "inferred" in source:
         confidence = min(confidence, 0.8)
-        if source == "explicit_semantic_override":
-            source = "inferred_body_name"
+    elif source.startswith("configured"):
+        confidence = min(confidence, 0.95)
     return source, confidence
+
+
+def _entry_evidence(entry: dict, *, fallback: list[str]) -> list[str]:
+    evidence = entry.get("evidence", fallback)
+    if not isinstance(evidence, list | tuple):
+        return list(fallback)
+    out = [str(item) for item in evidence if isinstance(item, str)]
+    return out or list(fallback)
+
+
+def _entry_provenance(entry: dict) -> dict[str, object]:
+    provenance = entry.get("provenance", {})
+    if not isinstance(provenance, dict):
+        return {}
+    return dict(provenance)
 
 
 def _topology_depth(adapter: MuJoCoRuntimeModelAdapter, body_name: str) -> int | None:
@@ -183,10 +224,18 @@ def _topology_depth(adapter: MuJoCoRuntimeModelAdapter, body_name: str) -> int |
         pass
     try:
         body_id = adapter.body_id(body_name)
-        ancestors = getattr(adapter, "_ancestors")(body_id)
-        return len(ancestors)
+        return len(getattr(adapter, "_ancestors")(body_id))
     except Exception:
         return None
+
+
+def _inference_evidence(adapter: MuJoCoRuntimeModelAdapter, body_name: str) -> list[str]:
+    evidence = ["body_name_pattern"]
+    if _topology_depth(adapter, body_name) is not None:
+        evidence.append("topology_depth")
+    else:
+        evidence.append("topology_unavailable")
+    return evidence
 
 
 def _inferred_confidence(semantic: str) -> float:

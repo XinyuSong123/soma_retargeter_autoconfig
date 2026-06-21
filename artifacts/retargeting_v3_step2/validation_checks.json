@@ -1,91 +1,3581 @@
 {
   "g1_mjcf_urdf_equivalence": {
-    "differences": {
-      "left_hand_coordinate_labels": {
-        "mjcf": [
-          "left_shoulder_pitch_joint",
-          "left_shoulder_roll_joint",
-          "left_shoulder_yaw_joint",
-          "left_elbow_joint",
-          "left_wrist_roll_joint",
-          "left_wrist_pitch_joint"
-        ],
-        "urdf": [
-          "left_shoulder_pitch_joint",
-          "left_shoulder_roll_joint",
-          "left_shoulder_yaw_joint",
-          "left_elbow_joint",
-          "left_wrist_roll_joint",
-          "left_wrist_pitch_joint",
-          "left_wrist_yaw_joint"
-        ]
+    "comparison_schema_version": 2,
+    "coordinate_comparison": {
+      "failures": [],
+      "limit_atol": 1e-05,
+      "passed": true
+    },
+    "differences": {},
+    "evidence": {
+      "active_chains": {
+        "failures": [],
+        "passed": true,
+        "per_task": {
+          "left_foot": {
+            "failures": [],
+            "left": {
+              "active_velocity_coordinates": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "body_path": [
+                "world",
+                "left_hip_pitch_link",
+                "left_hip_roll_link",
+                "left_hip_yaw_link",
+                "left_knee_link",
+                "left_ankle_pitch_link",
+                "left_ankle_roll_link"
+              ],
+              "coordinate_labels": [
+                "left_hip_pitch_joint",
+                "left_hip_roll_joint",
+                "left_hip_yaw_joint",
+                "left_knee_joint",
+                "left_ankle_pitch_joint",
+                "left_ankle_roll_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "world",
+              "reference": "Hips",
+              "reference_body": "world",
+              "reference_branch_bodies": [],
+              "target": "LeftFoot",
+              "target_body": "left_ankle_roll_link",
+              "target_branch_bodies": [
+                "left_ankle_roll_link",
+                "left_ankle_pitch_link",
+                "left_knee_link",
+                "left_hip_yaw_link",
+                "left_hip_roll_link",
+                "left_hip_pitch_link"
+              ]
+            },
+            "passed": true,
+            "right": {
+              "active_velocity_coordinates": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "body_path": [
+                "world",
+                "left_hip_pitch_link",
+                "left_hip_roll_link",
+                "left_hip_yaw_link",
+                "left_knee_link",
+                "left_ankle_pitch_link",
+                "left_ankle_roll_link"
+              ],
+              "coordinate_labels": [
+                "left_hip_pitch_joint",
+                "left_hip_roll_joint",
+                "left_hip_yaw_joint",
+                "left_knee_joint",
+                "left_ankle_pitch_joint",
+                "left_ankle_roll_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "world",
+              "reference": "Hips",
+              "reference_body": "world",
+              "reference_branch_bodies": [],
+              "target": "LeftFoot",
+              "target_body": "left_ankle_roll_link",
+              "target_branch_bodies": [
+                "left_ankle_roll_link",
+                "left_ankle_pitch_link",
+                "left_knee_link",
+                "left_hip_yaw_link",
+                "left_hip_roll_link",
+                "left_hip_pitch_link"
+              ]
+            }
+          },
+          "left_hand": {
+            "failures": [],
+            "left": {
+              "active_velocity_coordinates": [
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21
+              ],
+              "body_path": [
+                "torso_link",
+                "left_shoulder_pitch_link",
+                "left_shoulder_roll_link",
+                "left_shoulder_yaw_link",
+                "left_elbow_link",
+                "left_wrist_roll_link",
+                "left_wrist_pitch_link",
+                "left_wrist_yaw_link"
+              ],
+              "coordinate_labels": [
+                "left_shoulder_pitch_joint",
+                "left_shoulder_roll_joint",
+                "left_shoulder_yaw_joint",
+                "left_elbow_joint",
+                "left_wrist_roll_joint",
+                "left_wrist_pitch_joint",
+                "left_wrist_yaw_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "torso_link",
+              "reference": "Chest",
+              "reference_body": "torso_link",
+              "reference_branch_bodies": [],
+              "target": "LeftHand",
+              "target_body": "left_wrist_yaw_link",
+              "target_branch_bodies": [
+                "left_wrist_yaw_link",
+                "left_wrist_pitch_link",
+                "left_wrist_roll_link",
+                "left_elbow_link",
+                "left_shoulder_yaw_link",
+                "left_shoulder_roll_link",
+                "left_shoulder_pitch_link"
+              ]
+            },
+            "passed": true,
+            "right": {
+              "active_velocity_coordinates": [
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21
+              ],
+              "body_path": [
+                "torso_link",
+                "left_shoulder_pitch_link",
+                "left_shoulder_roll_link",
+                "left_shoulder_yaw_link",
+                "left_elbow_link",
+                "left_wrist_roll_link",
+                "left_wrist_pitch_link",
+                "left_wrist_yaw_link"
+              ],
+              "coordinate_labels": [
+                "left_shoulder_pitch_joint",
+                "left_shoulder_roll_joint",
+                "left_shoulder_yaw_joint",
+                "left_elbow_joint",
+                "left_wrist_roll_joint",
+                "left_wrist_pitch_joint",
+                "left_wrist_yaw_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "torso_link",
+              "reference": "Chest",
+              "reference_body": "torso_link",
+              "reference_branch_bodies": [],
+              "target": "LeftHand",
+              "target_body": "left_wrist_yaw_link",
+              "target_branch_bodies": [
+                "left_wrist_yaw_link",
+                "left_wrist_pitch_link",
+                "left_wrist_roll_link",
+                "left_elbow_link",
+                "left_shoulder_yaw_link",
+                "left_shoulder_roll_link",
+                "left_shoulder_pitch_link"
+              ]
+            }
+          },
+          "right_foot": {
+            "failures": [],
+            "left": {
+              "active_velocity_coordinates": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "body_path": [
+                "world",
+                "right_hip_pitch_link",
+                "right_hip_roll_link",
+                "right_hip_yaw_link",
+                "right_knee_link",
+                "right_ankle_pitch_link",
+                "right_ankle_roll_link"
+              ],
+              "coordinate_labels": [
+                "right_hip_pitch_joint",
+                "right_hip_roll_joint",
+                "right_hip_yaw_joint",
+                "right_knee_joint",
+                "right_ankle_pitch_joint",
+                "right_ankle_roll_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "world",
+              "reference": "Hips",
+              "reference_body": "world",
+              "reference_branch_bodies": [],
+              "target": "RightFoot",
+              "target_body": "right_ankle_roll_link",
+              "target_branch_bodies": [
+                "right_ankle_roll_link",
+                "right_ankle_pitch_link",
+                "right_knee_link",
+                "right_hip_yaw_link",
+                "right_hip_roll_link",
+                "right_hip_pitch_link"
+              ]
+            },
+            "passed": true,
+            "right": {
+              "active_velocity_coordinates": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11
+              ],
+              "body_path": [
+                "world",
+                "right_hip_pitch_link",
+                "right_hip_roll_link",
+                "right_hip_yaw_link",
+                "right_knee_link",
+                "right_ankle_pitch_link",
+                "right_ankle_roll_link"
+              ],
+              "coordinate_labels": [
+                "right_hip_pitch_joint",
+                "right_hip_roll_joint",
+                "right_hip_yaw_joint",
+                "right_knee_joint",
+                "right_ankle_pitch_joint",
+                "right_ankle_roll_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "world",
+              "reference": "Hips",
+              "reference_body": "world",
+              "reference_branch_bodies": [],
+              "target": "RightFoot",
+              "target_body": "right_ankle_roll_link",
+              "target_branch_bodies": [
+                "right_ankle_roll_link",
+                "right_ankle_pitch_link",
+                "right_knee_link",
+                "right_hip_yaw_link",
+                "right_hip_roll_link",
+                "right_hip_pitch_link"
+              ]
+            }
+          },
+          "right_hand": {
+            "failures": [],
+            "left": {
+              "active_velocity_coordinates": [
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28
+              ],
+              "body_path": [
+                "torso_link",
+                "right_shoulder_pitch_link",
+                "right_shoulder_roll_link",
+                "right_shoulder_yaw_link",
+                "right_elbow_link",
+                "right_wrist_roll_link",
+                "right_wrist_pitch_link",
+                "right_wrist_yaw_link"
+              ],
+              "coordinate_labels": [
+                "right_shoulder_pitch_joint",
+                "right_shoulder_roll_joint",
+                "right_shoulder_yaw_joint",
+                "right_elbow_joint",
+                "right_wrist_roll_joint",
+                "right_wrist_pitch_joint",
+                "right_wrist_yaw_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "torso_link",
+              "reference": "Chest",
+              "reference_body": "torso_link",
+              "reference_branch_bodies": [],
+              "target": "RightHand",
+              "target_body": "right_wrist_yaw_link",
+              "target_branch_bodies": [
+                "right_wrist_yaw_link",
+                "right_wrist_pitch_link",
+                "right_wrist_roll_link",
+                "right_elbow_link",
+                "right_shoulder_yaw_link",
+                "right_shoulder_roll_link",
+                "right_shoulder_pitch_link"
+              ]
+            },
+            "passed": true,
+            "right": {
+              "active_velocity_coordinates": [
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28
+              ],
+              "body_path": [
+                "torso_link",
+                "right_shoulder_pitch_link",
+                "right_shoulder_roll_link",
+                "right_shoulder_yaw_link",
+                "right_elbow_link",
+                "right_wrist_roll_link",
+                "right_wrist_pitch_link",
+                "right_wrist_yaw_link"
+              ],
+              "coordinate_labels": [
+                "right_shoulder_pitch_joint",
+                "right_shoulder_roll_joint",
+                "right_shoulder_yaw_joint",
+                "right_elbow_joint",
+                "right_wrist_roll_joint",
+                "right_wrist_pitch_joint",
+                "right_wrist_yaw_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "torso_link",
+              "reference": "Chest",
+              "reference_body": "torso_link",
+              "reference_branch_bodies": [],
+              "target": "RightHand",
+              "target_body": "right_wrist_yaw_link",
+              "target_branch_bodies": [
+                "right_wrist_yaw_link",
+                "right_wrist_pitch_link",
+                "right_wrist_roll_link",
+                "right_elbow_link",
+                "right_shoulder_yaw_link",
+                "right_shoulder_roll_link",
+                "right_shoulder_pitch_link"
+              ]
+            }
+          },
+          "torso": {
+            "failures": [],
+            "left": {
+              "active_velocity_coordinates": [
+                12,
+                13,
+                14
+              ],
+              "body_path": [
+                "world",
+                "waist_yaw_link",
+                "waist_roll_link",
+                "torso_link"
+              ],
+              "coordinate_labels": [
+                "waist_yaw_joint",
+                "waist_roll_joint",
+                "waist_pitch_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "world",
+              "reference": "Hips",
+              "reference_body": "world",
+              "reference_branch_bodies": [],
+              "target": "Chest",
+              "target_body": "torso_link",
+              "target_branch_bodies": [
+                "torso_link",
+                "waist_roll_link",
+                "waist_yaw_link"
+              ]
+            },
+            "passed": true,
+            "right": {
+              "active_velocity_coordinates": [
+                12,
+                13,
+                14
+              ],
+              "body_path": [
+                "world",
+                "waist_yaw_link",
+                "waist_roll_link",
+                "torso_link"
+              ],
+              "coordinate_labels": [
+                "waist_yaw_joint",
+                "waist_roll_joint",
+                "waist_pitch_joint"
+              ],
+              "joint_types": [
+                "revolute",
+                "revolute",
+                "revolute"
+              ],
+              "lca_body": "world",
+              "reference": "Hips",
+              "reference_body": "world",
+              "reference_branch_bodies": [],
+              "target": "Chest",
+              "target_body": "torso_link",
+              "target_branch_bodies": [
+                "torso_link",
+                "waist_roll_link",
+                "waist_yaw_link"
+              ]
+            }
+          }
+        },
+        "status": "passed"
       },
-      "right_hand_coordinate_labels": {
-        "mjcf": [
-          "right_shoulder_pitch_joint",
-          "right_shoulder_roll_joint",
-          "right_shoulder_yaw_joint",
-          "right_elbow_joint",
-          "right_wrist_roll_joint",
-          "right_wrist_pitch_joint"
-        ],
-        "urdf": [
-          "right_shoulder_pitch_joint",
-          "right_shoulder_roll_joint",
-          "right_shoulder_yaw_joint",
-          "right_elbow_joint",
-          "right_wrist_roll_joint",
-          "right_wrist_pitch_joint",
-          "right_wrist_yaw_joint"
-        ]
+      "canonical_projection": {
+        "evidence": {
+          "left": {
+            "bad_desired_sources": [],
+            "missing_motions": [],
+            "missing_tasks": [],
+            "motion_count": 15,
+            "motions_missing_required_tasks": [],
+            "reasons": [],
+            "required_motion_count": 15,
+            "required_tasks": [
+              "torso",
+              "left_hand",
+              "right_hand",
+              "left_foot",
+              "right_foot"
+            ],
+            "status": "passed",
+            "target_source": "canonical_semantic_targets",
+            "task_coverage": [
+              "left_foot",
+              "left_hand",
+              "right_foot",
+              "right_hand",
+              "torso"
+            ]
+          },
+          "right": {
+            "bad_desired_sources": [],
+            "missing_motions": [],
+            "missing_tasks": [],
+            "motion_count": 15,
+            "motions_missing_required_tasks": [],
+            "reasons": [],
+            "required_motion_count": 15,
+            "required_tasks": [
+              "torso",
+              "left_hand",
+              "right_hand",
+              "left_foot",
+              "right_foot"
+            ],
+            "status": "passed",
+            "target_source": "canonical_semantic_targets",
+            "task_coverage": [
+              "left_foot",
+              "left_hand",
+              "right_foot",
+              "right_hand",
+              "torso"
+            ]
+          }
+        },
+        "failures": [],
+        "left": {
+          "failures": [],
+          "motion_order": [
+            "neutral",
+            "root_translation",
+            "global_root_yaw",
+            "torso_pitch",
+            "torso_roll",
+            "torso_yaw",
+            "mixed_torso_rotation",
+            "arms_forward",
+            "elbow_bend",
+            "overhead_reach",
+            "squat",
+            "single_step",
+            "asymmetric_arm_reach",
+            "crossed_body_reach",
+            "extreme_but_valid_joint_limit_stress"
+          ],
+          "motions": {
+            "arms_forward": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.335112051744312e-09,
+                  "reference": "Chest",
+                  "residual": 1.1181534251472784e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.0104678700013402e-09,
+                  "reference": "Chest",
+                  "residual": 1.6837579971558288e-09,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 6.663687689859891e-09,
+                  "reference": "Hips",
+                  "residual": 2.0934592292280574e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "asymmetric_arm_reach": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.339162457835038e-08,
+                  "reference": "Hips",
+                  "residual": 1.808867685275552e-08,
+                  "status": "converged/with_residual",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.4209800001851085e-09,
+                  "reference": "Chest",
+                  "residual": 1.1900669368346085e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2998942697061277e-09,
+                  "reference": "Hips",
+                  "residual": 1.7819412206129892e-09,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.620887205430577e-10,
+                  "reference": "Chest",
+                  "residual": 3.869968060081905e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "crossed_body_reach": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.482433164580728e-11,
+                  "reference": "Hips",
+                  "residual": 6.142109925560996e-11,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.3483056647768425e-09,
+                  "reference": "Chest",
+                  "residual": 1.7632738618289614e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.333698017375423e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3386592277918516e-09,
+                  "reference": "Chest",
+                  "residual": 1.1512386345539998e-09,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "elbow_bend": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.362313917280046e-10,
+                  "reference": "Chest",
+                  "residual": 2.5652040698488456e-10,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.866293203770763e-10,
+                  "reference": "Chest",
+                  "residual": 2.7806731157774374e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "extreme_but_valid_joint_limit_stress": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.775198246591866e-08,
+                  "reference": "Hips",
+                  "residual": 6.541304402079575e-08,
+                  "status": "converged/with_residual",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.8527223389533906e-09,
+                  "reference": "Chest",
+                  "residual": 1.2170529457466385e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.749693364939299e-08,
+                  "reference": "Hips",
+                  "residual": 2.3961186364647712e-08,
+                  "status": "converged/with_residual",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.447758630761268e-09,
+                  "reference": "Chest",
+                  "residual": 1.906746071716426e-09,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 0.1270052457021351,
+                  "reference": "Hips",
+                  "residual": 0.3989987468651942,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "global_root_yaw": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.1193187689826044e-16,
+                  "reference": "Hips",
+                  "residual": 1.5328517645723046e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.520611932749235e-15,
+                  "reference": "Chest",
+                  "residual": 1.2735091700370639e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.0819975973751013e-16,
+                  "reference": "Hips",
+                  "residual": 1.4817422638912102e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.1303273457344126e-15,
+                  "reference": "Chest",
+                  "residual": 9.46644179786355e-16,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.0381266986219235e-17,
+                  "reference": "Hips",
+                  "residual": 6.402963863475853e-17,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "mixed_torso_rotation": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.5031768950125998e-15,
+                  "reference": "Chest",
+                  "residual": 1.25890736404084e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.1306916736554723e-15,
+                  "reference": "Chest",
+                  "residual": 9.46949302817578e-16,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.112884131937934e-09,
+                  "reference": "Hips",
+                  "residual": 2.2345784534731626e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "neutral": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.5842853818734892e-15,
+                  "reference": "Chest",
+                  "residual": 1.3268355445059393e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.1959551325256892e-15,
+                  "reference": "Chest",
+                  "residual": 1.0016071625299566e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.458330272691211e-19,
+                  "reference": "Hips",
+                  "residual": 1.0864664978373894e-18,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "overhead_reach": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.232351498871607e-10,
+                  "reference": "Chest",
+                  "residual": 5.656577019129749e-10,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.241967463968369e-09,
+                  "reference": "Chest",
+                  "residual": 9.99134446160448e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "root_translation": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.662423135469252e-16,
+                  "reference": "Hips",
+                  "residual": 3.6460569717343827e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.639813425658587e-15,
+                  "reference": "Chest",
+                  "residual": 1.373340159806892e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.325689677030408e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3277161021296518e-15,
+                  "reference": "Chest",
+                  "residual": 1.1119563949618733e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.458330272691211e-19,
+                  "reference": "Hips",
+                  "residual": 1.0864664978373894e-18,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "single_step": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.7777228836250404e-08,
+                  "reference": "Hips",
+                  "residual": 3.8095429905428966e-08,
+                  "status": "converged/with_residual",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 6.797064294657809e-11,
+                  "reference": "Chest",
+                  "residual": 5.692523106277057e-11,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.793497119945982e-09,
+                  "reference": "Hips",
+                  "residual": 1.0563694439173295e-08,
+                  "status": "converged/with_residual",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.10236583592337e-13,
+                  "reference": "Chest",
+                  "residual": 3.435705022637317e-13,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "squat": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3356980558720098e-09,
+                  "reference": "Hips",
+                  "residual": 4.5680737183307975e-09,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 6.736232676960608e-11,
+                  "reference": "Chest",
+                  "residual": 5.692506660408079e-11,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.305049037752563e-09,
+                  "reference": "Hips",
+                  "residual": 1.0003903821316261e-08,
+                  "status": "converged/with_residual",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.241177220658381e-10,
+                  "reference": "Chest",
+                  "residual": 6.164959891777907e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "torso_pitch": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2156778218866585e-15,
+                  "reference": "Chest",
+                  "residual": 1.0181275186919466e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.0033414316653461e-15,
+                  "reference": "Chest",
+                  "residual": 8.402940353596295e-16,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.594780060151587e-10,
+                  "reference": "Hips",
+                  "residual": 2.3859705242602474e-09,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "torso_roll": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3970691651336447e-15,
+                  "reference": "Chest",
+                  "residual": 1.170042372189596e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2365084002877174e-15,
+                  "reference": "Chest",
+                  "residual": 1.035570345888401e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.4769332078209106e-08,
+                  "reference": "Hips",
+                  "residual": 4.63992251553298e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "torso_yaw": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.6333353384537904e-16,
+                  "reference": "Hips",
+                  "residual": 3.606222670534199e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2659932997653777e-15,
+                  "reference": "Chest",
+                  "residual": 1.0602666214395461e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3334005375483927e-16,
+                  "reference": "Hips",
+                  "residual": 4.564927381489205e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 9.947869958191803e-16,
+                  "reference": "Chest",
+                  "residual": 8.331297329690976e-16,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.6268897755436884e-08,
+                  "reference": "Hips",
+                  "residual": 5.1110249670483986e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            }
+          },
+          "target_source": "canonical_semantic_targets",
+          "unreachable_demands": []
+        },
+        "passed": true,
+        "right": {
+          "failures": [],
+          "motion_order": [
+            "neutral",
+            "root_translation",
+            "global_root_yaw",
+            "torso_pitch",
+            "torso_roll",
+            "torso_yaw",
+            "mixed_torso_rotation",
+            "arms_forward",
+            "elbow_bend",
+            "overhead_reach",
+            "squat",
+            "single_step",
+            "asymmetric_arm_reach",
+            "crossed_body_reach",
+            "extreme_but_valid_joint_limit_stress"
+          ],
+          "motions": {
+            "arms_forward": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.335921491685951e-09,
+                  "reference": "Chest",
+                  "residual": 1.1188312978676857e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.0498530031990594e-09,
+                  "reference": "Chest",
+                  "residual": 1.7167428246802247e-09,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 6.663687689859891e-09,
+                  "reference": "Hips",
+                  "residual": 2.0934592292280574e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "asymmetric_arm_reach": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3389998341068937e-08,
+                  "reference": "Hips",
+                  "residual": 1.8086480209977315e-08,
+                  "status": "converged/with_residual",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3590261541571666e-09,
+                  "reference": "Chest",
+                  "residual": 1.1381807248964756e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2998959434373095e-09,
+                  "reference": "Hips",
+                  "residual": 1.7819435141209134e-09,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.622948158454002e-10,
+                  "reference": "Chest",
+                  "residual": 3.871693988517709e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "crossed_body_reach": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.5036113169862656e-11,
+                  "reference": "Hips",
+                  "residual": 6.171129613865174e-11,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.348490729810585e-09,
+                  "reference": "Chest",
+                  "residual": 1.7634127795627819e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.325986470210936e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3386604285132244e-09,
+                  "reference": "Chest",
+                  "residual": 1.151239630931453e-09,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "elbow_bend": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3622434174147875e-10,
+                  "reference": "Chest",
+                  "residual": 2.565150265647846e-10,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.867572565075814e-10,
+                  "reference": "Chest",
+                  "residual": 2.7815932695889934e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "extreme_but_valid_joint_limit_stress": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.775002501023462e-08,
+                  "reference": "Hips",
+                  "residual": 6.541036291969471e-08,
+                  "status": "converged/with_residual",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.8527370330447918e-09,
+                  "reference": "Chest",
+                  "residual": 1.217062417873877e-09,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.7496932961731402e-08,
+                  "reference": "Hips",
+                  "residual": 2.396118541368667e-08,
+                  "status": "converged/with_residual",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.4477447157451376e-09,
+                  "reference": "Chest",
+                  "residual": 1.9067348156242345e-09,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 0.1270052457021351,
+                  "reference": "Hips",
+                  "residual": 0.3989987468651942,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "global_root_yaw": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2213269531221604e-16,
+                  "reference": "Hips",
+                  "residual": 1.6725469333392293e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.4158842375822593e-15,
+                  "reference": "Chest",
+                  "residual": 1.185799920896068e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.7813658019070544e-16,
+                  "reference": "Hips",
+                  "residual": 2.4394924734781536e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2637172664122579e-15,
+                  "reference": "Chest",
+                  "residual": 1.0583576218158096e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.0381266986219235e-17,
+                  "reference": "Hips",
+                  "residual": 6.402963863475853e-17,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "mixed_torso_rotation": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3748553360627227e-15,
+                  "reference": "Chest",
+                  "residual": 1.1514383065176238e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2628478357854917e-15,
+                  "reference": "Chest",
+                  "residual": 1.0576294775109601e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.112884131937934e-09,
+                  "reference": "Hips",
+                  "residual": 2.2345784534731626e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "neutral": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.575857161056153e-15,
+                  "reference": "Chest",
+                  "residual": 1.3197768908811126e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2638259031858446e-15,
+                  "reference": "Chest",
+                  "residual": 1.0584486046332411e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.458330272691211e-19,
+                  "reference": "Hips",
+                  "residual": 1.0864664978373894e-18,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "overhead_reach": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.403775254645159e-10,
+                  "reference": "Chest",
+                  "residual": 5.790651135718638e-10,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2425795895225483e-09,
+                  "reference": "Chest",
+                  "residual": 9.996268680643785e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "root_translation": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.0044768564148323e-16,
+                  "reference": "Hips",
+                  "residual": 2.745032041236506e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.6323450503318198e-15,
+                  "reference": "Chest",
+                  "residual": 1.367085373352145e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.344165874251041e-16,
+                  "reference": "Hips",
+                  "residual": 4.579669976578771e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.3282330622566137e-15,
+                  "reference": "Chest",
+                  "residual": 1.1123893155135927e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.458330272691211e-19,
+                  "reference": "Hips",
+                  "residual": 1.0864664978373894e-18,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "single_step": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 2.777697703498913e-08,
+                  "reference": "Hips",
+                  "residual": 3.809508455810256e-08,
+                  "status": "converged/with_residual",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 6.774162196504652e-11,
+                  "reference": "Chest",
+                  "residual": 5.673342500288855e-11,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.793871525338409e-09,
+                  "reference": "Hips",
+                  "residual": 1.0564201923893535e-08,
+                  "status": "converged/with_residual",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 4.07292026842985e-13,
+                  "reference": "Chest",
+                  "residual": 3.41104445369667e-13,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "squat": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3352761865802503e-09,
+                  "reference": "Hips",
+                  "residual": 4.567495987412463e-09,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 6.713535489820092e-11,
+                  "reference": "Chest",
+                  "residual": 5.673326051608135e-11,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.305061795407643e-09,
+                  "reference": "Hips",
+                  "residual": 1.0003921288435945e-08,
+                  "status": "converged/with_residual",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.241225001910856e-10,
+                  "reference": "Chest",
+                  "residual": 6.164995628877416e-10,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 8.349388875664508e-16,
+                  "reference": "Hips",
+                  "residual": 2.623037875375196e-15,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "torso_pitch": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2045594824385812e-15,
+                  "reference": "Chest",
+                  "residual": 1.0088159053379486e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.070599283446629e-15,
+                  "reference": "Chest",
+                  "residual": 8.966221651486438e-16,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 7.594780060151587e-10,
+                  "reference": "Hips",
+                  "residual": 2.3859705242602474e-09,
+                  "status": "converged",
+                  "target": "Chest"
+                }
+              }
+            },
+            "torso_roll": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.409202119897793e-15,
+                  "reference": "Chest",
+                  "residual": 1.1802036620979697e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2360642270653247e-15,
+                  "reference": "Chest",
+                  "residual": 1.0351983236586444e-15,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.4769332078209106e-08,
+                  "reference": "Hips",
+                  "residual": 4.63992251553298e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            },
+            "torso_yaw": {
+              "tasks": {
+                "left_foot": {
+                  "active_coordinates": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.981288040470632e-16,
+                  "reference": "Hips",
+                  "residual": 2.7132761032412845e-16,
+                  "status": "converged",
+                  "target": "LeftFoot"
+                },
+                "left_hand": {
+                  "active_coordinates": [
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.2037328699820992e-15,
+                  "reference": "Chest",
+                  "residual": 1.0081236192318601e-15,
+                  "status": "converged",
+                  "target": "LeftHand"
+                },
+                "right_foot": {
+                  "active_coordinates": [
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 3.3256896783132147e-16,
+                  "reference": "Hips",
+                  "residual": 4.554367738890935e-16,
+                  "status": "converged",
+                  "target": "RightFoot"
+                },
+                "right_hand": {
+                  "active_coordinates": [
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.0611642369700857e-15,
+                  "reference": "Chest",
+                  "residual": 8.887203554511428e-16,
+                  "status": "converged",
+                  "target": "RightHand"
+                },
+                "torso": {
+                  "active_coordinates": [
+                    12,
+                    13,
+                    14
+                  ],
+                  "converged": true,
+                  "desired_source": "canonical_targets.transforms",
+                  "normalized_residual": 1.6268897755436884e-08,
+                  "reference": "Hips",
+                  "residual": 5.1110249670483986e-08,
+                  "status": "converged/with_residual",
+                  "target": "Chest"
+                }
+              }
+            }
+          },
+          "target_source": "canonical_semantic_targets",
+          "unreachable_demands": []
+        },
+        "status": "passed"
       },
-      "torso_regular_rank_translation": {
-        "mjcf": 1,
-        "urdf": 2
+      "rank_summary": {
+        "failures": [],
+        "passed": true,
+        "per_task": {
+          "left_foot": {
+            "failures": [],
+            "left": {
+              "active_coordinate_count": 6,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.7320508075689418,
+                1.4142135623730951,
+                1.0
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.7783538539327528,
+                0.6645458502844857,
+                0.038348975300732654
+              ],
+              "unstable_columns": []
+            },
+            "passed": true,
+            "right": {
+              "active_coordinate_count": 6,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.7320508075688528,
+                1.4142135623730951,
+                0.9999999999999998
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.7783538536360848,
+                0.6645458497983179,
+                0.03834897652332105
+              ],
+              "unstable_columns": []
+            }
+          },
+          "left_hand": {
+            "failures": [],
+            "left": {
+              "active_coordinate_count": 7,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.7320508075688776,
+                1.414213562373095,
+                1.4142135623730945
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.5769597844332077,
+                0.4481852796979709,
+                0.1441873235663082
+              ],
+              "unstable_columns": []
+            },
+            "passed": true,
+            "right": {
+              "active_coordinate_count": 7,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.732050807568877,
+                1.414213562373095,
+                1.414213562373095
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.5769597868551305,
+                0.4481852703133547,
+                0.14418730882507533
+              ],
+              "unstable_columns": []
+            }
+          },
+          "right_foot": {
+            "failures": [],
+            "left": {
+              "active_coordinate_count": 6,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.7320508075689418,
+                1.4142135623730951,
+                1.0
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.778353854157072,
+                0.6645458504248263,
+                0.038348975779356004
+              ],
+              "unstable_columns": []
+            },
+            "passed": true,
+            "right": {
+              "active_coordinate_count": 6,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.7320508075688528,
+                1.4142135623730951,
+                0.9999999999999998
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.7783538538604396,
+                0.6645458499386966,
+                0.038348977001890744
+              ],
+              "unstable_columns": []
+            }
+          },
+          "right_hand": {
+            "failures": [],
+            "left": {
+              "active_coordinate_count": 7,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.7320508075688776,
+                1.414213562373095,
+                1.4142135623730945
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.5769577608427,
+                0.44818375142639033,
+                0.1441872417126793
+              ],
+              "unstable_columns": []
+            },
+            "passed": true,
+            "right": {
+              "active_coordinate_count": 7,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.732050807568877,
+                1.414213562373095,
+                1.414213562373095
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 3,
+              "translation_singular_values": [
+                0.5769577632646324,
+                0.4481837420417415,
+                0.14418722697142333
+              ],
+              "unstable_columns": []
+            }
+          },
+          "torso": {
+            "failures": [],
+            "left": {
+              "active_coordinate_count": 3,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 1,
+              "translation_singular_values": [
+                0.019409001302635762,
+                0.0,
+                0.0
+              ],
+              "unstable_columns": []
+            },
+            "passed": true,
+            "right": {
+              "active_coordinate_count": 3,
+              "rotation_rank": 3,
+              "rotation_singular_values": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "stability_gate_passed": true,
+              "translation_rank": 1,
+              "translation_singular_values": [
+                0.019409001302635762,
+                0.0,
+                0.0
+              ],
+              "unstable_columns": []
+            }
+          }
+        },
+        "status": "passed"
+      },
+      "semantic_fk": {
+        "failures": [],
+        "passed": true,
+        "per_site": {
+          "Chest": {
+            "passed": true,
+            "position_error": 0.0,
+            "rotation_error": 0.0
+          },
+          "Hips": {
+            "passed": true,
+            "position_error": 0.0,
+            "rotation_error": 0.0
+          },
+          "LeftFoot": {
+            "passed": true,
+            "position_error": 4.80810721806276e-09,
+            "rotation_error": 0.0
+          },
+          "LeftHand": {
+            "passed": true,
+            "position_error": 2.7265108194489294e-07,
+            "rotation_error": 1.4563223238088084e-06
+          },
+          "RightFoot": {
+            "passed": true,
+            "position_error": 4.80810721806276e-09,
+            "rotation_error": 0.0
+          },
+          "RightHand": {
+            "passed": true,
+            "position_error": 2.726511000353189e-07,
+            "rotation_error": 1.4563223238088084e-06
+          }
+        },
+        "status": "passed"
       }
     },
-    "known_limitation": "The cached G1 URDF and MJCF are not treated as strictly equivalent complete models; current artifacts document topology/rank differences instead of claiming a pass.",
-    "status": "documented_limitation",
-    "tolerance": {
-      "chain_coordinate_labels": "exact ordered match required for strict topology equivalence",
-      "neutral_semantic_position_m": 0.001,
-      "regular_rank_rotation": 0,
-      "regular_rank_translation": 0
-    }
-  },
-  "roboparty_rpo_distal_hand_endpoint": {
-    "checks": {
-      "left_hand": {
-        "body_endpoint_matches_current_public_model": true,
-        "full_arm_chain_coordinate_count": 5,
-        "full_arm_chain_includes_shoulder_and_elbow": true,
-        "local_position": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "semantic_body": "left_elbow_yaw_link"
-      },
-      "right_hand": {
-        "body_endpoint_matches_current_public_model": true,
-        "full_arm_chain_coordinate_count": 5,
-        "full_arm_chain_includes_shoulder_and_elbow": true,
-        "local_position": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "semantic_body": "right_elbow_yaw_link"
-      }
+    "evidence_incomplete_reasons": {},
+    "evidence_statuses": {
+      "active_chains": "passed",
+      "canonical_projection": "passed",
+      "rank_summary": "passed",
+      "semantic_fk": "passed"
     },
-    "scope_note": "The public RPO model exposes the distal arm endpoint as the elbow-yaw link body with zero local offset; this check proves full shoulder-to-endpoint chain use, not a separate palm/fingertip mesh anchor.",
-    "status": "passed_with_documented_scope"
-  },
-  "robotis_op3_chest_demand_leakage": {
-    "leg_coordinate_labels_in_torso_task": [],
-    "projection_status": "rank_zero",
-    "scope_note": "Chest demand is represented by a rank-zero torso projection for OP3; no leg coordinates are assigned to the torso task.",
+    "gate_a_evidence_complete": true,
+    "gate_a_required_sections": [
+      "semantic_fk",
+      "active_chains",
+      "rank_summary",
+      "canonical_projection"
+    ],
+    "gate_a_status": "complete_passed",
+    "generated": "artifacts/retargeting_v3_step2/cross_format/unitree_g1_same_source_canonical.xml",
+    "generated_artifact_sanitization": {
+      "path_placeholders": [
+        "${ROBOT_ZOO_CACHE}",
+        "${ROBOT_DESCRIPTIONS_CACHE}",
+        "${NEWTON_CACHE}",
+        "${LOCAL_SOURCE_PATH}"
+      ],
+      "status": "applied"
+    },
+    "generated_runtime_sha256": "243fed7a6cf79391fa38379d4f5c0d49593c54b746f5d35914f64593eef44f29",
+    "generated_sha256": "59de892d1e0a123ec9b84768b95475031b3e5494dbd7a45ad4c869e8363fac54",
+    "mode": "same_source_urdf_to_canonical_mjcf",
+    "projection_report_resolution": {
+      "generated_model": "artifacts/retargeting_v3_step2/cross_format/unitree_g1_same_source_canonical.xml",
+      "generated_report": "available",
+      "reasons": {},
+      "source_model": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/g1_description/g1_29dof.urdf",
+      "source_report": "available",
+      "status": "available"
+    },
+    "runtime_dimensions": {
+      "generated_nq": 29,
+      "generated_nv": 29,
+      "source_nq": 29,
+      "source_nv": 29
+    },
+    "semantic_map_resolution": {
+      "manifest_model_id": "unitree_g1_urdf",
+      "path": "assets/robot_zoo/semantic_maps/unitree_g1_urdf.json",
+      "source": "verified_semantic_map",
+      "status": "available"
+    },
+    "source": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/g1_description/g1_29dof.urdf",
+    "source_resolution": {
+      "entry": {
+        "description_name": "g1_description",
+        "expected_capability": "positive",
+        "format": "urdf",
+        "id": "unitree_g1_urdf",
+        "license": "BSD-3-Clause",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "robot_descriptions"
+      },
+      "local_file_sha256": "e1dc89366bf96aa33ba4ef211884f6d81320ddd2ac6f8b1ad82986e64008be31",
+      "manifest_model_id": "unitree_g1_urdf",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": "robot_descriptions.g1_description",
+      "path": "${ROBOT_DESCRIPTIONS_CACHE}/unitree_ros/robots/g1_description/g1_29dof.urdf",
+      "path_attr": "URDF_PATH",
+      "reason": "",
+      "resolver": "robot_descriptions_local_cache",
+      "status": "available"
+    },
+    "source_sha256": "e1dc89366bf96aa33ba4ef211884f6d81320ddd2ac6f8b1ad82986e64008be31",
     "status": "passed",
-    "torso_coordinate_labels": []
+    "strict_equivalent": true,
+    "tolerances": {
+      "position_atol": 1e-06,
+      "projection_atol": 1e-07,
+      "rank_singular_value_atol": 1e-06,
+      "rotation_atol": 2e-06
+    }
   }
 }

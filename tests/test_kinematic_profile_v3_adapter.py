@@ -179,7 +179,7 @@ def test_explicit_model_site_reference_applies_site_local_position_offset(tmp_pa
     assert sites["Chest"].reason == "explicit_model_site_offset"
 
 
-def test_newton_world_reference_limitation_is_explicit_for_free_root(tmp_path: Path):
+def test_newton_world_reference_is_structured_for_free_root(tmp_path: Path):
     model = _write_model(
         tmp_path,
         "newton_free_world.xml",
@@ -196,7 +196,27 @@ def test_newton_world_reference_limitation_is_explicit_for_free_root(tmp_path: P
 """,
     )
     adapter = NewtonRuntimeModelAdapter(model)
+    sites = build_semantic_sites(
+        adapter,
+        {
+            "Hips": "world",
+            "Chest": "floating",
+        },
+    )
+    paths = discover_paths(adapter, sites)
 
-    with pytest.warns(RuntimeWarning, match="do not expose a synthetic world body"):
-        with pytest.raises(KeyError, match="unknown body 'world'"):
-            adapter.resolve_body_name("world")
+    assert adapter.resolve_body_name("world") == "world"
+    assert sites["Hips"].body_name == "world"
+    assert adapter.body_path("world", "floating") == ["world", "floating"]
+    assert paths["torso"].lca_body == "world"
+    assert paths["torso"].body_path == ["world", "floating"]
+    assert paths["torso"].active_velocity_coordinates == [0, 1, 2, 3, 4, 5]
+    assert paths["torso"].coordinate_labels == [
+        "root_free[0]",
+        "root_free[1]",
+        "root_free[2]",
+        "root_free[3]",
+        "root_free[4]",
+        "root_free[5]",
+    ]
+    assert paths["torso"].joint_types == ["free"] * 6

@@ -1,12 +1,18 @@
-# Step 2 Agent E Handoff
+# Step 2 Agent E-xhigh Handoff
 
-Agent: E - Full Robot Zoo Validation & Cross-Model Matrix  
-Branch/worktree: `agent-e-full-robot-zoo-validation` at `/mnt/ssd1/song/Desktop/soma_retargeter_autoconfig_agent_e`
+Agent: E-xhigh - Full Robot Zoo Validation & Cross-Model Matrix
+Current worktree: `${WORKSPACE}`
+Prior Agent E input worktree reviewed by commit hash; local path intentionally omitted from artifacts.
 
-## Commits
+## Commits And Provenance
 
-- `b25b5f1 feat: add manifest-driven robot zoo validation`
-- `9549b9e artifacts: publish manifest robot zoo validation scaffold`
+- Prior Agent E input reviewed:
+  - `b25b5f1 feat: add manifest-driven robot zoo validation`
+  - `9549b9e artifacts: publish manifest robot zoo validation scaffold`
+  - `4ff8c41 docs: note agent e reasoning provenance`
+- Current Agent E-xhigh integration commits:
+  - `d420f26 feat: add manifest-driven robot zoo validation`
+  - artifacts/handoff commit containing this file; final Integrator response lists the concrete hash.
 
 ## Files
 
@@ -23,20 +29,20 @@ Branch/worktree: `agent-e-full-robot-zoo-validation` at `/mnt/ssd1/song/Desktop/
 
 - `python -m py_compile soma_retargeter/robotics/v3/robot_zoo.py soma_retargeter/robotics/v3/validation.py soma_retargeter/tools/compile_kinematic_profile_v3.py soma_retargeter/tools/validate_kinematic_profile_v3.py soma_retargeter/tools/sync_robot_zoo_v3.py`
 - `PYTHONPATH=. pytest -q tests/v3/test_full_robot_zoo_validation.py`
-  - Result: `3 passed in 0.60s`
+  - Result: `7 passed in 0.71s`
 - `PYTHONPATH=. python -m soma_retargeter.tools.validate_kinematic_profile_v3 --manifest assets/robot_zoo/robot_zoo_manifest.json --output-dir artifacts/retargeting_v3_step2 --low-discrepancy-count 1`
   - Result: completed in no-fetch mode.
-- `rg -n "/mnt/ssd1|/tmp/|--model /|compiled" artifacts/retargeting_v3_step2/commands.txt`
+- `rg -n "$RETARGETING_V3_FORBIDDEN_ARTIFACT_PATTERN" artifacts/retargeting_v3_step2`
   - Result: no matches.
 
 ## Numeric Results
 
 - Manifest entries: 46.
 - Per-robot reports written: 46.
-- Status counts: `passed=1`, `source_unavailable=45`.
-- Algorithm pass count: 1.
+- Status counts: `algorithm_failed=1`, `source_unavailable=45`.
+- Algorithm pass count: 0.
 - Model load failures: 0.
-- Failure artifacts: 0.
+- Failure artifacts: 1.
 - Semantic maps written: 1.
 - Cross-format pairs scaffolded: 9.
 - Deterministic rerun status: `not_run`.
@@ -50,10 +56,12 @@ Branch/worktree: `agent-e-full-robot-zoo-validation` at `/mnt/ssd1/song/Desktop/
 - Every manifest entry emits `artifacts/retargeting_v3_step2/per_robot/<manifest_id>.json`.
 - Reproduction commands use `--robot-id`, `${ROBOT_ZOO_MANIFEST}`, and `${RETARGETING_V3_ARTIFACTS}` instead of absolute local model/cache paths.
 - Cross-format and deterministic rerun files are scaffolded as separate artifacts and are not counted as passed.
+- Verified semantic map integration hooks are present through manifest fields `semantic_map_path`, `verified_semantic_map`, `semantic_map`, and the default `assets/robot_zoo/semantic_maps/<id>.json` lookup.
+- Out-of-workspace absolute paths in reports are redacted to `${LOCAL_SOURCE_PATH}/<file>` unless they are under `${ROBOT_ZOO_CACHE}` or `${ROBOT_DESCRIPTIONS_CACHE}`.
 
 ## Assumptions
 
-- Agent E was spawned before the Integrator added the hard requirement that all subagents use xhigh reasoning. Tool parameters cannot be changed in-place for this already-running agent; subsequent work continued with the highest diligence possible under the original high-effort spawn.
+- This continuation was executed as Agent E-xhigh per `goal.md`; the older Agent E commits listed above were reviewed only as input.
 - No-fetch mode is the default because importing some `robot_descriptions` modules can clone upstream repositories as an import side effect.
 - Full source-fetch validation should be run only with explicit opt-in after cache/network policy is confirmed.
 - Agent E did not edit Agent B semantics code, so inferred semantic confidence issues remain owned by Agent B/F gates.
@@ -62,10 +70,10 @@ Branch/worktree: `agent-e-full-robot-zoo-validation` at `/mnt/ssd1/song/Desktop/
 
 - A first `sync_robot_zoo_v3 --dry-run` attempt imported `robot_descriptions` modules and started upstream clones before interruption. The resolver was changed afterward so dry-run/no-fetch inventory does not import those modules by default.
 - The artifact run is not a full algorithm validation of all 46 entries; 45 entries are explicit `source_unavailable` in no-fetch mode.
+- `roboparty_rpo_local` resolves and compiles far enough to produce an `algorithm_failed` status with `neutral exactness gate failed`; it is not counted as passed.
 - `deterministic_rerun.json` is scaffolding only and reports `not_run`.
 - `cross_format.json` is scaffolding only and reports `not_run` gates.
-- Generated artifacts were produced from a dirty Agent E worktree, so they are not final clean Step-2 artifacts.
-- Reasoning-effort provenance limitation: this handoff was produced by a pre-xhigh Agent E instance and should be treated as high-diligence but not xhigh-spawned evidence.
+- Generated artifacts were produced while unrelated pre-existing worktree changes were present (`goal.md`, Agent F/audit files, and model-adapter edits). Agent E did not revert or commit those unrelated changes.
 
 ## Integration Notes
 

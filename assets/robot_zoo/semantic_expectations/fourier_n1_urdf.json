@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "model_id": "fourier_n1_urdf",
+  "expected_capability": "positive",
+  "required_semantics": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+  "required_distal_sites": ["LeftHand", "RightHand", "LeftFoot", "RightFoot", "LeftToe", "RightToe", "LeftHeel", "RightHeel"],
+  "site_gates": {
+    "distal_local_position_norm_min_m": 1e-9,
+    "inferred_confidence_must_be_below": 1.0,
+    "verified_confidence_max": 0.99
+  },
+  "notes": "Fourier N1 URDF semantics are verified against the compiled MuJoCo URDF, where fixed base_link, torso_link, and end-effector links are merged into world, waist_yaw_link, and hand_yaw bodies respectively."
+}
