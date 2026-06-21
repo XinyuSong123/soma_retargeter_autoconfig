@@ -1,25 +1,35 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "catalog_name": "soma-retargeter-v3-robot-zoo",
   "aggregators": {
     "robot_descriptions": {
       "package": "robot_descriptions",
       "version": "2.0.0",
       "repository": "https://github.com/robot-descriptions/robot_descriptions.py",
-      "purpose": "Pinned description modules and upstream source refs"
+      "ref": "v2.0.0",
+      "commit": "2431c405312001e10cb0a8d5315dbb2e90f0c732",
+      "repository_index_blob_sha": "6ceed0db9ee7c9ea30c4a9e1c731dd01e9687244",
+      "description_index_blob_sha": "3333aa57d07cdbb19d3351d4684ac53be767ad73",
+      "purpose": "Pinned description modules and exact upstream source refs"
     },
     "mujoco_menagerie": {
       "repository": "https://github.com/google-deepmind/mujoco_menagerie",
       "ref": "feadf76d42f8a2162426f7d226a3b539556b3bf5",
       "purpose": "Curated MJCF humanoids and bipeds"
+    },
+    "unitree_ros": {
+      "repository": "https://github.com/unitreerobotics/unitree_ros",
+      "ref": "267182b8521c8d6a631bab1fe63836873237a525",
+      "purpose": "Pinned official G1 23DoF URDF and MJCF sources"
     }
   },
   "policies": {
-    "tier_a": "permissive kinematic snapshot committed with LICENSE and SOURCE.json",
+    "tier_a": "permissive source fetched at a pinned ref; optional kinematic snapshot may be committed with LICENSE and SOURCE.json",
     "tier_b": "fixed-ref fetch-only; never redistributed by default",
     "tier_c": "negative morphology control; expected structured rejection or downgrade",
     "max_committed_snapshot_bytes_per_robot": 2000000,
-    "commit_visual_meshes": false
+    "commit_visual_meshes": false,
+    "allow_private_or_unlisted_assets": false
   },
   "models": [
     {
@@ -57,6 +67,38 @@
       "required": true,
       "source_family": "robot_descriptions",
       "notes": ""
+    },
+    {
+      "id": "unitree_g1_23dof_urdf",
+      "description_name": null,
+      "format": "urdf",
+      "robot_class": "humanoid",
+      "expected_capability": "positive",
+      "license": "BSD-3-Clause",
+      "redistribution": "fetch_only",
+      "required": true,
+      "source_family": "pinned_git",
+      "notes": "Official Unitree G1 23DoF URDF at the same pinned unitree_ros revision",
+      "repository_url": "https://github.com/unitreerobotics/unitree_ros.git",
+      "repository_ref": "267182b8521c8d6a631bab1fe63836873237a525",
+      "repository_cache_path": "unitree_ros",
+      "repository_path": "robots/g1_description/g1_23dof.urdf"
+    },
+    {
+      "id": "unitree_g1_23dof_mjcf",
+      "description_name": null,
+      "format": "mjcf",
+      "robot_class": "humanoid",
+      "expected_capability": "positive",
+      "license": "BSD-3-Clause",
+      "redistribution": "fetch_only",
+      "required": true,
+      "source_family": "pinned_git",
+      "notes": "Official Unitree G1 23DoF MJCF at the same pinned unitree_ros revision",
+      "repository_url": "https://github.com/unitreerobotics/unitree_ros.git",
+      "repository_ref": "267182b8521c8d6a631bab1fe63836873237a525",
+      "repository_cache_path": "unitree_ros",
+      "repository_path": "robots/g1_description/g1_23dof.xml"
     },
     {
       "id": "unitree_h1_urdf",
