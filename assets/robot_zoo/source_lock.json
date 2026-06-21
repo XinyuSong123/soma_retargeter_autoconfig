@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "generated_from": {
+    "robot_descriptions_package": "2.0.0",
+    "robot_descriptions_repository": "https://github.com/robot-descriptions/robot_descriptions.py",
+    "robot_descriptions_ref": "v2.0.0",
+    "mujoco_menagerie_ref": "feadf76d42f8a2162426f7d226a3b539556b3bf5",
+    "verified_date": "2026-06-21"
+  },
+  "policy": {
+    "purpose": "Resolve the 16 source_unavailable entries from the Step-2 finalize artifact without tracking floating branches.",
+    "repository_checkout": "detached_exact_commit",
+    "verify_model_git_blob_sha": true,
+    "execute_upstream_code": false,
+    "fetch_only_assets_are_never_committed": true,
+    "ignore_unlisted_local_assets": true
+  },
+  "python_dependencies": {
+    "robot_descriptions": {
+      "package": "robot_descriptions",
+      "version": "2.0.0",
+      "reason": "Pinned description modules and repository commits"
+    },
+    "pycollada": {
+      "package": "pycollada",
+      "version": "0.9.3",
+      "license": "BSD",
+      "affected_models": [
+        "jvrc_urdf",
+        "unitree_go2_urdf"
+      ],
+      "reason": "Newton/trimesh must decode public COLLADA DAE meshes"
+    },
+    "mujoco": {
+      "package": "mujoco",
+      "version": "3.8.1",
+      "reason": "Reference loader and cross-format validation"
+    }
+  },
+  "repositories": {
+    "drake": {
+      "url": "https://github.com/RobotLocomotion/drake.git",
+      "commit": "7abea0556ede980a5077fe1a8cfbae59b57c7c27",
+      "cache_path": "drake"
+    },
+    "roboschool": {
+      "url": "https://github.com/openai/roboschool.git",
+      "commit": "c8ee2812207ef620af618b065eca3bde10f5823c",
+      "upstream_tag": "1.0.49",
+      "cache_path": "roboschool"
+    },
+    "example-robot-data": {
+      "url": "https://github.com/Gepetto/example-robot-data.git",
+      "commit": "d0d9098d752014aec3725b07766962acf06c5418",
+      "cache_path": "example-robot-data"
+    },
+    "cassie_description": {
+      "url": "https://github.com/robot-descriptions/cassie_description.git",
+      "commit": "81a2d8bbd77201cc974afb127adda4e2857a6dbf",
+      "cache_path": "cassie_description"
+    },
+    "draco3_description": {
+      "url": "https://github.com/shbang91/draco3_description.git",
+      "commit": "5afd19733d7b3e9f1135ba93e0aad90ed1a24cc7",
+      "cache_path": "draco3_description"
+    },
+    "Wiki-GRx-Models": {
+      "url": "https://github.com/FFTAI/Wiki-GRx-Models.git",
+      "commit": "351245ac8fa4bf6f4b0c41556e1e6976a438bcef",
+      "cache_path": "Wiki-GRx-Models"
+    },
+    "jaxon_description": {
+      "url": "https://github.com/robot-descriptions/jaxon_description.git",
+      "commit": "4a0cb7a4a737864312f8d6e3f89823a741539bfc",
+      "cache_path": "jaxon_description"
+    },
+    "mujoco": {
+      "url": "https://github.com/google-deepmind/mujoco.git",
+      "commit": "ad0dc0de5e10a075a2c65be629e9a8d557d383a6",
+      "cache_path": "mujoco"
+    },
+    "rhea_description": {
+      "url": "https://github.com/G-Levine/rhea_description.git",
+      "commit": "1dc0f1abcf51b5d8a8f7ff8a548399ff0df1414f",
+      "cache_path": "rhea_description"
+    },
+    "nasa-urdf-robots": {
+      "url": "https://github.com/gkjohnson/nasa-urdf-robots.git",
+      "commit": "54cdeb1dbfb529b79ae3185a53e24fce26e1b74b",
+      "cache_path": "nasa-urdf-robots"
+    },
+    "romeo_robot": {
+      "url": "https://github.com/ros-aldebaran/romeo_robot.git",
+      "commit": "1f5b28807bed4d7b13a6781801f1d0c8bc8b09fb",
+      "upstream_tag": "0.1.5",
+      "cache_path": "romeo_robot"
+    },
+    "sigmaban_urdf": {
+      "url": "https://github.com/Rhoban/sigmaban_urdf.git",
+      "commit": "d5d023fd35800d00d7647000bce8602617a4960d",
+      "cache_path": "sigmaban_urdf"
+    },
+    "simple_humanoid_description": {
+      "url": "https://github.com/laas/simple_humanoid_description.git",
+      "commit": "4e859aed7df3c29954c9cca2a1ecb94069f7cfce",
+      "cache_path": "simple_humanoid_description"
+    },
+    "talos-data": {
+      "url": "https://github.com/stack-of-tasks/talos-data.git",
+      "commit": "77169405d6a48a5d3f3f75eb014209f375ff23b6",
+      "cache_path": "talos_data"
+    },
+    "upkie_description": {
+      "url": "https://github.com/upkie/upkie_description.git",
+      "commit": "19a91ce69cab6742c613cab104986e3f8a18d6a5",
+      "cache_path": "upkie_description"
+    }
+  },
+  "models": {
+    "atlas_drc_urdf": {
+      "description_name": "atlas_drc_description",
+      "repository": "drake",
+      "model_path": "examples/atlas/urdf/atlas_convex_hull.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "2eb99cdc270300b3eef67c59ad6b742bfbfddf77",
+      "license": "BSD-3-Clause",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "atlas_v4_urdf": {
+      "description_name": "atlas_v4_description",
+      "repository": "roboschool",
+      "model_path": "roboschool/models_robot/atlas_description/urdf/atlas_v4_with_multisense.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "7dd163ffddd0365288c05c6c9b3b44e84fdf9df4",
+      "license": "MIT",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "bolt_urdf": {
+      "description_name": "bolt_description",
+      "repository": "example-robot-data",
+      "model_path": "robots/bolt_description/robots/bolt.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "88b4238af073dfb356e89ba5f103009737591f60",
+      "license": "BSD-3-Clause",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "cassie_urdf": {
+      "description_name": "cassie_description",
+      "repository": "cassie_description",
+      "model_path": "urdf/cassie_v4.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "e855b8c29038a325c203fa488edbc47a1d551d7b",
+      "license": "MIT",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "draco3_urdf": {
+      "description_name": "draco3_description",
+      "repository": "draco3_description",
+      "model_path": "urdf/draco3.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "3f1e396d1d29f51cb374956190aefdebb312b262",
+      "license": "BSD-2-Clause",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "fourier_gr1_urdf": {
+      "description_name": "gr1_description",
+      "repository": "Wiki-GRx-Models",
+      "model_path": "GRX/GR1/GR1T1/urdf/GR1T1_nohand.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "3377229d1762ce4e7d7d4531f0ee88a8461bf73a",
+      "license": "GPL-3.0",
+      "redistribution": "fetch_only",
+      "required": false
+    },
+    "jaxon_urdf": {
+      "description_name": "jaxon_description",
+      "repository": "jaxon_description",
+      "model_path": "urdf/jaxon_jvrc.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "05b0b41ad3a334e187cf3394276b871cfae124b7",
+      "license": "CC-BY-SA-4.0",
+      "redistribution": "fetch_only",
+      "required": false
+    },
+    "mujoco_humanoid_mjcf": {
+      "description_name": "mujoco_humanoid_mj_description",
+      "repository": "mujoco",
+      "model_path": "model/humanoid/humanoid.xml",
+      "path_attr": "MJCF_PATH",
+      "git_blob_sha": "a2c4a16fb59c725253859a9093493524db888675",
+      "license": "Apache-2.0",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "rhea_urdf": {
+      "description_name": "rhea_description",
+      "repository": "rhea_description",
+      "model_path": "urdf/rhea.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "1abd17470bf46ffa4eabfde26a19405b73de877f",
+      "license": "Apache-2.0",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "robonaut2_urdf": {
+      "description_name": "r2_description",
+      "repository": "nasa-urdf-robots",
+      "model_path": "r2_description/robots/r2c_sim_full_control.urdf.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "990420d8d049c587e5f34eacb31f5f7cea49cb00",
+      "license": "NASA-1.3",
+      "redistribution": "fetch_only",
+      "required": false
+    },
+    "romeo_urdf": {
+      "description_name": "romeo_description",
+      "repository": "romeo_robot",
+      "model_path": "romeo_description/urdf/romeo_generated_urdf/romeo.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "9164cc7a5893bdfb59852053864146d042dd9b25",
+      "license": "BSD",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "sigmaban_urdf": {
+      "description_name": "sigmaban_description",
+      "repository": "sigmaban_urdf",
+      "model_path": "robot.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "2992e9802b7166cda64d5a630d994709ec4c421d",
+      "license": "MIT",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "simple_humanoid_urdf": {
+      "description_name": "simple_humanoid_description",
+      "repository": "simple_humanoid_description",
+      "model_path": "urdf/simple_humanoid.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "57ccdead8da83300d1fd13537bfab6b5c8a538ec",
+      "license": "BSD-2-Clause",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "talos_urdf": {
+      "description_name": "talos_description",
+      "repository": "talos-data",
+      "model_path": "urdf/talos_full.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "1e359a0352ed28b2fda87ff6d5a62b115a51eeaf",
+      "license": "LGPL-3.0",
+      "redistribution": "fetch_only",
+      "required": false
+    },
+    "upkie_urdf": {
+      "description_name": "upkie_description",
+      "repository": "upkie_description",
+      "model_path": "urdf/upkie.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "42324e8259dfac44f2de27d8f7ae878675b00a4c",
+      "license": "Apache-2.0",
+      "redistribution": "kinematic_snapshot",
+      "required": true
+    },
+    "valkyrie_urdf": {
+      "description_name": "valkyrie_description",
+      "repository": "nasa-urdf-robots",
+      "model_path": "val_description/model/robots/valkyrie_sim.urdf",
+      "path_attr": "URDF_PATH",
+      "git_blob_sha": "1e6a6c0af94073a64e94f3b68e50db22ec05d996",
+      "license": "NASA-1.3",
+      "redistribution": "fetch_only",
+      "required": false
+    }
+  },
+  "non_source_blockers": {
+    "model_load_dependency": {
+      "models": [
+        "jvrc_urdf",
+        "unitree_go2_urdf"
+      ],
+      "fix": "Install pycollada==0.9.3 and rerun without stripping DAE geometry."
+    },
+    "verified_semantic_maps": {
+      "models": [
+        "berkeley_humanoid_urdf",
+        "berkeley_humanoid_mjcf_direct",
+        "unitree_h1_urdf"
+      ],
+      "fix": "Sources are already available; add fingerprint-bound verified semantic maps or structured partial classification."
+    }
+  }
+}
