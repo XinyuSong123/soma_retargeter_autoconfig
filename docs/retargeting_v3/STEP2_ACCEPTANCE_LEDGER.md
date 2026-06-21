@@ -11,7 +11,7 @@ Acceptance audit artifact: `artifacts/retargeting_v3_step2/acceptance_ledger.jso
 The current formal pytest artifact is green:
 
 ```text
-215 passed, 10 skipped, 146 warnings in 3046.97s (0:50:46)
+216 passed, 10 skipped, 146 warnings in 1616.08s (0:26:56)
 ```
 
 The current acceptance ledger is `PASS` with `blocking_count=0`.
@@ -55,7 +55,7 @@ URDF-to-canonical-MJCF equivalence was recorded as `passed`, and the full
 no-fetch Robot Zoo run had `passed=1` and `source_unavailable=45`.
 
 Those statements describe an earlier false-positive-audit snapshot. They are
-not current: the formal pytest artifact now reports `215 passed, 10 skipped`,
+not current: the formal pytest artifact now reports `216 passed, 10 skipped`,
 and the current acceptance audit is `PASS` with zero blocking findings.
 
 ## Acceptance Rule

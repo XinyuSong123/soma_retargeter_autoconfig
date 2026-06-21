@@ -13,7 +13,7 @@ Step 2 status is:
 
 - Formal pytest artifact:
   `artifacts/retargeting_v3_step2/test_results/pytest.txt`.
-- Pytest result: `215 passed, 10 skipped`.
+- Pytest result: `216 passed, 10 skipped`.
 - Acceptance artifact:
   `artifacts/retargeting_v3_step2/acceptance_ledger.json`.
 - Acceptance result: `PASS`, `blocking_count=0`.
@@ -35,7 +35,7 @@ reasoning strength and record that fact in handoff artifacts.
 ## Current Numeric Results
 
 ```text
-pytest: 215 passed, 10 skipped
+pytest: 216 passed, 10 skipped
 acceptance_ledger.status: PASS
 acceptance_ledger.blocking_count: 0
 robot_zoo_status_counts:

@@ -7,7 +7,7 @@ This file records issues discovered while implementing the offline kinematic com
 - Step 2 acceptance is **PASS** for the offline compiler scope.
 - Formal pytest artifact:
   `artifacts/retargeting_v3_step2/test_results/pytest.txt` reports
-  `215 passed, 10 skipped`.
+  `216 passed, 10 skipped`.
 - Acceptance audit artifact:
   `artifacts/retargeting_v3_step2/acceptance_ledger.json` reports
   `status="PASS"` with `blocking_count=0`.

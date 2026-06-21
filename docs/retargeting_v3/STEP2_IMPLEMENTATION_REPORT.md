@@ -13,7 +13,7 @@ acceptance audit generated from a clean-head artifact run.
 Current formal test evidence:
 
 ```text
-215 passed, 10 skipped, 146 warnings in 3046.97s (0:50:46)
+216 passed, 10 skipped, 146 warnings in 1616.08s (0:26:56)
 ```
 
 Current acceptance evidence:
@@ -31,7 +31,7 @@ not strict same-source equivalence.
 
 ## Current Results
 
-- `python -m coverage run -m pytest tests`: `215 passed, 10 skipped`.
+- `python -m coverage run -m pytest tests`: `216 passed, 10 skipped`.
 - Current acceptance ledger: `PASS`, 0 blocking findings.
 - Robot Zoo status counts: `passed=7`, `negative_control_passed=4`,
   `algorithm_failed=14`, `semantic_failed=3`, `model_load_failed=2`,
