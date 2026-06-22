@@ -1,0 +1,55 @@
+name: Retargeting v3 Assets44
+
+on:
+  pull_request:
+  push:
+    branches:
+      - retargeting-v3-step2-assets-vendored
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  ROBOT_ZOO_MANIFEST: assets/robot_zoo/robot_zoo_manifest.json
+  ROBOT_ZOO_LOCK: assets/robot_zoo/robot_zoo_lock.json
+  RETARGETING_V3_ARTIFACTS: artifacts/retargeting_v3_step2_assets44
+
+jobs:
+  assets44-static-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install static test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy robot-descriptions==2.0.0
+      - name: Run Assets44 static acceptance gates
+        run: |
+          python -m pytest -q \
+            tests/v3/test_assets44_acceptance_static.py \
+            tests/v3/test_semantic_map_coverage_manifest.py \
+            tests/v3/test_robot_zoo_source_resolution_local_cache.py
+
+  assets44-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Assets44 artifact tree
+        run: |
+          python scripts/audit_retargeting_v3_assets44.py \
+            --artifact-dir "$RETARGETING_V3_ARTIFACTS" \
+            --lock "$ROBOT_ZOO_LOCK"

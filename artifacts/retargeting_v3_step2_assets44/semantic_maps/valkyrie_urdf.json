@@ -1,0 +1,142 @@
+{
+  "model_id": "valkyrie_urdf",
+  "resolution": {
+    "path": "assets/robot_zoo/semantic_maps/valkyrie_urdf.json",
+    "source": "verified_semantic_map",
+    "status": "available"
+  },
+  "schema_version": 1,
+  "semantics": {
+    "Chest": {
+      "body": "torso",
+      "confidence": 0.95,
+      "evidence": [
+        "name:torso",
+        "topology:pelvis_to_torsoYawLink_to_torsoPitchLink_to_torso",
+        "bilateral_arm_parent:leftShoulderPitchLink/rightShoulderPitchLink"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "Hips": {
+      "body": "pelvis",
+      "confidence": 0.95,
+      "evidence": [
+        "name:pelvis",
+        "topology:floating_root_body",
+        "bilateral_leg_parent:leftHipYawLink/rightHipYawLink"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "LeftFoot": {
+      "body": "leftFoot",
+      "confidence": 0.85,
+      "evidence": [
+        "name:leftFoot",
+        "topology:left_leg_distal_foot",
+        "side:left",
+        "source_collision_box:sole"
+      ],
+      "local_position": [
+        0.045,
+        0.0,
+        -0.088
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_collision_box"
+    },
+    "LeftHand": {
+      "body": "leftPalm",
+      "confidence": 0.85,
+      "evidence": [
+        "name:leftPalm",
+        "topology:left_arm_distal_palm",
+        "side:left",
+        "source_mesh:palm_left.dae"
+      ],
+      "local_position": [
+        -0.009553,
+        0.114245,
+        -0.011173
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_source_mesh_bounds"
+    },
+    "RightFoot": {
+      "body": "rightFoot",
+      "confidence": 0.85,
+      "evidence": [
+        "name:rightFoot",
+        "topology:right_leg_distal_foot",
+        "side:right",
+        "source_collision_box:sole"
+      ],
+      "local_position": [
+        0.045,
+        0.0,
+        -0.088
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_collision_box"
+    },
+    "RightHand": {
+      "body": "rightPalm",
+      "confidence": 0.85,
+      "evidence": [
+        "name:rightPalm",
+        "topology:right_arm_distal_palm",
+        "side:right",
+        "source_mesh:palm_right.dae"
+      ],
+      "local_position": [
+        -0.009553,
+        -0.114245,
+        -0.011173
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_source_mesh_bounds"
+    }
+  },
+  "source": "verified_semantic_map"
+}

@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import mujoco
 import numpy as np
 import pytest
 
 from soma_retargeter.robotics.v3 import MuJoCoRuntimeModelAdapter
-from soma_retargeter.robotics.v3.model_adapter import _patch_xml_for_mujoco_loading
+from soma_retargeter.robotics.v3.model_adapter import NewtonRuntimeModelAdapter
 from soma_retargeter.robotics.v3.robot_zoo import load_robot_zoo_manifest, resolve_robot_source
 from soma_retargeter.robotics.v3.semantic_sites import build_semantic_sites, load_semantic_map
 from soma_retargeter.robotics.v3.semantic_validation import (
@@ -196,25 +195,24 @@ def test_unitree_h1_2_distal_offsets_are_terminal_geometry_not_body_origins(mode
         adapter.close()
 
 
-def test_unitree_h1_urdf_remains_blocked_without_compiled_dae_geometry_truth(tmp_path: Path):
-    assert not (MAP_ROOT / "unitree_h1_urdf.json").exists()
-
+def test_unitree_h1_urdf_snapshot_map_replaces_original_dae_geometry_blocker():
     expectation = json.loads((EXPECTATION_ROOT / "unitree_h1_urdf.json").read_text())
     assert expectation["verification_status"] == "blocked"
     assert expectation["blocker"]["code"] == "compiled_geometry_unavailable"
 
-    entry = _manifest_entries()["unitree_h1_urdf"]
-    resolved = resolve_robot_source(entry, allow_fetch=False)
-    assert resolved.available
-
-    with pytest.raises(ValueError, match="package://h1_description/meshes/"):
-        MuJoCoRuntimeModelAdapter(resolved.path, entry.model_format)
-
-    patch = _patch_xml_for_mujoco_loading(resolved.path.read_text(), resolved.path)
-    assert patch.provenance
-    patched_path = tmp_path / "h1_patched.urdf"
-    patched_path.write_text(patch.text)
-    with pytest.raises(ValueError) as excinfo:
-        mujoco.MjModel.from_xml_path(str(patched_path))
-    assert "no decoder found for mesh file" in str(excinfo.value)
-    assert ".dae" in str(excinfo.value)
+    payload = json.loads((MAP_ROOT / "unitree_h1_urdf.json").read_text())
+    adapter = NewtonRuntimeModelAdapter(Path("assets/robot_zoo/snapshots/unitree_h1_urdf/model.urdf"), model_format="urdf")
+    try:
+        assert payload["model_fingerprint"] == adapter.fingerprint
+        assert validate_verified_semantic_map_payload(payload) == []
+        sites = build_semantic_sites(
+            adapter,
+            load_semantic_map(MAP_ROOT / "unitree_h1_urdf.json", include_auxiliary=True),
+            require_distal_site_offsets=True,
+        )
+        assert validate_no_fake_semantic_evidence(sites) == []
+        assert validate_nonzero_distal_sites(sites) == []
+        assert sites["LeftHand"].body_name == "left_elbow_link"
+        assert sites["RightHand"].body_name == "right_elbow_link"
+    finally:
+        adapter.close()

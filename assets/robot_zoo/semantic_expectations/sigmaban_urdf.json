@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "model_id": "sigmaban_urdf",
+  "expected_capability": "partial_humanoid",
+  "verification_status": "partial_blocked",
+  "coverage_status": "structurally_incomplete",
+  "required_semantics": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+  "supported_semantics": ["Hips", "Chest", "LeftFoot", "RightFoot"],
+  "missing_required_semantics": ["LeftHand", "RightHand"],
+  "blocker": {
+    "code": "structurally_incomplete",
+    "source_path": "assets/robot_zoo/snapshots/sigmaban_urdf/model.urdf",
+    "local_file_sha256": "4dad07e97309d55e8c36128baecc99f113a8484863fe4cf71a4897413c62373d",
+    "compiled_model_fingerprint": "8cac0284139dc15de67c39ff3957019bb364e61bac0e39523174bdbb35cf9681",
+    "observed_compiled_bodies": [
+      "world",
+      "torso",
+      "head_base",
+      "trunk",
+      "u_shoulder",
+      "right_humerus",
+      "radius_v2",
+      "u_shoulder_2",
+      "left_humerus",
+      "radius_v2_2",
+      "u_hip_with_saver",
+      "mx106_with_u_r",
+      "thigh_horn_left",
+      "tibia_left_full",
+      "mx106_with_u_l",
+      "left_foot_asm",
+      "left_foot_tip",
+      "u_hip_with_saver_2",
+      "mx106_with_u_l_2",
+      "thigh_horn_right",
+      "tibia_right_full",
+      "mx106_with_u_r_2",
+      "right_foot_asm",
+      "right_foot_tip",
+      "u_neck",
+      "head__field_of_view_false",
+      "vive_head",
+      "camera"
+    ],
+    "evidence": [
+      "compiled body tree contains torso/trunk plus bilateral leg and foot-tip chains",
+      "arm chains terminate in generated radius_v2 hardware names, not hand, palm, wrist, or end-effector bodies",
+      "no distal hand geometry or hand-named link exists to justify LeftHand or RightHand semantics"
+    ]
+  },
+  "blockers": [
+    "upper limb endpoints are generic radius_v2 bodies",
+    "no hand, palm, wrist, or end-effector bodies are present",
+    "distal hand semantics cannot be verified without external model-specific documentation"
+  ],
+  "notes": "No verified semantic map is emitted for this ID because required hand semantics are structurally unavailable in the committed snapshot."
+}

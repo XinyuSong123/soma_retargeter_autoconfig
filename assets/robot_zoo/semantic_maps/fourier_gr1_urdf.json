@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "fourier_gr1_urdf",
+  "model_fingerprint": "3ba1725c25b0f8c48d83a907a3e79ec06ff914541c892c77e108965bb38c5723",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_lock_fetch_only_cache",
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/Wiki-GRx-Models/GRX/GR1/GR1T1/urdf/GR1T1_nohand.urdf",
+    "sha256": "8bdd35a9a1fc9211462066b0792c395cdcc72a3801dd1b045d15e948eba0f10c"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "base_link",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:base_link", "topology:root_body", "bilateral_leg_parent:left_thigh_roll_link/right_thigh_roll_link"]
+    },
+    "Chest": {
+      "body": "torso_link",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:torso_link", "topology:waist_chain_child", "bilateral_arm_parent:left_upper_arm_pitch_link/right_upper_arm_pitch_link"]
+    },
+    "LeftHand": {
+      "body": "left_end_effector_link",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:left_end_effector_link", "topology:left_arm_distal_end_effector", "side:left", "chain:torso_link/left_upper_arm_pitch_link/left_upper_arm_roll_link/left_upper_arm_yaw_link/left_lower_arm_pitch_link/left_hand_yaw_link/left_hand_roll_link/left_hand_pitch_link/left_end_effector_link"]
+    },
+    "RightHand": {
+      "body": "right_end_effector_link",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:right_end_effector_link", "topology:right_arm_distal_end_effector", "side:right", "chain:torso_link/right_upper_arm_pitch_link/right_upper_arm_roll_link/right_upper_arm_yaw_link/right_lower_arm_pitch_link/right_hand_yaw_link/right_hand_roll_link/right_hand_pitch_link/right_end_effector_link"]
+    },
+    "LeftFoot": {
+      "body": "left_foot_roll_link",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:left_foot_roll_link", "topology:left_leg_distal_foot_roll", "side:left", "chain:base_link/left_thigh_roll_link/left_thigh_yaw_link/left_thigh_pitch_link/left_shank_pitch_link/left_foot_pitch_link/left_foot_roll_link"]
+    },
+    "RightFoot": {
+      "body": "right_foot_roll_link",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:right_foot_roll_link", "topology:right_leg_distal_foot_roll", "side:right", "chain:base_link/right_thigh_roll_link/right_thigh_yaw_link/right_thigh_pitch_link/right_shank_pitch_link/right_foot_pitch_link/right_foot_roll_link"]
+    }
+  }
+}

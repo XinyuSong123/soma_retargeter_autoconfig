@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "robonaut2_urdf",
+  "model_fingerprint": "e9c2f92b1c8ae9a08cedc586b3edf20a1e3a1262e7a2b5ac465deff1b7552c4b",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_lock_fetch_only_cache",
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/nasa-urdf-robots/r2_description/robots/r2c_sim_full_control.urdf.urdf",
+    "sha256": "fb1c929ab06d3d79acc040b8190115f2cbde63c7a24cb4b602eed95d365cc03a"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "pelvis",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:pelvis", "topology:lower_body_root", "bilateral_leg_parent:left_leg_base/right_leg_base"]
+    },
+    "Chest": {
+      "body": "waist_center",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:waist_center", "topology:robot_base_to_waist_center", "bilateral_arm_parent:left_shoulder_roll/right_shoulder_roll"]
+    },
+    "LeftHand": {
+      "body": "left_palm",
+      "local_position": [0.102459, -0.001585, -0.002013],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_source_mesh_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:left_palm", "topology:left_arm_distal_palm", "side:left", "source_mesh:Left_Palm.dae"]
+    },
+    "RightHand": {
+      "body": "right_palm",
+      "local_position": [0.10644, 0.000657, -0.007318],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_source_mesh_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:right_palm", "topology:right_arm_distal_palm", "side:right", "source_mesh:Right_Palm.dae"]
+    },
+    "LeftFoot": {
+      "body": "left_leg_foot",
+      "local_position": [0.0, 0.0, 0.19451],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_fixed_child_frame",
+      "confidence": 0.85,
+      "evidence": ["name:left_leg_foot", "topology:left_leg_distal_foot", "side:left", "fixed_child_frame:r2/left_leg/gripper/tip"]
+    },
+    "RightFoot": {
+      "body": "right_leg_foot",
+      "local_position": [0.0, 0.0, 0.19451],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_fixed_child_frame",
+      "confidence": 0.85,
+      "evidence": ["name:right_leg_foot", "topology:right_leg_distal_foot", "side:right", "fixed_child_frame:r2/right_leg/gripper/tip"]
+    }
+  }
+}

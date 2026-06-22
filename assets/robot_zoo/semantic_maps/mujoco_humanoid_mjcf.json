@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "mujoco_humanoid_mjcf",
+  "model_fingerprint": "1959a129180f0f0b238419018ac24eb943f736997fe61811a7ed7a4f12d89365",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_committed_snapshot",
+    "path": "assets/robot_zoo/snapshots/mujoco_humanoid_mjcf/model.xml",
+    "sha256": "2d0cbe0c0a3df863e7c8f496dae1dda386122d496b84c028bc28ffa57e21ad29"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "pelvis",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.99,
+      "evidence": ["name:pelvis", "topology:child_of_waist_lower", "bilateral_leg_parent:thigh_left/thigh_right"]
+    },
+    "Chest": {
+      "body": "torso",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.99,
+      "evidence": ["name:torso", "topology:root_torso", "bilateral_arm_parent:upper_arm_left/upper_arm_right"]
+    },
+    "LeftHand": {
+      "body": "hand_left",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.9,
+      "evidence": ["name:hand_left", "topology:left_arm_distal_hand", "side:left", "chain:torso/upper_arm_left/lower_arm_left/hand_left"]
+    },
+    "RightHand": {
+      "body": "hand_right",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.9,
+      "evidence": ["name:hand_right", "topology:right_arm_distal_hand", "side:right", "chain:torso/upper_arm_right/lower_arm_right/hand_right"]
+    },
+    "LeftFoot": {
+      "body": "foot_left",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.9,
+      "evidence": ["name:foot_left", "topology:left_leg_distal_foot", "side:left", "chain:pelvis/thigh_left/shin_left/foot_left"]
+    },
+    "RightFoot": {
+      "body": "foot_right",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.9,
+      "evidence": ["name:foot_right", "topology:right_leg_distal_foot", "side:right", "chain:pelvis/thigh_right/shin_right/foot_right"]
+    }
+  }
+}
