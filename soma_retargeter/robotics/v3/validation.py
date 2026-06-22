@@ -476,7 +476,7 @@ def _profile_status(report: dict) -> str:
     capability = report.get("capability_status")
     if any("missing required semantics" in failure for failure in failures):
         return RobotValidationStatus.SEMANTIC_FAILED.value
-    if _epsilon_stability_gate_failures(report):
+    if _numerical_stability_gate_failures(report):
         return RobotValidationStatus.ALGORITHM_FAILED.value
     if failures:
         return RobotValidationStatus.ALGORITHM_FAILED.value
@@ -493,37 +493,72 @@ def _profile_status_reason(report: dict) -> str:
         return "available lower-body/torso semantics compiled with structured partial-humanoid downgrade"
     if status == RobotValidationStatus.SEMANTIC_FAILED.value:
         return "required humanoid semantics were missing or incomplete"
-    epsilon_failures = _epsilon_stability_gate_failures(report)
-    if epsilon_failures:
-        tasks = ", ".join(failure["task"] for failure in epsilon_failures)
-        return f"epsilon stability gate failed for task(s): {tasks}"
+    numerical_failures = _numerical_stability_gate_failures(report)
+    if numerical_failures:
+        tasks = ", ".join(failure["task"] for failure in numerical_failures)
+        return f"numerical stability gate failed for task(s): {tasks}"
     return "compiler recorded algorithm failures"
 
 
 def _record_profile_gate_failures(report: dict) -> None:
-    epsilon_failures = _epsilon_stability_gate_failures(report)
-    if not epsilon_failures:
+    numerical_failures = _numerical_stability_gate_failures(report)
+    if not numerical_failures:
         return
 
     taxonomy = report.setdefault("failure_taxonomy", {})
     algorithm = taxonomy.setdefault("algorithm", {})
-    algorithm["epsilon_stability"] = {
+    algorithm["numerical_stability"] = {
         "status": "failed",
         "classification": RobotValidationStatus.ALGORITHM_FAILED.value,
-        "tasks": epsilon_failures,
+        "tasks": numerical_failures,
     }
 
     failures = report.setdefault("failures", [])
     existing = set(str(failure) for failure in failures)
-    for failure in epsilon_failures:
+    for failure in numerical_failures:
         task = failure["task"]
         message = (
-            "epsilon stability gate failed: "
-            f"{task} has epsilon_stability_gate_passed=false"
+            "numerical stability gate failed: "
+            f"{task} has numerical_stability_gate_passed=false"
         )
         if message not in existing:
             failures.append(message)
             existing.add(message)
+
+
+def _numerical_stability_gate_failures(report: dict) -> list[dict]:
+    failures = []
+    rank_stability = report.get("rank_stability", {})
+    if not isinstance(rank_stability, dict):
+        return failures
+    severe_classes = {"nonfinite", "unstable_nonsmooth", "engine_fd_mismatch"}
+    for task, payload in sorted(rank_stability.items()):
+        if not isinstance(payload, dict):
+            continue
+        gate_failed = payload.get("numerical_stability_gate_passed") is False
+        severe_paths = []
+        for path, value in _walk_key_values(payload, "class"):
+            if value in severe_classes:
+                severe_paths.append(f"rank_stability.{task}{path}")
+        if not gate_failed and not severe_paths:
+            continue
+        failures.append(
+            {
+                "task": str(task),
+                "gate": "numerical_stability",
+                "status": "failed",
+                "false_gate_paths": [
+                    f"rank_stability.{task}{path}"
+                    for path, value in _walk_key_values(payload, "numerical_stability_gate_passed")
+                    if value is False
+                ],
+                "severe_classification_paths": severe_paths,
+                "epsilon_unstable_columns": payload.get("epsilon_unstable_columns", []),
+                "stable_sample_fraction": payload.get("stable_sample_fraction"),
+                "task_block": payload.get("task_block"),
+            }
+        )
+    return failures
 
 
 def _epsilon_stability_gate_failures(report: dict) -> list[dict]:
@@ -554,6 +589,20 @@ def _epsilon_stability_gate_failures(report: dict) -> list[dict]:
             }
         )
     return failures
+
+
+def _walk_key_values(value: object, key_name: str, *, path: str = "") -> list[tuple[str, object]]:
+    hits: list[tuple[str, object]] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}" if path else f".{key}"
+            if key == key_name:
+                hits.append((child_path, child))
+            hits.extend(_walk_key_values(child, key_name, path=child_path))
+    elif isinstance(value, list):
+        for idx, child in enumerate(value):
+            hits.extend(_walk_key_values(child, key_name, path=f"{path}[{idx}]"))
+    return hits
 
 
 def _walk_epsilon_gate_values(value: object, *, path: str = "") -> list[tuple[str, object]]:

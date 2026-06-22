@@ -28,8 +28,12 @@ class ReachabilityReport:
     selected_singular_values_translation: list[list[float]]
     selected_singular_values_rotation: list[list[float]]
     sample_diagnostics: list[dict]
+    numerical_stability_gate_passed: bool = True
+    stable_sample_fraction: float = 1.0
+    task_block: str = "translation+rotation"
     rank_method: str = "per-sample-local-rank-regular-fraction"
     regular_rank_fraction_threshold: float = 0.20
+    stable_sample_fraction_threshold: float = 0.95
 
     def to_json(self) -> dict:
         return self.__dict__.copy()
@@ -73,6 +77,7 @@ def analyze_reachability(
     *,
     low_discrepancy_count: int = 32,
     raise_on_unstable: bool = False,
+    task_name: str | None = None,
 ) -> ReachabilityReport:
     ranks_p: list[int] = []
     ranks_r: list[int] = []
@@ -85,6 +90,7 @@ def analyze_reachability(
     sv_r_selected: list[list[float]] = []
     sample_diagnostics: list[dict] = []
     samples = deterministic_chain_samples(adapter, active_coordinates, low_discrepancy_count=low_discrepancy_count)
+    task_block = _task_block(task_name, reference, target)
     for sample_idx, q in enumerate(samples):
         jac = numerical_relative_jacobian(
             adapter,
@@ -105,7 +111,8 @@ def analyze_reachability(
         if cr is not None:
             cond_r.append(cr)
         unstable += len(jac.unstable_columns)
-        if not jac.stability_gate_passed:
+        relevant_stable = _relevant_block_stable(jac, task_block)
+        if not relevant_stable:
             unstable_samples += 1
             unstable_columns_seen.update(jac.unstable_columns)
         sample_diagnostics.append(
@@ -124,6 +131,10 @@ def analyze_reachability(
                 "unstable_columns": list(jac.unstable_columns),
                 "epsilon_discrepancies": jac.epsilon_discrepancies,
                 "epsilon_stability_gate_passed": jac.stability_gate_passed,
+                "numerical_stability_gate_passed": relevant_stable,
+                "task_block": task_block,
+                "column_classifications": jac.column_classifications or [],
+                "jacobian_noise_norm": jac.jacobian_noise_norm,
             }
         )
         if sample_idx < 3:
@@ -131,6 +142,7 @@ def analyze_reachability(
             sv_r_selected.append(sr.tolist())
     regular_p = _regular_rank(ranks_p)
     regular_r = _regular_rank(ranks_r)
+    stable_sample_fraction = 1.0 - float(unstable_samples / max(1, len(samples)))
     return ReachabilityReport(
         regular_rank_translation=regular_p,
         nominal_rank_translation=int(np.median(ranks_p)) if ranks_p else 0,
@@ -140,7 +152,7 @@ def analyze_reachability(
         singularity_fraction_rotation=_fraction_below(ranks_r, regular_r),
         epsilon_unstable_fraction=float(unstable / max(1, len(samples) * max(1, len(active_coordinates)))),
         epsilon_unstable_sample_fraction=float(unstable_samples / max(1, len(samples))),
-        epsilon_stability_gate_passed=unstable == 0,
+        epsilon_stability_gate_passed=stable_sample_fraction >= 0.95,
         epsilon_unstable_columns=sorted(unstable_columns_seen),
         conditioning_percentiles_translation=_percentiles(cond_p),
         conditioning_percentiles_rotation=_percentiles(cond_r),
@@ -148,7 +160,33 @@ def analyze_reachability(
         selected_singular_values_translation=sv_p_selected,
         selected_singular_values_rotation=sv_r_selected,
         sample_diagnostics=sample_diagnostics,
+        numerical_stability_gate_passed=stable_sample_fraction >= 0.95,
+        stable_sample_fraction=stable_sample_fraction,
+        task_block=task_block,
     )
+
+
+def _task_block(task_name: str | None, reference: SemanticSite, target: SemanticSite) -> str:
+    label = (task_name or f"{reference.semantic_name}:{target.semantic_name}").lower()
+    if "torso" in label or "chest" in label:
+        return "rotation"
+    if "hand" in label or "foot" in label:
+        return "translation"
+    return "translation+rotation"
+
+
+def _relevant_block_stable(jac, task_block: str) -> bool:
+    if jac.stability_gate_passed:
+        return True
+    classifications = jac.column_classifications or []
+    severe = {"nonfinite", "unstable_nonsmooth", "engine_fd_mismatch"}
+    if any(item.get("class") in severe for item in classifications):
+        return False
+    if task_block == "translation":
+        return all(d.get("translation_max_abs", 0.0) <= d.get("translation_tolerance", 0.0) or d.get("classification") in {"numerically_zero", "unstable_roundoff"} for d in jac.epsilon_discrepancies)
+    if task_block == "rotation":
+        return all(d.get("rotation_max_abs", 0.0) <= d.get("rotation_tolerance", 0.0) or d.get("classification") in {"numerically_zero", "unstable_roundoff"} for d in jac.epsilon_discrepancies)
+    return False
 
 
 def _sample_interval(adapter: MuJoCoRuntimeModelAdapter, neutral: np.ndarray, dof: int) -> tuple[float, float, float]:

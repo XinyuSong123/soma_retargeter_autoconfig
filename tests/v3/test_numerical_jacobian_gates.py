@@ -60,11 +60,13 @@ def test_tangent_coordinate_central_difference_uses_adapter_integrate(tmp_path: 
     jac = nj.numerical_relative_jacobian(adapter, adapter.neutral_q(), sites["Hips"], sites["Chest"], active)
 
     assert jac.stability_gate_passed
-    assert len(calls) == 4
+    assert len(calls) == 6
     assert all(delta.shape == (adapter.nv,) for delta in calls)
     assert {float(delta[active[0]]) for delta in calls} == {
         nj.coordinate_epsilon(adapter, active[0]),
         -nj.coordinate_epsilon(adapter, active[0]),
+        2.0 * nj.coordinate_epsilon(adapter, active[0]),
+        -2.0 * nj.coordinate_epsilon(adapter, active[0]),
         0.5 * nj.coordinate_epsilon(adapter, active[0]),
         -0.5 * nj.coordinate_epsilon(adapter, active[0]),
     }
@@ -85,8 +87,9 @@ def test_epsilon_halving_gate_records_and_can_hard_fail(tmp_path: Path, monkeypa
     assert jac.unstable_columns == active
     assert jac.to_json()["stability_gate_passed"] is False
     assert jac.epsilon_discrepancies[0]["stable"] is False
+    assert jac.column_classifications[0]["class"] == "unstable_nonsmooth"
 
-    with pytest.raises(FloatingPointError, match="epsilon-halving stability gate failed"):
+    with pytest.raises(FloatingPointError, match="stability gate failed"):
         nj.numerical_relative_jacobian(
             adapter,
             adapter.neutral_q(),

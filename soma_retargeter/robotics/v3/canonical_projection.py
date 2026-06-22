@@ -42,7 +42,8 @@ def project_canonical_motion_sequence(
     neutral_q: np.ndarray | None = None,
     motion_order: list[str] | None = None,
     neutral_prior_weight: float = 1e-8,
-    continuity_prior_weight: float = 1e-8,
+    continuity_prior_weight: float = 0.0,
+    use_continuity_prior: bool = False,
 ) -> CanonicalProjectionReport:
     """Project torso, hand and foot chain targets for each canonical motion.
 
@@ -79,8 +80,8 @@ def project_canonical_motion_sequence(
                 motion_report["skipped"][task_name] = "missing canonical target transform"
                 continue
             desired_relative = relative_transform(targets.transforms[path.reference], targets.transforms[path.target])
-            q_seed = previous_q_by_task.get(task_name, q0)
-            previous_q = previous_q_by_task.get(task_name)
+            previous_q = previous_q_by_task.get(task_name) if use_continuity_prior else None
+            q_seed = previous_q if previous_q is not None else q0
             reference = sites[path.reference]
             target = sites[path.target]
             if task_name == "torso":
@@ -94,7 +95,7 @@ def project_canonical_motion_sequence(
                     neutral_q=q0,
                     previous_q=previous_q,
                     neutral_prior_weight=neutral_prior_weight,
-                    continuity_prior_weight=continuity_prior_weight,
+                    continuity_prior_weight=continuity_prior_weight if use_continuity_prior else 0.0,
                 )
             else:
                 result = project_endpoint_position(
@@ -107,9 +108,10 @@ def project_canonical_motion_sequence(
                     neutral_q=q0,
                     previous_q=previous_q,
                     neutral_prior_weight=neutral_prior_weight,
-                    continuity_prior_weight=continuity_prior_weight,
+                    continuity_prior_weight=continuity_prior_weight if use_continuity_prior else 0.0,
                 )
-            previous_q_by_task[task_name] = result.chain_q
+            if use_continuity_prior:
+                previous_q_by_task[task_name] = result.chain_q
             result_json = result.to_json()
             result_json["reference"] = path.reference
             result_json["target"] = path.target

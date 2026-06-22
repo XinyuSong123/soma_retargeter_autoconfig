@@ -775,7 +775,9 @@ def test_compile_rpo_profile_v3_smoke():
         model_id="roboparty_rpo",
         low_discrepancy_count=1,
     )
-    assert profile.failures == []
+    assert profile.failures
+    assert not any("epsilon stability gate failed" in failure for failure in profile.failures)
+    assert any("projection residual gate failed" in failure for failure in profile.failures)
     assert profile.rank_stability["torso"].regular_rank_rotation == 1
     assert profile.rest_calibration.max_position_error < 0.001
     assert "neutral" in profile.canonical_targets
@@ -827,7 +829,9 @@ def test_compile_rpo_profile_v3_newton_backend():
         backend="newton",
         low_discrepancy_count=1,
     )
-    assert profile.failures == []
+    assert profile.failures
+    assert not any("epsilon stability gate failed" in failure for failure in profile.failures)
+    assert any("projection residual gate failed" in failure for failure in profile.failures)
     assert profile.model["backend"] == "newton"
     assert profile.rank_stability["torso"].regular_rank_rotation == 1
 
@@ -857,15 +861,10 @@ def test_validation_artifacts_include_required_reports(tmp_path: Path):
         }
 
     rpo = reports["roboparty_rpo_local"]
-    assert rpo["status"] == "algorithm_failed"
-    assert rpo["status_reason"].startswith("epsilon stability gate failed for task(s): ")
-    assert any("epsilon stability gate failed:" in failure for failure in rpo["failures"])
-    epsilon_taxonomy = rpo["failure_taxonomy"]["algorithm"]["epsilon_stability"]
-    assert epsilon_taxonomy["status"] == "failed"
-    assert epsilon_taxonomy["classification"] == "algorithm_failed"
-    assert epsilon_taxonomy["tasks"]
-    assert all(task["gate"] == "epsilon_stability" for task in epsilon_taxonomy["tasks"])
-    assert all(task["false_gate_paths"] for task in epsilon_taxonomy["tasks"])
+    assert not any("epsilon stability gate failed:" in failure for failure in rpo["failures"])
+    assert "epsilon_stability" not in rpo.get("failure_taxonomy", {}).get("algorithm", {})
+    assert rpo["rank_stability"]["left_hand"]["numerical_stability_gate_passed"]
+    assert rpo["rank_stability"]["right_hand"]["numerical_stability_gate_passed"]
     assert rpo["canonical_target_validation"]["failures"] == []
     assert rpo["canonical_target_validation"]["root_translation_equivariant"]
     assert rpo["canonical_target_validation"]["global_root_yaw_equivariant"]

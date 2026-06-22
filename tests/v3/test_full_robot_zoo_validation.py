@@ -327,7 +327,7 @@ def test_profile_failures_are_classified_and_keep_source_hash(monkeypatch, tmp_p
         assert report["model"]["local_file_sha256"] == report["model"]["source_resolution"]["local_file_sha256"]
 
 
-def test_epsilon_stability_gate_failure_is_algorithm_failed(monkeypatch, tmp_path: Path):
+def test_numerical_stability_gate_failure_is_algorithm_failed(monkeypatch, tmp_path: Path):
     semantic_map = _semantic_map(tmp_path / "verified_semantics.json")
     source = tmp_path / "unstable.xml"
     source.write_text("<mujoco/>\n")
@@ -353,15 +353,15 @@ def test_epsilon_stability_gate_failure_is_algorithm_failed(monkeypatch, tmp_pat
     assert summary["algorithm_failed_count"] == 1
     assert summary["failure_artifact_status_counts"] == {"algorithm_failed": 1}
     assert report["status"] == "algorithm_failed"
-    assert report["status_reason"] == "epsilon stability gate failed for task(s): left_hand"
-    assert "epsilon stability gate failed: left_hand has epsilon_stability_gate_passed=false" in report["failures"]
+    assert report["status_reason"] == "numerical stability gate failed for task(s): left_hand"
+    assert "numerical stability gate failed: left_hand has numerical_stability_gate_passed=false" in report["failures"]
     assert failure_report["status"] == "algorithm_failed"
-    taxonomy = report["failure_taxonomy"]["algorithm"]["epsilon_stability"]
+    taxonomy = report["failure_taxonomy"]["algorithm"]["numerical_stability"]
     assert taxonomy["classification"] == "algorithm_failed"
     assert taxonomy["tasks"][0]["task"] == "left_hand"
     assert taxonomy["tasks"][0]["false_gate_paths"] == [
-        "rank_stability.left_hand.epsilon_stability_gate_passed",
-        "rank_stability.left_hand.sample_diagnostics[0].epsilon_stability_gate_passed",
+        "rank_stability.left_hand.numerical_stability_gate_passed",
+        "rank_stability.left_hand.sample_diagnostics[0].numerical_stability_gate_passed",
     ]
 
 
@@ -391,7 +391,7 @@ def test_partial_profile_with_failed_epsilon_stability_is_not_partial_passed(mon
     assert summary["status_counts"] == {"algorithm_failed": 1}
     assert "partial_passed" not in summary["status_counts"]
     assert report["status"] == "algorithm_failed"
-    assert report["failure_taxonomy"]["algorithm"]["epsilon_stability"]["status"] == "failed"
+    assert report["failure_taxonomy"]["algorithm"]["numerical_stability"]["status"] == "failed"
 
 
 def test_verified_semantic_map_path_is_loaded_without_inference(monkeypatch, tmp_path: Path):
@@ -614,6 +614,7 @@ def _unstable_epsilon_profile_payload(source: Path, *, model_id: str) -> dict:
                 "regular_rank_rotation": 1,
                 "nominal_rank_rotation": 1,
                 "epsilon_stability_gate_passed": False,
+                "numerical_stability_gate_passed": False,
                 "epsilon_unstable_columns": [3],
                 "epsilon_unstable_fraction": 0.25,
                 "epsilon_unstable_sample_fraction": 0.5,
@@ -621,7 +622,9 @@ def _unstable_epsilon_profile_payload(source: Path, *, model_id: str) -> dict:
                     {
                         "sample_index": 0,
                         "epsilon_stability_gate_passed": False,
+                        "numerical_stability_gate_passed": False,
                         "unstable_columns": [3],
+                        "column_classifications": [{"class": "unstable_nonsmooth"}],
                     }
                 ],
             }

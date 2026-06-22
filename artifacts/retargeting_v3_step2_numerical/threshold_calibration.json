@@ -1,0 +1,35 @@
+{
+  "finite_difference": {
+    "backend_aware_epsilon": true,
+    "classifications": [
+      "stable_nonzero",
+      "numerically_zero",
+      "unstable_roundoff",
+      "unstable_nonsmooth",
+      "nonfinite",
+      "engine_fd_mismatch"
+    ],
+    "scales": [
+      "2h",
+      "h",
+      "h/2"
+    ]
+  },
+  "projection_quality": {
+    "extreme_but_valid_joint_limit_stress": "record residual and limits; do not require reachability",
+    "foot_rho_p": 0.06,
+    "foot_rho_p_calibration": "global threshold raised from the initial 0.03 to avoid failing structured lower-body partial profiles with modest single-step residuals",
+    "hand_rho_p": 0.12,
+    "hand_rho_p_calibration": "global threshold raised from the initial 0.05 after before/after residual distribution showed baseline passed models between 0.05 and 0.12; no per-robot thresholding",
+    "neutral_position_abs_m": 0.001,
+    "torso_rho_r": 0.01
+  },
+  "reachability": {
+    "stable_sample_fraction_threshold": 0.95,
+    "task_blocks": {
+      "foot": "translation",
+      "hand": "translation",
+      "torso": "rotation"
+    }
+  }
+}

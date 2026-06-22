@@ -35,6 +35,34 @@ def relative_transform(reference_world: np.ndarray, target_world: np.ndarray) ->
     return invert_transform(reference_world) @ target_world
 
 
+def skew(v: np.ndarray) -> np.ndarray:
+    x, y, z = np.asarray(v, dtype=float).reshape(3)
+    return np.asarray([[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]], dtype=float)
+
+
+def point_velocity_jacobian(linear: np.ndarray, angular: np.ndarray, point_world: np.ndarray, origin_world: np.ndarray) -> np.ndarray:
+    offset = np.asarray(point_world, dtype=float).reshape(3) - np.asarray(origin_world, dtype=float).reshape(3)
+    return np.asarray(linear, dtype=float) + np.cross(np.asarray(angular, dtype=float), offset[:, None], axis=0)
+
+
+def relative_site_jacobian_from_world(
+    reference_world: np.ndarray,
+    target_world: np.ndarray,
+    reference_point_jacobian: np.ndarray,
+    reference_angular_jacobian: np.ndarray,
+    target_point_jacobian: np.ndarray,
+    target_angular_jacobian: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    r_a = reference_world[:3, :3]
+    p_ab = r_a.T @ (target_world[:3, 3] - reference_world[:3, 3])
+    translation = (
+        r_a.T @ (target_point_jacobian - reference_point_jacobian)
+        + skew(p_ab) @ (r_a.T @ reference_angular_jacobian)
+    )
+    rotation = r_a.T @ (target_angular_jacobian - reference_angular_jacobian)
+    return translation, rotation
+
+
 def quat_xyzw_to_matrix(q: np.ndarray) -> np.ndarray:
     q = np.asarray(q, dtype=float)
     if q[3] < 0:

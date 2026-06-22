@@ -28,6 +28,7 @@ class ProjectionResult:
     demand_residual: float | None = None
     unreachable_demand: bool | None = None
     rank_zero_reason: str | None = None
+    normalization_reference: str = "neutral_chain_length"
 
     def to_json(self) -> dict:
         payload = {
@@ -43,6 +44,7 @@ class ProjectionResult:
             "active_coordinates": self.active_coordinates,
             "prior_residual_norm": self.prior_residual_norm,
             "solver_message": self.solver_message,
+            "normalization_reference": self.normalization_reference,
         }
         if self.status in {"rank_zero", "unreachable/rank_zero"}:
             demand_residual = self.residual if self.demand_residual is None else self.demand_residual
@@ -223,22 +225,28 @@ def _position_normalization_scale(
     target: SemanticSite,
     active_coordinates: list[int],
 ) -> float:
-    state = adapter.forward_kinematics(q_seed)
-    seed_position = adapter.relative_transform(state, reference, target)[:3, 3]
-    positions = [seed_position]
-    if active_coordinates:
-        x0, lo, hi = _initial_and_bounds(adapter, q_seed, active_coordinates)
-        for values in (lo, hi):
-            q = adapter.set_velocity_coordinates(q_seed, active_coordinates, values)
-            positions.append(adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, 3])
-        for idx in range(len(active_coordinates)):
-            for bound in (lo[idx], hi[idx]):
-                values = x0.copy()
-                values[idx] = bound
-                q = adapter.set_velocity_coordinates(q_seed, active_coordinates, values)
-                positions.append(adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, 3])
-    offsets = [float(np.linalg.norm(pos - seed_position)) for pos in positions]
-    return max(max(offsets, default=0.0), 1e-6)
+    del q_seed
+    state = adapter.forward_kinematics(adapter.neutral_q())
+    body_path = adapter.body_path(reference.body_name, target.body_name)
+    points = [adapter.site_transform(state, reference)[:3, 3]]
+    for body_name in body_path:
+        points.append(adapter.body_transform(state, body_name)[:3, 3])
+    points.append(adapter.site_transform(state, target)[:3, 3])
+    length = 0.0
+    for a, b in zip(points, points[1:]):
+        length += float(np.linalg.norm(np.asarray(b, dtype=float) - np.asarray(a, dtype=float)))
+    direct = float(np.linalg.norm(points[-1] - points[0]))
+    return max(length, direct, _degenerate_prismatic_span(adapter, active_coordinates), 1e-6)
+
+
+def _degenerate_prismatic_span(adapter: MuJoCoRuntimeModelAdapter, active_coordinates: list[int]) -> float:
+    span = 0.0
+    for dof in active_coordinates:
+        info = adapter.coordinate(dof)
+        if info.joint_type != "prismatic" or not (np.isfinite(info.lower) and np.isfinite(info.upper)):
+            continue
+        span += abs(float(info.upper) - float(info.lower))
+    return span
 
 
 def _rank_zero_status(residual_abs: float) -> str:

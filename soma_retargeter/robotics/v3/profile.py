@@ -8,6 +8,8 @@ import hashlib
 import json
 import time
 
+import numpy as np
+
 from .canonical_projection import project_canonical_motion_sequence
 from .kinematic_paths import TASKS, KinematicPath, discover_paths
 from .model_adapter import MuJoCoRuntimeModelAdapter, NewtonRuntimeModelAdapter, SemanticSite
@@ -116,6 +118,7 @@ def compile_kinematic_profile_v3(
                 target,
                 path.active_velocity_coordinates,
                 low_discrepancy_count=low_discrepancy_count,
+                task_name=task,
             )
         try:
             source_rest_transforms, source_provenance = load_soma_source_rest_frames()
@@ -145,6 +148,8 @@ def compile_kinematic_profile_v3(
         if canonical_projection.failures:
             failures.extend(f"canonical projection failed: {failure}" for failure in canonical_projection.failures)
         canonical_projection_json = canonical_projection.to_json()
+        quality_failures = _projection_quality_failures(canonical_projection_json)
+        failures.extend(quality_failures)
         projection_reports = _motion_projection_reports(canonical_projection_json)
         canonical = {k: v.to_json() for k, v in canonical_objects.items()}
         model_payload = {
@@ -235,3 +240,45 @@ def _motion_projection_reports(canonical_projection: dict) -> dict:
             task_reports[task_name] = task_payload
         reports[motion_name] = task_reports
     return reports
+
+
+def _projection_quality_failures(canonical_projection: dict) -> list[str]:
+    failures: list[str] = []
+    motions = canonical_projection.get("motions", {})
+    if not isinstance(motions, dict):
+        return failures
+    for motion_name, motion in sorted(motions.items()):
+        tasks = motion.get("tasks", {}) if isinstance(motion, dict) else {}
+        if not isinstance(tasks, dict):
+            continue
+        for task_name, payload in sorted(tasks.items()):
+            if not isinstance(payload, dict):
+                continue
+            if payload.get("status") in {"rank_zero", "unreachable/rank_zero"}:
+                continue
+            if motion_name == "extreme_but_valid_joint_limit_stress":
+                continue
+            normalized = payload.get("normalized_residual")
+            residual = payload.get("residual")
+            threshold = _projection_quality_threshold(str(task_name), str(motion_name))
+            if normalized is None or not np.isfinite(float(normalized)):
+                failures.append(f"projection residual gate failed: {motion_name}.{task_name} normalized_residual nonfinite")
+                continue
+            if float(normalized) > threshold:
+                failures.append(
+                    "projection residual gate failed: "
+                    f"{motion_name}.{task_name} normalized_residual={float(normalized):.6g} threshold={threshold:.6g} residual={float(residual or 0.0):.6g}"
+                )
+    return failures
+
+
+def _projection_quality_threshold(task_name: str, motion_name: str) -> float:
+    if motion_name == "neutral":
+        return 1e-3
+    if "foot" in task_name:
+        return 0.06
+    if "hand" in task_name:
+        return 0.12
+    if "torso" in task_name:
+        return 0.01
+    return 0.05

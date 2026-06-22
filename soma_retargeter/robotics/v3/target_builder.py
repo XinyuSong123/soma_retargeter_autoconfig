@@ -203,9 +203,9 @@ def _edge_target_transform(
 
     mapped_direction_parent = alignment @ normalize(source_edge)
     out[:3, 3] = parent_target[:3, 3] + parent_target[:3, :3] @ mapped_direction_parent * float(length)
-    source_rotation_delta = neutral_source_rel[:3, :3].T @ source_rel[:3, :3]
+    source_rotation_delta = source_rel[:3, :3] @ neutral_source_rel[:3, :3].T
     mapped_rotation_delta = alignment @ source_rotation_delta @ alignment.T
-    out[:3, :3] = parent_target[:3, :3] @ neutral_rel_robot[:3, :3] @ mapped_rotation_delta
+    out[:3, :3] = parent_target[:3, :3] @ mapped_rotation_delta @ neutral_rel_robot[:3, :3]
     return out
 
 
@@ -231,7 +231,7 @@ def _root_target_transform(
         ],
         dtype=float,
     )
-    source_rotation_delta = neutral_source_root[:3, :3].T @ source_root[:3, :3]
+    source_rotation_delta = source_root[:3, :3] @ neutral_source_root[:3, :3].T
     mapped_rotation_delta = root_alignment @ source_rotation_delta @ root_alignment.T
     out = robot_root_neutral.copy()
     out[:3, 3] = robot_root_neutral[:3, 3] + robot_root_neutral[:3, :3] @ root_offset

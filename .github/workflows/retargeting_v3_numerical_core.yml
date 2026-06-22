@@ -1,0 +1,37 @@
+name: Retargeting V3 Numerical Core
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/robotics/v3/**"
+      - "tests/v3/test_engine_jacobian.py"
+      - "tests/v3/test_numerical_jacobian_gates.py"
+      - "tests/v3/test_reachability_gates.py"
+      - "scripts/audit_retargeting_v3_numerical_core.py"
+      - "scripts/write_retargeting_v3_numerical_artifacts.py"
+  workflow_dispatch:
+
+jobs:
+  numerical-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e . pytest
+      - name: Run numerical core tests
+        run: |
+          python -m pytest -q \
+            tests/v3/test_engine_jacobian.py \
+            tests/v3/test_numerical_jacobian_gates.py \
+            tests/v3/test_reachability_gates.py \
+            tests/v3/test_chain_projection_gates.py \
+            tests/v3/test_target_builder_calibrated_geometry.py
+      - name: Audit numerical artifact shape
+        run: |
+          python scripts/write_retargeting_v3_numerical_artifacts.py --low-discrepancy-count 1
+          python scripts/audit_retargeting_v3_numerical_core.py
