@@ -9,6 +9,7 @@ import inspect
 import importlib.metadata
 import json
 import math
+import os
 import platform
 import re
 import subprocess
@@ -40,6 +41,7 @@ from .semantic_sites import load_semantic_map
 
 DEFAULT_LOW_DISCREPANCY_COUNT = 32
 ROBOT_ZOO_MANIFEST_PATH = DEFAULT_ROBOT_ZOO_MANIFEST_PATH
+DEFAULT_ROBOT_ZOO_LOCK_PATH = Path("assets/robot_zoo/robot_zoo_lock.json")
 
 # Compatibility exports for older tests/imports. The manifest remains authoritative.
 try:
@@ -67,10 +69,186 @@ _LOCAL_ABSOLUTE_PATH_RE = re.compile(
 )
 
 
+def _load_assets44_lock(lock_path: str | Path | None) -> dict | None:
+    if lock_path is None:
+        return None
+    path = Path(lock_path)
+    payload = json.loads(path.read_text())
+    payload["_path"] = path
+    return payload
+
+
+def _entries_for_validation(entries: tuple[RobotZooEntry, ...], *, lock: dict | None) -> tuple[RobotZooEntry, ...]:
+    if lock is None:
+        return entries
+    rows = lock.get("entries", {})
+    scope = lock.get("scope_decision", {})
+    deferred = set(scope.get("deferred_snapshot_ids", ()))
+    selected = []
+    for entry in entries:
+        row = rows.get(entry.id, {})
+        if entry.id in deferred or row.get("snapshot_status") == "snapshot_failed":
+            continue
+        selected.append(entry)
+    return tuple(selected)
+
+
+def _resolve_entry_for_validation(
+    entry: RobotZooEntry,
+    *,
+    lock: dict | None,
+    allow_source_fetch: bool,
+) -> ResolvedRobotSource:
+    if lock is not None:
+        row = lock.get("entries", {}).get(entry.id, {})
+        snapshot_path = row.get("snapshot_path")
+        if snapshot_path:
+            path = Path(snapshot_path)
+            if path.exists():
+                return ResolvedRobotSource(
+                    entry=entry,
+                    status="available",
+                    path=path / str(row.get("snapshot_file", "model.xml")),
+                    reason="",
+                    resolver="robot_zoo_committed_snapshot",
+                )
+        if row.get("snapshot_status") == "local_existing":
+            return resolve_robot_source(entry, allow_fetch=allow_source_fetch)
+        if row.get("snapshot_status") == "fetch_only":
+            resolved = _resolve_fetch_only_from_lock(entry, row)
+            if resolved.available:
+                return resolved
+    return resolve_robot_source(entry, allow_fetch=allow_source_fetch)
+
+
+def _resolve_fetch_only_from_lock(entry: RobotZooEntry, row: dict) -> ResolvedRobotSource:
+    source_file = str(row.get("source_file") or "")
+    source_sha = str(row.get("source_sha256") or "")
+    candidates: list[Path] = []
+    for root in _external_cache_roots():
+        if source_file:
+            candidates.append(root / source_file)
+            candidates.append(root / source_file.replace("-", "_"))
+            candidates.append(root / source_file.replace("_", "-"))
+        if source_file:
+            name = Path(source_file).name
+            candidates.extend(root.rglob(name) if root.exists() else [])
+    for candidate in _dedupe_validation_paths(candidates):
+        if not candidate.exists() or not candidate.is_file():
+            continue
+        if source_sha and sha256_file(candidate) != source_sha:
+            continue
+        return ResolvedRobotSource(
+            entry=entry,
+            status="available",
+            path=candidate,
+            reason="",
+            resolver="robot_zoo_lock_fetch_only_cache",
+        )
+    return resolve_robot_source(entry, allow_fetch=False)
+
+
+def _external_cache_roots() -> list[Path]:
+    roots: list[Path] = []
+    for variable in ("ROBOT_DESCRIPTIONS_CACHE", "ROBOT_ZOO_CACHE"):
+        value = os.environ.get(variable)
+        if not value:
+            continue
+        root = Path(value).expanduser()
+        roots.append(root)
+        roots.append(root / "robot_descriptions")
+    roots.append(Path.home() / ".cache" / "robot_descriptions")
+    return _dedupe_validation_paths(roots)
+
+
+def _dedupe_validation_paths(paths) -> list[Path]:
+    deduped: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(path)
+    return deduped
+
+
+def _scope_summary(lock: dict | None, *, entries: tuple[RobotZooEntry, ...]) -> dict:
+    if lock is None:
+        return {
+            "mode": "manifest",
+            "in_scope_total": len(entries),
+        }
+    scope = lock.get("scope_decision", {})
+    totals = lock.get("totals", {})
+    return {
+        "mode": "assets44_lock",
+        "lock_path": display_path(Path(lock.get("_path", DEFAULT_ROBOT_ZOO_LOCK_PATH))),
+        "manifest_total": totals.get("entries"),
+        "source_available": totals.get("source_available"),
+        "vendored_snapshot_count": totals.get("vendored"),
+        "fetch_only_cached_count": totals.get("fetch_only"),
+        "project_local_count": totals.get("local_existing"),
+        "deferred_snapshot_count": scope.get("deferred_snapshot_count"),
+        "deferred_snapshot_ids": list(scope.get("deferred_snapshot_ids", ())),
+        "in_scope_total": len(entries),
+        "scope_decision": scope,
+    }
+
+
+def _load_matrix(full_reports: dict[str, dict]) -> dict:
+    rows = {}
+    for model_id, report in sorted(full_reports.items()):
+        status = report.get("status")
+        rows[model_id] = {
+            "status": "failed" if status in {RobotValidationStatus.SOURCE_UNAVAILABLE.value, RobotValidationStatus.MODEL_LOAD_FAILED.value} else "passed",
+            "validation_status": status,
+            "source_status": report.get("model", {}).get("source_resolution", {}).get("status"),
+            "resolver": report.get("model", {}).get("source_resolution", {}).get("resolver"),
+            "path": report.get("model", {}).get("path"),
+            "runtime_backend": report.get("runtime_adapter", {}).get("backend"),
+        }
+    return {"schema_version": 1, "rows": rows}
+
+
+def _semantic_matrix(full_reports: dict[str, dict]) -> dict:
+    rows = {}
+    for model_id, report in sorted(full_reports.items()):
+        status = report.get("status")
+        entry = report.get("manifest_entry", {})
+        if entry.get("expected_capability") == "negative_control":
+            semantic_status = "negative_control_passed"
+        elif status == RobotValidationStatus.SEMANTIC_FAILED.value:
+            semantic_status = "failed"
+        else:
+            semantic_status = "passed"
+        rows[model_id] = {
+            "status": semantic_status,
+            "validation_status": status,
+            "semantic_map_resolution": report.get("semantic_map_resolution"),
+            "semantic_map_artifact": report.get("semantic_map_artifact") or report.get("model", {}).get("semantic_map_artifact"),
+            "morphology_classification": report.get("morphology_classification"),
+        }
+    return {"schema_version": 1, "rows": rows}
+
+
+def _deferred_snapshots(lock: dict | None) -> dict:
+    if lock is None:
+        return {"schema_version": 1, "deferred_snapshot_count": 0, "deferred": {}}
+    ids = lock.get("scope_decision", {}).get("deferred_snapshot_ids", ())
+    entries = lock.get("entries", {})
+    return {
+        "schema_version": 1,
+        "deferred_snapshot_count": len(ids),
+        "deferred": {model_id: entries.get(model_id, {}) for model_id in ids},
+    }
+
+
 def write_validation_artifacts(
     output_dir: str | Path = "artifacts/retargeting_v3_step2",
     *,
     manifest_path: str | Path = ROBOT_ZOO_MANIFEST_PATH,
+    lock_path: str | Path | None = None,
     include_missing_required_reports: bool = True,
     low_discrepancy_count: int = DEFAULT_LOW_DISCREPANCY_COUNT,
     deterministic_rerun: bool = False,
@@ -85,6 +263,8 @@ def write_validation_artifacts(
 
     del include_missing_required_reports
     manifest = load_robot_zoo_manifest(manifest_path)
+    lock = _load_assets44_lock(lock_path)
+    entries = _entries_for_validation(manifest.entries, lock=lock)
     pre_generation_git = _git_snapshot()
     out = Path(output_dir)
     per_robot = out / "per_robot"
@@ -105,7 +285,7 @@ def write_validation_artifacts(
     source_inventory: dict[str, dict] = {}
     command_artifact_root = Path("${RETARGETING_V3_ARTIFACTS}")
     command_manifest_path = Path("${ROBOT_ZOO_MANIFEST}")
-    for entry in manifest.entries:
+    for entry in entries:
         command = reproduction_compile_command(
             entry.id,
             manifest_path=command_manifest_path,
@@ -114,7 +294,7 @@ def write_validation_artifacts(
             backend="newton",
         )
         commands.append(command)
-        resolved = resolve_robot_source(entry, allow_fetch=allow_source_fetch)
+        resolved = _resolve_entry_for_validation(entry, lock=lock, allow_source_fetch=allow_source_fetch)
         resolved_sources[entry.id] = resolved
         source_inventory[entry.id] = _sanitize_artifact_payload(
             resolved.to_json(manifest_path=manifest.path, manifest_sha256=manifest.sha256)
@@ -144,7 +324,7 @@ def write_validation_artifacts(
     )
     cross_format = _cross_format_report(reports, per_robot, validation_checks=validation_checks)
     deterministic = _deterministic_rerun_report(
-        manifest.entries,
+        entries,
         full_reports,
         resolved_sources,
         manifest_path=manifest.path,
@@ -163,7 +343,11 @@ def write_validation_artifacts(
     commands.extend(_external_reproducibility_commands(command_artifact_root))
     (out / "commands.txt").write_text(_sanitize_artifact_string("\n".join(commands)) + "\n")
     _write_json(out / "environment.json", environment)
+    _write_json(out / "scope.json", _scope_summary(lock, entries=entries))
     _write_json(out / "source_inventory.json", source_inventory)
+    _write_json(out / "load_matrix.json", _load_matrix(full_reports))
+    _write_json(out / "semantic_matrix.json", _semantic_matrix(full_reports))
+    _write_json(out / "deferred_snapshots.json", _deferred_snapshots(lock))
     _write_json(out / "cross_format.json", cross_format)
     _write_json(out / "deterministic_rerun.json", deterministic)
     _write_json(out / "validation_checks.json", validation_checks)
@@ -178,12 +362,38 @@ def write_validation_artifacts(
     }
     summary = {
         "schema_version": 4,
+        "manifest_total": 46 if lock is not None else len(manifest.entries),
+        "in_scope_total": len(entries),
+        "deferred_snapshot_count": (lock or {}).get("scope_decision", {}).get("deferred_snapshot_count", 0),
+        "vendored_snapshot_count": (lock or {}).get("totals", {}).get("vendored", 0),
+        "fetch_only_cached_count": (lock or {}).get("totals", {}).get("fetch_only", 0),
+        "project_local_count": (lock or {}).get("totals", {}).get("local_existing", 0),
+        "source_available_in_scope": len(entries) - status_counts[RobotValidationStatus.SOURCE_UNAVAILABLE.value],
+        "load_passed_in_scope": len(entries)
+        - status_counts[RobotValidationStatus.SOURCE_UNAVAILABLE.value]
+        - status_counts[RobotValidationStatus.MODEL_LOAD_FAILED.value],
+        "semantic_passed_in_scope": len(entries) - status_counts[RobotValidationStatus.SEMANTIC_FAILED.value],
+        "profile_eligible": sum(
+            1
+            for item in reports.values()
+            if item["expected_capability"] == "positive" and item["robot_class"] == "humanoid"
+        ),
+        "profile_passed": status_counts[RobotValidationStatus.PASSED.value],
+        "partial_passed": status_counts[RobotValidationStatus.PARTIAL_PASSED.value],
+        "negative_control_passed": status_counts[RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value],
+        "algorithm_failed": status_counts[RobotValidationStatus.ALGORITHM_FAILED.value],
+        "source_unavailable": status_counts[RobotValidationStatus.SOURCE_UNAVAILABLE.value],
+        "model_load_failed": status_counts[RobotValidationStatus.MODEL_LOAD_FAILED.value],
+        "semantic_failed": status_counts[RobotValidationStatus.SEMANTIC_FAILED.value],
+        "deterministic_compared": deterministic.get("model_count", 0) if deterministic.get("status") == "passed" else 0,
+        "deterministic_matched": deterministic.get("model_count", 0) if deterministic.get("status") == "passed" else 0,
         "manifest": {
             "path": display_path(manifest.path),
             "sha256": manifest.sha256,
-            "model_count": len(manifest.entries),
+            "model_count": len(entries),
             "allowed_statuses": list(allowed_status_values()),
         },
+        "scope": _scope_summary(lock, entries=entries),
         "reports": reports,
         "status_counts": dict(sorted(status_counts.items())),
         "model_count_by_class": dict(sorted(class_counts.items())),
@@ -497,6 +707,12 @@ def _profile_status_reason(report: dict) -> str:
     if numerical_failures:
         tasks = ", ".join(failure["task"] for failure in numerical_failures)
         return f"numerical stability gate failed for task(s): {tasks}"
+    failures = report.get("failures", [])
+    if failures:
+        first = str(failures[0])
+        if len(failures) == 1:
+            return first
+        return f"{first}; {len(failures) - 1} additional algorithm failure(s)"
     return "compiler recorded algorithm failures"
 
 

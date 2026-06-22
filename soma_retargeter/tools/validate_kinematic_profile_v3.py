@@ -12,6 +12,7 @@ from soma_retargeter.robotics.v3.validation import DEFAULT_LOW_DISCREPANCY_COUNT
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", default=str(DEFAULT_ROBOT_ZOO_MANIFEST_PATH))
+    parser.add_argument("--lock", default=None)
     parser.add_argument("--output-dir", default="artifacts/retargeting_v3_step2")
     parser.add_argument("--low-discrepancy-count", type=int, default=DEFAULT_LOW_DISCREPANCY_COUNT)
     parser.add_argument("--deterministic-rerun", action="store_true")
@@ -20,6 +21,7 @@ def main() -> None:
     summary = write_validation_artifacts(
         args.output_dir,
         manifest_path=args.manifest,
+        lock_path=args.lock,
         low_discrepancy_count=args.low_discrepancy_count,
         deterministic_rerun=args.deterministic_rerun,
         allow_source_fetch=args.allow_source_fetch,
