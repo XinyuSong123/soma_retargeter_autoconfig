@@ -87,6 +87,7 @@ fi
 echo "==> Creating clean worktree ${WORKTREE}"
 git worktree add -b "${OUTPUT_BRANCH}" "${WORKTREE}" "origin/${BASE_BRANCH}"
 cd "${WORKTREE}"
+export PYTHONPATH="${WORKTREE}${PYTHONPATH:+:${PYTHONPATH}}"
 
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "error: freshly-created worktree is unexpectedly dirty" >&2
