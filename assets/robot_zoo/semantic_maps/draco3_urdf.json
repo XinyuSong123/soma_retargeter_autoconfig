@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "draco3_urdf",
+  "model_fingerprint": "6355ac809794d002d322518169c5ca27f11c9c4c36be0b2f42b9e6254dde5907",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_committed_snapshot",
+    "path": "assets/robot_zoo/snapshots/draco3_urdf/model.urdf",
+    "sha256": "94925ec361e1916c10e0f3fe343cc45c1c3e5a706f4f299586a43962ca139a87"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "torso_link",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.9,
+      "evidence": ["name:torso_link", "topology:root_body", "bilateral_hip_parent:l_hip_ie_link/r_hip_ie_link"]
+    },
+    "Chest": {
+      "body": "torso_com_link",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.88,
+      "evidence": ["name:torso_com_link", "topology:torso_child", "bilateral_arm_parent:l_shoulder_fe_link/r_shoulder_fe_link"]
+    },
+    "LeftHand": {
+      "body": "l_hand_contact",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.88,
+      "evidence": ["name:l_hand_contact", "topology:left_arm_distal_contact", "side:left", "chain:l_shoulder_fe_link/l_shoulder_aa_link/l_shoulder_ie_link/l_elbow_fe_link/l_wrist_ps_link/l_wrist_pitch_link/l_sake_gripper_link/l_hand_contact"]
+    },
+    "RightHand": {
+      "body": "r_hand_contact",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.88,
+      "evidence": ["name:r_hand_contact", "topology:right_arm_distal_contact", "side:right", "chain:r_shoulder_fe_link/r_shoulder_aa_link/r_shoulder_ie_link/r_elbow_fe_link/r_wrist_ps_link/r_wrist_pitch_link/r_sake_gripper_link/r_hand_contact"]
+    },
+    "LeftFoot": {
+      "body": "l_foot_contact",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.88,
+      "evidence": ["name:l_foot_contact", "topology:left_leg_distal_contact", "side:left", "chain:l_hip_ie_link/l_hip_aa_link/l_hip_fe_link/l_knee_fe_lp/l_knee_fe_ld/l_ankle_fe_link/l_ankle_ie_link/l_foot_contact"]
+    },
+    "RightFoot": {
+      "body": "r_foot_contact",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.88,
+      "evidence": ["name:r_foot_contact", "topology:right_leg_distal_contact", "side:right", "chain:r_hip_ie_link/r_hip_aa_link/r_hip_fe_link/r_knee_fe_lp/r_knee_fe_ld/r_ankle_fe_link/r_ankle_ie_link/r_foot_contact"]
+    }
+  }
+}

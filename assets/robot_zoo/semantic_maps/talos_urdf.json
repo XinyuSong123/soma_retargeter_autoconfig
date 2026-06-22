@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "talos_urdf",
+  "model_fingerprint": "5b094a0c83d62a2a09b414777526b6d068281afad3a9df875e877acb6bb7df01",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_lock_fetch_only_cache",
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/talos_data/urdf/talos_full.urdf",
+    "sha256": "801894195ce94e5bbc05549eb886ec54865378598f87050fdf2f90b70b6403b2"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "base_link",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:base_link", "topology:root_body", "bilateral_leg_parent:leg_left_1_link/leg_right_1_link"]
+    },
+    "Chest": {
+      "body": "torso_2_link",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:torso_2_link", "topology:base_link_to_torso_1_link_to_torso_2_link", "bilateral_arm_parent:arm_left_1_link/arm_right_1_link"]
+    },
+    "LeftHand": {
+      "body": "gripper_left_base_link",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:gripper_left_base_link", "topology:left_arm_distal_gripper_base", "side:left", "chain:torso_2_link/arm_left_1_link/arm_left_2_link/arm_left_3_link/arm_left_4_link/arm_left_5_link/arm_left_6_link/arm_left_7_link/wrist_left_ft_link/wrist_left_ft_tool_link/gripper_left_base_link"]
+    },
+    "RightHand": {
+      "body": "gripper_right_base_link",
+      "local_position": [0.03, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:gripper_right_base_link", "topology:right_arm_distal_gripper_base", "side:right", "chain:torso_2_link/arm_right_1_link/arm_right_2_link/arm_right_3_link/arm_right_4_link/arm_right_5_link/arm_right_6_link/arm_right_7_link/wrist_right_ft_link/wrist_right_ft_tool_link/gripper_right_base_link"]
+    },
+    "LeftFoot": {
+      "body": "left_sole_link",
+      "local_position": [0.0, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:left_sole_link", "topology:left_leg_distal_sole", "side:left", "chain:base_link/leg_left_1_link/leg_left_2_link/leg_left_3_link/leg_left_4_link/leg_left_5_link/leg_left_6_link/left_sole_link"]
+    },
+    "RightFoot": {
+      "body": "right_sole_link",
+      "local_position": [0.0, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:right_sole_link", "topology:right_leg_distal_sole", "side:right", "chain:base_link/leg_right_1_link/leg_right_2_link/leg_right_3_link/leg_right_4_link/leg_right_5_link/leg_right_6_link/right_sole_link"]
+    }
+  }
+}

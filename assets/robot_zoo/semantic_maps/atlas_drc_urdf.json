@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "atlas_drc_urdf",
+  "model_fingerprint": "5be1537b62cb5d1bbe5652c00fd73cc0377d55171d9f82b2bd18ff0f6da6b88e",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_committed_snapshot",
+    "path": "assets/robot_zoo/snapshots/atlas_drc_urdf/model.urdf",
+    "sha256": "88a669094168bc5d380e58d26e934200c1b2125da46f23c31fb31b7bbcd749fa"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "pelvis",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.98,
+      "evidence": ["name:pelvis", "topology:floating_root_body", "bilateral_leg_parent:l_uglut/r_uglut"]
+    },
+    "Chest": {
+      "body": "utorso",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.96,
+      "evidence": ["name:utorso", "topology:pelvis_to_ltorso_to_mtorso_to_utorso", "bilateral_arm_parent:l_clav/r_clav"]
+    },
+    "LeftHand": {
+      "body": "left_palm",
+      "local_position": [0.04, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:left_palm", "topology:left_arm_distal_palm", "side:left", "chain:utorso/l_clav/l_scap/l_uarm/l_larm/l_ufarm/l_lfarm/l_hand/left_palm"]
+    },
+    "RightHand": {
+      "body": "right_palm",
+      "local_position": [0.04, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:right_palm", "topology:right_arm_distal_palm", "side:right", "chain:utorso/r_clav/r_scap/r_uarm/r_larm/r_ufarm/r_lfarm/r_hand/right_palm"]
+    },
+    "LeftFoot": {
+      "body": "l_foot",
+      "local_position": [0.05, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:l_foot", "topology:left_leg_distal_foot", "side:left", "chain:pelvis/l_uglut/l_lglut/l_uleg/l_lleg/l_talus/l_foot"]
+    },
+    "RightFoot": {
+      "body": "r_foot",
+      "local_position": [0.05, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:r_foot", "topology:right_leg_distal_foot", "side:right", "chain:pelvis/r_uglut/r_lglut/r_uleg/r_lleg/r_talus/r_foot"]
+    }
+  }
+}

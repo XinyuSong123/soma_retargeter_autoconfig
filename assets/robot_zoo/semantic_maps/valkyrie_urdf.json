@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "valkyrie_urdf",
+  "model_fingerprint": "57176eab1b1f638d22e319ca33eb701cc65ddda1c5193cd438be9dae065f07da",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_lock_fetch_only_cache",
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/nasa-urdf-robots/val_description/model/robots/valkyrie_sim.urdf",
+    "sha256": "c7eb44747abbb5e96af117f4bd9bbe05eec16a47a544bb1962f0564a2bb9ed10"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "pelvis",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:pelvis", "topology:floating_root_body", "bilateral_leg_parent:leftHipYawLink/rightHipYawLink"]
+    },
+    "Chest": {
+      "body": "torso",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:torso", "topology:pelvis_to_torsoYawLink_to_torsoPitchLink_to_torso", "bilateral_arm_parent:leftShoulderPitchLink/rightShoulderPitchLink"]
+    },
+    "LeftHand": {
+      "body": "leftPalm",
+      "local_position": [-0.009553, 0.114245, -0.011173],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_source_mesh_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:leftPalm", "topology:left_arm_distal_palm", "side:left", "source_mesh:palm_left.dae"]
+    },
+    "RightHand": {
+      "body": "rightPalm",
+      "local_position": [-0.009553, -0.114245, -0.011173],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_source_mesh_bounds",
+      "confidence": 0.85,
+      "evidence": ["name:rightPalm", "topology:right_arm_distal_palm", "side:right", "source_mesh:palm_right.dae"]
+    },
+    "LeftFoot": {
+      "body": "leftFoot",
+      "local_position": [0.045, 0.0, -0.088],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_collision_box",
+      "confidence": 0.85,
+      "evidence": ["name:leftFoot", "topology:left_leg_distal_foot", "side:left", "source_collision_box:sole"]
+    },
+    "RightFoot": {
+      "body": "rightFoot",
+      "local_position": [0.045, 0.0, -0.088],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_collision_box",
+      "confidence": 0.85,
+      "evidence": ["name:rightFoot", "topology:right_leg_distal_foot", "side:right", "source_collision_box:sole"]
+    }
+  }
+}

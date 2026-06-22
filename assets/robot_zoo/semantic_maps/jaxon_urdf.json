@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "model_id": "jaxon_urdf",
+  "model_fingerprint": "0e741b4e5d88c6a1b743817d6dcaaeda21c0bbed9941dba6eb6dba61f1f7d48f",
+  "verification_status": "verified",
+  "model_source": {
+    "resolver": "robot_zoo_lock_fetch_only_cache",
+    "path": "${ROBOT_DESCRIPTIONS_CACHE}/jaxon_description/urdf/jaxon_jvrc.urdf",
+    "sha256": "dc9640effe2d162260bd49c476597ba69e67cc1bab56fbfb661aa56fc2b50deb"
+  },
+  "semantics": {
+    "Hips": {
+      "body": "BODY",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:BODY", "topology:root_body", "bilateral_leg_parent:LLEG_LINK0/RLEG_LINK0"]
+    },
+    "Chest": {
+      "body": "CHEST_LINK2",
+      "local_position": [0.0, 0.0, 0.0],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_semantic_map",
+      "confidence": 0.95,
+      "evidence": ["name:CHEST_LINK2", "topology:BODY_to_CHEST_LINK0_to_CHEST_LINK1_to_CHEST_LINK2", "bilateral_arm_parent:LARM_LINK0/RARM_LINK0"]
+    },
+    "LeftHand": {
+      "body": "LARM_FINGER0",
+      "local_position": [0.0, 0.0, -0.03],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:LARM_FINGER0", "topology:left_arm_distal_finger", "side:left", "chain:CHEST_LINK2/LARM_LINK0/LARM_LINK1/LARM_LINK2/LARM_LINK3/LARM_LINK4/LARM_LINK5/LARM_LINK6/LARM_LINK7/LARM_FINGER0"]
+    },
+    "RightHand": {
+      "body": "RARM_FINGER0",
+      "local_position": [0.0, 0.0, -0.03],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:RARM_FINGER0", "topology:right_arm_distal_finger", "side:right", "chain:CHEST_LINK2/RARM_LINK0/RARM_LINK1/RARM_LINK2/RARM_LINK3/RARM_LINK4/RARM_LINK5/RARM_LINK6/RARM_LINK7/RARM_FINGER0"]
+    },
+    "LeftFoot": {
+      "body": "LLEG_LINK5",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:LLEG_LINK5", "topology:left_leg_distal_foot_link", "side:left", "chain:BODY/LLEG_LINK0/LLEG_LINK1/LLEG_LINK2/LLEG_LINK3/LLEG_LINK4/LLEG_LINK5"]
+    },
+    "RightFoot": {
+      "body": "RLEG_LINK5",
+      "local_position": [0.04, 0.0, -0.02],
+      "local_rotation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "source": "verified_topology_terminal_link",
+      "confidence": 0.85,
+      "evidence": ["name:RLEG_LINK5", "topology:right_leg_distal_foot_link", "side:right", "chain:BODY/RLEG_LINK0/RLEG_LINK1/RLEG_LINK2/RLEG_LINK3/RLEG_LINK4/RLEG_LINK5"]
+    }
+  }
+}

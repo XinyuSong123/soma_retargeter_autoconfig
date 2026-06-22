@@ -508,6 +508,15 @@ def _validate_entry(
         )
     semantic_map_path_for_entry = _resolve_verified_semantic_map_path(entry, manifest_path=manifest_path)
     if semantic_map_path_for_entry is None:
+        partial_report = _structured_partial_expectation_report(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            reproduction_command=reproduction_command,
+        )
+        if partial_report is not None:
+            return partial_report
         return _missing_verified_semantic_map_report(
             entry,
             resolved,
@@ -638,6 +647,110 @@ def _resolve_verified_semantic_map_path(entry: RobotZooEntry, *, manifest_path: 
         if candidate.exists():
             return candidate
     return None
+
+
+def _resolve_semantic_expectation_path(entry: RobotZooEntry) -> Path:
+    return Path("assets/robot_zoo/semantic_expectations") / f"{entry.id}.json"
+
+
+def _structured_partial_expectation_report(
+    entry: RobotZooEntry,
+    resolved: ResolvedRobotSource,
+    *,
+    manifest_path: Path,
+    manifest_sha256: str,
+    reproduction_command: str,
+) -> dict | None:
+    path = _resolve_semantic_expectation_path(entry)
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return None
+
+    blocker = payload.get("blocker", {})
+    blocker_code = str(blocker.get("code", "")) if isinstance(blocker, dict) else ""
+    coverage_status = str(payload.get("coverage_status", ""))
+    verification_status = str(payload.get("verification_status", ""))
+    structural_partial = (
+        coverage_status == "structurally_incomplete"
+        or verification_status == "partial_blocked"
+        or blocker_code == "structurally_incomplete"
+    )
+    if not structural_partial or payload.get("expected_capability") != "partial_humanoid":
+        return None
+
+    try:
+        adapter = NewtonRuntimeModelAdapter(resolved.path, model_format=entry.model_format)
+        runtime = {
+            "backend": "newton",
+            "nq": adapter.nq,
+            "nv": adapter.nv,
+            "body_count": len(adapter.body_names),
+            "package_versions": _package_versions(),
+            "loader_provenance": _loader_provenance("newton", entry.model_format),
+        }
+        adapter.close()
+    except Exception as exc:
+        return _model_load_failed_report(
+            entry,
+            resolved,
+            manifest_path=manifest_path,
+            manifest_sha256=manifest_sha256,
+            reproduction_command=reproduction_command,
+            exc=exc,
+        )
+
+    supported = [str(name) for name in payload.get("supported_semantics", [])]
+    missing = [str(name) for name in payload.get("missing_required_semantics", [])]
+    evidence = []
+    if isinstance(blocker, dict):
+        evidence = [str(item) for item in blocker.get("evidence", [])]
+    warnings = [
+        "structured partial humanoid: verified full semantic map is intentionally not emitted",
+        "missing required semantics: " + ", ".join(missing),
+    ]
+    report = _base_report(
+        entry,
+        resolved,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        status=RobotValidationStatus.PARTIAL_PASSED.value,
+        failures=[],
+        warnings=warnings,
+        reproduction_command=reproduction_command,
+    )
+    report["status_reason"] = "structured partial humanoid expectation documents unavailable required semantics"
+    report["runtime_adapter"] = runtime
+    report["capability_status"] = "partial_humanoid"
+    report["morphology_classification"] = {
+        "expected_capability": "partial_humanoid",
+        "robot_class": entry.robot_class,
+        "coverage_status": coverage_status,
+        "supported_semantics": supported,
+        "missing_required_semantics": missing,
+        "humanoid_profile_generated": False,
+    }
+    report["semantic_map_resolution"] = {
+        "status": "structured_partial_expectation",
+        "source": "semantic_expectation",
+        "path": display_path(path),
+        "required": False,
+        "coverage_status": coverage_status,
+        "verification_status": verification_status,
+        "blocker_code": blocker_code,
+    }
+    report["semantic_map_artifact"] = _unavailable("structured partial expectation replaces full semantic map")
+    report.setdefault("failure_taxonomy", {}).setdefault("semantic", {})["structured_partial"] = {
+        "status": "passed",
+        "classification": RobotValidationStatus.PARTIAL_PASSED.value,
+        "kind": "structured_partial_expectation",
+        "supported_semantics": supported,
+        "missing_required_semantics": missing,
+        "evidence": evidence,
+    }
+    return report
 
 
 def _missing_verified_semantic_map_report(
