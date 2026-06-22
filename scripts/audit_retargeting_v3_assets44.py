@@ -55,6 +55,10 @@ def main() -> None:
         if summary_path.exists():
             summary = json.loads(summary_path.read_text())
             _audit_summary(errors, summary)
+        environment_path = artifact_dir / "environment.json"
+        _expect(errors, environment_path.exists(), "missing environment.json")
+        if environment_path.exists():
+            _audit_environment(errors, json.loads(environment_path.read_text()))
         required = [
             "environment.json",
             "commands.txt",
@@ -68,6 +72,15 @@ def main() -> None:
         ]
         for name in required:
             _expect(errors, (artifact_dir / name).exists(), f"missing artifact {name}")
+        required_test_results = [
+            "acceptance_ledger.json",
+            "test_results/pytest.txt",
+            "test_results/junit.xml",
+            "test_results/coverage.json",
+        ]
+        for name in required_test_results:
+            _expect(errors, (artifact_dir / name).exists(), f"missing reproducibility artifact {name}")
+        _audit_no_absolute_paths(errors, artifact_dir)
 
     if errors:
         raise SystemExit("Step 2.2 Assets44 audit FAIL\n" + "\n".join(f"- {error}" for error in errors))
@@ -91,6 +104,35 @@ def _audit_summary(errors: list[str], summary: dict) -> None:
     _expect(errors, summary.get("load_passed_in_scope") == 44, "all 44 in-scope models must load")
     _expect(errors, summary.get("semantic_passed_in_scope") == 44, "all 44 in-scope semantics must pass or be honestly classified")
     _expect(errors, summary.get("deterministic_compared") == summary.get("deterministic_matched"), "deterministic rerun must match")
+    _expect(errors, summary.get("deterministic_compared", 0) > 0, "deterministic rerun must compare at least one model")
+    _expect(errors, summary.get("negative_control_passed", 0) > 0, "negative controls must be represented")
+    _expect(errors, summary.get("partial_passed", 0) > 0, "structured partial humanoids must be represented")
+
+
+def _audit_environment(errors: list[str], environment: dict) -> None:
+    _expect(errors, bool(environment.get("source_code_commit")), "environment source_code_commit is required")
+    _expect(errors, environment.get("git_status_short") == "", "environment git_status_short must be clean")
+    _expect(
+        errors,
+        environment.get("source_code_commit_is_artifact_commit_ancestor") is True,
+        "environment must record source_code_commit ancestry",
+    )
+
+
+def _audit_no_absolute_paths(errors: list[str], artifact_dir: Path) -> None:
+    forbidden = ("/mnt/", "/home/", "/Users/", "/private/var/", "/tmp/")
+    allowed_suffixes = {".xml"}
+    for path in artifact_dir.rglob("*"):
+        if not path.is_file() or path.suffix in allowed_suffixes:
+            continue
+        try:
+            text = path.read_text(errors="ignore")
+        except UnicodeDecodeError:
+            continue
+        for token in forbidden:
+            if token in text:
+                errors.append(f"absolute path leak {token!r} in {path}")
+                break
 
 
 def _expect(errors: list[str], condition: bool, message: str) -> None:

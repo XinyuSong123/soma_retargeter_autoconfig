@@ -103,6 +103,8 @@ def test_assets44_audit_summary_counts_use_deterministic_totals(tmp_path: Path) 
         "semantic_failed": 0,
         "load_passed_in_scope": 44,
         "semantic_passed_in_scope": 44,
+        "negative_control_passed": 9,
+        "partial_passed": 3,
         "deterministic_compared": 12,
         "deterministic_matched": 12,
     }

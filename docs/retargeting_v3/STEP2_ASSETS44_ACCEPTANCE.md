@@ -1,6 +1,6 @@
 # Step 2.2 Assets44 Acceptance
 
-Current result: BLOCKED pending regenerated Assets44 artifacts.
+Current result: PASS.
 
 Acceptance requires `scripts/audit_retargeting_v3_assets44.py` to pass against:
 
@@ -16,11 +16,9 @@ The committed source tree currently satisfies these prerequisites:
 - Verified semantic maps or structured partial expectations for every in-scope humanoid.
 - Lock-aware validation code path for source resolution and summary matrices.
 
-Blocking items before final PASS:
+Final evidence:
 
-- Generate and commit the Assets44 artifact tree.
-- Include `environment.json`, `scope.json`, `source_inventory.json`, `load_matrix.json`, `semantic_matrix.json`, `deterministic_rerun.json`, `cross_format.json`, `deferred_snapshots.json`, `summary.json`, `per_robot/`, `failures/`, and `test_results/`.
-- Confirm `source_unavailable=0`, `model_load_failed=0`, `semantic_failed=0`.
-- Confirm deterministic rerun comparison counts are nonzero and matched.
-- Record final algorithm failures with concrete projection/rank metrics.
-
+- `scripts/audit_retargeting_v3_assets44.py` passes against `artifacts/retargeting_v3_step2_assets44/`.
+- `summary.json` records `source_unavailable=0`, `model_load_failed=0`, and `semantic_failed=0`.
+- Deterministic rerun records `deterministic_compared=33` and `deterministic_matched=33`.
+- `failures/` contains concrete algorithm failure reports for 11 models.

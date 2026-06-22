@@ -1599,16 +1599,20 @@ def _g1_same_source_semantic_map(*, manifest_path: Path, source: Path) -> tuple[
                 "reason": "manifest-backed verified semantic map was not found",
             }
         payload = json.loads(semantic_path.read_text())
-        expected_sha = payload.get("source_model", {}).get("local_file_sha256")
+        expected_shas = [
+            payload.get("model_source", {}).get("sha256"),
+            payload.get("source_model", {}).get("local_file_sha256"),
+        ]
+        expected_shas = [str(value) for value in expected_shas if value]
         actual_sha = sha256_file(source)
-        if expected_sha and expected_sha != actual_sha:
+        if expected_shas and actual_sha not in expected_shas:
             return None, {
                 "status": "failed",
                 "source": "verified_semantic_map",
                 "path": display_path(semantic_path),
                 "manifest_model_id": "unitree_g1_urdf",
                 "reason": "verified semantic map source hash does not match manifest-resolved G1 URDF",
-                "expected_source_sha256": expected_sha,
+                "expected_source_sha256": expected_shas,
                 "actual_source_sha256": actual_sha,
             }
         return load_semantic_map(semantic_path), {
@@ -2227,6 +2231,18 @@ def _external_reproducibility_commands(artifact_root: Path) -> list[str]:
 
 def _required_reproducibility_artifact_protocol(artifact_root: Path) -> dict:
     root = display_path(artifact_root)
+    audit_command = (
+        f"python scripts/audit_retargeting_v3_assets44.py --artifact-dir {root} "
+        "--lock ${ROBOT_ZOO_LOCK}"
+        if str(artifact_root).endswith("retargeting_v3_step2_assets44")
+        else (
+            "python scripts/audit_retargeting_v3_step2.py "
+            f"--artifact-dir {root} "
+            "--source-root . "
+            f"--output-json {root}/acceptance_ledger.json "
+            f"--junit-xml {root}/test_results/acceptance_audit.junit.xml"
+        )
+    )
     return {
         "producer": "external_test_protocol",
         "reason": "validation generation does not execute the pytest, JUnit, coverage, or acceptance-audit test protocol",
@@ -2235,13 +2251,7 @@ def _required_reproducibility_artifact_protocol(artifact_root: Path) -> dict:
             "python -m pip install pytest coverage",
             f"python -m coverage run -m pytest tests --junitxml={root}/test_results/junit.xml > {root}/test_results/pytest.txt 2>&1",
             f"python -m coverage json -o {root}/test_results/coverage.json",
-            (
-                "python scripts/audit_retargeting_v3_step2.py "
-                f"--artifact-dir {root} "
-                "--source-root . "
-                f"--output-json {root}/acceptance_ledger.json "
-                f"--junit-xml {root}/test_results/acceptance_audit.junit.xml"
-            ),
+            audit_command,
         ],
     }
 

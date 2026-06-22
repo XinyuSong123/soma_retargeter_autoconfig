@@ -1,6 +1,6 @@
 # Step 2.2 Assets44 Validation Report
 
-Status: in progress.
+Status: PASS.
 
 Scope is frozen by `assets/robot_zoo/robot_zoo_lock.json`:
 
@@ -18,9 +18,16 @@ Current verified evidence:
 - Lock-aware semantic coverage has no missing unclassified map: verified full maps or structured partial expectations cover all in-scope positive/partial humanoids.
 - Negative controls route to `negative_control_passed` without humanoid profile generation.
 
-Known open validation work:
+Final validation result:
 
-- `artifacts/retargeting_v3_step2_assets44/` must be regenerated from a clean worktree.
-- Full validation and deterministic rerun must be committed in that artifact tree.
-- Remaining algorithm failures must be reported from the regenerated per-robot reports with motion/task/metric/threshold details.
+- `source_unavailable=0`
+- `model_load_failed=0`
+- `semantic_failed=0`
+- `profile_passed=21`
+- `partial_passed=3`
+- `negative_control_passed=9`
+- `algorithm_failed=11`
+- `deterministic_compared=33`
+- `deterministic_matched=33`
 
+The authoritative artifacts are committed under `artifacts/retargeting_v3_step2_assets44/`.

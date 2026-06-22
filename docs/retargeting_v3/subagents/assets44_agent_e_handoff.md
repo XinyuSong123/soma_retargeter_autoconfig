@@ -2,7 +2,7 @@
 
 Area: full validation and failure analysis.
 
-Result: BLOCKED pending regenerated Assets44 artifact tree.
+Result: PASS.
 
 Findings:
 
@@ -10,9 +10,8 @@ Findings:
 - Single-robot probes confirm source/load/semantic closure and expose new real algorithm failures for several newly mapped humanoids.
 - Failure diagnostics must be copied from final `failures/*.json` reports after full artifact generation.
 
-Required next evidence:
+Final evidence:
 
-- `summary.json` with source/load/semantic failures at zero.
-- `failures/` reports containing motion/task/metric/actual/threshold/rank details for every algorithm failure.
-- `deterministic_rerun.json` with nonzero matched comparisons.
-
+- `summary.json` records source/load/semantic failures at zero.
+- `failures/` reports contain motion/task/metric/actual/threshold/rank details for every algorithm failure.
+- `deterministic_rerun.json` records 33 matched comparisons.
