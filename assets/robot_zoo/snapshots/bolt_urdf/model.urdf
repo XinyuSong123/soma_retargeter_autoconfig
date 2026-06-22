@@ -1,0 +1,164 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="bolt">
+  <link name="base_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <mass value="0.61436936" />
+      <inertia ixx="0.00578574" ixy="0.0" ixz="0.0" iyy="0.01938108" iyz="0.0" izz="0.02476124" />
+    </inertial>
+    <contact>
+      <lateral_friction value="1.0" />
+      <restitution value="0.5" />
+    </contact>
+  </link>
+  <joint name="FL_HAA" type="revolute">
+    <parent link="base_link" />
+    <child link="FL_SHOULDER" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <axis xyz="1 0 0" />
+    <origin rpy="0 0 0" xyz="0.0 0.0636 0" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FL_SHOULDER">
+    <inertial>
+      <mass value="0.14004265" />
+      <origin rpy="0 0 0" xyz="0.01708256 -0.00446892 -0.01095830" />
+      <inertia ixx="0.00007443" ixy="0.00000148" ixz="0.00002154" iyy="0.00013847" iyz="-0.00001096" izz="0.00009002" />
+    </inertial>
+    <contact>
+      <lateral_friction value="1.0" />
+      <restitution value="0.5" />
+    </contact>
+  </link>
+  <joint name="FL_HFE" type="revolute">
+    <parent link="FL_SHOULDER" />
+    <child link="FL_UPPER_LEG" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <axis xyz="0 1 0" />
+    <origin rpy="0 0 0" xyz="0 0.0145 -0.0386" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FL_UPPER_LEG">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00001377 0.01935853 -0.11870700" />
+      <mass value="0.14853845" />
+      <inertia ixx="0.00041107" ixy="0.00000000" ixz="0.00000009" iyy="0.00041193" iyz="-0.00004671" izz="0.00003024" />
+    </inertial>
+    <contact>
+      <lateral_friction value="1.0" />
+      <restitution value="0.5" />
+    </contact>
+  </link>
+  <joint name="FL_KFE" type="revolute">
+    <parent link="FL_UPPER_LEG" />
+    <child link="FL_LOWER_LEG" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <axis xyz="0 1 0" />
+    <origin rpy="0 0 0" xyz="0 0.0374 -0.2" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FL_LOWER_LEG">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.00836718 -0.11591877" />
+      <mass value="0.03117243" />
+      <inertia ixx="0.00011487" ixy="0.00000000" ixz="0.00000000" iyy="0.00011556" iyz="-0.00000190" izz="0.00000220" />
+    </inertial>
+    <contact>
+      <lateral_friction value="1.0" />
+      <restitution value="0.5" />
+    </contact>
+  </link>
+  <joint name="FL_ANKLE" type="fixed">
+    <parent link="FL_LOWER_LEG" />
+    <child link="FL_FOOT" />
+    <origin rpy="0 0 0" xyz="0 0.008 -0.2" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FL_FOOT">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.00035767" />
+      <mass value="0.00000000" />
+      <inertia ixx="0.00000057" ixy="0.0" ixz="0.0" iyy="0.00000084" iyz="0.0" izz="0.00000053" />
+    </inertial>
+    <contact>
+      <lateral_friction value="4.0" />
+      <restitution value="0.0" />
+    </contact>
+  </link>
+  <joint name="FR_HAA" type="revolute">
+    <parent link="base_link" />
+    <child link="FR_SHOULDER" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <axis xyz="1 0 0" />
+    <origin rpy="0 0 0" xyz="0.0 -0.0636 0" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FR_SHOULDER">
+    <inertial>
+      <mass value="0.14004412" />
+      <origin rpy="0 0 0" xyz="0.01708233 0.00447099 -0.01095846" />
+      <inertia ixx="0.00007442" ixy="-0.00000148" ixz="0.00002154" iyy="0.00013848" iyz="0.00001095" izz="0.00009001" />
+    </inertial>
+    <contact>
+      <lateral_friction value="1.0" />
+      <restitution value="0.5" />
+    </contact>
+  </link>
+  <joint name="FR_HFE" type="revolute">
+    <parent link="FR_SHOULDER" />
+    <child link="FR_UPPER_LEG" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <axis xyz="0 1 0" />
+    <origin rpy="0 0 0" xyz="0 -0.0145 -0.0386" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FR_UPPER_LEG">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.00001377 -0.01935853 -0.11870700" />
+      <mass value="0.14853845" />
+      <inertia ixx="0.00041107" ixy="0.00000000" ixz="-0.00000009" iyy="0.00041193" iyz="0.00004671" izz="0.00003024" />
+    </inertial>
+    <contact>
+      <lateral_friction value="1.0" />
+      <restitution value="0.5" />
+    </contact>
+  </link>
+  <joint name="FR_KFE" type="revolute">
+    <parent link="FR_UPPER_LEG" />
+    <child link="FR_LOWER_LEG" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <axis xyz="0 1 0" />
+    <origin rpy="0 0 0" xyz="0 -0.0374 -0.2" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FR_LOWER_LEG">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 -0.00836718 -0.11591877" />
+      <mass value="0.03117243" />
+      <inertia ixx="0.00011487" ixy="0.00000000" ixz="0.00000000" iyy="0.00011556" iyz="0.00000190" izz="0.00000220" />
+    </inertial>
+    <contact>
+      <lateral_friction value="1.0" />
+      <restitution value="0.5" />
+    </contact>
+  </link>
+  <joint name="FR_ANKLE" type="fixed">
+    <parent link="FR_LOWER_LEG" />
+    <child link="FR_FOOT" />
+    <origin rpy="0 0 0" xyz="0 -0.008 -0.2" />
+    <limit effort="1000" lower="-10" upper="10" velocity="1000" />
+    <dynamics damping="0.0" friction="0.0" />
+  </joint>
+  <link name="FR_FOOT">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.00035767" />
+      <mass value="0.00000000" />
+      <inertia ixx="0.00000057" ixy="0.0" ixz="0.0" iyy="0.00000084" iyz="0.0" izz="0.00000053" />
+    </inertial>
+    <contact>
+      <lateral_friction value="4.0" />
+      <restitution value="0.0" />
+    </contact>
+  </link>
+</robot>
