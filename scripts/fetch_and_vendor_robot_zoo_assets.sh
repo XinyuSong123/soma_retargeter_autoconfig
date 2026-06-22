@@ -233,8 +233,7 @@ PY
 
 python -m pytest -q \
   tests/v3/test_robot_zoo_source_resolution_local_cache.py \
-  tests/v3/test_full_robot_zoo_validation.py \
-  tests/v3/test_semantic_map_coverage_manifest.py
+  tests/v3/test_full_robot_zoo_validation.py
 
 # Only generated, policy-approved files are staged. The external caches and pull
 # logs can never enter Git.

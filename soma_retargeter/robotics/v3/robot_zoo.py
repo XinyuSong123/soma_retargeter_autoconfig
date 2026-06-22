@@ -526,10 +526,10 @@ def _menagerie_roots(cache_root: str | Path | None) -> list[Path]:
     if cache_root is not None:
         root = Path(cache_root).expanduser()
         roots.extend([root / "mujoco_menagerie", root])
+    roots.extend(root / "mujoco_menagerie" for root in _robot_descriptions_cache_roots(cache_root=None))
     if os.environ.get("ROBOT_ZOO_CACHE"):
         roots.append(Path(os.environ["ROBOT_ZOO_CACHE"]).expanduser() / "mujoco_menagerie")
     roots.append(Path("assets/robot_zoo/cache/mujoco_menagerie"))
-    roots.extend(root / "mujoco_menagerie" for root in _robot_descriptions_cache_roots(cache_root=None))
     return _dedupe_paths(roots)
 
 
