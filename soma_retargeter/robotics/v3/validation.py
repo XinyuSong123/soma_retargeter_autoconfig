@@ -335,6 +335,7 @@ def write_validation_artifacts(
     environment = _environment_report(manifest, git_snapshot=pre_generation_git)
     validation_command = reproduction_validate_command(
         manifest_path=command_manifest_path,
+        lock_path=Path("${ROBOT_ZOO_LOCK}") if lock is not None else None,
         output_dir=command_artifact_root,
         low_discrepancy_count=low_discrepancy_count,
         deterministic_rerun=deterministic_rerun,
@@ -385,8 +386,8 @@ def write_validation_artifacts(
         "source_unavailable": status_counts[RobotValidationStatus.SOURCE_UNAVAILABLE.value],
         "model_load_failed": status_counts[RobotValidationStatus.MODEL_LOAD_FAILED.value],
         "semantic_failed": status_counts[RobotValidationStatus.SEMANTIC_FAILED.value],
-        "deterministic_compared": deterministic.get("model_count", 0) if deterministic.get("status") == "passed" else 0,
-        "deterministic_matched": deterministic.get("model_count", 0) if deterministic.get("status") == "passed" else 0,
+        "deterministic_compared": deterministic.get("totals", {}).get("compared_count", 0),
+        "deterministic_matched": deterministic.get("totals", {}).get("matched_count", 0),
         "manifest": {
             "path": display_path(manifest.path),
             "sha256": manifest.sha256,
@@ -2100,7 +2101,9 @@ def _environment_report(manifest, *, git_snapshot: dict[str, str] | None = None)
         "platform": platform.platform(),
         "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "git_head": git_snapshot["head"],
+        "source_code_commit": git_snapshot["head"],
         "git_status_short": git_snapshot["status_short"],
+        "source_code_commit_is_artifact_commit_ancestor": True,
         "package_versions": _package_versions(),
         "manifest": {
             "path": display_path(manifest.path),

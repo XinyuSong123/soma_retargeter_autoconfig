@@ -216,6 +216,7 @@ def reproduction_compile_command(
 def reproduction_validate_command(
     *,
     manifest_path: str | Path = DEFAULT_ROBOT_ZOO_MANIFEST_PATH,
+    lock_path: str | Path | None = None,
     output_dir: str | Path,
     low_discrepancy_count: int,
     deterministic_rerun: bool = False,
@@ -226,11 +227,17 @@ def reproduction_validate_command(
         "soma_retargeter.tools.validate_kinematic_profile_v3",
         "--manifest",
         display_path(Path(manifest_path)),
-        "--output-dir",
-        display_path(Path(output_dir)),
-        "--low-discrepancy-count",
-        str(low_discrepancy_count),
     ]
+    if lock_path is not None:
+        parts.extend(["--lock", display_path(Path(lock_path))])
+    parts.extend(
+        [
+            "--output-dir",
+            display_path(Path(output_dir)),
+            "--low-discrepancy-count",
+            str(low_discrepancy_count),
+        ]
+    )
     if deterministic_rerun:
         parts.append("--deterministic-rerun")
     return " ".join(_shell_quote(part) for part in parts)
