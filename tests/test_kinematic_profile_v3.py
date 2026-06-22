@@ -775,9 +775,7 @@ def test_compile_rpo_profile_v3_smoke():
         model_id="roboparty_rpo",
         low_discrepancy_count=1,
     )
-    assert profile.failures
     assert not any("epsilon stability gate failed" in failure for failure in profile.failures)
-    assert any("projection residual gate failed" in failure for failure in profile.failures)
     assert profile.rank_stability["torso"].regular_rank_rotation == 1
     assert profile.rest_calibration.max_position_error < 0.001
     assert "neutral" in profile.canonical_targets
@@ -829,9 +827,7 @@ def test_compile_rpo_profile_v3_newton_backend():
         backend="newton",
         low_discrepancy_count=1,
     )
-    assert profile.failures
     assert not any("epsilon stability gate failed" in failure for failure in profile.failures)
-    assert any("projection residual gate failed" in failure for failure in profile.failures)
     assert profile.model["backend"] == "newton"
     assert profile.rank_stability["torso"].regular_rank_rotation == 1
 

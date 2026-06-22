@@ -16,6 +16,7 @@ Integrated result:
 - Added six numerical handoff documents in this directory.
 - `python scripts/audit_retargeting_v3_numerical_core.py --artifact-dir artifacts/retargeting_v3_step2_numerical` returns PASS.
 
-Residual risk:
+Final rerun:
 
-- The committed artifact was generated with `--low-discrepancy-count 1` for turnaround during this repair. The script supports default sampling for the slower full run.
+- The numerical artifact was regenerated with the default low-discrepancy sample count (`32`) and `--deterministic-rerun`.
+- Strict audit rejects per-model baseline pass regressions, missing engine-primary metadata, and missing rank/subspace fields.

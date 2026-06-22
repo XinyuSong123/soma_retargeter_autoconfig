@@ -12,6 +12,12 @@ from .model_adapter import MuJoCoRuntimeModelAdapter, SemanticSite
 from .spatial import relative_transform
 from .target_builder import SemanticTargets
 
+TEMPORAL_MOTION_SEQUENCES: dict[str, list[str]] = {
+    "arms_overhead_return": ["neutral", "arms_forward", "overhead_reach", "neutral"],
+    "squat_stand": ["neutral", "squat", "neutral"],
+    "step_support": ["neutral", "single_step", "neutral"],
+}
+
 
 @dataclass(frozen=True)
 class CanonicalProjectionReport:
@@ -128,6 +134,39 @@ def project_canonical_motion_sequence(
         failures=failures,
         unreachable_demands=unreachable_demands,
     )
+
+
+def project_temporal_motion_sequences(
+    adapter: MuJoCoRuntimeModelAdapter,
+    sites: dict[str, SemanticSite],
+    paths: dict[str, KinematicPath],
+    canonical_targets: dict[str, SemanticTargets],
+    *,
+    neutral_q: np.ndarray | None = None,
+    neutral_prior_weight: float = 1e-8,
+    continuity_prior_weight: float = 1e-3,
+) -> dict[str, dict]:
+    """Project named temporal benchmarks with continuity isolated from capability motions."""
+
+    reports: dict[str, dict] = {}
+    for sequence_name, order in TEMPORAL_MOTION_SEQUENCES.items():
+        available_order = [name for name in order if name in canonical_targets]
+        report = project_canonical_motion_sequence(
+            adapter,
+            sites,
+            paths,
+            canonical_targets,
+            neutral_q=neutral_q,
+            motion_order=available_order,
+            neutral_prior_weight=neutral_prior_weight,
+            continuity_prior_weight=continuity_prior_weight,
+            use_continuity_prior=True,
+        )
+        payload = report.to_json()
+        payload["benchmark_type"] = "temporal_sequence"
+        payload["continuity_prior_enabled"] = True
+        reports[sequence_name] = payload
+    return reports
 
 
 def _default_motion_order(canonical_targets: dict[str, SemanticTargets]) -> list[str]:

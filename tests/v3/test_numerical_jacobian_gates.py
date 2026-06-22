@@ -87,7 +87,7 @@ def test_epsilon_halving_gate_records_and_can_hard_fail(tmp_path: Path, monkeypa
     assert jac.unstable_columns == active
     assert jac.to_json()["stability_gate_passed"] is False
     assert jac.epsilon_discrepancies[0]["stable"] is False
-    assert jac.column_classifications[0]["class"] == "unstable_nonsmooth"
+    assert jac.column_classifications[0]["class"] == "engine_fd_mismatch"
 
     with pytest.raises(FloatingPointError, match="stability gate failed"):
         nj.numerical_relative_jacobian(

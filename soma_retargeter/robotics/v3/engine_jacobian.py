@@ -15,6 +15,7 @@ from .spatial import relative_site_jacobian_from_world
 class EngineRelativeJacobian:
     translation: np.ndarray
     rotation: np.ndarray
+    backend: str
     scalar_dtype: str
     source: str
     finite: bool
@@ -24,6 +25,7 @@ class EngineRelativeJacobian:
         return {
             "translation": self.translation.tolist(),
             "rotation": self.rotation.tolist(),
+            "backend": self.backend,
             "scalar_dtype": self.scalar_dtype,
             "source": self.source,
             "finite": self.finite,
@@ -54,7 +56,7 @@ def _mujoco_engine_relative_jacobian(
 ) -> EngineRelativeJacobian:
     idx = list(active_coordinates)
     if not idx:
-        return _empty("float64", "mujoco.mj_jac")
+        return _empty("mujoco", "float64", "mujoco.mj_jac")
     data = mujoco.MjData(adapter.model)
     data.qpos[:] = np.asarray(q, dtype=float)
     mujoco.mj_forward(adapter.model, data)
@@ -75,7 +77,7 @@ def _mujoco_engine_relative_jacobian(
         jb_p[:, idx],
         jb_w[:, idx],
     )
-    return _result(translation, rotation, "float64", "mujoco.mj_jac")
+    return _result(translation, rotation, "mujoco", "float64", "mujoco.mj_jac")
 
 
 def _newton_engine_relative_jacobian(
@@ -87,7 +89,7 @@ def _newton_engine_relative_jacobian(
 ) -> EngineRelativeJacobian:
     idx = list(active_coordinates)
     if not idx:
-        return _empty("float32", "newton.eval_jacobian")
+        return _empty("newton", "float32", "newton.eval_jacobian")
     try:
         import warp as wp
 
@@ -107,7 +109,7 @@ def _newton_engine_relative_jacobian(
     ref_p, ref_w = _newton_site_world_jacobian(adapter, spatial_np, reference, ref_world[:3, 3], idx, state_np)
     tgt_p, tgt_w = _newton_site_world_jacobian(adapter, spatial_np, target, tgt_world[:3, 3], idx, state_np)
     translation, rotation = relative_site_jacobian_from_world(ref_world, tgt_world, ref_p, ref_w, tgt_p, tgt_w)
-    return _result(translation, rotation, "float32", "newton.eval_jacobian")
+    return _result(translation, rotation, "newton", "float32", "newton.eval_jacobian")
 
 
 def _newton_site_world_jacobian(adapter, spatial: np.ndarray, site: SemanticSite, point_world: np.ndarray, active: list[int], state):
@@ -149,15 +151,16 @@ def _newton_articulation_for_joint(adapter, joint_id: int) -> tuple[int, int, in
     raise RuntimeError(f"Newton joint {joint_id} is not in an articulation")
 
 
-def _empty(dtype: str, source: str) -> EngineRelativeJacobian:
-    return _result(np.zeros((3, 0)), np.zeros((3, 0)), dtype, source)
+def _empty(backend: str, dtype: str, source: str) -> EngineRelativeJacobian:
+    return _result(np.zeros((3, 0)), np.zeros((3, 0)), backend, dtype, source)
 
 
-def _result(translation: np.ndarray, rotation: np.ndarray, dtype: str, source: str) -> EngineRelativeJacobian:
+def _result(translation: np.ndarray, rotation: np.ndarray, backend: str, dtype: str, source: str) -> EngineRelativeJacobian:
     finite = bool(np.all(np.isfinite(translation)) and np.all(np.isfinite(rotation)))
     return EngineRelativeJacobian(
         np.asarray(translation, dtype=float),
         np.asarray(rotation, dtype=float),
+        backend,
         dtype,
         source,
         finite,

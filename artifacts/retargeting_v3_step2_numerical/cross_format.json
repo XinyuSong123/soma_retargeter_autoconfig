@@ -220,10 +220,7 @@
               "urdf_nv": 25
             },
             "rank_summary": {
-              "failures": [
-                "rank_mismatch:left_hand:nominal_rank_translation",
-                "rank_mismatch:right_hand:nominal_rank_translation"
-              ],
+              "failures": [],
               "per_task": {
                 "left_foot": {
                   "failures": [],
@@ -239,14 +236,12 @@
                   }
                 },
                 "left_hand": {
-                  "failures": [
-                    "nominal_rank_translation"
-                  ],
+                  "failures": [],
                   "mjcf": {
-                    "nominal_rank_translation": 2,
+                    "nominal_rank_translation": 3,
                     "regular_rank_translation": 3
                   },
-                  "passed": false,
+                  "passed": true,
                   "rank_contract": "endpoint_translation",
                   "urdf": {
                     "nominal_rank_translation": 3,
@@ -267,14 +262,12 @@
                   }
                 },
                 "right_hand": {
-                  "failures": [
-                    "nominal_rank_translation"
-                  ],
+                  "failures": [],
                   "mjcf": {
-                    "nominal_rank_translation": 2,
+                    "nominal_rank_translation": 3,
                     "regular_rank_translation": 3
                   },
-                  "passed": false,
+                  "passed": true,
                   "rank_contract": "endpoint_translation",
                   "urdf": {
                     "nominal_rank_translation": 3,
@@ -295,7 +288,7 @@
                   }
                 }
               },
-              "status": "failed"
+              "status": "passed"
             },
             "semantic_sites": {
               "failures": [],
@@ -346,15 +339,10 @@
               "status": "passed"
             }
           },
-          "failures": {
-            "rank_summary": [
-              "rank_mismatch:left_hand:nominal_rank_translation",
-              "rank_mismatch:right_hand:nominal_rank_translation"
-            ]
-          },
+          "failures": {},
           "mjcf": "elf2_mjcf",
           "mjcf_status": "passed",
-          "status": "failed",
+          "status": "passed",
           "strict_equivalence": false,
           "urdf": "elf2_urdf",
           "urdf_status": "passed"
@@ -363,7 +351,7 @@
           "mjcf_status": "algorithm_failed",
           "reason": "variant compatibility only runs when both variants independently pass profile gates",
           "status": "not_eligible",
-          "urdf_status": "algorithm_failed"
+          "urdf_status": "passed"
         },
         "jvrc": {
           "mjcf_status": "passed",
@@ -1008,9 +996,9 @@
           "urdf_status": "passed"
         }
       },
-      "passed_pair_count": 2,
-      "reason": "one or more independently passing URDF/MJCF variant pairs failed compatibility evidence",
-      "status": "failed"
+      "passed_pair_count": 3,
+      "reason": "all independently passing URDF/MJCF variant pairs have compatibility evidence",
+      "status": "passed"
     }
   },
   "pairs": {
@@ -1055,7 +1043,7 @@
         "mjcf_report": "artifacts/retargeting_v3_step2_numerical/per_robot/fourier_n1_mjcf.json",
         "mjcf_status": "algorithm_failed",
         "urdf_report": "artifacts/retargeting_v3_step2_numerical/per_robot/fourier_n1_urdf.json",
-        "urdf_status": "algorithm_failed"
+        "urdf_status": "passed"
       },
       "mjcf": "fourier_n1_mjcf",
       "reason": "cross-format semantic equivalence scaffolding only; strict comparison is not counted as pass",

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .engine_jacobian import engine_relative_jacobian
+from .fd_uncertainty import classify_column, coordinate_step
 from .model_adapter import MuJoCoRuntimeModelAdapter, SemanticSite
 from .spatial import so3_log
 
@@ -40,17 +41,7 @@ class RelativeJacobian:
 
 
 def coordinate_epsilon(adapter: MuJoCoRuntimeModelAdapter, dof_index: int) -> float:
-    info = adapter.coordinate(dof_index)
-    if np.isfinite(info.lower) and np.isfinite(info.upper):
-        span = max(abs(info.upper - info.lower), 1.0)
-    else:
-        span = 1.0
-    backend = adapter.__class__.__name__.lower()
-    dtype_floor = np.sqrt(np.finfo(np.float32).eps) if "newton" in backend else np.sqrt(np.finfo(np.float64).eps)
-    base = max(1e-6, float(dtype_floor))
-    if info.joint_type == "prismatic":
-        return float(np.clip(base * span, 5e-6, 2e-3))
-    return float(np.clip(base * span, 5e-6, 2e-3))
+    return coordinate_step(adapter, dof_index)
 
 
 def numerical_relative_jacobian(
@@ -63,6 +54,7 @@ def numerical_relative_jacobian(
     stability_rtol: float = 5e-2,
     stability_atol: float = 1e-6,
     raise_on_unstable: bool = False,
+    engine_validation: bool = True,
 ) -> RelativeJacobian:
     cols_p = []
     cols_r = []
@@ -71,16 +63,34 @@ def numerical_relative_jacobian(
     discrepancies: list[dict[str, float | int | bool]] = []
     classifications: list[dict] = []
     noise_norms: list[float] = []
+    chain_length = _characteristic_length(adapter, q, reference, target)
+    engine_cols = None
+    if engine_validation:
+        try:
+            engine = engine_relative_jacobian(adapter, q, reference, target, active_coordinates)
+            engine_cols = np.vstack([engine.translation, engine.rotation])
+        except Exception:
+            engine_cols = None
     for dof in active_coordinates:
-        e = coordinate_epsilon(adapter, dof)
+        e = coordinate_step(adapter, dof, q=q, chain_length=chain_length)
         c_2h = _column(adapter, q, reference, target, dof, 2.0 * e)
         c_h = _column(adapter, q, reference, target, dof, e)
         c_h2 = _column(adapter, q, reference, target, dof, 0.5 * e)
         jp_2h, jr_2h = c_2h
         jp, jr = c_h
         jp_half, jr_half = c_h2
-        richardson_p = (4.0 * jp_half - jp) / 3.0
-        richardson_r = (4.0 * jr_half - jr) / 3.0
+        diff_2h_h = max(float(np.linalg.norm(jp - jp_2h)), float(np.linalg.norm(jr - jr_2h)))
+        diff_h_h2 = max(float(np.linalg.norm(jp_half - jp)), float(np.linalg.norm(jr_half - jr)))
+        if diff_h_h2 <= diff_2h_h:
+            richardson_p = (4.0 * jp_half - jp) / 3.0
+            richardson_r = (4.0 * jr_half - jr) / 3.0
+            error_estimate = diff_h_h2 / 3.0
+            selected_plateau = "h/h2"
+        else:
+            richardson_p = (4.0 * jp - jp_2h) / 3.0
+            richardson_r = (4.0 * jr - jr_2h) / 3.0
+            error_estimate = diff_2h_h / 3.0
+            selected_plateau = "2h/h"
         translation_discrepancy = float(max(np.max(np.abs(jp - jp_half)), np.max(np.abs(jp_2h - jp)))) if jp.size else 0.0
         rotation_discrepancy = float(max(np.max(np.abs(jr - jr_half)), np.max(np.abs(jr_2h - jr)))) if jr.size else 0.0
         translation_norm_discrepancy = float(max(np.linalg.norm(jp - jp_half), np.linalg.norm(jp_2h - jp)))
@@ -91,24 +101,24 @@ def numerical_relative_jacobian(
         col_norm = float(max(np.linalg.norm(richardson_p), np.linalg.norm(richardson_r)))
         max_column_norm = float(max(np.linalg.norm(jp_2h), np.linalg.norm(jr_2h), np.linalg.norm(jp), np.linalg.norm(jr), np.linalg.norm(jp_half), np.linalg.norm(jr_half)))
         noise = float(max(translation_norm_discrepancy, rotation_norm_discrepancy))
-        zero_tol = max(10.0 * stability_atol, 10.0 * np.finfo(float).eps / max(0.5 * e, 1e-12))
-        if not finite:
-            classification = "nonfinite"
-            stable = False
-        elif max_column_norm <= zero_tol:
-            classification = "numerically_zero"
-            stable = True
+        zero_tol = max(10.0 * stability_atol, 10.0 * chain_length * np.finfo(float).eps / max(0.5 * e, 1e-12))
+        out_col = len(cols_p)
+        engine_vector = engine_cols[:, out_col] if engine_cols is not None and out_col < engine_cols.shape[1] else None
+        column_report = classify_column(
+            dof=dof,
+            relevant_block="translation+rotation",
+            fd_vector=np.concatenate([richardson_p, richardson_r]),
+            engine_vector=engine_vector,
+            error_estimate=error_estimate,
+            finite=finite,
+            zero_tolerance=zero_tol,
+            stability_tolerance=max(translation_tolerance, rotation_tolerance),
+        )
+        classification = column_report.classification
+        stable = classification in {"stable_nonzero", "numerically_zero", "unstable_roundoff"}
+        if classification == "numerically_zero":
             richardson_p = np.zeros(3)
             richardson_r = np.zeros(3)
-        elif translation_discrepancy <= translation_tolerance and rotation_discrepancy <= rotation_tolerance:
-            classification = "stable_nonzero"
-            stable = True
-        elif noise <= 0.25 * col_norm:
-            classification = "unstable_roundoff"
-            stable = True
-        else:
-            classification = "unstable_nonsmooth"
-            stable = False
         discrepancies.append(
             {
                 "dof": int(dof),
@@ -123,6 +133,8 @@ def numerical_relative_jacobian(
                 "classification": classification,
                 "column_norm": col_norm,
                 "noise_norm": noise,
+                "error_estimate": error_estimate,
+                "selected_plateau": selected_plateau,
             }
         )
         if not stable:
@@ -131,9 +143,16 @@ def numerical_relative_jacobian(
             {
                 "dof": int(dof),
                 "class": classification,
+                "classification": classification,
+                "relevant_block": column_report.relevant_block,
                 "stable": bool(stable),
                 "column_norm": col_norm,
                 "noise_norm": noise,
+                "engine_norm": column_report.engine_norm,
+                "fd_norm": column_report.fd_norm,
+                "error_estimate": column_report.error_estimate,
+                "normalized_error": column_report.normalized_error,
+                "selected_plateau": selected_plateau,
                 "epsilons": [float(2.0 * e), float(e), float(0.5 * e)],
             }
         )
@@ -183,6 +202,23 @@ def _column(
     return jp, jr
 
 
+def _characteristic_length(adapter: MuJoCoRuntimeModelAdapter, q: np.ndarray, reference: SemanticSite, target: SemanticSite) -> float:
+    try:
+        state = adapter.forward_kinematics(q)
+        body_path = adapter.body_path(reference.body_name, target.body_name)
+        points = [adapter.site_transform(state, reference)[:3, 3]]
+        for body_name in body_path:
+            points.append(adapter.body_transform(state, body_name)[:3, 3])
+        points.append(adapter.site_transform(state, target)[:3, 3])
+    except Exception:
+        return 1.0
+    length = 0.0
+    for a, b in zip(points, points[1:]):
+        length += float(np.linalg.norm(np.asarray(b, dtype=float) - np.asarray(a, dtype=float)))
+    direct = float(np.linalg.norm(points[-1] - points[0])) if len(points) >= 2 else 0.0
+    return max(length, direct, 1.0)
+
+
 def matrix_rank_and_singular_values(mat: np.ndarray, abs_tol: float = 1e-8, rel_tol: float = 1e-5) -> tuple[int, np.ndarray]:
     if mat.size == 0:
         return 0, np.zeros(0)
@@ -213,6 +249,7 @@ def engine_translation_jacobian_crosscheck(
         "source": engine_rel.source,
         "convention": engine_rel.convention,
         "scalar_dtype": engine_rel.scalar_dtype,
+        "backend": engine_rel.backend,
         "max_abs_error": float(np.max(np.abs(diff))) if diff.size else 0.0,
         "frobenius_error": float(np.linalg.norm(diff)),
         "engine_translation": engine.tolist(),

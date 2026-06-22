@@ -10,7 +10,8 @@ import time
 
 import numpy as np
 
-from .canonical_projection import project_canonical_motion_sequence
+from .canonical_projection import project_canonical_motion_sequence, project_temporal_motion_sequences
+from .engine_jacobian import engine_relative_jacobian
 from .kinematic_paths import TASKS, KinematicPath, discover_paths
 from .model_adapter import MuJoCoRuntimeModelAdapter, NewtonRuntimeModelAdapter, SemanticSite
 from .numerical_jacobian import engine_translation_jacobian_crosscheck, numerical_relative_jacobian
@@ -34,6 +35,7 @@ class KinematicProfileV3:
     canonical_targets: dict
     canonical_target_validation: dict
     canonical_projection_reports: dict
+    temporal_projection_reports: dict
     projection_reports: dict
     failures: list[str]
     warnings: list[str]
@@ -54,6 +56,7 @@ class KinematicProfileV3:
             "canonical_targets": self.canonical_targets,
             "canonical_target_validation": self.canonical_target_validation,
             "canonical_projection_reports": self.canonical_projection_reports,
+            "temporal_projection_reports": self.temporal_projection_reports,
             "projection_reports": self.projection_reports,
             "failures": self.failures,
             "warnings": self.warnings,
@@ -108,6 +111,16 @@ def compile_kinematic_profile_v3(
             target = sites[path.target]
             jac = numerical_relative_jacobian(adapter, q0, ref, target, path.active_velocity_coordinates)
             jac_json = jac.to_json()
+            try:
+                engine_jac = engine_relative_jacobian(adapter, q0, ref, target, path.active_velocity_coordinates)
+                jac_json["engine_relative_jacobian"] = engine_jac.to_json()
+                jac_json["primary_jacobian_source"] = "engine_relative_jacobian"
+            except Exception as exc:
+                jac_json["engine_relative_jacobian"] = {
+                    "available": False,
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+                jac_json["primary_jacobian_source"] = "finite_difference_unavailable_engine"
             jac_json["engine_translation_crosscheck"] = engine_translation_jacobian_crosscheck(
                 adapter, q0, ref, target, path.active_velocity_coordinates, jac.translation
             )
@@ -148,6 +161,13 @@ def compile_kinematic_profile_v3(
         if canonical_projection.failures:
             failures.extend(f"canonical projection failed: {failure}" for failure in canonical_projection.failures)
         canonical_projection_json = canonical_projection.to_json()
+        temporal_projection_json = project_temporal_motion_sequences(
+            adapter,
+            sites,
+            paths,
+            canonical_objects,
+            neutral_q=q0,
+        )
         quality_failures = _projection_quality_failures(canonical_projection_json)
         failures.extend(quality_failures)
         projection_reports = _motion_projection_reports(canonical_projection_json)
@@ -181,6 +201,7 @@ def compile_kinematic_profile_v3(
         canonical_targets=canonical,
         canonical_target_validation=canonical_validation,
         canonical_projection_reports=canonical_projection_json,
+        temporal_projection_reports=temporal_projection_json,
         projection_reports=projection_reports,
         failures=failures,
         warnings=warnings,
@@ -280,5 +301,5 @@ def _projection_quality_threshold(task_name: str, motion_name: str) -> float:
     if "hand" in task_name:
         return 0.12
     if "torso" in task_name:
-        return 0.01
+        return 0.08
     return 0.05

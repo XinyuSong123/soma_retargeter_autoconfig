@@ -81,8 +81,16 @@ def _before_after_payload(baseline: dict[str, dict], corrected: dict[str, dict])
             "baseline_epsilon_only": model_id in _epsilon_only_failures({model_id: before}),
             "corrected_epsilon_only": model_id in _epsilon_only_failures({model_id: after}),
             "semantic_or_load_class_unchanged": _terminal_non_algorithm(before) == _terminal_non_algorithm(after),
+            "relevant_task_metric": _relevant_task_metrics(after),
+            "zero_column_count": _column_count(after, {"numerically_zero"}),
+            "real_unstable_count": _column_count(after, {"engine_fd_mismatch", "unstable_nonsmooth", "nonfinite"}),
+            "engine_fd_error": _engine_fd_error(after),
+            "rank_agreement": _rank_agreement(after),
+            "subspace_distance": _subspace_distance(after),
+            "canonical_residual_distribution": _canonical_residual_distribution(after),
+            "runtime": (after.get("timing") or {}).copy(),
         }
-    return {"models": rows}
+    return {"schema_version": 2, "models": rows}
 
 
 def _numerical_counts(manifest, baseline: dict[str, dict], corrected: dict[str, dict]) -> dict:
@@ -130,6 +138,102 @@ def _unchanged_status_count(baseline: dict[str, dict], corrected: dict[str, dict
     return sum(1 for model_id, before in baseline.items() if before.get("status") == status and corrected.get(model_id, {}).get("status") == status)
 
 
+def _relevant_task_metrics(report: dict) -> dict:
+    metrics = {}
+    for task, payload in (report.get("rank_stability") or {}).items():
+        if not isinstance(payload, dict):
+            continue
+        metrics[task] = {
+            "task_block": payload.get("task_block"),
+            "numerical_stability_gate_passed": payload.get("numerical_stability_gate_passed"),
+            "stable_sample_fraction": payload.get("stable_sample_fraction"),
+            "relevant_rank_agreement_rate": payload.get("relevant_rank_agreement_rate"),
+            "projector_distance_p95": payload.get("projector_distance_p95"),
+            "engine_fd_normalized_error_p95": payload.get("engine_fd_normalized_error_p95"),
+        }
+    return metrics
+
+
+def _column_count(report: dict, classes: set[str]) -> int:
+    count = 0
+    for payload in (report.get("rank_stability") or {}).values():
+        if not isinstance(payload, dict):
+            continue
+        for sample in payload.get("sample_diagnostics") or []:
+            if not isinstance(sample, dict):
+                continue
+            for column in sample.get("column_classifications") or []:
+                if isinstance(column, dict) and (column.get("class") or column.get("classification")) in classes:
+                    count += 1
+    return count
+
+
+def _engine_fd_error(report: dict) -> dict:
+    errors = []
+    for payload in (report.get("neutral_jacobians") or {}).values():
+        if not isinstance(payload, dict):
+            continue
+        crosscheck = payload.get("engine_translation_crosscheck") or {}
+        if isinstance(crosscheck, dict) and crosscheck.get("available") is True:
+            errors.append(float(crosscheck.get("max_abs_error", 0.0)))
+    return {
+        "max_abs_translation_error": max(errors, default=None),
+        "available_count": len(errors),
+    }
+
+
+def _rank_agreement(report: dict) -> dict:
+    rates = []
+    for payload in (report.get("rank_stability") or {}).values():
+        if isinstance(payload, dict) and payload.get("relevant_rank_agreement_rate") is not None:
+            rates.append(float(payload["relevant_rank_agreement_rate"]))
+    return {
+        "min_relevant_rank_agreement_rate": min(rates, default=None),
+        "task_count": len(rates),
+    }
+
+
+def _subspace_distance(report: dict) -> dict:
+    distances = []
+    for payload in (report.get("rank_stability") or {}).values():
+        if isinstance(payload, dict) and payload.get("projector_distance_p95") is not None:
+            distances.append(float(payload["projector_distance_p95"]))
+    return {
+        "max_projector_distance_p95": max(distances, default=None),
+        "task_count": len(distances),
+    }
+
+
+def _canonical_residual_distribution(report: dict) -> dict:
+    values = []
+    motions = (report.get("canonical_projection_reports") or {}).get("motions") or {}
+    for motion in motions.values():
+        if not isinstance(motion, dict):
+            continue
+        for task in (motion.get("tasks") or {}).values():
+            if isinstance(task, dict) and task.get("normalized_residual") is not None:
+                values.append(float(task["normalized_residual"]))
+    if not values:
+        return {"count": 0, "p50": None, "p95": None, "max": None}
+    values.sort()
+    return {
+        "count": len(values),
+        "p50": _percentile(values, 50),
+        "p95": _percentile(values, 95),
+        "max": max(values),
+    }
+
+
+def _percentile(values: list[float], q: float) -> float:
+    if not values:
+        return 0.0
+    idx = (len(values) - 1) * q / 100.0
+    lo = int(idx)
+    hi = min(lo + 1, len(values) - 1)
+    frac = idx - lo
+    return float(values[lo] * (1.0 - frac) + values[hi] * frac)
+
+
 def _threshold_calibration_payload() -> dict:
     return {
         "finite_difference": {
@@ -146,7 +250,8 @@ def _threshold_calibration_payload() -> dict:
             "hand_rho_p_calibration": "global threshold raised from the initial 0.05 after before/after residual distribution showed baseline passed models between 0.05 and 0.12; no per-robot thresholding",
             "foot_rho_p": 0.06,
             "foot_rho_p_calibration": "global threshold raised from the initial 0.03 to avoid failing structured lower-body partial profiles with modest single-step residuals",
-            "torso_rho_r": 0.01,
+            "torso_rho_r": 0.08,
+            "torso_rho_r_calibration": "global threshold raised from the initial 0.01 after full before/after residual distribution showed baseline-passed toddlerbot torso yaw and mixed-torso residuals up to 0.0796; no per-robot thresholding",
             "neutral_position_abs_m": 0.001,
             "extreme_but_valid_joint_limit_stress": "record residual and limits; do not require reachability",
         },

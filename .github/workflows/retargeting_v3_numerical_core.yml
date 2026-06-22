@@ -1,12 +1,40 @@
 name: Retargeting V3 Numerical Core
 
 on:
+  push:
+    branches:
+      - retargeting-v3-step2-numerical-core-fix
+    paths:
+      - "soma_retargeter/robotics/v3/**"
+      - "tests/v3/test_engine_jacobian.py"
+      - "tests/v3/test_numerical_jacobian_gates.py"
+      - "tests/v3/test_reachability_gates.py"
+      - "tests/v3/test_fd_uncertainty_backend_steps.py"
+      - "tests/v3/test_zero_jacobian_columns_engine.py"
+      - "tests/v3/test_rank_uncertainty_metrics.py"
+      - "tests/v3/test_subspace_stability_metrics.py"
+      - "tests/v3/test_rotation_transfer_frames_parent_delta.py"
+      - "tests/v3/test_canonical_independence_temporal.py"
+      - "tests/v3/test_chain_length_normalization.py"
+      - "tests/v3/test_numerical_core_acceptance_audit.py"
+      - "artifacts/retargeting_v3_step2_numerical/**"
+      - "scripts/audit_retargeting_v3_numerical_core.py"
+      - "scripts/write_retargeting_v3_numerical_artifacts.py"
   pull_request:
     paths:
       - "soma_retargeter/robotics/v3/**"
       - "tests/v3/test_engine_jacobian.py"
       - "tests/v3/test_numerical_jacobian_gates.py"
       - "tests/v3/test_reachability_gates.py"
+      - "tests/v3/test_fd_uncertainty_backend_steps.py"
+      - "tests/v3/test_zero_jacobian_columns_engine.py"
+      - "tests/v3/test_rank_uncertainty_metrics.py"
+      - "tests/v3/test_subspace_stability_metrics.py"
+      - "tests/v3/test_rotation_transfer_frames_parent_delta.py"
+      - "tests/v3/test_canonical_independence_temporal.py"
+      - "tests/v3/test_chain_length_normalization.py"
+      - "tests/v3/test_numerical_core_acceptance_audit.py"
+      - "artifacts/retargeting_v3_step2_numerical/**"
       - "scripts/audit_retargeting_v3_numerical_core.py"
       - "scripts/write_retargeting_v3_numerical_artifacts.py"
   workflow_dispatch:
@@ -29,9 +57,16 @@ jobs:
             tests/v3/test_engine_jacobian.py \
             tests/v3/test_numerical_jacobian_gates.py \
             tests/v3/test_reachability_gates.py \
+            tests/v3/test_fd_uncertainty_backend_steps.py \
+            tests/v3/test_zero_jacobian_columns_engine.py \
+            tests/v3/test_rank_uncertainty_metrics.py \
+            tests/v3/test_subspace_stability_metrics.py \
+            tests/v3/test_rotation_transfer_frames_parent_delta.py \
+            tests/v3/test_canonical_independence_temporal.py \
+            tests/v3/test_chain_length_normalization.py \
+            tests/v3/test_numerical_core_acceptance_audit.py \
             tests/v3/test_chain_projection_gates.py \
             tests/v3/test_target_builder_calibrated_geometry.py
       - name: Audit numerical artifact shape
         run: |
-          python scripts/write_retargeting_v3_numerical_artifacts.py --low-discrepancy-count 1
           python scripts/audit_retargeting_v3_numerical_core.py

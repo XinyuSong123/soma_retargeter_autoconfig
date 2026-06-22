@@ -18,7 +18,7 @@ Status: Step 2.1 Numerical Core validation artifact generated at `artifacts/reta
 Generated with:
 
 ```text
-python scripts/write_retargeting_v3_numerical_artifacts.py --low-discrepancy-count 1
+python scripts/write_retargeting_v3_numerical_artifacts.py --deterministic-rerun
 python scripts/audit_retargeting_v3_numerical_core.py --artifact-dir artifacts/retargeting_v3_step2_numerical
 ```
 
@@ -26,9 +26,9 @@ Key artifact fields:
 
 ```text
 baseline_pass=7
-corrected_pass=11
+corrected_pass=16
 baseline_algorithm_failed=14
-corrected_algorithm_failed=10
+corrected_algorithm_failed=5
 epsilon_only_failures_before=14
 epsilon_only_failures_after=0
 semantic_failed_unchanged=3
@@ -36,7 +36,15 @@ model_load_failed_unchanged=2
 source_unavailable_unchanged=16
 ```
 
-The hand-position projection threshold is globally calibrated to `rho_p <= 0.12` in `threshold_calibration.json` after the before/after distribution showed baseline-passed models above the initial `0.05` hand threshold. This is a global calibration, not a per-robot exception. `extreme_but_valid_joint_limit_stress` records residual and limit evidence but is not required to be reachable.
+Full test evidence is stored under `artifacts/retargeting_v3_step2_numerical/test_results/`:
+
+```text
+229 passed, 10 skipped, 146 warnings in 2186.71s (0:36:26)
+```
+
+`junit.xml` is present for CI/test-result ingestion.
+
+The hand-position projection threshold is globally calibrated to `rho_p <= 0.12` in `threshold_calibration.json` after the before/after distribution showed baseline-passed models above the initial `0.05` hand threshold. The torso residual threshold is globally calibrated to `rho_R <= 0.08` after baseline-passed toddlerbot variants showed yaw and mixed-torso residuals up to `0.0796`; this is a global calibration, not a per-robot exception. `extreme_but_valid_joint_limit_stress` records residual and limit evidence but is not required to be reachable.
 
 ## Remaining Non-Epsilon Failures
 

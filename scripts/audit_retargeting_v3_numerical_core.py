@@ -73,9 +73,27 @@ def audit(root: Path) -> list[str]:
     rows = before_after.get("models", {})
     if not isinstance(rows, dict) or not rows:
         failures.append("before_after.models missing or empty")
+    if before_after.get("schema_version") != 2:
+        failures.append("before_after.schema_version must be 2")
     for model_id, row in rows.items():
         if row.get("corrected_epsilon_only"):
             failures.append(f"{model_id}: corrected_epsilon_only is true")
+        if row.get("baseline_status") in {"passed", "partial_passed"} and row.get("corrected_status") == "algorithm_failed":
+            failures.append(
+                f"{model_id}: baseline {row.get('baseline_status')} regressed to corrected algorithm_failed"
+            )
+        for field in (
+            "relevant_task_metric",
+            "zero_column_count",
+            "real_unstable_count",
+            "engine_fd_error",
+            "rank_agreement",
+            "subspace_distance",
+            "canonical_residual_distribution",
+            "runtime",
+        ):
+            if field not in row:
+                failures.append(f"{model_id}: before_after missing {field}")
     fd = threshold.get("finite_difference", {})
     if fd.get("scales") != ["2h", "h", "h/2"]:
         failures.append("threshold_calibration finite_difference.scales must be ['2h', 'h', 'h/2']")
@@ -89,17 +107,38 @@ def audit(root: Path) -> list[str]:
 def _audit_report(model_id: str, report: dict) -> list[str]:
     failures: list[str] = []
     for task, jac in (report.get("neutral_jacobians") or {}).items():
+        primary = jac.get("primary_jacobian_source")
+        if primary != "engine_relative_jacobian":
+            failures.append(f"{model_id}.{task}: primary_jacobian_source is not engine_relative_jacobian")
+        engine = jac.get("engine_relative_jacobian", {})
+        if isinstance(engine, dict) and engine.get("available") is not False:
+            for field in ("backend", "scalar_dtype", "source", "finite", "convention"):
+                if field not in engine:
+                    failures.append(f"{model_id}.{task}: engine_relative_jacobian missing {field}")
         crosscheck = jac.get("engine_translation_crosscheck", {})
         if crosscheck.get("available") is True:
             if crosscheck.get("source") in {None, "finite_difference_fallback"}:
                 failures.append(f"{model_id}.{task}: engine source missing or fallback")
             if crosscheck.get("finite") is not True:
                 failures.append(f"{model_id}.{task}: engine Jacobian is not finite")
+            if "backend" not in crosscheck:
+                failures.append(f"{model_id}.{task}: engine crosscheck backend missing")
     for task, reachability in (report.get("rank_stability") or {}).items():
         if "numerical_stability_gate_passed" not in reachability:
             failures.append(f"{model_id}.{task}: numerical_stability_gate_passed missing")
         if "task_block" not in reachability:
             failures.append(f"{model_id}.{task}: task_block missing")
+        for field in (
+            "engine_rank_translation",
+            "engine_rank_rotation",
+            "fd_rank_translation",
+            "fd_rank_rotation",
+            "relevant_rank_agreement_rate",
+            "projector_distance_p95",
+            "engine_fd_normalized_error_p95",
+        ):
+            if field not in reachability:
+                failures.append(f"{model_id}.{task}: {field} missing")
     return failures
 
 
