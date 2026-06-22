@@ -1,603 +1,504 @@
-# Goal — Step 2.2：全量公开 Robot Zoo 拉取、轻量快照与干净回写
+# Goal — Step 2.2：基于 44 个公开 Robot Zoo 资产完成全量开发
 
-> **Codex 执行契约**
->
-> 准备分支：`retargeting-v3-step2-assets-clean-sync`  
+> 当前准备分支：`retargeting-v3-step2-assets-clean-sync`  
 > 用户脚本输出分支：`retargeting-v3-step2-assets-vendored`  
 > 数值基线：`retargeting-v3-step2-numerical-core-fix@b0d947b2367908295d1924e877ba863ec47d91b9`  
-> 当前阶段：**Step 2.2 Asset Reproducibility and Full-Zoo Enablement**  
 >
-> 本轮必须使用 **6 个 xhigh 专业 subagents**。主 Codex 是 Integrator，负责接口、许可证边界、合并、全量验证和最终诚实结论。
+> 本轮必须创建并持续高强度使用 **6 个 xhigh 专业 subagents**。主 Codex 是 Integrator。
 >
-> **不得进入 Step 3；不得修改生产 `NewtonPipeline`；不得调 Jacobian epsilon、rank threshold 或 projection residual threshold；不得为机器人写数学特例。**
+> **范围已经冻结：46 个公开 source 均已解析，其中 44 个进入后续项目范围，2 个 snapshot 生成失败项明确永久延期，不再要求修复。**
+>
+> 44 个 in-scope 资产的构成：
+>
+> ```text
+> 38 个 permissive mesh-free kinematic snapshots
+> 5 个 fetch-only、仅在外部 cache 使用的模型
+> 1 个项目已有本地 RPO
+> ```
+>
+> 两个延期项必须保留在 `robot_zoo_lock.json` 中，保存 ID、source、失败原因和 scope decision，但不得继续阻断本轮开发。
 
 ---
 
-## 0. 用户先执行的脚本
+## 0. 用户首先执行
 
 在正确 conda 环境中：
 
 ```bash
 git fetch origin
-git checkout -b retargeting-v3-step2-assets-clean-sync \
-  origin/retargeting-v3-step2-assets-clean-sync
+git checkout retargeting-v3-step2-assets-clean-sync
+git pull --ff-only
 
-bash scripts/fetch_and_vendor_robot_zoo_assets.sh
+bash scripts/accept_two_deferred_robot_assets.sh
 ```
 
-脚本默认：
-
-1. 不使用当前可能脏的工作目录作为生成环境；
-2. 从远端准备分支创建独立 clean worktree；
-3. 将完整上游仓库下载到 Git checkout 外部的 cache；
-4. 拉取 manifest 中所有 `robot_descriptions` 模块；
-5. 拉取固定 SHA 的 MuJoCo Menagerie；
-6. 为 permissive `kinematic_snapshot` 条目生成无 meshes 的轻量快照；
-7. 为每个快照保存 `SOURCE.json` 和上游许可证；
-8. 对 GPL/LGPL/CC-SA/NASA 等 `fetch_only` 条目只保存 lock/provenance，不提交模型；
-9. 生成 `source_inventory.json` 和 `robot_zoo_lock.json`；
-10. 在 clean worktree 中提交；
-11. 推送：
+脚本只在以下精确条件下推送资产分支：
 
 ```text
-origin/retargeting-v3-step2-assets-vendored
+manifest entries     = 46
+source available     = 46
+vendored snapshots   = 38
+fetch-only cached    = 5
+project-local RPO    = 1
+snapshot deferred    = 2
+其他 blocker         = 0
 ```
 
-脚本环境变量：
+完成后：
 
 ```bash
-ROBOT_ZOO_CACHE=/external/cache/path
-INSTALL_MISSING_DEPS=1
-ALLOW_PARTIAL_ASSETS=0
-PUSH_ASSET_BRANCH=1
-KEEP_WORKTREE=0
+git fetch origin
+git checkout retargeting-v3-step2-assets-vendored
+git pull --ff-only
 ```
 
-正常验收不允许 `ALLOW_PARTIAL_ASSETS=1`。它只能用于诊断。
+然后让 Codex 读取本文件并开发。
 
 ---
 
-## 1. 当前问题
+## 1. 本轮目标
 
-数值核心修复后：
-
-```text
-baseline positive pass       7
-corrected positive pass     16
-algorithm_failed             5
-semantic_failed              3
-model_load_failed            2
-source_unavailable          16
-negative_control_passed      4
-```
-
-Step 2.1 已经证明：
-
-- epsilon-only failures 从 14 降为 0；
-- RPO 和 H1 等不再被旧 epsilon gate 误杀；
-- 仍有 5 个真实 projection/compiler failure；
-- 但当前最大覆盖率瓶颈已经变成 source、loader、semantic map 和可复现资产。
-
-本轮不改数值公式。目标是让 manifest 中所有公开源都可被确定性获取，让许可证允许的轻量运动学模型进入干净 Git 历史，并使 Codex 能在同一套公开资产上完成全量验证。
-
----
-
-## 2. 本轮唯一目标
-
-建立以下可复现数据流：
+基于已经准备好的 44 个公开资产完成：
 
 ```text
-manifest entry
-→ fixed upstream repository/ref
-→ external full-source cache
-→ source SHA/license verification
-→ redistribution policy
-→ mesh-free deterministic kinematic snapshot（仅 permissive）
-→ SOURCE.json + LICENSE
-→ robot_zoo_lock.json
-→ clean Git asset commit
+clean committed assets / pinned external fetch-only cache
 → runtime load
-→ verified semantics
-→ full Robot Zoo validation
+→ verified semantic sites
+→ full-chain paths
+→ engine Jacobian and numerical validation
+→ rest calibration
+→ canonical target projection
 → deterministic rerun
-→ final red-team audit
+→ per-robot result matrix
+→ clean artifacts
+→ CI and red-team
 ```
 
-本轮必须严格区分：
+本轮不再定位或修复两个 deferred snapshots。
 
-1. **完整上游 cache**：在 Git 仓库外，可以包含 meshes；
-2. **Git kinematic snapshot**：只包含运动学所需文本模型、许可证和来源信息；
-3. **fetch-only source**：可以拉取到 cache，但不得 vendor 到 Apache 项目；
-4. **project-local RPO**：保留现有模型，不重复复制；
-5. **private/unlisted assets**：完全不读取、不扫描、不提交。
+最终必须能够回答：
+
+1. 44 个 in-scope 资产中有多少成功加载？
+2. 每个 positive/partial humanoid 是否有 verified semantics？
+3. 哪些机器人通过离线 retargeting compiler？
+4. 哪些机器人失败于 projection residual、rank-zero demand 或 semantic geometry？
+5. 当前剩余五个真实 algorithm failures 的具体 motion/task/metric 是什么？
+6. 结果是否在 clean rerun 中完全复现？
 
 ---
 
-## 3. 硬性范围
+## 2. 硬性边界
 
-### 3.1 本轮包含
+### 包含
 
-- 清理/隔离脏 worktree；
-- external Robot Zoo cache；
-- `robot_descriptions==2.0.0` 全量拉取；
-- fixed-ref MuJoCo Menagerie 拉取；
-- source inventory；
-- lock file；
-- permissive kinematic snapshots；
-- LICENSE/SOURCE provenance；
-- pycollada 等公开 loader dependency；
-- source/load failure 修复；
-- 新可用模型的 verified semantic maps；
-- 全 46-entry 结构化验证；
+- 38 个 committed snapshots；
+- 5 个 fetch-only cached models；
+- 本地 RPO；
+- snapshot/runtime loader；
+- public loader dependencies；
+- verified semantic maps；
+- partial morphology classification；
+- full 44-source validation；
 - deterministic rerun；
+- remaining algorithm-failure analysis；
 - clean artifacts；
-- CI 和 red-team。
+- CI；
+- six-agent handoffs；
+- independent red-team。
 
-### 3.2 本轮禁止
+### 禁止
 
-- 提交完整上游仓库；
-- 提交 visual/collision meshes；
-- Git LFS；
-- 提交 GPL/LGPL/CC-BY-SA/NASA fetch-only 模型；
-- 自动改许可证分类；
-- 使用浮动 `main`；
-- 执行上游未知脚本；
-- 扫描 manifest 外目录；
-- 使用公司私有模型；
+- 修复或重新纳入两个 deferred snapshot IDs；
+- 将 deferred 计为 pass；
+- 将范围写成 46 个算法模型全部通过；
+- 提交完整上游 cache；
+- 提交 meshes；
+- vendor GPL/LGPL/CC-SA/NASA fetch-only 模型；
+- 使用私有资产；
 - 使用 `cxxx_190`；
-- 将公开 Franka Panda 错误当成私有资产；
-- 修改 numerical-core thresholds；
-- 为提高通过率降低 projection gate；
-- 修改生产 pipeline；
+- 修改 numerical-core epsilon、rank 或 projection thresholds；
+- 为机器人写数学特例；
+- 修改生产 `NewtonPipeline`；
 - 进入 Step 3。
 
 ---
 
-## 4. 六个 xhigh Subagents
+## 3. 六个 xhigh Subagents
 
-每个 agent 必须：
+### Agent A — Asset Lock and Snapshot Integrity
 
-- 独立 worktree/branch；
-- 明确 owned files；
-- 小 commits；
-- handoff 记录 xhigh、commit、命令、测试、结果、风险；
-- 不得降低许可证或算法 gate。
+负责：
 
-### Agent A — Source Fetch, Pins and Lock
+- 审查 `robot_zoo_lock.json`；
+- 验证 44/2 scope decision；
+- snapshot hash、source hash、upstream commit、LICENSE；
+- fetch-only 不进入 Git；
+- deterministic snapshot rerun；
+- mesh/private/absolute-path audit。
 
-**职责**
-
-- 审计 manifest 46 entries；
-- 运行和修复 `fetch_and_vendor_robot_zoo_assets.sh` 的 fetch 部分；
-- `robot_descriptions` 2.0.0 拉取；
-- Menagerie 固定 SHA；
-- source repository/ref/path/hash；
-- retry、resume、offline rerun；
-- `source_inventory.json`；
-- `robot_zoo_lock.json` schema。
-
-**Owned files**
+Owned files：
 
 ```text
-scripts/fetch_and_vendor_robot_zoo_assets.sh
-soma_retargeter/tools/sync_robot_zoo_v3.py
-soma_retargeter/robotics/v3/robot_zoo.py
-assets/robot_zoo/source_inventory.json
 assets/robot_zoo/robot_zoo_lock.json
-tests/v3/test_robot_zoo_fetch_*.py
-docs/retargeting_v3/subagents/assets_agent_a_handoff.md
-```
-
-**硬门槛**
-
-- manifest entry count 与 lock count 一致；
-- required source unavailable = 0；
-- optional fetch-only 也应尝试拉取到 cache；
-- 所有 source 有 SHA；
-- git upstream 有 commit SHA；
-- Menagerie SHA 必须完全等于 manifest pin；
-- 第二次 offline 执行不需要网络。
-
-### Agent B — License Policy and Kinematic Snapshots
-
-**职责**
-
-- 审计 `scripts/build_robot_zoo_snapshots.py`；
-- URDF visual/collision stripping；
-- MJCF canonicalization 与 explicit inertial；
-- snapshot runtime load；
-- LICENSE/SOURCE；
-- size/mesh/path/private-asset audit；
-- deterministic snapshot hash。
-
-**Owned files**
-
-```text
-scripts/build_robot_zoo_snapshots.py
+assets/robot_zoo/source_inventory.json
 assets/robot_zoo/snapshots/
-docs/retargeting_v3/ASSET_POLICY.md
-tests/v3/test_robot_zoo_snapshots_*.py
-docs/retargeting_v3/subagents/assets_agent_b_handoff.md
+scripts/build_robot_zoo_snapshots.py
+scripts/audit_robot_zoo_assets_v3.py
+tests/v3/test_robot_zoo_asset_*.py
+docs/retargeting_v3/subagents/assets44_agent_a_handoff.md
 ```
 
-**硬门槛**
+### Agent B — Loader Closure
 
-- 每个 `kinematic_snapshot` entry：
-  - snapshot 存在；
-  - 可被相应 loader 加载；
-  - 无 mesh/package URI；
-  - 小于 2MB/robot；
-  - 有 LICENSE；
-  - 有 SOURCE.json；
-  - source/ref/hash 完整；
-- `fetch_only` 不产生 snapshot 目录；
-- snapshot 二次生成 hash 一致；
-- 不存在本机绝对路径；
-- 不存在 private denylist token。
+负责：
 
-### Agent C — Loader and Environment Closure
-
-**职责**
-
-- `pycollada` 等公开依赖；
 - URDF/MJCF snapshot load；
+- Newton/MuJoCo backend load；
+- `pycollada` 等 public dependencies；
 - include/package/path resolution；
-- Newton/MuJoCo load parity；
-- source failure taxonomy；
-- CI environment lock。
+- loader taxonomy；
+- 44 in-scope entries的 load matrix。
 
-**Owned files**
+Owned files：
 
 ```text
 pyproject.toml
-environment*.yml                         # 若已有则更新
+environment*.yml
 soma_retargeter/robotics/v3/model_adapter.py
 soma_retargeter/robotics/v3/model_conversion.py
-tests/v3/test_robot_zoo_snapshot_load_*.py
-docs/retargeting_v3/subagents/assets_agent_c_handoff.md
+tests/v3/test_robot_zoo_loader_*.py
+docs/retargeting_v3/subagents/assets44_agent_b_handoff.md
 ```
 
-**硬门槛**
-
-- 当前 `jvrc_urdf` 和 `unitree_go2_urdf` 不再因缺 pycollada 失败；
-- required snapshots 全部至少一个 runtime backend load；
-- missing optional dependency 不再出现在 required reports；
-- 不以删除几何 gate 来绕过 loader；
-- loader patch 只能作用于临时 copy，不能改 upstream cache。
-
-### Agent D — Verified Semantics for Newly Available Models
-
-**职责**
-
-- 只处理本轮新拉取且 source/load 成功的 positive/partial humanoids；
-- verified Hips/Chest/Hand/Foot sites；
-- distal geometry evidence；
-- partial morphology 分类；
-- map fingerprint/hash 绑定。
-
-**Owned files**
+Gate：
 
 ```text
-assets/robot_zoo/semantic_maps/
-assets/robot_zoo/semantic_expectations/
-soma_retargeter/robotics/v3/semantic_validation.py
-soma_retargeter/robotics/v3/site_geometry.py
-tests/v3/test_new_asset_semantics_*.py
-docs/retargeting_v3/subagents/assets_agent_d_handoff.md
+in-scope source/load failure = 0
 ```
 
-**硬门槛**
+fetch-only 也必须能从外部 cache 加载，但不能提交模型本体。
 
-- positive humanoid 不允许 inference→passed；
-- Berkeley 等实际 partial morphology 不伪造 hands；
-- H1 URDF map 与真实 source fingerprint 绑定；
-- Hand/Foot local site 有 topology/geometry evidence；
-- body origin 不能无证据作为 distal site；
-- map mismatch 必须 fail closed。
+### Agent C — Verified Semantics: Core Humanoids
 
-### Agent E — Full-Zoo Validation and Remaining Algorithm Evidence
+负责核心机器人：
 
-**职责**
+- RPO；
+- G1 URDF/MJCF；
+- H1/H1_2；
+- Booster T1；
+- OP3；
+- TALOS；
+- Berkeley；
+- Fourier N1。
 
-- 对 clean snapshots/cache 运行 46-entry validation；
-- before/after source/load/semantic matrix；
+必须建立：
+
+- fingerprint-bound verified maps；
+- Hips/Chest；
+- distal Hand；
+- sole/toe/heel where available；
+- partial classification where morphology lacks arms；
+- topology/FK/geometry evidence。
+
+Owned files：
+
+```text
+assets/robot_zoo/semantic_maps/<core shard>
+assets/robot_zoo/semantic_expectations/<core shard>
+soma_retargeter/robotics/v3/semantic_validation.py
+soma_retargeter/robotics/v3/site_geometry.py
+tests/v3/test_assets44_core_semantics_*.py
+docs/retargeting_v3/subagents/assets44_agent_c_handoff.md
+```
+
+### Agent D — Verified Semantics: Remaining Humanoids and Controls
+
+负责其余 in-scope positive/partial humanoids，以及 negative controls。
+
+要求：
+
+- positive 不允许 inference→passed；
+- biped-no-arms 诚实 partial/negative；
+- Go2、Panda、Stretch 等不得伪装成 humanoid；
+- semantic map 与 snapshot/source fingerprint 绑定；
+- source variant 差异明确记录。
+
+Owned files：
+
+```text
+assets/robot_zoo/semantic_maps/<remaining shard>
+assets/robot_zoo/semantic_expectations/<remaining shard>
+tests/v3/test_assets44_remaining_semantics_*.py
+tests/v3/test_assets44_negative_controls_*.py
+docs/retargeting_v3/subagents/assets44_agent_d_handoff.md
+```
+
+### Agent E — Full 44-Asset Validation and Failure Analysis
+
+负责：
+
+- 自动从 lock 的 scope decision 读取 44 个 in-scope IDs；
+- 不在代码里另写清单；
+- 对 44 个运行完整 validation；
 - deterministic rerun；
-- cross-format pairs；
-- 记录剩余 5 个 algorithm failures 的真实 motion/task residual；
-- 不改 numerical thresholds。
+- URDF/MJCF pair reports；
+- RPO专项；
+- 剩余 algorithm failures 的精确诊断。
 
-**Owned files**
+Owned files：
 
 ```text
 soma_retargeter/robotics/v3/validation.py
 soma_retargeter/tools/validate_kinematic_profile_v3.py
-artifacts/retargeting_v3_step2_assets/
-tests/v3/test_full_asset_zoo_validation_*.py
-docs/retargeting_v3/STEP2_ASSET_VALIDATION_REPORT.md
-docs/retargeting_v3/subagents/assets_agent_e_handoff.md
+artifacts/retargeting_v3_step2_assets44/
+tests/v3/test_assets44_full_validation_*.py
+docs/retargeting_v3/STEP2_ASSETS44_VALIDATION_REPORT.md
+docs/retargeting_v3/subagents/assets44_agent_e_handoff.md
 ```
 
-**硬门槛**
+每个 algorithm failure 必须保存：
 
-- 46 entries 都有 terminal structured status；
-- required source unavailable = 0；
-- required model_load_failed = 0；
-- positive semantic_failed = 0，或有经验证的 partial classification；
-- negative controls 正确拒绝；
-- 当前 numerical pass 模型不得回归；
-- 剩余 algorithm failure 不得再用 generic `compiler recorded algorithm failures`，必须列出 motion/task/metric/threshold；
-- 不因资产轮修改数值公式。
+```text
+robot
+motion
+task
+metric
+actual value
+threshold
+rank/capability
+projected target
+unreachable demand
+```
+
+禁止只写：
+
+```text
+compiler recorded algorithm failures
+```
 
 ### Agent F — Clean Provenance, CI and Red Team
 
-**职责**
+负责：
 
-- clean worktree audit；
-- source commit ancestry；
-- license/mesh/size/private path audit；
+- clean source commit；
+- clean worktree generation；
+- no absolute paths；
+- no private assets；
+- no meshes；
+- no fetch-only vendoring；
+- six handoffs；
 - full tests；
 - CI；
-- six handoffs；
-- 最终 PASS/BLOCKED。
+- final PASS/BLOCKED。
 
-**Owned files**
+Owned files：
 
 ```text
-scripts/audit_robot_zoo_assets_v3.py
-.github/workflows/retargeting_v3_robot_zoo_assets.yml
-tests/v3/test_robot_zoo_asset_acceptance_*.py
-docs/retargeting_v3/STEP2_ASSET_ACCEPTANCE.md
-docs/retargeting_v3/subagents/assets_agent_f_red_team.md
-artifacts/retargeting_v3_step2_assets/test_results/
+scripts/audit_retargeting_v3_assets44.py
+.github/workflows/retargeting_v3_assets44.yml
+tests/v3/test_assets44_acceptance_*.py
+docs/retargeting_v3/STEP2_ASSETS44_ACCEPTANCE.md
+docs/retargeting_v3/subagents/assets44_agent_f_red_team.md
+artifacts/retargeting_v3_step2_assets44/test_results/
 ```
-
-**红队必须检查**
-
-- cache 是否在 repo 外；
-- 生成时 worktree 是否 clean；
-- 是否提交上游 `.git`；
-- 是否提交 mesh；
-- 是否提交 fetch-only；
-- LICENSE 是否真实来自 upstream；
-- SOURCE ref 是否为 commit SHA；
-- 是否使用浮动 branch；
-- 是否包含绝对路径；
-- 是否包含私有资产 token；
-- required unavailable/load/semantic failure 是否被伪装；
-- numerical thresholds 是否被修改；
-- artifacts 是否对应可解析的 source commit；
-- CI 是否真实运行。
 
 ---
 
-## 5. Clean Worktree 协议
+## 4. Scope contract
 
-最终资产提交必须来自独立 worktree：
-
-```text
-origin/retargeting-v3-step2-assets-clean-sync
-→ clean worktree
-→ external cache fetch
-→ snapshot generation
-→ tests
-→ git add 仅允许目录
-→ commit
-→ git status empty
-→ push retargeting-v3-step2-assets-vendored
-```
-
-允许提交的生成内容：
-
-```text
-assets/robot_zoo/source_inventory.json
-assets/robot_zoo/robot_zoo_lock.json
-assets/robot_zoo/snapshots/**
-```
-
-禁止提交：
-
-```text
-${ROBOT_ZOO_CACHE}/**
-任何 upstream .git/**
-任何 visual meshes
-pull logs
-临时 worktree
-Python cache
-本机路径
-```
-
-后续 Codex 代码和 semantic maps 应在 vendored branch 上提交。最终 artifacts 需要另一个 clean worktree 生成。
-
----
-
-## 6. Snapshot 格式
-
-每个 permissive snapshot：
-
-```text
-assets/robot_zoo/snapshots/<robot_id>/
-  model.urdf | model.xml
-  SOURCE.json
-  LICENSES/
-    LICENSE...
-```
-
-`SOURCE.json` 至少包含：
+`robot_zoo_lock.json` 必须包含：
 
 ```json
 {
-  "robot_id": "...",
-  "description_name": "...",
-  "upstream_repository": "...",
-  "upstream_ref": "40-char commit SHA",
-  "source_file": "relative/path",
-  "source_sha256": "...",
-  "format": "urdf|mjcf",
-  "license": "...",
-  "license_files": [],
-  "license_sha256": "...",
-  "redistribution": "kinematic_snapshot",
-  "generator_version": "...",
-  "snapshot_file": "...",
-  "snapshot_sha256": "..."
+  "scope_decision": {
+    "decision": "accept_exactly_two_deferred_snapshots",
+    "deferred_snapshot_ids": ["...", "..."],
+    "deferred_snapshot_count": 2,
+    "in_scope_source_count": 44,
+    "in_scope_breakdown": {
+      "vendored_snapshots": 38,
+      "fetch_only_cached": 5,
+      "project_local_existing": 1
+    },
+    "blocking_count_for_current_scope": 0
+  }
 }
 ```
 
-URDF snapshot：
+任何新的 source、snapshot、load 或 license failure 都是 blocker。
 
-- 保留 link/joint/inertial/origin/axis/limit；
-- 移除 visual/collision/gazebo/transmission；
-- 不保留 package URI 或 mesh filename。
-
-MJCF snapshot：
-
-- 从 compiled model 保存 canonical XML；
-- 显式写入 inertial；
-- 保留 body/joint/freejoint/site；
-- 移除 asset/geom/visual/contact/actuator/sensor/keyframe；
-- snapshot 必须重新被 MuJoCo 加载。
+只有 lock 中列出的两个 ID 可 deferred。
 
 ---
 
-## 7. Lock 和 Inventory 语义
+## 5. 验证状态
 
-`source_inventory.json` 记录本次 cache resolution。
-
-`robot_zoo_lock.json` 是长期可复现锁：
+对 44 个 in-scope 条目，只允许：
 
 ```text
-manifest SHA
-entry ID
-source family
-repository URL
-commit SHA
-source relative file
-source SHA
-license
-redistribution policy
-snapshot status/path/hash
-```
-
-状态至少包括：
-
-```text
-vendored
-fetch_only
-local_existing
-snapshot_failed
+passed
+partial_passed
+negative_control_passed
+algorithm_failed
+semantic_failed
+model_load_failed
 source_unavailable
 license_blocked
 ```
 
-不得只记录 URL 而不记录 commit/hash。
+最终 asset/data 验收要求：
+
+```text
+source_unavailable = 0
+model_load_failed  = 0
+license_blocked    = 0 for in-scope IDs
+semantic_failed    = 0
+```
+
+可以保留有真实数学证据的 `algorithm_failed`，但必须给出完整诊断。
+
+两个 deferred IDs 不进入上述 44 条统计，并单独显示：
+
+```text
+deferred_snapshot = 2
+```
 
 ---
 
-## 8. 全量验证分层统计
+## 6. 必须保留的 numerical-core 结果
 
-不要再只报告 `pass/46`。必须输出：
+不得修改以下全局 numerical contracts：
+
+- engine relative Jacobian 是主能力依据；
+- finite difference 是 uncertainty validator；
+- task-specific translation/rotation block；
+- backend-aware multi-scale FD；
+- rank/subspace statistical gate；
+- parent-frame rotation transfer；
+- independent canonical capability motions；
+- chain-length normalization；
+- projection thresholds 使用当前已提交全局值。
+
+当前 numerical baseline：
 
 ```text
-manifest_total
-source_fetched
-source_unavailable_required
-source_unavailable_optional
-snapshot_expected
-snapshot_vendored
-snapshot_failed
-fetch_only_cached
-load_attempted
-load_passed
-semantic_attempted
-semantic_passed
+positive profile pass       16
+algorithm_failed             5
+epsilon-only failures        0
+```
+
+资产轮结束后：
+
+- 这 16 台不得回归；
+- 新 source 可以增加 profile eligible/pass；
+- 不得通过放宽阈值减少 5 个失败。
+
+---
+
+## 7. Artifacts
+
+最终目录：
+
+```text
+artifacts/retargeting_v3_step2_assets44/
+  environment.json
+  commands.txt
+  scope.json
+  source_inventory.json
+  load_matrix.json
+  semantic_matrix.json
+  summary.json
+  deterministic_rerun.json
+  cross_format.json
+  deferred_snapshots.json
+  per_robot/
+  failures/
+  test_results/
+```
+
+`summary.json` 至少包含：
+
+```text
+manifest_total                 46
+in_scope_total                 44
+deferred_snapshot_count         2
+vendored_snapshot_count        38
+fetch_only_cached_count          5
+project_local_count              1
+source_available_in_scope
+load_passed_in_scope
+semantic_passed_in_scope
 profile_eligible
 profile_passed
-algorithm_failed
+partial_passed
 negative_control_passed
+algorithm_failed
+source_unavailable               0
+model_load_failed                0
+semantic_failed                  0
 deterministic_compared
 deterministic_matched
 ```
 
-`fetch_only_cached` 不是 `snapshot_vendored`。
-
-`source fetched` 也不是 `algorithm pass`。
-
 ---
 
-## 9. 测试要求
+## 8. Clean generation protocol
 
-### Script/asset tests
+1. 核心代码、maps、tests先提交；
+2. 建 clean detached worktree；
+3. 从 committed snapshot + pinned external cache运行；
+4. full tests；
+5. 44-asset validation；
+6. deterministic rerun；
+7. 生成临时 artifacts；
+8. 扫描绝对路径、private token、mesh；
+9. 提交 compact artifacts；
+10. 核心代码若再改，全部重跑。
 
-- manifest 46-entry lock coverage；
-- retry/resume；
-- offline second run；
-- pinned Menagerie SHA；
-- permissive snapshot generation；
-- fetch-only non-vendoring；
-- license missing fail closed；
-- mesh/path/private denylist；
-- deterministic snapshot hash；
-- max size；
-- clean worktree protocol。
+最终 `environment.json`：
 
-### Loader tests
-
-- all vendored URDFs parse；
-- all vendored MJCFs parse；
-- required snapshots load in Newton or MuJoCo；
-- pycollada-dependent original sources load；
-- no private asset dependency。
-
-### Full validation
-
-```bash
-python -m pytest -q
-python -m soma_retargeter.tools.validate_kinematic_profile_v3 \
-  --manifest assets/robot_zoo/robot_zoo_manifest.json \
-  --output-dir artifacts/retargeting_v3_step2_assets \
-  --low-discrepancy-count 32 \
-  --deterministic-rerun
+```text
+git_status_short = ""
+source_code_commit 可解析
+source_code_commit 是 artifact commit 祖先
 ```
 
 ---
 
-## 10. Acceptance Gates
+## 9. Acceptance Gates
 
-### Fetch/cache
+### Scope/assets
 
-- [ ] manifest 46 entries processed；
-- [ ] all description modules attempted；
-- [ ] Menagerie exact SHA；
-- [ ] required unavailable=0；
-- [ ] external cache；
-- [ ] offline rerun works。
+- [ ] 46 source available；
+- [ ] exactly 2 deferred IDs；
+- [ ] exactly 44 in scope；
+- [ ] 38 snapshots committed；
+- [ ] 5 fetch-only cache-only；
+- [ ] 1 local RPO；
+- [ ] 无新 asset blocker。
 
-### Snapshot/license
+### Load/semantics
 
-- [ ] all kinematic_snapshot entries vendored；
-- [ ] all snapshots load；
-- [ ] no meshes；
-- [ ] no package URI；
-- [ ] under size limit；
-- [ ] LICENSE/SOURCE complete；
-- [ ] fetch-only not vendored；
-- [ ] deterministic hash。
+- [ ] 44 source unavailable=0；
+- [ ] 44 model load failed=0；
+- [ ] 44 semantic failed=0；
+- [ ] partial morphology诚实；
+- [ ] negative controls正确。
 
-### Loader/semantics
+### Algorithms
 
-- [ ] required load failures=0；
-- [ ] pycollada closure；
-- [ ] positive verified maps；
-- [ ] partial morphology honest；
-- [ ] negative controls correct。
+- [ ] numerical-core 16 passes无回归；
+- [ ] epsilon-only failures=0；
+- [ ] remaining failures有具体证据；
+- [ ] no threshold changes；
+- [ ] RPO通过专项。
 
 ### Reproducibility
 
-- [ ] clean generation worktree；
-- [ ] clean post-commit worktree；
+- [ ] clean worktree；
 - [ ] no absolute paths；
-- [ ] no private assets；
-- [ ] source commit resolvable；
+- [ ] no meshes/private assets；
+- [ ] deterministic rerun；
 - [ ] six xhigh handoffs；
 - [ ] full tests；
 - [ ] CI run；
@@ -605,77 +506,33 @@ python -m soma_retargeter.tools.validate_kinematic_profile_v3 \
 
 ---
 
-## 11. 明确禁止的捷径
+## 10. 完成定义
 
-- 把 cache 目录直接 `git add`；
-- vendor fetch-only/GPL/NASA/CC-SA；
-- 删除 LICENSE；
-- 用 manifest license 字符串代替真实 LICENSE 文件；
-- 提交 meshes；
-- 以 Git LFS 掩盖大文件；
-- source 失败时换私有模型；
-- 自动跟踪 upstream main；
-- 修改 upstream cache；
-- 未验证 snapshot load 就提交；
-- 使用 `ALLOW_PARTIAL_ASSETS=1` 后宣布完成；
-- 为通过全量验证放宽 numerical thresholds；
-- 将 semantic/load/source failure 改名为 pass；
-- 修改生产 pipeline；
-- 进入 Step 3。
-
----
-
-## 12. 推荐提交顺序
-
-1. `test: add Robot Zoo fetch and lock gates`
-2. `fix: make all manifest sources resumably fetchable`
-3. `test: add license and snapshot rejection gates`
-4. `feat: build deterministic mesh-free URDF snapshots`
-5. `feat: build deterministic canonical MJCF snapshots`
-6. `assets: vendor permissive Robot Zoo snapshots`
-7. `deps: close public Robot Zoo loader dependencies`
-8. `data: verify newly available humanoid semantic maps`
-9. `test: run full 46-entry Robot Zoo validation`
-10. `test: run deterministic asset and profile rerun`
-11. `ci: add Robot Zoo asset workflow`
-12. `docs: add six handoffs and asset reports`
-13. `artifacts: publish clean Step 2.2 evidence`
-
----
-
-## 13. 完成定义
-
-最终报告只能写：
+最终只能写：
 
 ```text
-Step 2.2 Robot Zoo Assets: PASS
+Step 2.2 Assets44: PASS
 ```
 
 或：
 
 ```text
-Step 2.2 Robot Zoo Assets: BLOCKED
+Step 2.2 Assets44: BLOCKED
 ```
+
+PASS 不要求两个 deferred snapshots 被修复，也不允许未来重新把它们作为 blocker。
 
 PASS 必须满足：
 
-- [ ] clean asset branch 已由脚本推送；
-- [ ] all required sources fetched；
-- [ ] all permissive snapshots vendored；
-- [ ] all fetch-only models只在cache/lock；
-- [ ] all snapshots load；
-- [ ] required model load failure=0；
-- [ ] positive semantic failure=0或明确verified partial；
-- [ ] full 46-entry structured validation；
-- [ ] deterministic rerun；
-- [ ] no private assets；
-- [ ] no meshes/absolute paths；
-- [ ] license/source/pin/hash完整；
-- [ ] six xhigh handoffs；
-- [ ] full tests通过；
-- [ ] CI有通过记录；
-- [ ] Agent F结论为PASS；
-- [ ] 未修改 numerical thresholds；
+- [ ] asset branch 已干净推送；
+- [ ] scope decision 可审计；
+- [ ] 44 in-scope assets 全部可访问；
+- [ ] 44 load/semantic scaffolding failures为0；
+- [ ] full validation完成；
+- [ ] deterministic rerun完成；
+- [ ] numerical pass无回归；
+- [ ] remaining algorithm failures有完整证据；
+- [ ] no private/fetch-only/mesh leakage；
+- [ ] six handoffs；
+- [ ] tests/CI/red-team通过；
 - [ ] 未进入Step3。
-
-本轮可以保留有真实 projection residual 证据的 `algorithm_failed`，但不能保留 source/load/semantic scaffolding failure。剩余算法问题必须为下一轮提供明确 robot/motion/task/metric/threshold，不得再只写 generic failure。
