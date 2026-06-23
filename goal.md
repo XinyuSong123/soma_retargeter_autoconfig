@@ -1,417 +1,851 @@
-# Goal — Step 2.2：基于 44 个公开 Robot Zoo 资产完成全量开发
+# Goal — Step 2.3：Capability-Aware Closest-Reachable Projection
 
-> 当前准备分支：`retargeting-v3-step2-assets-clean-sync`  
-> 用户脚本输出分支：`retargeting-v3-step2-assets-vendored`  
-> 数值基线：`retargeting-v3-step2-numerical-core-fix@b0d947b2367908295d1924e877ba863ec47d91b9`  
+> **Codex 执行契约**
 >
-> 本轮必须创建并持续高强度使用 **6 个 xhigh 专业 subagents**。主 Codex 是 Integrator。
+> 当前分支：`retargeting-v3-step2-capability-projection-fix`  
+> 基线分支：`retargeting-v3-step2-assets-vendored`  
+> 基线提交：`5ad5a001c445c525d4c8bbaf6339dec5c5c2c719`  
+> 当前阶段：**Step 2.3 Capability Projection Closure**  
 >
-> **范围已经冻结：46 个公开 source 均已解析，其中 44 个进入后续项目范围，2 个 snapshot 生成失败项明确永久延期，不再要求修复。**
+> 本轮必须一次创建并持续高强度使用 **6 个 xhigh 专业 subagents**。主 Codex 是 Integrator，负责接口冻结、冲突解决、全量验证、clean artifacts 和最终诚实判定。
 >
-> 44 个 in-scope 资产的构成：
+> **Git LFS 已正式接受。必须执行 `git lfs pull` 和 `git lfs fsck`，不得在 pointer-only 文件上运行模型验证。LFS 不得用于提交 meshes、完整上游仓库或 fetch-only 模型。**
 >
-> ```text
-> 38 个 permissive mesh-free kinematic snapshots
-> 5 个 fetch-only、仅在外部 cache 使用的模型
-> 1 个项目已有本地 RPO
-> ```
->
-> 两个延期项必须保留在 `robot_zoo_lock.json` 中，保存 ID、source、失败原因和 scope decision，但不得继续阻断本轮开发。
+> **不得进入 Step 3；不得修改生产 `NewtonPipeline`；不得调低/放宽 Step 2.1 已冻结的 numerical epsilon、rank、subspace 或 projection residual thresholds；不得按机器人名称写数学特例。**
 
 ---
 
-## 0. 用户首先执行
-
-在正确 conda 环境中：
+## 0. 开始前必须执行
 
 ```bash
-git fetch origin
-git checkout retargeting-v3-step2-assets-clean-sync
-git pull --ff-only
+git status --short
+git branch --show-current
+git rev-parse HEAD
 
-bash scripts/accept_two_deferred_robot_assets.sh
+git lfs install
+git lfs pull
+git lfs fsck
 ```
 
-脚本只在以下精确条件下推送资产分支：
+必须确认：
 
 ```text
-manifest entries     = 46
-source available     = 46
-vendored snapshots   = 38
-fetch-only cached    = 5
-project-local RPO    = 1
-snapshot deferred    = 2
-其他 blocker         = 0
+branch = retargeting-v3-step2-capability-projection-fix
+HEAD ancestor includes 5ad5a001c445c525d4c8bbaf6339dec5c5c2c719
+worktree clean
+LFS objects materialized
 ```
 
-完成后：
+必须阅读：
 
-```bash
-git fetch origin
-git checkout retargeting-v3-step2-assets-vendored
-git pull --ff-only
-```
+1. `/goal.md`
+2. `docs/retargeting_v3/ASSET_POLICY.md`
+3. `docs/retargeting_v3/STEP2_NUMERICAL_ACCEPTANCE.md`
+4. `docs/retargeting_v3/STEP2_ASSETS44_ACCEPTANCE.md`
+5. `docs/retargeting_v3/STEP2_ASSETS44_VALIDATION_REPORT.md`
+6. `docs/retargeting_v3/subagents/numerical_agent_f_red_team.md`
+7. `docs/retargeting_v3/subagents/assets44_agent_f_red_team.md`
+8. `artifacts/retargeting_v3_step2_assets44/summary.json`
+9. `artifacts/retargeting_v3_step2_assets44/failures/*.json`
+10. `assets/robot_zoo/robot_zoo_lock.json`
 
-然后让 Codex 读取本文件并开发。
+不得只读总结文档后开始修改 solver。
 
 ---
 
-## 1. 本轮目标
+## 1. 当前真实基线
 
-基于已经准备好的 44 个公开资产完成：
+### 1.1 Asset / loader / semantics 已闭环
 
 ```text
-clean committed assets / pinned external fetch-only cache
-→ runtime load
-→ verified semantic sites
-→ full-chain paths
-→ engine Jacobian and numerical validation
-→ rest calibration
-→ canonical target projection
-→ deterministic rerun
-→ per-robot result matrix
-→ clean artifacts
-→ CI and red-team
+manifest public sources       46
+in-scope models               44
+deferred snapshots             2
+committed snapshots           38
+fetch-only cached models       5
+project-local RPO              1
+source_unavailable             0
+model_load_failed              0
+semantic_failed                0
 ```
 
-本轮不再定位或修复两个 deferred snapshots。
+两个永久 deferred IDs：
 
-最终必须能够回答：
+```text
+berkeley_humanoid_urdf
+romeo_urdf
+```
 
-1. 44 个 in-scope 资产中有多少成功加载？
-2. 每个 positive/partial humanoid 是否有 verified semantics？
-3. 哪些机器人通过离线 retargeting compiler？
-4. 哪些机器人失败于 projection residual、rank-zero demand 或 semantic geometry？
-5. 当前剩余五个真实 algorithm failures 的具体 motion/task/metric 是什么？
-6. 结果是否在 clean rerun 中完全复现？
+它们不进入本轮算法 gates，也不得重新加入。
+
+### 1.2 当前 terminal results
+
+```text
+passed                         21
+partial_passed                  3
+negative_control_passed         9
+algorithm_failed               11
+terminal pass total            33
+in-scope total                 44
+```
+
+当前 deterministic rerun：
+
+```text
+compared = 33
+matched  = 33
+```
+
+### 1.3 当前 11 个真实 algorithm failures
+
+```text
+atlas_drc_urdf
+atlas_v4_urdf
+booster_t1_mjcf
+booster_t1_urdf
+fourier_n1_mjcf
+jaxon_urdf
+mujoco_humanoid_mjcf
+pal_talos_mjcf_direct
+robotis_op3_mjcf
+talos_urdf
+valkyrie_urdf
+```
+
+这些模型已经：
+
+- source available；
+- runtime load passed；
+- verified semantics or valid full profile map；
+- engine Jacobian / FD numerical core available；
+- 不再有 epsilon-only failure。
+
+因此本轮不允许继续把失败归因于资产、loader、semantic scaffolding 或 epsilon。
+
+### 1.4 当前跨格式证据
+
+- G1 same-source URDF → canonical MJCF strict equivalence 已通过；
+- Assets44 CI 和 numerical-core CI 已通过；
+- 当前 Assets44 CI 主要是 static/audit，不是 44-model 从零完整重算；
+- Cassie 等 negative-control pair 不应被正向 humanoid cross-format gate 误判。
 
 ---
 
-## 2. 硬性边界
+## 2. 本轮唯一目标
 
-### 包含
+把当前单一的：
 
-- 38 个 committed snapshots；
-- 5 个 fetch-only cached models；
-- 本地 RPO；
-- snapshot/runtime loader；
-- public loader dependencies；
-- verified semantic maps；
-- partial morphology classification；
-- full 44-source validation；
-- deterministic rerun；
-- remaining algorithm-failure analysis；
-- clean artifacts；
-- CI；
-- six-agent handoffs；
-- independent red-team。
+```text
+residual exceeds exact threshold → algorithm_failed
+```
 
-### 禁止
+升级为数学上可审计的：
 
-- 修复或重新纳入两个 deferred snapshot IDs；
-- 将 deferred 计为 pass；
-- 将范围写成 46 个算法模型全部通过；
-- 提交完整上游 cache；
-- 提交 meshes；
-- vendor GPL/LGPL/CC-SA/NASA fetch-only 模型；
-- 使用私有资产；
-- 使用 `cxxx_190`；
-- 修改 numerical-core epsilon、rank 或 projection thresholds；
-- 为机器人写数学特例；
-- 修改生产 `NewtonPipeline`；
-- 进入 Step 3。
+```text
+canonical target
+→ deterministic continuation solve
+→ engine-Jacobian bounded optimum
+→ reachable tangent/subspace decomposition
+→ joint-limit/KKT optimality certificate
+→ exact_reachable | capability_limited | solver_failed | invalid_target
+→ capability-aware profile status
+```
+
+本轮必须区分：
+
+1. **Exact reachable**：目标在当前全局 residual gate 内；
+2. **Capability limited**：目标超出形态、可达子空间或 joint limits，但 solver 找到了可证明的最近可达解；
+3. **Solver failed**：残差仍含显著可达方向分量、KKT 不满足、seed 不一致或数值失败；
+4. **Invalid target geometry**：semantic site、frame、segment length、target construction 本身错误；
+5. **Unsupported task**：rank-zero 或缺失任务能力，但 demand 被诚实保留且没有泄漏到错误链。
+
+最终目标不是通过改阈值把 11 台染绿，而是让每个失败都得到正确的数学结论。
 
 ---
 
-## 3. 六个 xhigh Subagents
+## 3. 本轮成功后的状态语义
 
-### Agent A — Asset Lock and Snapshot Integrity
-
-负责：
-
-- 审查 `robot_zoo_lock.json`；
-- 验证 44/2 scope decision；
-- snapshot hash、source hash、upstream commit、LICENSE；
-- fetch-only 不进入 Git；
-- deterministic snapshot rerun；
-- mesh/private/absolute-path audit。
-
-Owned files：
+新增 terminal pass 状态：
 
 ```text
-assets/robot_zoo/robot_zoo_lock.json
-assets/robot_zoo/source_inventory.json
-assets/robot_zoo/snapshots/
-scripts/build_robot_zoo_snapshots.py
-scripts/audit_robot_zoo_assets_v3.py
-tests/v3/test_robot_zoo_asset_*.py
-docs/retargeting_v3/subagents/assets44_agent_a_handoff.md
+capability_limited_passed
 ```
 
-### Agent B — Loader Closure
+状态定义：
 
-负责：
+### `passed`
 
-- URDF/MJCF snapshot load；
-- Newton/MuJoCo backend load；
-- `pycollada` 等 public dependencies；
-- include/package/path resolution；
-- loader taxonomy；
-- 44 in-scope entries的 load matrix。
+- 所有 required ordinary tasks 达到现有 exact residual gates；
+- numerical / rank / subspace gates 通过；
+- 无 invalid target 或 solver failure。
 
-Owned files：
+### `capability_limited_passed`
 
-```text
-pyproject.toml
-environment*.yml
-soma_retargeter/robotics/v3/model_adapter.py
-soma_retargeter/robotics/v3/model_conversion.py
-tests/v3/test_robot_zoo_loader_*.py
-docs/retargeting_v3/subagents/assets44_agent_b_handoff.md
-```
+- 至少一个 ordinary/extended task 超过 exact residual gate；
+- 但每个超标 task 都有完整 closest-reachable certificate；
+- compatible/reachable 分量已被求解；
+- 剩余 residual 主要属于 tangent-orthogonal、rank-incompatible 或 active joint-limit demand；
+- 无 NaN、无 limit violation、无错误链泄漏；
+- deterministic seeds 与 rerun 一致。
 
-Gate：
+### `partial_passed`
 
-```text
-in-scope source/load failure = 0
-```
+- 结构上缺失 required semantics，例如无 arms；
+- 由 verified partial expectation 支持；
+- 不与 capability-limited 混用。
 
-fetch-only 也必须能从外部 cache 加载，但不能提交模型本体。
+### `algorithm_failed`
 
-### Agent C — Verified Semantics: Core Humanoids
+只允许：
 
-负责核心机器人：
+- solver nonfinite；
+- engine/FD mismatch；
+- rank/subspace inconsistent；
+- target geometry invalid；
+- projected gradient/KKT 不满足；
+- deterministic seed consensus 失败；
+- residual 中仍有明显 reachable/tangent component；
+- ordinary task 的最近可达解无法被认证。
 
-- RPO；
-- G1 URDF/MJCF；
-- H1/H1_2；
-- Booster T1；
-- OP3；
-- TALOS；
-- Berkeley；
-- Fourier N1。
-
-必须建立：
-
-- fingerprint-bound verified maps；
-- Hips/Chest；
-- distal Hand；
-- sole/toe/heel where available；
-- partial classification where morphology lacks arms；
-- topology/FK/geometry evidence。
-
-Owned files：
-
-```text
-assets/robot_zoo/semantic_maps/<core shard>
-assets/robot_zoo/semantic_expectations/<core shard>
-soma_retargeter/robotics/v3/semantic_validation.py
-soma_retargeter/robotics/v3/site_geometry.py
-tests/v3/test_assets44_core_semantics_*.py
-docs/retargeting_v3/subagents/assets44_agent_c_handoff.md
-```
-
-### Agent D — Verified Semantics: Remaining Humanoids and Controls
-
-负责其余 in-scope positive/partial humanoids，以及 negative controls。
-
-要求：
-
-- positive 不允许 inference→passed；
-- biped-no-arms 诚实 partial/negative；
-- Go2、Panda、Stretch 等不得伪装成 humanoid；
-- semantic map 与 snapshot/source fingerprint 绑定；
-- source variant 差异明确记录。
-
-Owned files：
-
-```text
-assets/robot_zoo/semantic_maps/<remaining shard>
-assets/robot_zoo/semantic_expectations/<remaining shard>
-tests/v3/test_assets44_remaining_semantics_*.py
-tests/v3/test_assets44_negative_controls_*.py
-docs/retargeting_v3/subagents/assets44_agent_d_handoff.md
-```
-
-### Agent E — Full 44-Asset Validation and Failure Analysis
-
-负责：
-
-- 自动从 lock 的 scope decision 读取 44 个 in-scope IDs；
-- 不在代码里另写清单；
-- 对 44 个运行完整 validation；
-- deterministic rerun；
-- URDF/MJCF pair reports；
-- RPO专项；
-- 剩余 algorithm failures 的精确诊断。
-
-Owned files：
-
-```text
-soma_retargeter/robotics/v3/validation.py
-soma_retargeter/tools/validate_kinematic_profile_v3.py
-artifacts/retargeting_v3_step2_assets44/
-tests/v3/test_assets44_full_validation_*.py
-docs/retargeting_v3/STEP2_ASSETS44_VALIDATION_REPORT.md
-docs/retargeting_v3/subagents/assets44_agent_e_handoff.md
-```
-
-每个 algorithm failure 必须保存：
-
-```text
-robot
-motion
-task
-metric
-actual value
-threshold
-rank/capability
-projected target
-unreachable demand
-```
-
-禁止只写：
+不得再使用 generic：
 
 ```text
 compiler recorded algorithm failures
 ```
 
-### Agent F — Clean Provenance, CI and Red Team
+---
 
-负责：
+## 4. 核心数学契约
 
-- clean source commit；
-- clean worktree generation；
-- no absolute paths；
-- no private assets；
-- no meshes；
-- no fetch-only vendoring；
-- six handoffs；
-- full tests；
-- CI；
-- final PASS/BLOCKED。
+### 4.1 Position task
 
-Owned files：
+定义链长归一化 residual：
 
 ```text
-scripts/audit_retargeting_v3_assets44.py
-.github/workflows/retargeting_v3_assets44.yml
-tests/v3/test_assets44_acceptance_*.py
-docs/retargeting_v3/STEP2_ASSETS44_ACCEPTANCE.md
-docs/retargeting_v3/subagents/assets44_agent_f_red_team.md
-artifacts/retargeting_v3_step2_assets44/test_results/
+e_p(q) = (p(q) - p_desired) / L_chain
 ```
+
+其中 `L_chain` 仍使用 Step 2.1 已冻结的 neutral full-chain length。
+
+### 4.2 Orientation task
+
+```text
+e_R(q) = log(R(q)^T R_desired) / pi
+```
+
+不得改回 Euler angles。
+
+### 4.3 Relevant engine Jacobian
+
+```text
+position task    → J = J_translation / L_chain
+orientation task → J = J_log_rotation / pi
+```
+
+Orientation residual Jacobian必须正确处理 SO(3) log 的 Jacobian，不得简单假设大角度时 `de/dq = J_omega`。
+
+必须用 FD 对 analytic residual Jacobian 进行独立 cross-check。
+
+### 4.4 Reachable tangent projector
+
+对 relevant engine Jacobian：
+
+```text
+J = U S V^T
+P = U_r U_r^T
+```
+
+rank threshold 必须继续使用 Step 2.1 uncertainty-aware rank，不得重新改成固定 `1e-8`。
+
+对最终 residual：
+
+```text
+e_parallel = P e
+e_orthogonal = (I - P) e
+```
+
+记录：
+
+```text
+reachable_residual_norm
+orthogonal_residual_norm
+reachable_residual_fraction
+orthogonal_residual_fraction
+```
+
+### 4.5 Bounded KKT / projected-gradient certificate
+
+目标函数：
+
+```text
+f(q) = 0.5 * ||e_task(q)||^2 + explicit tiny priors
+```
+
+任务梯度：
+
+```text
+g_task = J^T e_task
+```
+
+对于 bound-constrained q：
+
+```text
+g_projected = q - clip(q - g_task, lower, upper)
+```
+
+必须分别记录：
+
+- task-only projected gradient；
+- prior contribution；
+- active lower/upper joint limits；
+- complementarity/sign consistency；
+- normalized projected-gradient norm。
+
+不能用 prior 抵消 task gradient 后声称最近可达。
+
+### 4.6 Closest-reachable certificate
+
+`capability_limited` 至少要求：
+
+```text
+solver finite
+joint limits satisfied
+engine Jacobian finite
+numerical stability gate passed
+rank/subspace gate passed
+projected-gradient gate passed
+reachable residual fraction gate passed
+seed consensus gate passed
+continuation monotonicity gate passed
+no semantic/target geometry failure
+```
+
+推荐初始全局 gates：
+
+```text
+reachable_residual_fraction <= 0.05
+projector distance          <= existing Step 2.1 gate
+seed task-space spread      <= 1e-3 normalized
+joint-limit violation       <= 1e-9
+continuation residual increase only within numerical tolerance
+```
+
+Projected-gradient tolerance必须由 backend dtype + synthetic calibration 确定并写入 artifact，不能按机器人设置。
+
+任何 gate 调整必须：
+
+- 全局；
+- synthetic fixture 有证据；
+- 在 ADR 中说明；
+- 不能修改现有 exact projection thresholds。
+
+### 4.7 Rank-zero task
+
+若 relevant rank = 0：
+
+```text
+P = 0
+e_parallel = 0
+e_orthogonal = e
+```
+
+若：
+
+- q 保持 neutral/合法；
+- demand 非零被完整保存；
+- 不向 legs/arms 或错误链泄漏；
+- deterministic；
+
+则该 task 可得到：
+
+```text
+unsupported_rank_zero / capability_limited
+```
+
+而不是 algorithm failure。
+
+### 4.8 Single-axis torso
+
+若 torso rank = 1：
+
+- compatible axis demand必须正确保留并求解；
+- incompatible pitch/roll/yaw 分量必须落入 orthogonal demand；
+- 不得用单 yaw 腰拟合 pitch/roll；
+- 不得因 incompatible residual 自动判整机失败。
+
+### 4.9 Deterministic continuation / homotopy
+
+大动作不再只从 neutral 直接单次求解。
+
+Position：
+
+```text
+p(lambda) = p0 + lambda * (p_desired - p0)
+```
+
+Orientation：
+
+```text
+R(lambda) = R0 * Exp(lambda * Log(R0^T R_desired))
+```
+
+要求：
+
+- deterministic initial step schedule；
+- adaptive subdivision only by deterministic rules；
+- engine Jacobian callback；
+- active bounds；
+- continuation history；
+- failure后可缩小 step；
+- 不得按 robot ID 调 step count。
+
+### 4.10 Seed consensus
+
+至少使用：
+
+- neutral seed；
+- previous continuation step；
+- deterministic limit-aware alternative seed；
+
+记录多个 seed 的：
+
+```text
+final task transform
+residual
+active limits
+certificate class
+```
+
+若多个 seed 到达不同局部最优且差异超过全局 gate，则不能 certification pass。
 
 ---
 
-## 4. Scope contract
+## 5. Canonical motion 分类
 
-`robot_zoo_lock.json` 必须包含：
+### Invariance motions
 
-```json
-{
-  "scope_decision": {
-    "decision": "accept_exactly_two_deferred_snapshots",
-    "deferred_snapshot_ids": ["...", "..."],
-    "deferred_snapshot_count": 2,
-    "in_scope_source_count": 44,
-    "in_scope_breakdown": {
-      "vendored_snapshots": 38,
-      "fetch_only_cached": 5,
-      "project_local_existing": 1
-    },
-    "blocking_count_for_current_scope": 0
-  }
-}
+```text
+neutral
+root_translation
+global_root_yaw
 ```
 
-任何新的 source、snapshot、load 或 license failure 都是 blocker。
+必须 exact；不允许 capability-limited 包装 calibration/target bug。
 
-只有 lock 中列出的两个 ID 可 deferred。
+### Ordinary capability motions
+
+```text
+torso_pitch
+torso_roll
+torso_yaw
+arms_forward
+elbow_bend
+squat
+single_step
+```
+
+允许：
+
+- exact_reachable；
+- capability_limited with full certificate。
+
+### Extended motions
+
+```text
+mixed_torso_rotation
+overhead_reach
+asymmetric_arm_reach
+crossed_body_reach
+```
+
+同样需要 exact 或 certificate，但在 summary 中单独统计。
+
+### Stress motion
+
+```text
+extreme_but_valid_joint_limit_stress
+```
+
+不要求 exact reachability，但必须：
+
+- finite；
+- within limits；
+- deterministic；
+- closest-reachable certificate or explicit solver failure；
+- 不参与 ordinary exact pass count。
 
 ---
 
-## 5. 验证状态
+## 6. 六个 xhigh Subagents
 
-对 44 个 in-scope 条目，只允许：
+每个 agent 必须：
 
-```text
-passed
-partial_passed
-negative_control_passed
-algorithm_failed
-semantic_failed
-model_load_failed
-source_unavailable
-license_blocked
-```
+- 独立 worktree/branch；
+- reasoning strength 记录为 `xhigh`；
+- 先写 failing tests/oracles；
+- 只修改 owned files；
+- 小 commits；
+- handoff 包含 commit、files、commands、tests、数值结果、风险和未完成项；
+- 不得降低 thresholds；
+- 不得只修改 status 名称制造通过。
 
-最终 asset/data 验收要求：
+### Agent A — Compact Failure Oracle and Baseline Ledger
 
-```text
-source_unavailable = 0
-model_load_failed  = 0
-license_blocked    = 0 for in-scope IDs
-semantic_failed    = 0
-```
+**目标**：把 11 个大 JSON 失败报告压缩成可审查、可复现的任务级 oracle。
 
-可以保留有真实数学证据的 `algorithm_failed`，但必须给出完整诊断。
-
-两个 deferred IDs 不进入上述 44 条统计，并单独显示：
+**Owned files**
 
 ```text
-deferred_snapshot = 2
+soma_retargeter/robotics/v3/failure_analysis.py
+scripts/extract_capability_failure_ledger.py
+tests/v3/test_capability_failure_ledger_*.py
+artifacts/retargeting_v3_step2_capability/baseline_failure_ledger.json
+docs/retargeting_v3/STEP2_3_FAILURE_BASELINE.md
+docs/retargeting_v3/subagents/capability_agent_a_handoff.md
 ```
+
+**必须输出每个失败 task**
+
+```text
+robot_id
+motion
+task
+metric type
+exact threshold
+actual residual
+normalized residual
+active coordinates
+regular/nominal rank
+engine Jacobian source
+reachable/orthogonal residual（修复前可为空）
+active joint limits
+solver status/message
+semantic site source/hash
+chain length
+desired target distance/angle
+```
+
+**必须冻结 11-model baseline**
+
+```text
+atlas_drc_urdf
+atlas_v4_urdf
+booster_t1_mjcf
+booster_t1_urdf
+fourier_n1_mjcf
+jaxon_urdf
+mujoco_humanoid_mjcf
+pal_talos_mjcf_direct
+robotis_op3_mjcf
+talos_urdf
+valkyrie_urdf
+```
+
+不得只列机器人，不列 motion/task。
+
+### Agent B — Deterministic Bounded Continuation Solver
+
+**目标**：实现真正稳定的 closest-point projection solver。
+
+**Owned files**
+
+```text
+soma_retargeter/robotics/v3/chain_projection.py
+soma_retargeter/robotics/v3/projection_solver.py
+tests/v3/test_projection_continuation_*.py
+tests/v3/test_projection_seed_consensus_*.py
+tests/v3/test_projection_joint_limit_kkt_*.py
+docs/retargeting_v3/subagents/capability_agent_b_handoff.md
+```
+
+**必须实现**
+
+- engine residual Jacobian callback；
+- SO(3) log Jacobian；
+- deterministic continuation；
+- adaptive deterministic subdivision；
+- bound handling；
+- deterministic multi-seed；
+- continuation history；
+- task-only gradient；
+- active-limit/KKT evidence；
+- no robot-specific tuning。
+
+**Synthetic fixtures**
+
+1. reachable revolute endpoint；
+2. unreachable target beyond link length；
+3. joint-limit constrained closest point；
+4. yaw-only torso with pitch demand；
+5. fixed torso rank-zero demand；
+6. near singular arm；
+7. two-local-minimum chain；
+8. nonidentity orientation target；
+9. float32 Newton backend；
+10. deterministic rerun。
+
+### Agent C — Capability Decomposition and Certificates
+
+**目标**：实现 reachable tangent decomposition 和严谨 certification。
+
+**Owned files**
+
+```text
+soma_retargeter/robotics/v3/capability_projection.py
+soma_retargeter/robotics/v3/projection_certificate.py
+soma_retargeter/robotics/v3/canonical_projection.py
+soma_retargeter/robotics/v3/reachability_metrics.py
+tests/v3/test_capability_projector_*.py
+tests/v3/test_projection_certificate_*.py
+tests/v3/test_rank_zero_capability_*.py
+tests/v3/test_single_axis_torso_capability_*.py
+docs/retargeting_v3/subagents/capability_agent_c_handoff.md
+```
+
+**Certificate classes**
+
+```text
+exact_reachable
+capability_limited_rank
+capability_limited_joint_limits
+capability_limited_mixed
+unsupported_rank_zero
+solver_failed
+numerical_invalid
+invalid_target_geometry
+```
+
+**必须证明**
+
+- compatible demand 被保留；
+- residual 主要 orthogonal to reachable tangent；
+- projected gradient/KKT 满足；
+- seed consensus；
+- no leakage；
+- certificate deterministic。
+
+### Agent D — Target Geometry and Variant Differential Audit
+
+**目标**：排除 11 台中的错误 semantic site、frame、length 或 variant mapping。
+
+**Owned files**
+
+```text
+soma_retargeter/robotics/v3/target_geometry_audit.py
+assets/robot_zoo/semantic_maps/<only evidence-backed corrections>
+assets/robot_zoo/semantic_expectations/<only evidence-backed corrections>
+tests/v3/test_failure_robot_target_geometry_*.py
+artifacts/retargeting_v3_step2_capability/target_geometry_matrix.json
+docs/retargeting_v3/STEP2_3_TARGET_GEOMETRY_AUDIT.md
+docs/retargeting_v3/subagents/capability_agent_d_handoff.md
+```
+
+**Differential groups**
+
+```text
+Booster T1 URDF vs MJCF
+Fourier N1 URDF(pass) vs MJCF(fail)
+TALOS URDF vs Menagerie MJCF
+Atlas DRC vs Atlas V4
+H1/G1 passing controls
+RPO yaw-only passing control
+OP3 rank-zero/fixed-torso control
+JAXON / Valkyrie / MuJoCo Humanoid standalone
+```
+
+**每个 task 检查**
+
+- reference/target site body；
+- local offset；
+- left/right symmetry；
+- chain topology；
+- joint limits；
+- neutral relative transform；
+- source/robot segment-length ratio；
+- desired target distance / chain length；
+- target frame convention；
+- URDF/MJCF variant differences。
+
+Map 只有在 runtime topology/FK/geometry 证据证明错误时才允许修改；所有修改必须更新 fingerprint/source hash 和 tests。
+
+### Agent E — Status Integration, 44-Model Validation and Cross-Format
+
+**目标**：把 B/C/D 的结果接入 compiler、status、full validation 和 artifacts。
+
+**Owned files**
+
+```text
+soma_retargeter/robotics/v3/profile.py
+soma_retargeter/robotics/v3/robot_zoo.py
+soma_retargeter/robotics/v3/validation.py
+soma_retargeter/tools/validate_kinematic_profile_v3.py
+artifacts/retargeting_v3_step2_capability/
+tests/v3/test_capability_status_*.py
+tests/v3/test_full_44_capability_validation_*.py
+tests/v3/test_cross_format_capability_*.py
+docs/retargeting_v3/STEP2_3_CAPABILITY_REPORT.md
+docs/retargeting_v3/subagents/capability_agent_e_handoff.md
+```
+
+**必须实现**
+
+- `capability_limited_passed` terminal status；
+- compact per-task certificate summary；
+- no generic status reason；
+- 44-model deterministic rerun；
+- baseline 33 terminal passes no regression；
+- failure before/after matrix；
+- negative-control pairs 不运行 humanoid task equivalence；
+- `not_eligible` 不计为 pair failure；
+- capability-limited pairs 比较 shared task certificates；
+- G1 same-source strict equivalence继续通过。
+
+### Agent F — Independent Red Team, LFS, CI and Final Verdict
+
+**目标**：防止 status gaming、threshold cheating、pointer-only validation 和错误 capability certificate。
+
+**Owned files**
+
+```text
+scripts/audit_retargeting_v3_capability.py
+.github/workflows/retargeting_v3_capability.yml
+tests/v3/test_capability_acceptance_*.py
+docs/retargeting_v3/STEP2_3_CAPABILITY_ACCEPTANCE.md
+docs/retargeting_v3/subagents/capability_agent_f_red_team.md
+artifacts/retargeting_v3_step2_capability/test_results/
+```
+
+**红队必须检查**
+
+- exact thresholds 是否被修改；
+- robot ID special cases；
+- residual 超标但无 KKT certificate；
+- rank-zero demand 被清零；
+- compatible torso axis 被丢弃；
+- prior 抵消 task gradient；
+- local minimum seed 不一致；
+- semantic target geometry 错误被包装成 capability；
+- stress motion 被用来掩盖 ordinary failure；
+- negative controls 被算作 humanoid pass；
+- deterministic rerun只比较一部分 terminal models；
+- LFS pointer 被当模型内容；
+- `git lfs fsck` 未运行；
+- full upstream/mesh/fetch-only 通过 LFS 进入 Git；
+- clean worktree/provenance失败。
 
 ---
 
-## 6. 必须保留的 numerical-core 结果
+## 7. Integrator 接口冻结
 
-不得修改以下全局 numerical contracts：
+Wave 1 后必须冻结：
 
-- engine relative Jacobian 是主能力依据；
-- finite difference 是 uncertainty validator；
-- task-specific translation/rotation block；
-- backend-aware multi-scale FD；
-- rank/subspace statistical gate；
-- parent-frame rotation transfer；
-- independent canonical capability motions；
-- chain-length normalization；
-- projection thresholds 使用当前已提交全局值。
-
-当前 numerical baseline：
-
-```text
-positive profile pass       16
-algorithm_failed             5
-epsilon-only failures        0
+```python
+ProjectionSolveResult
+ContinuationStep
+SeedConsensusReport
+TaskCapabilityDecomposition
+ProjectionOptimalityCertificate
+CapabilityTaskStatus
+CapabilityProfileSummary
 ```
 
-资产轮结束后：
+推荐核心结构：
 
-- 这 16 台不得回归；
-- 新 source 可以增加 profile eligible/pass；
-- 不得通过放宽阈值减少 5 个失败。
+```python
+@dataclass
+class ProjectionOptimalityCertificate:
+    classification: str
+    passed: bool
+    exact_threshold_passed: bool
+    task_residual: float
+    normalized_residual: float
+    reachable_residual_norm: float
+    orthogonal_residual_norm: float
+    reachable_residual_fraction: float
+    projected_gradient_norm: float
+    projected_gradient_tolerance: float
+    active_lower_bounds: list[int]
+    active_upper_bounds: list[int]
+    complementarity_passed: bool
+    seed_consensus_passed: bool
+    continuation_passed: bool
+    joint_limits_passed: bool
+    numerical_gate_passed: bool
+    evidence: dict
+```
+
+Schema 必须版本化，旧 artifacts 只能作为 baseline read-only。
 
 ---
 
-## 7. Artifacts
+## 8. 11-model 必须逐台回答
 
-最终目录：
+### Atlas DRC / Atlas V4
+
+- 两个 variant 是否在相同 arm reach motion 失败？
+- 手部 target distance 是否超过实际 chain envelope？
+- semantic hand site 是否为 distal endpoint？
+- solver 是否到达 joint-limit KKT optimum？
+
+### Booster T1 URDF / MJCF
+
+- 两个格式是否共享相同 capability limitation？
+- 单轴 waist 的 incompatible torso demand 是否被正确分离？
+- hand failures 是否来自 target geometry、joint limits 或 local optimum？
+
+### Fourier N1
+
+- URDF 当前通过而 MJCF 失败；必须进行 differential audit；
+- 不能直接把 URDF map/limits复制给 MJCF；
+- 必须定位 variant joint limits、neutral frame、site或solver差异。
+
+### JAXON / Valkyrie
+
+- fetch-only source 必须继续 cache-only；
+- algorithm result必须能用 source hash复现；
+- 检查高 DoF chain 的 local minimum 和 joint-limit saturation。
+
+### MuJoCo Humanoid
+
+- 检查抽象 humanoid 的 semantic site/chain定义；
+- 不允许因为它是通用示例模型而放宽 gate。
+
+### TALOS URDF / MJCF
+
+- 检查两种来源是否为同一 variant；
+- distal sole/hand site正确；
+- torso/arm/leg capability分别认证；
+- pair report不得宣称 strict equivalence，除非同源。
+
+### ROBOTIS OP3
+
+- fixed/rank-zero torso demand必须成为 `unsupported_rank_zero`；
+- torso demand不泄漏到 legs；
+- hand/foot普通任务仍单独求解；
+- 如果手部超标，必须给 closest-point或target geometry结论。
+
+---
+
+## 9. Full validation outputs
+
+新目录：
 
 ```text
-artifacts/retargeting_v3_step2_assets44/
+artifacts/retargeting_v3_step2_capability/
   environment.json
   commands.txt
-  scope.json
-  source_inventory.json
-  load_matrix.json
-  semantic_matrix.json
+  lfs_state.json
+  baseline_summary.json
+  baseline_failure_ledger.json
+  target_geometry_matrix.json
+  certificate_thresholds.json
+  before_after.json
   summary.json
+  capability_matrix.json
   deterministic_rerun.json
   cross_format.json
-  deferred_snapshots.json
   per_robot/
+  per_task/
   failures/
   test_results/
 ```
@@ -422,117 +856,322 @@ artifacts/retargeting_v3_step2_assets44/
 manifest_total                 46
 in_scope_total                 44
 deferred_snapshot_count         2
-vendored_snapshot_count        38
-fetch_only_cached_count          5
-project_local_count              1
-source_available_in_scope
-load_passed_in_scope
-semantic_passed_in_scope
-profile_eligible
-profile_passed
-partial_passed
-negative_control_passed
-algorithm_failed
 source_unavailable               0
 model_load_failed                0
 semantic_failed                  0
+passed
+capability_limited_passed
+partial_passed
+negative_control_passed
+algorithm_failed
+ordinary_tasks_exact
+ordinary_tasks_capability_limited
+ordinary_tasks_failed
+stress_tasks_certified
 deterministic_compared
 deterministic_matched
+lfs_objects_verified
 ```
 
----
-
-## 8. Clean generation protocol
-
-1. 核心代码、maps、tests先提交；
-2. 建 clean detached worktree；
-3. 从 committed snapshot + pinned external cache运行；
-4. full tests；
-5. 44-asset validation；
-6. deterministic rerun；
-7. 生成临时 artifacts；
-8. 扫描绝对路径、private token、mesh；
-9. 提交 compact artifacts；
-10. 核心代码若再改，全部重跑。
-
-最终 `environment.json`：
+`before_after.json` 必须对 11 个 baseline failures逐台记录：
 
 ```text
-git_status_short = ""
-source_code_commit 可解析
-source_code_commit 是 artifact commit 祖先
+baseline status/reason
+baseline failed motion/task
+new status
+exact vs capability-limited
+certificate class
+residual before/after
+projected gradient
+reachable residual fraction
+active limits
+seed consensus
 ```
 
 ---
 
-## 9. Acceptance Gates
+## 10. LFS Acceptance Contract
 
-### Scope/assets
+LFS 已接受，但必须通过：
 
-- [ ] 46 source available；
-- [ ] exactly 2 deferred IDs；
-- [ ] exactly 44 in scope；
-- [ ] 38 snapshots committed；
-- [ ] 5 fetch-only cache-only；
-- [ ] 1 local RPO；
-- [ ] 无新 asset blocker。
+```bash
+git lfs pull
+git lfs fsck
+```
 
-### Load/semantics
+生成：
 
-- [ ] 44 source unavailable=0；
-- [ ] 44 model load failed=0；
-- [ ] 44 semantic failed=0；
-- [ ] partial morphology诚实；
-- [ ] negative controls正确。
+```text
+artifacts/retargeting_v3_step2_capability/lfs_state.json
+```
 
-### Algorithms
+至少记录：
 
-- [ ] numerical-core 16 passes无回归；
-- [ ] epsilon-only failures=0；
-- [ ] remaining failures有具体证据；
-- [ ] no threshold changes；
-- [ ] RPO通过专项。
+```text
+git_lfs_version
+fsck_returncode
+pointer_files_detected
+materialized_snapshot_count
+missing_lfs_objects
+```
+
+CI：
+
+```yaml
+- uses: actions/checkout@v4
+  with:
+    lfs: true
+```
+
+必须有 smoke test 打开并解析所有 LFS-tracked snapshot XML，拒绝只含：
+
+```text
+version https://git-lfs.github.com/spec/v1
+```
+
+的 pointer 文件。
+
+仍禁止：
+
+- meshes；
+- full upstream repositories；
+- fetch-only models；
+- 超过资产政策的 snapshots；
+- 未锁定源。
+
+---
+
+## 11. CI 设计
+
+### GitHub-hosted job
+
+- checkout with LFS；
+- `git lfs fsck`；
+- install package；
+- synthetic solver/certificate tests；
+- all committed snapshot parse/load smoke；
+- static audit；
+- G1 strict gate；
+- no asset leakage。
+
+### Full 44-model job
+
+使用：
+
+```text
+self-hosted/manual workflow_dispatch
+```
+
+因为 5 个 fetch-only models依赖外部 cache。
+
+必须：
+
+- 固定 cache source hashes；
+- 44-model validation；
+- deterministic rerun；
+- upload compact artifacts；
+- 记录 runner/environment；
+- failure时不得使用旧 artifacts冒充新结果。
+
+---
+
+## 12. 测试要求
+
+### Synthetic/math
+
+```bash
+python -m pytest -q \
+  tests/v3/test_projection_continuation_*.py \
+  tests/v3/test_projection_seed_consensus_*.py \
+  tests/v3/test_projection_joint_limit_kkt_*.py \
+  tests/v3/test_capability_projector_*.py \
+  tests/v3/test_projection_certificate_*.py \
+  tests/v3/test_rank_zero_capability_*.py \
+  tests/v3/test_single_axis_torso_capability_*.py
+```
+
+### Regression
+
+```bash
+python -m pytest -q tests/v3
+python -m pytest -q
+```
+
+### Full 44
+
+```bash
+python -m soma_retargeter.tools.validate_kinematic_profile_v3 \
+  --manifest assets/robot_zoo/robot_zoo_manifest.json \
+  --lock assets/robot_zoo/robot_zoo_lock.json \
+  --output-dir artifacts/retargeting_v3_step2_capability \
+  --low-discrepancy-count 32 \
+  --deterministic-rerun
+```
+
+### Audit
+
+```bash
+python scripts/audit_retargeting_v3_capability.py \
+  --artifact-dir artifacts/retargeting_v3_step2_capability \
+  --lock assets/robot_zoo/robot_zoo_lock.json
+```
+
+---
+
+## 13. Acceptance Gates
+
+### No regression
+
+- [ ] 44 in-scope source/load/semantic closure保持；
+- [ ] baseline 21 `passed` 不回归；
+- [ ] baseline 3 `partial_passed` 不回归；
+- [ ] baseline 9 negative controls 不回归；
+- [ ] G1 same-source strict pass保持；
+- [ ] epsilon-only failures仍为0；
+- [ ] numerical thresholds未修改；
+- [ ] exact projection thresholds未修改。
+
+### Solver/certificate
+
+- [ ] continuation solver通过synthetic；
+- [ ] analytic residual Jacobian通过FD；
+- [ ] bounded KKT正确；
+- [ ] rank-zero certification正确；
+- [ ] single-axis torso分解正确；
+- [ ] seed consensus；
+- [ ] no robot-specific tuning。
+
+### 11-model closure
+
+- [ ] 每台有 compact baseline oracle；
+- [ ] 每个 failed motion/task有新结论；
+- [ ] no generic failure reasons；
+- [ ] target geometry error修复或排除；
+- [ ] exact/capability/solver失败分类可复现；
+- [ ] `algorithm_failed=0` 才能 PASS。
 
 ### Reproducibility
 
-- [ ] clean worktree；
-- [ ] no absolute paths；
-- [ ] no meshes/private assets；
-- [ ] deterministic rerun；
+- [ ] terminal 44 models全部 deterministic compared；
+- [ ] deterministic matched=44；
+- [ ] clean source worktree；
+- [ ] clean artifacts；
+- [ ] no absolute paths/private assets；
+- [ ] `git lfs fsck` pass；
+- [ ] no pointer-only validation；
 - [ ] six xhigh handoffs；
 - [ ] full tests；
-- [ ] CI run；
+- [ ] CI green；
 - [ ] Agent F PASS。
 
 ---
 
-## 10. 完成定义
+## 14. 明确禁止的捷径
+
+以下任一项都算失败：
+
+- 提高 hand/foot/torso exact residual threshold；
+- 把所有 residual 超标直接改名为 capability-limited；
+- 只检查 solver `success=True`；
+- 不计算 projected gradient/KKT；
+- 不分 reachable/orthogonal residual；
+- rank-zero demand清零；
+- compatible single-axis demand丢失；
+- 用 prior 把梯度压小；
+- 一个 seed成功就忽略其他local minima；
+- 按 robot ID选择 solver steps、weights或tolerance；
+- 修改 semantic map但不更新fingerprint/evidence；
+- 把 negative controls算入 humanoid algorithm pass；
+- deterministic只重跑33台；
+- pointer-only XML通过CI；
+- 用 LFS 提交 mesh/upstream/fetch-only；
+- 进入Step3或改生产pipeline。
+
+---
+
+## 15. 推荐提交顺序
+
+1. `test: freeze compact baseline for eleven capability failures`
+2. `feat: add analytic task residual Jacobians`
+3. `feat: add deterministic bounded continuation solver`
+4. `test: certify joint-limit and rank-zero closest points`
+5. `feat: add reachable tangent decomposition`
+6. `feat: add bounded KKT and seed-consensus certificates`
+7. `data: audit failure-model target geometry and variants`
+8. `feat: add capability_limited_passed status`
+9. `fix: classify negative-control cross-format pairs correctly`
+10. `test: close eleven model capability failures`
+11. `test: rerun full Assets44 deterministically`
+12. `ci: add LFS-aware capability workflows`
+13. `docs: publish six handoffs and capability report`
+14. `artifacts: publish clean Step 2.3 evidence`
+
+不要压成一个大提交。
+
+---
+
+## 16. Codex 启动步骤
+
+1. 确认 branch/HEAD/worktree；
+2. `git lfs pull && git lfs fsck`；
+3. 激活正确 conda 环境；
+4. 记录 Python/MuJoCo/Newton/Warp/NumPy/SciPy/LFS版本；
+5. 一次创建6个xhigh subagents；
+6. Agent A先生成compact 11-model baseline；
+7. Integrator冻结接口和certificate schema；
+8. B/C/D并行；
+9. E集成status/full validation；
+10. F首次红队；
+11. blocker返给owner；
+12. full tests；
+13. clean 44-model rerun；
+14. deterministic 44/44；
+15. LFS/provenance audit；
+16. Agent F最终判定；
+17. push全部commits；
+18. 停止，不进入Step3。
+
+---
+
+## 17. 完成定义
 
 最终只能写：
 
 ```text
-Step 2.2 Assets44: PASS
+Step 2.3 Capability Projection: PASS
 ```
 
 或：
 
 ```text
-Step 2.2 Assets44: BLOCKED
+Step 2.3 Capability Projection: BLOCKED
 ```
 
-PASS 不要求两个 deferred snapshots 被修复，也不允许未来重新把它们作为 blocker。
+PASS 必须同时满足：
 
-PASS 必须满足：
-
-- [ ] asset branch 已干净推送；
-- [ ] scope decision 可审计；
-- [ ] 44 in-scope assets 全部可访问；
-- [ ] 44 load/semantic scaffolding failures为0；
-- [ ] full validation完成；
-- [ ] deterministic rerun完成；
-- [ ] numerical pass无回归；
-- [ ] remaining algorithm failures有完整证据；
-- [ ] no private/fetch-only/mesh leakage；
-- [ ] six handoffs；
-- [ ] tests/CI/red-team通过；
+- [ ] 44 in-scope source/load/semantic closure无回归；
+- [ ] 21 baseline exact passes无回归；
+- [ ] 3 partial passes无回归；
+- [ ] 9 negative controls无回归；
+- [ ] 11 baseline algorithm failures全部转为 `passed` 或 `capability_limited_passed`；
+- [ ] `algorithm_failed=0`；
+- [ ] exact thresholds未修改；
+- [ ] numerical thresholds未修改；
+- [ ] 每个 capability-limited task有完整certificate；
+- [ ] no generic failure reason；
+- [ ] ordinary motions全部exact或certified；
+- [ ] stress motions全部finite/limit-safe/certified；
+- [ ] deterministic compared=44；
+- [ ] deterministic matched=44；
+- [ ] G1 strict equivalence继续通过；
+- [ ] cross-format negative controls正确分类；
+- [ ] git lfs fsck通过；
+- [ ] no pointer-only validation；
+- [ ] full tests通过；
+- [ ] clean artifacts；
+- [ ] six xhigh handoffs完整；
+- [ ] CI green；
+- [ ] Agent F最终为PASS；
 - [ ] 未进入Step3。
+
+若任一 hard gate 未满足，必须写 BLOCKED，不得包装为“基本完成”。
