@@ -94,6 +94,7 @@ def test_manifest_entries_all_materialize_structured_source_unavailable(tmp_path
 def test_status_enum_matches_goal_contract():
     assert set(allowed_status_values()) == {
         "passed",
+        "capability_limited_passed",
         "partial_passed",
         "negative_control_passed",
         "algorithm_failed",

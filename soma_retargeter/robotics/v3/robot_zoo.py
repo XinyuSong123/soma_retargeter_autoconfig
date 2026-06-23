@@ -21,6 +21,7 @@ DEFAULT_RPO_MODEL_PATH = Path("assets/robots/atom01/mjcf/atom01.xml")
 
 class RobotValidationStatus(str, Enum):
     PASSED = "passed"
+    CAPABILITY_LIMITED_PASSED = "capability_limited_passed"
     PARTIAL_PASSED = "partial_passed"
     NEGATIVE_CONTROL_PASSED = "negative_control_passed"
     ALGORITHM_FAILED = "algorithm_failed"
@@ -32,8 +33,15 @@ class RobotValidationStatus(str, Enum):
 
 TERMINAL_PASS_STATUSES = {
     RobotValidationStatus.PASSED.value,
+    RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value,
     RobotValidationStatus.PARTIAL_PASSED.value,
     RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
+}
+
+HUMANOID_PROFILE_TERMINAL_PASS_STATUSES = {
+    RobotValidationStatus.PASSED.value,
+    RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value,
+    RobotValidationStatus.PARTIAL_PASSED.value,
 }
 
 

@@ -1,0 +1,142 @@
+{
+  "model_id": "roboparty_rpo_local",
+  "resolution": {
+    "path": "assets/robot_zoo/semantic_maps/roboparty_rpo_local.json",
+    "source": "verified_semantic_map",
+    "status": "available"
+  },
+  "schema_version": 1,
+  "semantics": {
+    "Chest": {
+      "body": "torso_link",
+      "confidence": 0.99,
+      "evidence": [
+        "name:torso_link",
+        "topology:child_of_base_link",
+        "joint_chain:torso_joint"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "Hips": {
+      "body": "base_link",
+      "confidence": 0.99,
+      "evidence": [
+        "name:base_link",
+        "topology:floating_root_body",
+        "neutral_position:pelvis_reference"
+      ],
+      "local_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_semantic_map"
+    },
+    "LeftFoot": {
+      "body": "left_ankle_roll_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_ankle_roll_link",
+        "topology:full_left_leg_chain",
+        "side:left",
+        "compiled_mesh_vertices:sole_min_z"
+      ],
+      "local_position": [
+        0.024999998077943168,
+        0.009425001263645708,
+        -0.04500000282002089
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    },
+    "LeftHand": {
+      "body": "left_elbow_yaw_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:left_elbow_yaw_link",
+        "topology:full_left_arm_chain",
+        "side:left",
+        "compiled_mesh_vertices:distal_positive_x"
+      ],
+      "local_position": [
+        0.1382499970094016,
+        -1.302929279918541e-07,
+        -2.3430852050254636e-10
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    },
+    "RightFoot": {
+      "body": "right_ankle_roll_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_ankle_roll_link",
+        "topology:full_right_leg_chain",
+        "side:right",
+        "compiled_mesh_vertices:sole_min_z"
+      ],
+      "local_position": [
+        0.025000002393491115,
+        -0.009425001304015428,
+        -0.04500000287209733
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    },
+    "RightHand": {
+      "body": "right_elbow_yaw_link",
+      "confidence": 0.85,
+      "evidence": [
+        "name:right_elbow_yaw_link",
+        "topology:full_right_arm_chain",
+        "side:right",
+        "compiled_mesh_vertices:distal_positive_x"
+      ],
+      "local_position": [
+        0.13824999699495474,
+        1.3112782564980718e-07,
+        8.738377729744506e-11
+      ],
+      "local_rotation_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "source": "verified_geometry_bounds"
+    }
+  },
+  "source": "verified_semantic_map"
+}

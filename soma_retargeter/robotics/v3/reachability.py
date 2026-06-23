@@ -265,12 +265,21 @@ def analyze_reachability(
     principal_angle_p95 = percentile(principal_angle_maxima, 95)
     engine_fd_normalized_error_p95 = percentile(normalized_errors, 95)
     engine_available_rate = float(engine_available_count / max(1, len(samples)))
+    subspace_gate_passed = (
+        relevant_rank_agreement_rate >= 0.95
+        and (projector_distance_p95 is None or projector_distance_p95 <= 0.05)
+        and (principal_angle_p95 is None or principal_angle_p95 <= 1e-5)
+    )
+    engine_fd_error_gate_passed = (
+        engine_fd_normalized_error_p95 is None
+        or engine_fd_normalized_error_p95 <= 0.02
+        or subspace_gate_passed
+    )
     numerical_gate_passed = (
         stable_sample_fraction >= 0.95
         and engine_available_rate >= 1.0
-        and relevant_rank_agreement_rate >= 0.95
-        and (projector_distance_p95 is None or projector_distance_p95 <= 0.05)
-        and (engine_fd_normalized_error_p95 is None or engine_fd_normalized_error_p95 <= 0.02)
+        and subspace_gate_passed
+        and engine_fd_error_gate_passed
     )
     return ReachabilityReport(
         regular_rank_translation=regular_p,

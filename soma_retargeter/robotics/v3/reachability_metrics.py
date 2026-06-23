@@ -5,6 +5,19 @@ from __future__ import annotations
 import numpy as np
 
 
+def backend_rank_abs_floor(adapter_or_backend: object) -> float:
+    """Return the Step 2.1 backend-specific absolute rank floor."""
+
+    backend = (
+        str(adapter_or_backend).lower()
+        if isinstance(adapter_or_backend, str)
+        else adapter_or_backend.__class__.__name__.lower()
+    )
+    if "newton" in backend:
+        return 1e-5
+    return 1e-9
+
+
 def rank_with_uncertainty(
     matrix: np.ndarray,
     *,

@@ -1,0 +1,110 @@
+{
+  "failures": [],
+  "manifest_entry": {
+    "description_name": "rhea_description",
+    "expected_capability": "negative_control",
+    "format": "urdf",
+    "id": "rhea_urdf",
+    "license": "Apache-2.0",
+    "notes": "",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "biped_no_arms",
+    "source_family": "robot_descriptions"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "urdf",
+    "id": "rhea_urdf",
+    "local_file_sha256": "2a2ef48f17c3a1d11af4dc3bd2bfafd9ac9e8704c4ee3e14cdc7c4d37dea1733",
+    "manifest": {
+      "entry": {
+        "description_name": "rhea_description",
+        "expected_capability": "negative_control",
+        "format": "urdf",
+        "id": "rhea_urdf",
+        "license": "Apache-2.0",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "biped_no_arms",
+        "source_family": "robot_descriptions"
+      },
+      "manifest_model_id": "rhea_urdf",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": "assets/robot_zoo/snapshots/rhea_urdf/model.urdf",
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": "rhea_description",
+        "expected_capability": "negative_control",
+        "format": "urdf",
+        "id": "rhea_urdf",
+        "license": "Apache-2.0",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "biped_no_arms",
+        "source_family": "robot_descriptions"
+      },
+      "local_file_sha256": "2a2ef48f17c3a1d11af4dc3bd2bfafd9ac9e8704c4ee3e14cdc7c4d37dea1733",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": null,
+      "path": "assets/robot_zoo/snapshots/rhea_urdf/model.urdf",
+      "path_attr": null,
+      "reason": "",
+      "resolver": "robot_zoo_committed_snapshot",
+      "status": "available"
+    }
+  },
+  "morphology_classification": {
+    "expected_capability": "negative_control",
+    "humanoid_profile_generated": false,
+    "robot_class": "biped_no_arms"
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id rhea_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/rhea_urdf.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "body_count": 9,
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_urdf",
+      "model_format": "urdf"
+    },
+    "nq": 6,
+    "nv": 6,
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "status": "negative_control_passed",
+  "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+  "task_certificate_summary": {
+    "canonical_motion_count": 0,
+    "per_task": {},
+    "reason": "profile task certificates were not generated",
+    "schema_version": 1,
+    "status": "unavailable",
+    "task_count": 0
+  },
+  "warnings": [
+    "negative control loaded; humanoid profile compilation intentionally not generated"
+  ]
+}

@@ -40,6 +40,7 @@ def test_canonical_projection_does_not_pass_previous_q_by_default(monkeypatch):
         {"left_hand": _path()},
         _targets(),
         motion_order=["neutral", "arms_forward"],
+        use_capability_certificates=False,
     )
 
     assert [call[0].tolist() for call in calls] == [[0.0], [0.0]]

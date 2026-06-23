@@ -121,6 +121,7 @@ class MuJoCoRuntimeModelAdapter:
         }
         self.site_frame_provenance: dict[str, dict] = {}
         self.model = self._load_model(self.model_path)
+        self._data = mujoco.MjData(self.model)
         self.nq = int(self.model.nq)
         self.nv = int(self.model.nv)
         self._body_names = [
@@ -159,6 +160,7 @@ class MuJoCoRuntimeModelAdapter:
         return list(self._coordinate_info)
 
     def close(self) -> None:
+        self._data = None
         self.model = None  # type: ignore[assignment]
 
     def neutral_q(self) -> np.ndarray:
@@ -171,7 +173,9 @@ class MuJoCoRuntimeModelAdapter:
         return out
 
     def forward_kinematics(self, q: np.ndarray) -> RobotKinematicState:
-        data = mujoco.MjData(self.model)
+        if self._data is None:
+            self._data = mujoco.MjData(self.model)
+        data = self._data
         data.qpos[:] = np.asarray(q, dtype=float)
         mujoco.mj_forward(self.model, data)
         return RobotKinematicState(
@@ -508,6 +512,39 @@ def _quat_xyzw_to_matrix(q: np.ndarray) -> np.ndarray:
     return quat_xyzw_to_matrix(q)
 
 
+def _quat_xyzw_batch_to_matrix(quats: np.ndarray) -> np.ndarray:
+    q = np.asarray(quats, dtype=float)
+    if q.ndim != 2 or q.shape[1] != 4:
+        raise ValueError(f"expected quaternions shaped (n, 4), got {q.shape}")
+    norm = np.linalg.norm(q, axis=1)
+    safe = np.where(norm > 0.0, norm, 1.0)
+    q = q / safe[:, None]
+    x = q[:, 0]
+    y = q[:, 1]
+    z = q[:, 2]
+    w = q[:, 3]
+    xx = x * x
+    yy = y * y
+    zz = z * z
+    xy = x * y
+    xz = x * z
+    yz = y * z
+    wx = w * x
+    wy = w * y
+    wz = w * z
+    mats = np.empty((q.shape[0], 3, 3), dtype=float)
+    mats[:, 0, 0] = 1.0 - 2.0 * (yy + zz)
+    mats[:, 0, 1] = 2.0 * (xy - wz)
+    mats[:, 0, 2] = 2.0 * (xz + wy)
+    mats[:, 1, 0] = 2.0 * (xy + wz)
+    mats[:, 1, 1] = 1.0 - 2.0 * (xx + zz)
+    mats[:, 1, 2] = 2.0 * (yz - wx)
+    mats[:, 2, 0] = 2.0 * (xz - wy)
+    mats[:, 2, 1] = 2.0 * (yz + wx)
+    mats[:, 2, 2] = 1.0 - 2.0 * (xx + yy)
+    return mats
+
+
 class NewtonRuntimeModelAdapter:
     """Adapter backed by Newton's compiled ModelBuilder model on CPU."""
 
@@ -544,6 +581,8 @@ class NewtonRuntimeModelAdapter:
         self._joint_limit_lower = _to_numpy(self.model.joint_limit_lower)
         self._joint_limit_upper = _to_numpy(self.model.joint_limit_upper)
         self._coordinate_info = self._build_coordinate_info()
+        self._fk_state = self.model.state()
+        self._zero_qd_wp = None
         self.fingerprint_details = model_fingerprint_payload(
             self.model_path,
             backend="newton",
@@ -567,6 +606,8 @@ class NewtonRuntimeModelAdapter:
         return list(self._coordinate_info)
 
     def close(self) -> None:
+        self._fk_state = None
+        self._zero_qd_wp = None
         self.model = None  # type: ignore[assignment]
 
     def neutral_q(self) -> np.ndarray:
@@ -604,13 +645,16 @@ class NewtonRuntimeModelAdapter:
     def forward_kinematics(self, q: np.ndarray) -> RobotKinematicState:
         import warp as wp
 
-        state = self.model.state()
+        if self._fk_state is None:
+            self._fk_state = self.model.state()
+        if self._zero_qd_wp is None:
+            self._zero_qd_wp = wp.array(np.zeros(self.nv, dtype=np.float32), dtype=wp.float32, device="cpu")
+        state = self._fk_state
         q_wp = wp.array(np.asarray(q, dtype=np.float32), dtype=wp.float32, device="cpu")
-        qd_wp = wp.array(np.zeros(self.nv, dtype=np.float32), dtype=wp.float32, device="cpu")
-        self._newton.eval_fk(self.model, q_wp, qd_wp, state)
+        self._newton.eval_fk(self.model, q_wp, self._zero_qd_wp, state)
         body_q = _to_numpy(state.body_q).astype(float)
         positions = body_q[:, :3]
-        rotations = np.stack([Rotation.from_quat(quat).as_matrix() for quat in body_q[:, 3:7]])
+        rotations = _quat_xyzw_batch_to_matrix(body_q[:, 3:7])
         return RobotKinematicState(q=np.asarray(q, dtype=float).copy(), body_xpos=positions, body_xmat=rotations)
 
     def resolve_body_name(self, body_name: str) -> str:

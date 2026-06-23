@@ -1,0 +1,110 @@
+{
+  "failures": [],
+  "manifest_entry": {
+    "description_name": "panda_mj_description",
+    "expected_capability": "negative_control",
+    "format": "mjcf",
+    "id": "franka_panda_mjcf",
+    "license": "Apache-2.0",
+    "notes": "",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "single_arm",
+    "source_family": "robot_descriptions"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "mjcf",
+    "id": "franka_panda_mjcf",
+    "local_file_sha256": "c67edb5700ddb8d6642e5cf5bafdb7dac6e7f5c4f199c0410a5c4bcd807a2cd9",
+    "manifest": {
+      "entry": {
+        "description_name": "panda_mj_description",
+        "expected_capability": "negative_control",
+        "format": "mjcf",
+        "id": "franka_panda_mjcf",
+        "license": "Apache-2.0",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "single_arm",
+        "source_family": "robot_descriptions"
+      },
+      "manifest_model_id": "franka_panda_mjcf",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": "assets/robot_zoo/snapshots/franka_panda_mjcf/model.xml",
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": "panda_mj_description",
+        "expected_capability": "negative_control",
+        "format": "mjcf",
+        "id": "franka_panda_mjcf",
+        "license": "Apache-2.0",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "single_arm",
+        "source_family": "robot_descriptions"
+      },
+      "local_file_sha256": "c67edb5700ddb8d6642e5cf5bafdb7dac6e7f5c4f199c0410a5c4bcd807a2cd9",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": null,
+      "path": "assets/robot_zoo/snapshots/franka_panda_mjcf/model.xml",
+      "path_attr": null,
+      "reason": "",
+      "resolver": "robot_zoo_committed_snapshot",
+      "status": "available"
+    }
+  },
+  "morphology_classification": {
+    "expected_capability": "negative_control",
+    "humanoid_profile_generated": false,
+    "robot_class": "single_arm"
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id franka_panda_mjcf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/franka_panda_mjcf.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "body_count": 12,
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_mjcf",
+      "model_format": "mjcf"
+    },
+    "nq": 9,
+    "nv": 9,
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "status": "negative_control_passed",
+  "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+  "task_certificate_summary": {
+    "canonical_motion_count": 0,
+    "per_task": {},
+    "reason": "profile task certificates were not generated",
+    "schema_version": 1,
+    "status": "unavailable",
+    "task_count": 0
+  },
+  "warnings": [
+    "negative control loaded; humanoid profile compilation intentionally not generated"
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "capability_status": "partial_humanoid",
+  "failure_taxonomy": {
+    "semantic": {
+      "structured_partial": {
+        "classification": "partial_passed",
+        "evidence": [
+          "compiled MuJoCo body tree contains torso plus ll_/lr_ leg bodies only",
+          "source MJCF has no shoulder, elbow, wrist, hand, palm, or end-effector bodies or sites",
+          "LL_FOOT and LR_FOOT are the only distal task sites in the cached model",
+          "no distal hand geometry exists to justify LeftHand or RightHand semantics"
+        ],
+        "kind": "structured_partial_expectation",
+        "missing_required_semantics": [
+          "LeftHand",
+          "RightHand"
+        ],
+        "status": "passed",
+        "supported_semantics": [
+          "Hips",
+          "Chest",
+          "LeftFoot",
+          "RightFoot"
+        ]
+      }
+    }
+  },
+  "failures": [],
+  "manifest_entry": {
+    "description_name": null,
+    "expected_capability": "positive",
+    "format": "mjcf",
+    "id": "berkeley_humanoid_mjcf_direct",
+    "license": "BSD-3-Clause",
+    "notes": "Menagerie directory: berkeley_humanoid",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "humanoid",
+    "source_family": "mujoco_menagerie"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "mjcf",
+    "id": "berkeley_humanoid_mjcf_direct",
+    "local_file_sha256": "94cdcca307026930efbac0ceb567318b370df91b20adb09316d869b4c3f4e4f7",
+    "manifest": {
+      "entry": {
+        "description_name": null,
+        "expected_capability": "positive",
+        "format": "mjcf",
+        "id": "berkeley_humanoid_mjcf_direct",
+        "license": "BSD-3-Clause",
+        "notes": "Menagerie directory: berkeley_humanoid",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "mujoco_menagerie"
+      },
+      "manifest_model_id": "berkeley_humanoid_mjcf_direct",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": "assets/robot_zoo/snapshots/berkeley_humanoid_mjcf_direct/model.xml",
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": null,
+        "expected_capability": "positive",
+        "format": "mjcf",
+        "id": "berkeley_humanoid_mjcf_direct",
+        "license": "BSD-3-Clause",
+        "notes": "Menagerie directory: berkeley_humanoid",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "mujoco_menagerie"
+      },
+      "local_file_sha256": "94cdcca307026930efbac0ceb567318b370df91b20adb09316d869b4c3f4e4f7",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": null,
+      "path": "assets/robot_zoo/snapshots/berkeley_humanoid_mjcf_direct/model.xml",
+      "path_attr": null,
+      "reason": "",
+      "resolver": "robot_zoo_committed_snapshot",
+      "status": "available"
+    }
+  },
+  "morphology_classification": {
+    "coverage_status": "structurally_incomplete",
+    "expected_capability": "partial_humanoid",
+    "humanoid_profile_generated": false,
+    "missing_required_semantics": [
+      "LeftHand",
+      "RightHand"
+    ],
+    "robot_class": "humanoid",
+    "supported_semantics": [
+      "Hips",
+      "Chest",
+      "LeftFoot",
+      "RightFoot"
+    ]
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id berkeley_humanoid_mjcf_direct --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/berkeley_humanoid_mjcf_direct.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "body_count": 14,
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_mjcf",
+      "model_format": "mjcf"
+    },
+    "nq": 19,
+    "nv": 18,
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "semantic_map_artifact": {
+    "reason": "structured partial expectation replaces full semantic map",
+    "status": "unavailable"
+  },
+  "semantic_map_resolution": {
+    "blocker_code": "structurally_incomplete",
+    "coverage_status": "structurally_incomplete",
+    "path": "assets/robot_zoo/semantic_expectations/berkeley_humanoid_mjcf_direct.json",
+    "required": false,
+    "source": "semantic_expectation",
+    "status": "structured_partial_expectation",
+    "verification_status": "partial_blocked"
+  },
+  "status": "partial_passed",
+  "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+  "task_certificate_summary": {
+    "canonical_motion_count": 0,
+    "per_task": {},
+    "reason": "profile task certificates were not generated",
+    "schema_version": 1,
+    "status": "unavailable",
+    "task_count": 0
+  },
+  "warnings": [
+    "structured partial humanoid: verified full semantic map is intentionally not emitted",
+    "missing required semantics: LeftHand, RightHand"
+  ]
+}

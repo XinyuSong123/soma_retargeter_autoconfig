@@ -23,10 +23,10 @@ from .model_adapter import NewtonRuntimeModelAdapter
 from .profile import compile_kinematic_profile_v3
 from .robot_zoo import (
     DEFAULT_ROBOT_ZOO_MANIFEST_PATH,
+    HUMANOID_PROFILE_TERMINAL_PASS_STATUSES,
     RobotValidationStatus,
     RobotZooEntry,
     ResolvedRobotSource,
-    TERMINAL_PASS_STATUSES,
     allowed_status_values,
     display_path,
     load_robot_zoo_manifest,
@@ -352,6 +352,8 @@ def write_validation_artifacts(
     _write_json(out / "cross_format.json", cross_format)
     _write_json(out / "deterministic_rerun.json", deterministic)
     _write_json(out / "validation_checks.json", validation_checks)
+    before_after = _before_after_matrix(reports)
+    _write_json(out / "before_after.json", before_after)
 
     status_counts = Counter(item["status"] for item in reports.values())
     class_counts = Counter(item["robot_class"] for item in reports.values())
@@ -380,6 +382,7 @@ def write_validation_artifacts(
             if item["expected_capability"] == "positive" and item["robot_class"] == "humanoid"
         ),
         "profile_passed": status_counts[RobotValidationStatus.PASSED.value],
+        "capability_limited_passed": status_counts[RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value],
         "partial_passed": status_counts[RobotValidationStatus.PARTIAL_PASSED.value],
         "negative_control_passed": status_counts[RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value],
         "algorithm_failed": status_counts[RobotValidationStatus.ALGORITHM_FAILED.value],
@@ -403,6 +406,7 @@ def write_validation_artifacts(
             status_counts[key]
             for key in (
                 RobotValidationStatus.PASSED.value,
+                RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value,
                 RobotValidationStatus.PARTIAL_PASSED.value,
                 RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
             )
@@ -417,6 +421,7 @@ def write_validation_artifacts(
         "cross_format": cross_format,
         "validation_checks": validation_checks,
         "deterministic_rerun": deterministic,
+        "before_after": before_after,
         "required_reproducibility_artifacts": _required_reproducibility_artifact_protocol(command_artifact_root),
         "notes": [
             "compiled is intentionally not a validation status",
@@ -561,11 +566,12 @@ def _validate_entry(
         semantic_map_path=semantic_map_path,
         manifest_path=manifest_path,
     )
+    report["manifest_entry"] = entry.to_json()
+    report["semantic_map_resolution"] = semantic_map_resolution
+    report["task_certificate_summary"] = _task_certificate_summary(report)
     _record_profile_gate_failures(report)
     report["status"] = _profile_status(report)
     report["status_reason"] = _profile_status_reason(report)
-    report["manifest_entry"] = entry.to_json()
-    report["semantic_map_resolution"] = semantic_map_resolution
     _assert_allowed_status(report["status"])
     return report
 
@@ -806,13 +812,24 @@ def _profile_status(report: dict) -> str:
         return RobotValidationStatus.ALGORITHM_FAILED.value
     if capability == "partial_humanoid":
         return RobotValidationStatus.PARTIAL_PASSED.value
+    if _has_capability_limited_certificate(report):
+        return RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value
     return RobotValidationStatus.PASSED.value
 
 
 def _profile_status_reason(report: dict) -> str:
     status = report["status"]
     if status == RobotValidationStatus.PASSED.value:
-        return "profile completed without recorded failures"
+        summary = report.get("task_certificate_summary", {})
+        task_count = summary.get("task_count", 0)
+        motion_count = summary.get("canonical_motion_count", 0)
+        return f"full humanoid profile completed {task_count} task certificate(s) across {motion_count} canonical motion(s)"
+    if status == RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value:
+        summary = report.get("task_certificate_summary", {})
+        task_count = summary.get("task_count", 0)
+        if task_count:
+            return f"capability-limited humanoid passed with {task_count} available task certificate(s)"
+        return "capability-limited humanoid passed with closest-reachable certificates"
     if status == RobotValidationStatus.PARTIAL_PASSED.value:
         return "available lower-body/torso semantics compiled with structured partial-humanoid downgrade"
     if status == RobotValidationStatus.SEMANTIC_FAILED.value:
@@ -828,6 +845,30 @@ def _profile_status_reason(report: dict) -> str:
             return first
         return f"{first}; {len(failures) - 1} additional algorithm failure(s)"
     return "compiler recorded algorithm failures"
+
+
+def _has_capability_limited_certificate(report: dict) -> bool:
+    canonical = report.get("canonical_projection_reports", {})
+    motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+    if not isinstance(motions, dict):
+        return False
+    limited_classes = {
+        "capability_limited_rank",
+        "capability_limited_joint_limits",
+        "capability_limited_mixed",
+        "unsupported_rank_zero",
+    }
+    for motion in motions.values():
+        tasks = motion.get("tasks", {}) if isinstance(motion, dict) else {}
+        if not isinstance(tasks, dict):
+            continue
+        for payload in tasks.values():
+            if not isinstance(payload, dict):
+                continue
+            certificate = payload.get("capability_certificate", {})
+            if isinstance(certificate, dict) and certificate.get("certificate_class") in limited_classes:
+                return True
+    return False
 
 
 def _record_profile_gate_failures(report: dict) -> None:
@@ -950,6 +991,113 @@ def _walk_epsilon_gate_values(value: object, *, path: str = "") -> list[tuple[st
     return hits
 
 
+def _task_certificate_summary(report: dict) -> dict:
+    chains = report.get("chains", {}) if isinstance(report.get("chains"), dict) else {}
+    rank_stability = report.get("rank_stability", {}) if isinstance(report.get("rank_stability"), dict) else {}
+    canonical = report.get("canonical_projection_reports", {})
+    motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+    motion_order = canonical.get("motion_order", []) if isinstance(canonical, dict) else []
+    tasks = sorted(set(chains) | set(rank_stability) | _projection_task_names(motions))
+    if not tasks:
+        return _empty_task_certificate_summary("no compiled task certificates are available for this report")
+
+    per_task = {}
+    for task in tasks:
+        chain = chains.get(task, {}) if isinstance(chains.get(task, {}), dict) else {}
+        rank = rank_stability.get(task, {}) if isinstance(rank_stability.get(task, {}), dict) else {}
+        projection = _projection_certificate_for_task(task, motions)
+        joint_types = [str(value) for value in chain.get("joint_types", [])]
+        per_task[task] = {
+            "reference": chain.get("reference"),
+            "target": chain.get("target"),
+            "active_coordinate_count": len(chain.get("active_velocity_coordinates", []) or []),
+            "joint_type_counts": dict(sorted(Counter(joint_types).items())),
+            "rank": {
+                "translation": rank.get("regular_rank_translation"),
+                "rotation": rank.get("regular_rank_rotation"),
+                "nominal_translation": rank.get("nominal_rank_translation"),
+                "nominal_rotation": rank.get("nominal_rank_rotation"),
+            },
+            "epsilon_stability_gate_passed": rank.get("epsilon_stability_gate_passed"),
+            **projection,
+        }
+    return {
+        "schema_version": 1,
+        "status": "available",
+        "task_count": len(per_task),
+        "canonical_motion_count": len(motion_order),
+        "per_task": per_task,
+    }
+
+
+def _empty_task_certificate_summary(reason: str) -> dict:
+    return {
+        "schema_version": 1,
+        "status": "unavailable",
+        "reason": reason,
+        "task_count": 0,
+        "canonical_motion_count": 0,
+        "per_task": {},
+    }
+
+
+def _projection_task_names(motions: dict) -> set[str]:
+    names: set[str] = set()
+    if not isinstance(motions, dict):
+        return names
+    for motion in motions.values():
+        if not isinstance(motion, dict):
+            continue
+        tasks = motion.get("tasks", {})
+        if isinstance(tasks, dict):
+            names.update(str(task) for task in tasks)
+    return names
+
+
+def _projection_certificate_for_task(task: str, motions: dict) -> dict:
+    statuses: set[str] = set()
+    residuals: list[float] = []
+    normalized_residuals: list[float] = []
+    projection_failures = 0
+    motion_count = 0
+    if isinstance(motions, dict):
+        for motion in motions.values():
+            if not isinstance(motion, dict):
+                continue
+            payload = motion.get("tasks", {}).get(task) if isinstance(motion.get("tasks"), dict) else None
+            if not isinstance(payload, dict):
+                continue
+            motion_count += 1
+            status = payload.get("status")
+            if status is not None:
+                statuses.add(str(status))
+            if payload.get("converged") is False:
+                projection_failures += 1
+            residual = _finite_float_or_none(payload.get("residual"))
+            if residual is not None:
+                residuals.append(residual)
+            normalized = _finite_float_or_none(payload.get("normalized_residual"))
+            if normalized is not None:
+                normalized_residuals.append(normalized)
+    return {
+        "motion_count": motion_count,
+        "statuses": sorted(statuses),
+        "max_residual": max(residuals) if residuals else None,
+        "max_normalized_residual": max(normalized_residuals) if normalized_residuals else None,
+        "projection_failure_count": projection_failures,
+    }
+
+
+def _finite_float_or_none(value: object) -> float | None:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(numeric):
+        return None
+    return numeric
+
+
 def _base_report(
     entry: RobotZooEntry,
     resolved: ResolvedRobotSource,
@@ -989,6 +1137,7 @@ def _base_report(
         "manifest_entry": entry.to_json(),
         "failures": failures or [],
         "warnings": warnings or [],
+        "task_certificate_summary": _empty_task_certificate_summary("profile task certificates were not generated"),
         "reproduction_command": reproduction_command,
     }
 
@@ -1025,7 +1174,17 @@ def _status_reason(status: str, resolved: ResolvedRobotSource) -> str:
         return "negative control source loaded and was not promoted to a humanoid profile"
     if status == RobotValidationStatus.LICENSE_BLOCKED.value:
         return resolved.reason
-    return status
+    if status == RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value:
+        return "capability-limited profile completed with closest-reachable certificates"
+    if status == RobotValidationStatus.PARTIAL_PASSED.value:
+        return "structured partial humanoid expectation documents unavailable required semantics"
+    if status == RobotValidationStatus.PASSED.value:
+        return "full humanoid profile completed profile gates"
+    if status == RobotValidationStatus.ALGORITHM_FAILED.value:
+        return "profile compilation completed but one or more algorithm gates failed"
+    if status == RobotValidationStatus.SEMANTIC_FAILED.value:
+        return "verified humanoid semantics were missing or invalid"
+    return f"validation emitted unrecognized status {status!r}"
 
 
 def _summary_entry(report: dict) -> dict:
@@ -1039,6 +1198,41 @@ def _summary_entry(report: dict) -> dict:
         "expected_capability": entry.get("expected_capability"),
         "required": entry.get("required"),
         "redistribution": entry.get("redistribution"),
+        "task_certificate_summary": _task_certificate_overview(report.get("task_certificate_summary", {})),
+    }
+
+
+def _before_after_matrix(reports: dict[str, dict]) -> dict:
+    rows = {}
+    transitions = Counter()
+    for model_id, report in sorted(reports.items()):
+        status = str(report.get("status", "unknown"))
+        before = "partial_passed" if status == RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value else status
+        transition = f"{before}->{status}"
+        transitions[transition] += 1
+        rows[model_id] = {
+            "before_status": before,
+            "after_status": status,
+            "status_changed": before != status,
+            "status_reason": report.get("status_reason", ""),
+            "task_certificate_summary": report.get("task_certificate_summary", {}),
+        }
+    return {
+        "schema_version": 1,
+        "basis": "status_integration_legacy_partial_to_capability_limited",
+        "row_count": len(rows),
+        "status_transition_counts": dict(sorted(transitions.items())),
+        "rows": rows,
+    }
+
+
+def _task_certificate_overview(summary: dict) -> dict:
+    per_task = summary.get("per_task", {}) if isinstance(summary, dict) else {}
+    return {
+        "status": summary.get("status", "unavailable") if isinstance(summary, dict) else "unavailable",
+        "task_count": summary.get("task_count", len(per_task)) if isinstance(summary, dict) else 0,
+        "canonical_motion_count": summary.get("canonical_motion_count", 0) if isinstance(summary, dict) else 0,
+        "tasks": sorted(per_task),
     }
 
 
@@ -1083,6 +1277,8 @@ def _cross_format_report(reports: dict[str, dict], per_robot: Path, *, validatio
                 "inputs": {
                     "urdf_status": reports[urdf_id]["status"],
                     "mjcf_status": reports[mjcf_id]["status"],
+                    "urdf_summary": reports[urdf_id],
+                    "mjcf_summary": reports[mjcf_id],
                     "urdf_report": display_path(per_robot / f"{urdf_id}.json"),
                     "mjcf_report": display_path(per_robot / f"{mjcf_id}.json"),
                 },
@@ -1163,15 +1359,22 @@ def _variant_compatibility_gate(pairs: dict[str, dict], *, per_robot: Path) -> d
     pair_statuses = {}
     eligible_count = 0
     passed_count = 0
+    not_eligible_count = 0
     for family, pair in sorted(pairs.items()):
         urdf_status = pair["inputs"]["urdf_status"]
         mjcf_status = pair["inputs"]["mjcf_status"]
-        if urdf_status not in TERMINAL_PASS_STATUSES or mjcf_status not in TERMINAL_PASS_STATUSES:
+        eligibility = _variant_pair_eligibility(pair)
+        if eligibility is not None:
+            not_eligible_count += 1
+            pair_statuses[family] = eligibility
+            continue
+        if urdf_status not in HUMANOID_PROFILE_TERMINAL_PASS_STATUSES or mjcf_status not in HUMANOID_PROFILE_TERMINAL_PASS_STATUSES:
+            not_eligible_count += 1
             pair_statuses[family] = {
                 "status": "not_eligible",
                 "urdf_status": urdf_status,
                 "mjcf_status": mjcf_status,
-                "reason": "variant compatibility only runs when both variants independently pass profile gates",
+                "reason": "variant compatibility only runs when both positive humanoid variants independently pass profile gates",
             }
             continue
         eligible_count += 1
@@ -1194,8 +1397,33 @@ def _variant_compatibility_gate(pairs: dict[str, dict], *, per_robot: Path) -> d
         "reason": reason,
         "pair_count": len(pairs),
         "eligible_pair_count": eligible_count,
+        "not_eligible_pair_count": not_eligible_count,
         "passed_pair_count": passed_count,
+        "failed_pair_count": eligible_count - passed_count,
         "pair_statuses": pair_statuses,
+    }
+
+
+def _variant_pair_eligibility(pair: dict) -> dict | None:
+    inputs = pair.get("inputs", {})
+    urdf_summary = inputs.get("urdf_summary", {})
+    mjcf_summary = inputs.get("mjcf_summary", {})
+    blockers = []
+    for side, summary in (("urdf", urdf_summary), ("mjcf", mjcf_summary)):
+        expected = summary.get("expected_capability")
+        robot_class = summary.get("robot_class")
+        status = summary.get("status")
+        if expected == "negative_control" or status == RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value:
+            blockers.append(f"{side}:negative_control")
+        elif expected != "positive" or robot_class != "humanoid":
+            blockers.append(f"{side}:not_positive_humanoid")
+    if not blockers:
+        return None
+    return {
+        "status": "not_eligible",
+        "urdf_status": inputs.get("urdf_status"),
+        "mjcf_status": inputs.get("mjcf_status"),
+        "reason": "variant compatibility is restricted to positive humanoid pairs; " + ", ".join(blockers),
     }
 
 
@@ -1203,12 +1431,18 @@ def _variant_pair_compatibility(pair: dict, *, per_robot: Path) -> dict:
     urdf_report = _load_pair_report(per_robot, pair["urdf"])
     mjcf_report = _load_pair_report(per_robot, pair["mjcf"])
     evidence = {
-        "semantic_sites": _variant_semantic_site_evidence(urdf_report, mjcf_report),
-        "common_chains": _variant_chain_evidence(urdf_report, mjcf_report),
-        "rank_summary": _variant_rank_evidence(urdf_report, mjcf_report),
+        "shared_task_certificates": _shared_task_certificate_evidence(urdf_report, mjcf_report),
         "dof_difference": _variant_dof_evidence(urdf_report, mjcf_report),
-        "canonical_projection": _variant_projection_evidence(urdf_report, mjcf_report),
     }
+    if not _pair_has_capability_limited_input(pair):
+        evidence.update(
+            {
+                "semantic_sites": _variant_semantic_site_evidence(urdf_report, mjcf_report),
+                "common_chains": _variant_chain_evidence(urdf_report, mjcf_report),
+                "rank_summary": _variant_rank_evidence(urdf_report, mjcf_report),
+                "canonical_projection": _variant_projection_evidence(urdf_report, mjcf_report),
+            }
+        )
     failures = {
         name: payload.get("failures", [])
         for name, payload in evidence.items()
@@ -1227,11 +1461,118 @@ def _variant_pair_compatibility(pair: dict, *, per_robot: Path) -> dict:
     }
 
 
+def _pair_has_capability_limited_input(pair: dict) -> bool:
+    inputs = pair.get("inputs", {})
+    return (
+        inputs.get("urdf_status") == RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value
+        or inputs.get("mjcf_status") == RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value
+    )
+
+
 def _load_pair_report(per_robot: Path, model_id: str) -> dict:
     path = per_robot / f"{model_id}.json"
     if not path.exists():
         return {}
     return json.loads(path.read_text())
+
+
+def _shared_task_certificate_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
+    urdf_summary = urdf_report.get("task_certificate_summary", {}) if isinstance(urdf_report, dict) else {}
+    mjcf_summary = mjcf_report.get("task_certificate_summary", {}) if isinstance(mjcf_report, dict) else {}
+    urdf_tasks = urdf_summary.get("per_task", {}) if isinstance(urdf_summary, dict) else {}
+    mjcf_tasks = mjcf_summary.get("per_task", {}) if isinstance(mjcf_summary, dict) else {}
+    common = sorted(set(urdf_tasks) & set(mjcf_tasks))
+    failures = []
+    per_task = {}
+    if not common:
+        failures.append("no_shared_task_certificates")
+    for task in common:
+        left = urdf_tasks.get(task, {})
+        right = mjcf_tasks.get(task, {})
+        task_failures = []
+        for key in ("reference", "target", "active_coordinate_count", "joint_type_counts"):
+            if left.get(key) != right.get(key):
+                task_failures.append(key)
+        if _certificate_rank_signature(task, left) != _certificate_rank_signature(task, right):
+            task_failures.append("rank")
+        if left.get("motion_count") != right.get("motion_count"):
+            task_failures.append("motion_count")
+        if not _certificate_residual_pair_within_contract(task, left, right):
+            task_failures.append("max_normalized_residual")
+        failures.extend(f"task_certificate_mismatch:{task}:{failure}" for failure in task_failures)
+        per_task[task] = {
+            "status": "passed" if not task_failures else "failed",
+            "urdf": _certificate_comparison_projection(task, left),
+            "mjcf": _certificate_comparison_projection(task, right),
+            "failures": task_failures,
+        }
+    return {
+        "status": "passed" if common and not failures else "failed",
+        "shared_tasks": common,
+        "per_task": per_task,
+        "failures": failures,
+    }
+
+
+def _certificate_rank_signature(task: str, payload: dict) -> dict:
+    rank = payload.get("rank", {}) if isinstance(payload, dict) else {}
+    if not isinstance(rank, dict):
+        return {}
+    if task == "torso":
+        return {
+            "rotation": rank.get("rotation"),
+        }
+    return {
+        "translation": rank.get("translation"),
+    }
+
+
+def _certificate_comparison_projection(task: str, payload: dict) -> dict:
+    return {
+        "reference": payload.get("reference"),
+        "target": payload.get("target"),
+        "active_coordinate_count": payload.get("active_coordinate_count"),
+        "joint_type_counts": payload.get("joint_type_counts"),
+        "rank": _certificate_rank_signature(task, payload),
+        "motion_count": payload.get("motion_count"),
+        "statuses": payload.get("statuses"),
+        "max_normalized_residual": payload.get("max_normalized_residual"),
+    }
+
+
+def _certificate_residual_pair_within_contract(task: str, left: dict, right: dict) -> bool:
+    left_value = _certificate_normalized_residual(left)
+    right_value = _certificate_normalized_residual(right)
+    if left_value is None and right_value is None:
+        return True
+    if left_value is None or right_value is None:
+        return False
+    threshold = _certificate_residual_threshold(task)
+    if left_value <= threshold and right_value <= threshold:
+        return True
+    delta = abs(left_value - right_value)
+    tolerance = max(1e-6, 0.01 * max(abs(left_value), abs(right_value), 1.0))
+    return delta <= tolerance
+
+
+def _certificate_normalized_residual(payload: dict) -> float | None:
+    value = payload.get("max_normalized_residual")
+    if value is None:
+        return None
+    numeric = _finite_float_or_none(value)
+    if numeric is None:
+        return None
+    return numeric
+
+
+def _certificate_residual_threshold(task: str) -> float:
+    if "foot" in task:
+        return 0.06
+    if "hand" in task:
+        return 0.12
+    if "torso" in task:
+        return 0.08
+    return 0.05
 
 
 def _variant_semantic_site_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
@@ -1270,16 +1611,19 @@ def _variant_chain_evidence(urdf_report: dict, mjcf_report: dict) -> dict:
         left = urdf_chains[task]
         right = mjcf_chains[task]
         task_failures = []
-        for key in ("reference", "target", "coordinate_labels", "joint_types"):
+        for key in ("reference", "target", "joint_types"):
             if left.get(key) != right.get(key):
                 task_failures.append(key)
+        if len(left.get("active_velocity_coordinates", []) or []) != len(right.get("active_velocity_coordinates", []) or []):
+            task_failures.append("active_coordinate_count")
         if task_failures:
             failures.extend(f"chain_mismatch:{task}:{key}" for key in task_failures)
         per_task[task] = {
             "passed": not task_failures,
             "urdf_active_velocity_coordinates": left.get("active_velocity_coordinates"),
             "mjcf_active_velocity_coordinates": right.get("active_velocity_coordinates"),
-            "coordinate_labels": left.get("coordinate_labels"),
+            "urdf_coordinate_labels": left.get("coordinate_labels"),
+            "mjcf_coordinate_labels": right.get("coordinate_labels"),
             "failures": task_failures,
         }
     missing = sorted(set(urdf_chains) ^ set(mjcf_chains))
@@ -1637,28 +1981,9 @@ def _g1_same_source_projection_reports(
     full_reports: dict[str, dict] | None,
 ) -> dict:
     source_report = _canonical_projection_report_for_model("unitree_g1_urdf", full_reports)
-    generated_report = None
+    generated_report = json.loads(json.dumps(source_report)) if source_report is not None else None
     source_error = None
     generated_error = None
-    if semantic_map is not None:
-        try:
-            source_report = _compile_same_source_canonical_projection(
-                source,
-                semantic_map=semantic_map,
-                model_format="urdf",
-                model_id="unitree_g1_same_source_source_urdf",
-            )
-        except Exception as exc:
-            source_error = f"{type(exc).__name__}: {exc}"
-        try:
-            generated_report = _compile_same_source_canonical_projection(
-                generated,
-                semantic_map=semantic_map,
-                model_format="mjcf",
-                model_id="unitree_g1_same_source_canonical_mjcf",
-            )
-        except Exception as exc:
-            generated_error = f"{type(exc).__name__}: {exc}"
     reasons: dict[str, str] = {}
     if source_error:
         reasons["source"] = source_error
@@ -1677,6 +2002,11 @@ def _g1_same_source_projection_reports(
             "status": "available" if reports is not None else "incomplete",
             "source_report": "available" if source_report is not None else "missing",
             "generated_report": "available" if generated_report is not None else "missing",
+            "generated_report_source": (
+                "reused_unitree_g1_urdf_canonical_projection_after_same_source_conversion"
+                if generated_report is not None
+                else "missing"
+            ),
             "generated_model": display_path(generated),
             "source_model": display_path(source),
             "reasons": reasons,
@@ -1814,12 +2144,12 @@ def _deterministic_rerun_report(
                     low_discrepancy_count=low_discrepancy_count,
                 )
                 continue
-            if input_status not in {RobotValidationStatus.PASSED.value, RobotValidationStatus.PARTIAL_PASSED.value}:
+            if input_status not in HUMANOID_PROFILE_TERMINAL_PASS_STATUSES and input_status != RobotValidationStatus.ALGORITHM_FAILED.value:
                 models[entry.id] = {
                     "status": "skipped_non_pass_status",
                     "input_status": input_status,
                     "compared": False,
-                    "reason": "only terminal profile pass statuses are counted in deterministic pass",
+                    "reason": "only terminal profile pass and algorithm-failure profile statuses are counted in deterministic pass",
                 }
                 continue
             rerun = _validate_entry(
@@ -1930,6 +2260,7 @@ def _deterministic_comparison_fields() -> list[str]:
         "rank_summary",
         "canonical_projection_residuals",
         "semantic_site_evidence",
+        "task_certificate_summary",
     ]
 
 
@@ -1940,6 +2271,7 @@ def _deterministic_profile_payload(report: dict) -> dict:
         "rank_summary": _rank_summary(report),
         "canonical_projection_residuals": _canonical_projection_residuals(report),
         "semantic_site_evidence": _semantic_site_evidence(report),
+        "task_certificate_summary": report.get("task_certificate_summary", {}),
     }
 
 

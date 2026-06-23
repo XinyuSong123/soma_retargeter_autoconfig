@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import mujoco
 import numpy as np
 
-from .model_adapter import MuJoCoRuntimeModelAdapter, SemanticSite
+from .model_adapter import MuJoCoRuntimeModelAdapter, RobotKinematicState, SemanticSite
 from .spatial import relative_site_jacobian_from_world
 
 
@@ -57,10 +57,17 @@ def _mujoco_engine_relative_jacobian(
     idx = list(active_coordinates)
     if not idx:
         return _empty("mujoco", "float64", "mujoco.mj_jac")
-    data = mujoco.MjData(adapter.model)
+    data = getattr(adapter, "_data", None)
+    if data is None:
+        data = mujoco.MjData(adapter.model)
+        adapter._data = data
     data.qpos[:] = np.asarray(q, dtype=float)
     mujoco.mj_forward(adapter.model, data)
-    state = adapter.forward_kinematics(q)
+    state = RobotKinematicState(
+        q=np.asarray(q, dtype=float).copy(),
+        body_xpos=np.asarray(data.xpos, dtype=float).copy(),
+        body_xmat=np.asarray(data.xmat, dtype=float).reshape(adapter.model.nbody, 3, 3).copy(),
+    )
     ref_world = adapter.site_transform(state, reference)
     tgt_world = adapter.site_transform(state, target)
     ja_p = np.zeros((3, adapter.nv))

@@ -1,0 +1,160 @@
+{
+  "capability_status": "partial_humanoid",
+  "failure_taxonomy": {
+    "semantic": {
+      "structured_partial": {
+        "classification": "partial_passed",
+        "evidence": [
+          "compiled body tree contains BODY, waist, torso, and bilateral numbered limb chains",
+          "distal arm and leg endpoints are named wrists and ankles rather than hands and feet",
+          "numbered limb links do not provide enough anatomical evidence for full verified distal hand or foot sites"
+        ],
+        "kind": "structured_partial_expectation",
+        "missing_required_semantics": [
+          "LeftHand",
+          "RightHand",
+          "LeftFoot",
+          "RightFoot"
+        ],
+        "status": "passed",
+        "supported_semantics": [
+          "Hips",
+          "Chest"
+        ]
+      }
+    }
+  },
+  "failures": [],
+  "manifest_entry": {
+    "description_name": "simple_humanoid_description",
+    "expected_capability": "positive",
+    "format": "urdf",
+    "id": "simple_humanoid_urdf",
+    "license": "BSD-2-Clause",
+    "notes": "",
+    "redistribution": "kinematic_snapshot",
+    "required": true,
+    "robot_class": "humanoid",
+    "source_family": "robot_descriptions"
+  },
+  "model": {
+    "backend": "newton",
+    "format": "urdf",
+    "id": "simple_humanoid_urdf",
+    "local_file_sha256": "a06d6525bbf17645668222e1938122c1402463e39758c66f66d6a364fefb349a",
+    "manifest": {
+      "entry": {
+        "description_name": "simple_humanoid_description",
+        "expected_capability": "positive",
+        "format": "urdf",
+        "id": "simple_humanoid_urdf",
+        "license": "BSD-2-Clause",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "robot_descriptions"
+      },
+      "manifest_model_id": "simple_humanoid_urdf",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "status": "available"
+    },
+    "path": "assets/robot_zoo/snapshots/simple_humanoid_urdf/model.urdf",
+    "semantic_map_artifact": {
+      "reason": "semantic map was not generated",
+      "status": "unavailable"
+    },
+    "source_resolution": {
+      "entry": {
+        "description_name": "simple_humanoid_description",
+        "expected_capability": "positive",
+        "format": "urdf",
+        "id": "simple_humanoid_urdf",
+        "license": "BSD-2-Clause",
+        "notes": "",
+        "redistribution": "kinematic_snapshot",
+        "required": true,
+        "robot_class": "humanoid",
+        "source_family": "robot_descriptions"
+      },
+      "local_file_sha256": "a06d6525bbf17645668222e1938122c1402463e39758c66f66d6a364fefb349a",
+      "manifest_path": "assets/robot_zoo/robot_zoo_manifest.json",
+      "manifest_sha256": "7d4fa4b8154a268a51cbd28d99bd5629b4aaa67e7a37290392a3016b4f28d33c",
+      "module": null,
+      "path": "assets/robot_zoo/snapshots/simple_humanoid_urdf/model.urdf",
+      "path_attr": null,
+      "reason": "",
+      "resolver": "robot_zoo_committed_snapshot",
+      "status": "available"
+    }
+  },
+  "morphology_classification": {
+    "coverage_status": "structurally_incomplete",
+    "expected_capability": "partial_humanoid",
+    "humanoid_profile_generated": false,
+    "missing_required_semantics": [
+      "LeftHand",
+      "RightHand",
+      "LeftFoot",
+      "RightFoot"
+    ],
+    "robot_class": "humanoid",
+    "supported_semantics": [
+      "Hips",
+      "Chest"
+    ]
+  },
+  "reproduction_command": "python -m soma_retargeter.tools.compile_kinematic_profile_v3 --robot-id simple_humanoid_urdf --manifest ${ROBOT_ZOO_MANIFEST} --backend newton --output ${RETARGETING_V3_ARTIFACTS}/per_robot/simple_humanoid_urdf.json --low-discrepancy-count 32",
+  "runtime_adapter": {
+    "backend": "newton",
+    "body_count": 32,
+    "loader_provenance": {
+      "backend": "newton",
+      "compiled_model_manifest": {
+        "reason": "runtime backend does not expose a serialized compiled-model manifest",
+        "status": "unavailable"
+      },
+      "loader": "newton.ModelBuilder.add_urdf",
+      "model_format": "urdf"
+    },
+    "nq": 29,
+    "nv": 29,
+    "package_versions": {
+      "mujoco": "3.8.1",
+      "newton": "1.0.0",
+      "python": "3.12.4",
+      "robot-descriptions": "2.0.0",
+      "soma-retargeter": "0.1.0",
+      "warp": "1.14.0"
+    }
+  },
+  "schema_version": 4,
+  "semantic_map_artifact": {
+    "reason": "structured partial expectation replaces full semantic map",
+    "status": "unavailable"
+  },
+  "semantic_map_resolution": {
+    "blocker_code": "structurally_incomplete",
+    "coverage_status": "structurally_incomplete",
+    "path": "assets/robot_zoo/semantic_expectations/simple_humanoid_urdf.json",
+    "required": false,
+    "source": "semantic_expectation",
+    "status": "structured_partial_expectation",
+    "verification_status": "partial_blocked"
+  },
+  "status": "partial_passed",
+  "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+  "task_certificate_summary": {
+    "canonical_motion_count": 0,
+    "per_task": {},
+    "reason": "profile task certificates were not generated",
+    "schema_version": 1,
+    "status": "unavailable",
+    "task_count": 0
+  },
+  "warnings": [
+    "structured partial humanoid: verified full semantic map is intentionally not emitted",
+    "missing required semantics: LeftHand, RightHand, LeftFoot, RightFoot"
+  ]
+}
