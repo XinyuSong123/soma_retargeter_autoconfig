@@ -4,19 +4,14 @@
 
 ```bash
 git fetch origin
-git checkout -b retargeting-v3-step2-assets-clean-sync \
-  origin/retargeting-v3-step2-assets-clean-sync
-
-bash scripts/fetch_and_vendor_robot_zoo_assets.sh
+git checkout retargeting-v3-step2-assets-vendored
+git pull --ff-only
+git lfs install
+git lfs pull
+git lfs fsck
 ```
 
-The script creates a separate clean worktree and pushes:
-
-```text
-retargeting-v3-step2-assets-vendored
-```
-
-The current checkout may contain old generated artifacts; it is not used as the generation worktree.
+The committed Assets44 branch contains the frozen 44/2 scope and the mesh-free kinematic snapshots used by later validation.
 
 ## Cache and Git boundaries
 
@@ -34,31 +29,46 @@ A permissive snapshot contains a mesh-free URDF/MJCF, upstream license files, an
 
 Entries marked `fetch_only` are downloaded to the external cache for validation but never copied into the Apache repository.
 
-## Strict and diagnostic modes
+## Git LFS
 
-Normal strict run:
+Git LFS is accepted for formats already selected by the repository's `.gitattributes`, including MJCF/XML snapshots.
 
-```bash
-ALLOW_PARTIAL_ASSETS=0 bash scripts/fetch_and_vendor_robot_zoo_assets.sh
-```
-
-Diagnostic run that records unresolved sources without claiming completion:
+Every environment that loads these assets must run:
 
 ```bash
-ALLOW_PARTIAL_ASSETS=1 PUSH_ASSET_BRANCH=0 KEEP_WORKTREE=1 \
-  bash scripts/fetch_and_vendor_robot_zoo_assets.sh
+git lfs install
+git lfs pull
+git lfs fsck
 ```
 
-A diagnostic run must not be reported as Step 2.2 PASS.
+GitHub Actions must use:
 
-## Existing output branch
-
-The script refuses to overwrite an existing remote output branch. Review or delete the old branch, or choose a new name:
-
-```bash
-OUTPUT_BRANCH=retargeting-v3-step2-assets-vendored-2 \
-  bash scripts/fetch_and_vendor_robot_zoo_assets.sh
+```yaml
+- uses: actions/checkout@v4
+  with:
+    lfs: true
 ```
+
+The following remain forbidden even through LFS:
+
+- full upstream repositories;
+- visual/collision meshes;
+- fetch-only or non-redistributable models;
+- unpinned or oversized assets;
+- pointer-only validation presented as a successful model load.
+
+## Frozen Assets44 scope
+
+```text
+46 public sources resolved
+44 in scope
+38 committed snapshots
+5 fetch-only cached models
+1 project-local RPO
+2 deferred snapshots: berkeley_humanoid_urdf, romeo_urdf
+```
+
+The two deferred entries remain recorded in `robot_zoo_lock.json` but are outside future algorithm gates.
 
 ## Security and license rules
 
@@ -66,7 +76,6 @@ OUTPUT_BRANCH=retargeting-v3-step2-assets-vendored-2 \
 - Unknown upstream scripts are not executed.
 - MuJoCo Menagerie is checked out at the exact manifest SHA.
 - No visual/collision meshes are committed.
-- No Git LFS is used.
 - GPL/LGPL/CC-SA/NASA entries remain fetch-only.
 - Local absolute paths and private denylist tokens fail generation.
 - Franka Panda in the manifest is the public Franka Emika Panda model.
