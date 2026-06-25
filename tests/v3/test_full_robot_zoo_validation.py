@@ -6,6 +6,7 @@ from pathlib import Path
 import soma_retargeter.robotics.v3.validation as validation_module
 from soma_retargeter.robotics.v3.robot_zoo import allowed_status_values
 from soma_retargeter.robotics.v3.robot_zoo import model_load_failure_diagnostic
+from soma_retargeter.robotics.v3.target_builder import CANONICAL_MOTION_NAMES
 from soma_retargeter.robotics.v3.validation import write_validation_artifacts
 
 
@@ -79,7 +80,7 @@ def test_manifest_entries_all_materialize_structured_source_unavailable(tmp_path
     assert summary["license_blocked_count"] == 0
     assert summary["failure_artifact_status_counts"] == {}
     assert summary["failure_artifacts_count"] == 0
-    assert list((tmp_path / "artifacts" / "failures").glob("*.json")) == []
+    assert [path.name for path in (tmp_path / "artifacts" / "failures").glob("*.json")] == ["_no_failures.json"]
     assert "compiled_count" not in summary
     assert "compiled" not in summary["manifest"]["allowed_statuses"]
     for model_id in summary["reports"]:
@@ -121,7 +122,7 @@ def test_license_blocked_is_not_a_failure_artifact(tmp_path: Path):
     assert summary["license_blocked_count"] == 1
     assert summary["failure_artifact_status_counts"] == {}
     assert summary["failure_artifacts_count"] == 0
-    assert list((tmp_path / "artifacts" / "failures").glob("*.json")) == []
+    assert [path.name for path in (tmp_path / "artifacts" / "failures").glob("*.json")] == ["_no_failures.json"]
     assert report["status"] == "license_blocked"
     assert report["model"]["source_resolution"]["status"] == "license_blocked"
     assert report["model"]["local_file_sha256"]["status"] == "unavailable"
@@ -421,6 +422,25 @@ def test_verified_semantic_map_path_is_loaded_without_inference(monkeypatch, tmp
         failures = []
 
         def to_json(self):
+            exact_torso = {
+                "status": "converged",
+                "converged": True,
+                "normalized_residual": 0.0,
+                "residual": 0.0,
+                "capability_certificate": {
+                    "certificate_class": "exact_reachable",
+                    "gates": {
+                        "exact_threshold_passed": True,
+                        "projected_gradient_kkt": True,
+                        "seed_consensus": True,
+                        "primal_feasible": True,
+                        "continuation": True,
+                        "joint_limits": True,
+                        "numerical": True,
+                        "residual_explained": True,
+                    },
+                },
+            }
             return {
                 "schema_version": 3,
                 "model": {
@@ -430,6 +450,14 @@ def test_verified_semantic_map_path_is_loaded_without_inference(monkeypatch, tmp
                     "backend": "newton",
                 },
                 "runtime_adapter": {},
+                "chains": {"torso": {}},
+                "canonical_projection_reports": {
+                    "motion_order": list(CANONICAL_MOTION_NAMES),
+                    "motions": {
+                        motion: {"tasks": {"torso": exact_torso}}
+                        for motion in CANONICAL_MOTION_NAMES
+                    },
+                },
                 "failures": [],
                 "warnings": [],
                 "capability_status": "full_humanoid_ready",

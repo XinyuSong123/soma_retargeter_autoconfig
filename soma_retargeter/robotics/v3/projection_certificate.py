@@ -22,6 +22,8 @@ CERTIFICATE_CLASSES = (
     "numerical_invalid",
     "invalid_target_geometry",
 )
+GLOBAL_SEED_RESIDUAL_TOLERANCE = 1e-7
+GLOBAL_TASK_SPACE_TOLERANCE = 1e-4
 
 
 @dataclass(frozen=True)
@@ -56,6 +58,11 @@ class ProjectionCertificateEvidence:
     active_lower_bounds: list[int] = field(default_factory=list)
     active_upper_bounds: list[int] = field(default_factory=list)
     kkt: dict[str, Any] | None = None
+    task_gradient: np.ndarray | None = None
+    prior_gradient: np.ndarray | None = None
+    seed_results: list[dict[str, Any]] = field(default_factory=list)
+    continuation_history: list[dict[str, Any]] = field(default_factory=list)
+    scalar_dtype: str | None = None
     decomposition: dict[str, Any] | None = None
     continuation_passed: bool | None = None
     joint_limits_passed: bool | None = None
@@ -82,17 +89,35 @@ class ProjectionCertificate:
     rank_evidence: dict[str, Any]
     reasons: list[str]
     deterministic_digest: str = ""
+    schema_version: int = 2
+    passed: bool = False
+    motion_class: str = "ordinary"
+    exact_threshold: float | None = None
+    exact_threshold_passed: bool | None = None
+    continuation: dict[str, Any] = field(default_factory=dict)
+    joint_limits: dict[str, Any] = field(default_factory=dict)
+    numerical: dict[str, Any] = field(default_factory=dict)
+    audit_evidence: dict[str, Any] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
         return {
+            "schema_version": int(self.schema_version),
             "certificate_class": self.certificate_class,
+            "passed": bool(self.passed),
+            "motion_class": self.motion_class,
             "task_block": self.task_block,
-            "decomposition": _json_clean(self.decomposition),
+            "exact_threshold": self.exact_threshold,
+            "exact_threshold_passed": self.exact_threshold_passed,
             "gates": self.gates.copy(),
-            "active_limits": _json_clean(self.active_limits),
+            "decomposition": _json_clean(self.decomposition),
             "kkt": _json_clean(self.kkt),
             "seed_consensus": _json_clean(self.seed_consensus),
+            "continuation": _json_clean(self.continuation),
+            "joint_limits": _json_clean(self.joint_limits),
+            "numerical": _json_clean(self.numerical),
+            "active_limits": _json_clean(self.active_limits),
             "rank_evidence": _json_clean(self.rank_evidence),
+            "audit_evidence": _json_clean(self.audit_evidence),
             "reasons": list(self.reasons),
             "deterministic_digest": self.deterministic_digest,
         }
@@ -140,6 +165,12 @@ def build_projection_certificate(evidence: ProjectionCertificateEvidence) -> Pro
     retained_norm = float(np.linalg.norm(retained))
     residual_tolerance = _residual_tolerance(evidence, desired, projected, scale)
     component_tolerance = _component_tolerance(evidence, desired, projected, scale)
+    exact_threshold = (
+        float(evidence.exact_threshold)
+        if evidence.exact_threshold is not None
+        else float(residual_tolerance / scale)
+    )
+    exact_threshold_passed = bool(residual_norm <= residual_tolerance)
     rank, singular_values, rank_threshold = rank_with_uncertainty(
         jacobian,
         noise_norm=float(evidence.noise_norm),
@@ -158,8 +189,10 @@ def build_projection_certificate(evidence: ProjectionCertificateEvidence) -> Pro
     orthogonal_leakage = normal_projector @ retained
     gradient = (jacobian.T @ residual) / (scale * scale) if jacobian.shape[1] else np.zeros(0)
     active_limits = _active_limits(evidence)
-    kkt = _kkt_evidence(evidence, gradient, active_limits)
-    kkt_passed = bool(kkt["projected_gradient_norm"] <= kkt["tolerance"])
+    scalar_dtype = _scalar_dtype(evidence)
+    prior_gradient = _prior_gradient(evidence, gradient)
+    kkt = _kkt_evidence(evidence, gradient, prior_gradient, active_limits, scalar_dtype)
+    kkt_passed = bool(kkt.get("satisfied", False))
     tangent_residual_norm = float(np.linalg.norm(tangent_residual))
     rank_incompatible_residual_norm = float(np.linalg.norm(rank_incompatible_residual))
     active_limit_residual_norm = (
@@ -179,21 +212,30 @@ def build_projection_certificate(evidence: ProjectionCertificateEvidence) -> Pro
     compatible_demand_retained = float(np.linalg.norm(compatible_retention_error)) <= component_tolerance
     if rank == 0 and residual_norm > residual_tolerance:
         compatible_demand_retained = False
-    seed_consensus = _seed_consensus(evidence.seed_consensus, evidence.seed_consensus_passed)
+    seed_consensus = _seed_consensus(
+        evidence.seed_consensus,
+        evidence.seed_consensus_passed,
+        evidence.seed_results,
+        scale,
+    )
     seed_consensus_passed = bool(seed_consensus.get("passed", False))
+    continuation = _continuation_evidence(evidence, residual_norm, residual_tolerance)
+    continuation_passed = bool(continuation.get("passed", False))
+    joint_limits = _joint_limits_evidence(active_limits, kkt, evidence.joint_limits_passed)
+    joint_limits_passed = bool(joint_limits.get("passed", False))
+    numerical = _numerical_evidence(evidence, scalar_dtype)
+    numerical_passed = bool(numerical.get("passed", False))
     gates = {
+        "exact_threshold_passed": exact_threshold_passed,
         "compatible_demand_retained": bool(compatible_demand_retained),
         "residual_explained": bool(residual_explained),
         "projected_gradient_kkt": kkt_passed,
         "seed_consensus": seed_consensus_passed,
+        "continuation": continuation_passed,
+        "joint_limits": joint_limits_passed,
+        "numerical": numerical_passed,
         "no_orthogonal_leakage": bool(no_orthogonal_leakage),
     }
-    if evidence.continuation_passed is not None:
-        gates["continuation"] = bool(evidence.continuation_passed)
-    if evidence.joint_limits_passed is not None:
-        gates["joint_limits"] = bool(evidence.joint_limits_passed)
-    if evidence.numerical_gate_passed is not None:
-        gates["numerical"] = bool(evidence.numerical_gate_passed)
     certificate_class, reasons = _decide_certificate_class(
         evidence,
         residual_norm=residual_norm,
@@ -214,12 +256,18 @@ def build_projection_certificate(evidence: ProjectionCertificateEvidence) -> Pro
         "compatible_retention_error_norm": float(np.linalg.norm(compatible_retention_error)),
         "tangent_residual_norm": tangent_residual_norm,
         "rank_incompatible_residual_norm": rank_incompatible_residual_norm,
+        "reachable_residual_norm": tangent_residual_norm,
+        "orthogonal_residual_norm": rank_incompatible_residual_norm,
         "active_limit_residual_norm": active_limit_residual_norm,
         "orthogonal_leakage_norm": float(np.linalg.norm(orthogonal_leakage)),
         "rank_incompatible_fraction": _safe_fraction(rank_incompatible_residual_norm, residual_norm),
+        "reachable_residual_fraction": _safe_fraction(tangent_residual_norm, residual_norm),
+        "orthogonal_residual_fraction": _safe_fraction(rank_incompatible_residual_norm, residual_norm),
         "active_limit_fraction": _safe_fraction(active_limit_residual_norm, residual_norm),
         "residual_tolerance": residual_tolerance,
         "component_tolerance": component_tolerance,
+        "rank_threshold": rank_threshold,
+        "singular_values": singular_values.tolist(),
     }
     rank_evidence = {
         "singular_values": singular_values.tolist(),
@@ -236,6 +284,21 @@ def build_projection_certificate(evidence: ProjectionCertificateEvidence) -> Pro
         "decomposition_input": evidence.decomposition or {},
         "evidence": evidence.evidence,
     }
+    audit_evidence = _audit_evidence(
+        evidence,
+        desired=desired,
+        projected=projected,
+        seed=seed,
+        residual=residual,
+        demand=demand,
+        jacobian=jacobian,
+        gradient=gradient,
+        prior_gradient=prior_gradient,
+        scalar_dtype=scalar_dtype,
+        scale=scale,
+    )
+    passed = _certificate_passed(certificate_class, gates)
+    motion_class = str(evidence.evidence.get("motion_class", "ordinary")) if isinstance(evidence.evidence, dict) else "ordinary"
     return _finalize(
         ProjectionCertificate(
             certificate_class=certificate_class,
@@ -247,6 +310,14 @@ def build_projection_certificate(evidence: ProjectionCertificateEvidence) -> Pro
             seed_consensus=seed_consensus,
             rank_evidence=rank_evidence,
             reasons=reasons,
+            passed=passed,
+            motion_class=motion_class,
+            exact_threshold=exact_threshold,
+            exact_threshold_passed=exact_threshold_passed,
+            continuation=continuation,
+            joint_limits=joint_limits,
+            numerical=numerical,
+            audit_evidence=audit_evidence,
         )
     )
 
@@ -262,10 +333,10 @@ def _decide_certificate_class(
     active_limit_residual_norm: float,
     kkt_passed: bool,
 ) -> tuple[str, list[str]]:
-    if not evidence.converged and evidence.active_coordinates:
-        return "solver_failed", [f"solver did not converge: {evidence.solver_status or 'unknown_status'}"]
     if residual_norm <= residual_tolerance and kkt_passed:
         return "exact_reachable", ["projection residual is within exact-reachable tolerance"]
+    if not evidence.converged and evidence.active_coordinates:
+        return "solver_failed", [f"solver did not converge: {evidence.solver_status or 'unknown_status'}"]
     if rank <= 0:
         return "unsupported_rank_zero", ["rank-zero task has nonzero demand"]
     if not kkt_passed:
@@ -332,8 +403,8 @@ def _active_limits(evidence: ProjectionCertificateEvidence) -> dict[str, Any]:
             "boundary_tolerance": float(boundary) if boundary is not None else float(evidence.boundary_abs_tolerance),
         }
     values = _optional_array(evidence.coordinate_values)
-    lower = _optional_array(evidence.lower_bounds)
-    upper = _optional_array(evidence.upper_bounds)
+    lower = _optional_bound_array(evidence.lower_bounds)
+    upper = _optional_bound_array(evidence.upper_bounds)
     active_coordinates = list(evidence.active_coordinates)
     if values is None or lower is None or upper is None or not active_coordinates:
         return {"lower": [], "upper": [], "count": 0, "boundary_tolerance": float(evidence.boundary_abs_tolerance)}
@@ -361,71 +432,438 @@ def _active_limits(evidence: ProjectionCertificateEvidence) -> dict[str, Any]:
 def _kkt_evidence(
     evidence: ProjectionCertificateEvidence,
     gradient: np.ndarray,
+    prior_gradient: np.ndarray,
     active_limits: dict[str, Any],
+    scalar_dtype: str,
 ) -> dict[str, Any]:
-    if isinstance(evidence.kkt, dict) and evidence.kkt:
-        projected_norm = evidence.kkt.get("stationarity_inf_norm", evidence.kkt.get("projected_gradient_norm", 0.0))
-        tolerance = evidence.kkt.get("stationarity_tolerance", evidence.kkt.get("tolerance", evidence.kkt.get("active_bound_tolerance", 1e-7)))
-        task_gradient = evidence.kkt.get("task_gradient", gradient.tolist())
-        return {
-            "gradient": task_gradient,
-            "projected_gradient": evidence.kkt.get("projected_gradient", []),
-            "gradient_norm": float(np.linalg.norm(np.asarray(task_gradient, dtype=float))) if task_gradient is not None else None,
-            "projected_gradient_norm": float(projected_norm),
-            "tolerance": float(tolerance),
-            "source": "provided_kkt",
-            "raw": evidence.kkt,
-        }
+    del active_limits
     values = _optional_array(evidence.coordinate_values)
-    lower = _optional_array(evidence.lower_bounds)
-    upper = _optional_array(evidence.upper_bounds)
+    lower = _optional_bound_array(evidence.lower_bounds)
+    upper = _optional_bound_array(evidence.upper_bounds)
     active_coordinates = list(evidence.active_coordinates)
+    raw_kkt = evidence.kkt if isinstance(evidence.kkt, dict) else {}
+    stationarity_tol = _stationarity_tolerance(evidence, scalar_dtype, raw_kkt)
+    active_tol = _active_bound_tolerance(evidence, scalar_dtype, raw_kkt)
+    projected_values: list[float] = []
+    stationarity_violations: list[float] = []
+    dual_violations: list[float] = []
+    complementarity_violations: list[float] = []
+    primal_violations: list[float] = []
+    active_lower: list[int] = []
+    active_upper: list[int] = []
+    fixed: list[int] = []
+    free: list[int] = []
+    multipliers: list[dict[str, float | int | str]] = []
     if gradient.size == 0:
         projected = np.zeros(0)
-    elif values is None or lower is None or upper is None or not active_coordinates:
-        projected = gradient
+    elif values is None or lower is None or upper is None or len(active_coordinates) != gradient.size:
+        projected = np.asarray(gradient, dtype=float)
+        projected_values = projected.tolist()
+        stationarity_violations = [abs(float(g)) for g in gradient]
     else:
-        projected_values = []
-        for idx, g in enumerate(gradient):
+        for idx, g_raw in enumerate(gradient):
+            coordinate = int(active_coordinates[idx])
             value = float(values[idx])
             lo = float(lower[idx])
             hi = float(upper[idx])
-            boundary_tol = float(active_limits["boundary_tolerance"])
-            at_lower = np.isfinite(lo) and value <= lo + boundary_tol
-            at_upper = np.isfinite(hi) and value >= hi - boundary_tol
-            if at_lower:
-                projected_values.append(min(0.0, float(g)))
+            g = float(g_raw)
+            finite_lower = bool(np.isfinite(lo))
+            finite_upper = bool(np.isfinite(hi))
+            lower_gap = value - lo if finite_lower else float("inf")
+            upper_gap = hi - value if finite_upper else float("inf")
+            primal_violations.append(max(-lower_gap if finite_lower else 0.0, -upper_gap if finite_upper else 0.0, 0.0))
+            is_fixed = bool(finite_lower and finite_upper and abs(hi - lo) <= active_tol)
+            at_lower = bool(finite_lower and value <= lo + active_tol)
+            at_upper = bool(finite_upper and value >= hi - active_tol)
+            if is_fixed:
+                fixed.append(coordinate)
+                projected_values.append(0.0)
+                stationarity_violations.append(0.0)
+                dual_violations.append(0.0)
+                complementarity_violations.append(0.0)
+            elif at_lower:
+                active_lower.append(coordinate)
+                multiplier = max(g, 0.0)
+                multipliers.append({"coordinate": coordinate, "side": "lower", "value": multiplier})
+                projected_values.append(min(0.0, g))
+                stationarity_violations.append(max(-g, 0.0))
+                dual_violations.append(max(-g, 0.0))
+                complementarity_violations.append(multiplier * abs(lower_gap))
             elif at_upper:
-                projected_values.append(max(0.0, float(g)))
+                active_upper.append(coordinate)
+                multiplier = max(-g, 0.0)
+                multipliers.append({"coordinate": coordinate, "side": "upper", "value": multiplier})
+                projected_values.append(max(0.0, g))
+                stationarity_violations.append(max(g, 0.0))
+                dual_violations.append(max(g, 0.0))
+                complementarity_violations.append(multiplier * abs(upper_gap))
             else:
-                projected_values.append(float(g))
+                free.append(coordinate)
+                projected_values.append(g)
+                stationarity_violations.append(abs(g))
+                dual_violations.append(0.0)
+                complementarity_violations.append(0.0)
         projected = np.asarray(projected_values, dtype=float)
-    norm = float(np.linalg.norm(projected))
+    if not primal_violations and values is not None and lower is not None and upper is not None:
+        for value, lo, hi in zip(values, lower, upper):
+            finite_lower = bool(np.isfinite(lo))
+            finite_upper = bool(np.isfinite(hi))
+            primal_violations.append(
+                max(
+                    float(lo - value) if finite_lower else 0.0,
+                    float(value - hi) if finite_upper else 0.0,
+                    0.0,
+                )
+            )
+    stationarity_inf = float(max(stationarity_violations, default=0.0))
+    primal_inf = float(max(primal_violations, default=0.0))
+    dual_inf = float(max(dual_violations, default=0.0))
+    complementarity_inf = float(max(complementarity_violations, default=0.0))
     grad_norm = float(np.linalg.norm(gradient))
-    tolerance = max(float(evidence.kkt_abs_tolerance), float(evidence.kkt_rel_tolerance) * max(1.0, grad_norm))
+    grad_inf = _inf_norm(gradient)
+    prior_inf = _inf_norm(prior_gradient)
+    provided_task_consistent = _provided_task_gradient_consistent(raw_kkt, gradient, stationarity_tol)
+    provided_prior_consistent = _provided_prior_gradient_consistent(raw_kkt, prior_gradient, stationarity_tol)
+    primal_feasible = bool(primal_inf <= active_tol)
+    dual_feasible = bool(dual_inf <= stationarity_tol)
+    complementarity_passed = bool(complementarity_inf <= stationarity_tol)
+    satisfied = bool(
+        primal_feasible
+        and dual_feasible
+        and complementarity_passed
+        and stationarity_inf <= stationarity_tol
+        and provided_task_consistent
+        and provided_prior_consistent
+    )
+    if grad_inf <= stationarity_tol and prior_inf <= stationarity_tol:
+        prior_cancellation_ratio = 0.0
+    else:
+        prior_cancellation_ratio = float(prior_inf / max(grad_inf, stationarity_tol))
     return {
         "gradient": gradient.tolist(),
+        "task_gradient": gradient.tolist(),
+        "prior_gradient": prior_gradient.tolist(),
         "projected_gradient": projected.tolist(),
         "gradient_norm": grad_norm,
-        "projected_gradient_norm": norm,
-        "tolerance": tolerance,
+        "task_gradient_inf_norm": grad_inf,
+        "prior_gradient_inf_norm": prior_inf,
+        "prior_cancellation_ratio": prior_cancellation_ratio,
+        "projected_gradient_norm": stationarity_inf,
+        "projected_gradient_inf_norm": stationarity_inf,
+        "stationarity_inf_norm": stationarity_inf,
+        "tolerance": stationarity_tol,
+        "stationarity_tolerance": stationarity_tol,
+        "active_bound_tolerance": active_tol,
+        "primal_violation_inf_norm": primal_inf,
+        "primal_feasible": primal_feasible,
+        "dual_feasibility_inf_norm": dual_inf,
+        "dual_feasible": dual_feasible,
+        "complementarity_inf_norm": complementarity_inf,
+        "complementarity_passed": complementarity_passed,
+        "active_lower": active_lower,
+        "active_upper": active_upper,
+        "fixed_coordinates": fixed,
+        "free_coordinates": free,
+        "multipliers": multipliers,
+        "provided_task_gradient_consistent": provided_task_consistent,
+        "provided_prior_gradient_consistent": provided_prior_consistent,
+        "satisfied": satisfied,
+        "source": "independent_recompute",
+        "raw": raw_kkt,
     }
 
 
-def _seed_consensus(seed_consensus: dict[str, Any] | None, passed: bool | None = None) -> dict[str, Any]:
+def _seed_consensus(
+    seed_consensus: dict[str, Any] | None,
+    passed: bool | None = None,
+    seed_results: list[dict[str, Any]] | None = None,
+    task_scale: float = 1.0,
+) -> dict[str, Any]:
     if seed_consensus is None:
-        return {
+        payload = {
             "checked": passed is not None,
             "passed": bool(passed) if passed is not None else False,
             "start_count": 0,
             "max_projected_delta": None,
             "max_residual_delta": None,
         }
-    payload = dict(seed_consensus)
+    else:
+        payload = dict(seed_consensus)
     if passed is not None:
         payload["passed"] = bool(passed)
         payload.setdefault("checked", True)
+    rows = list(payload.get("seed_results") or seed_results or [])
+    if rows:
+        payload["seed_results"] = rows
+        payload.setdefault("checked", True)
+        payload.setdefault("start_count", len(rows))
+        payload.setdefault("task_scale", float(task_scale))
+        _recompute_seed_task_space_consensus(payload, rows, float(payload.get("task_scale", task_scale) or task_scale))
     return payload
+
+
+def _recompute_seed_task_space_consensus(payload: dict[str, Any], rows: list[dict[str, Any]], task_scale: float) -> None:
+    accepted = [row for row in rows if row.get("accepted", False)]
+    if not accepted:
+        payload["competitive_seed_count"] = 0
+        payload["max_task_space_delta"] = None
+        payload["task_space_spread"] = None
+        payload["certificate_class_consensus"] = False
+        payload["passed"] = False
+        return
+    residuals = [
+        float(row.get("normalized_residual", row.get("task_residual_norm", 0.0)) or 0.0)
+        for row in accepted
+    ]
+    best = min(residuals)
+    residual_tolerance = float(payload.get("global_seed_residual_tolerance", GLOBAL_SEED_RESIDUAL_TOLERANCE))
+    task_space_tolerance = max(
+        float(payload.get("task_space_tolerance", payload.get("tolerance", GLOBAL_SEED_RESIDUAL_TOLERANCE)) or 0.0),
+        GLOBAL_TASK_SPACE_TOLERANCE,
+    )
+    competitive = [
+        row
+        for row in accepted
+        if float(row.get("normalized_residual", row.get("task_residual_norm", 0.0)) or 0.0) <= best + residual_tolerance
+    ]
+    vectors: list[np.ndarray] = []
+    missing_vectors = False
+    for row in competitive:
+        vector = row.get("final_task_vector")
+        if vector is None:
+            missing_vectors = True
+            continue
+        vectors.append(np.asarray(vector, dtype=float).reshape(3))
+    max_delta = 0.0
+    if missing_vectors and len(competitive) >= 2:
+        max_delta = float("inf")
+    else:
+        for i, lhs in enumerate(vectors):
+            for rhs in vectors[i + 1 :]:
+                max_delta = max(max_delta, float(np.linalg.norm(lhs - rhs)))
+    normalized_spread = max_delta / max(task_scale, np.finfo(float).tiny)
+    exact_threshold = _optional_float(payload.get("exact_threshold"))
+    classes = {
+        _seed_consensus_certificate_class(row, exact_threshold=exact_threshold)
+        for row in competitive
+        if row.get("certificate_class") is not None
+    }
+    class_consensus = len(classes) <= 1
+    task_space_passed = bool(normalized_spread <= task_space_tolerance)
+    payload["competitive_seed_count"] = len(competitive)
+    payload["max_task_space_delta"] = max_delta
+    payload["task_space_spread"] = normalized_spread
+    payload["task_space_tolerance"] = task_space_tolerance
+    payload["global_seed_residual_tolerance"] = residual_tolerance
+    payload["certificate_class_consensus"] = class_consensus
+    payload["certificate_classes"] = sorted(classes)
+    payload["passed"] = bool(competitive and task_space_passed and class_consensus)
+
+
+def _seed_consensus_certificate_class(row: dict[str, Any], *, exact_threshold: float | None) -> str:
+    normalized = float(row.get("normalized_residual", row.get("task_residual_norm", 0.0)) or 0.0)
+    if exact_threshold is not None and normalized <= exact_threshold:
+        return "exact_reachable"
+    return str(row.get("certificate_class"))
+
+
+def _continuation_evidence(
+    evidence: ProjectionCertificateEvidence,
+    residual_norm: float,
+    residual_tolerance: float,
+) -> dict[str, Any]:
+    history = [dict(step) for step in evidence.continuation_history]
+    if not history:
+        if evidence.continuation_passed is not None:
+            passed = bool(evidence.continuation_passed)
+            source = "explicit_gate_no_history"
+        elif not evidence.active_coordinates:
+            passed = True
+            source = "trivial_rank_zero"
+        elif evidence.converged and residual_norm <= residual_tolerance:
+            passed = True
+            source = "exact_seed_no_continuation"
+        else:
+            passed = False
+            source = "missing_continuation_history"
+        return {
+            "checked": True,
+            "passed": passed,
+            "source": source,
+            "history_length": 0,
+            "starts_at_zero": passed,
+            "accepted_alpha_strictly_increasing": passed,
+            "reached_alpha_one": passed,
+            "final_alpha": 1.0 if passed else None,
+            "all_steps_finite": True,
+            "all_steps_within_bounds": True if passed else None,
+        }
+    starts_at_zero = abs(float(history[0].get("alpha_start", float("nan")))) <= 1e-12
+    accepted = all(bool(step.get("accepted", False)) for step in history)
+    finite = all(_step_finite(step) for step in history)
+    strictly_increasing = True
+    previous_alpha = None
+    for step in history:
+        start = float(step.get("alpha_start", float("nan")))
+        end = float(step.get("alpha_end", float("nan")))
+        if not np.isfinite(start) or not np.isfinite(end) or end <= start:
+            strictly_increasing = False
+        if previous_alpha is not None and start < previous_alpha - 1e-12:
+            strictly_increasing = False
+        previous_alpha = end
+    final_alpha = float(history[-1].get("alpha_end", float("nan")))
+    reached_alpha_one = bool(abs(final_alpha - 1.0) <= 1e-12)
+    within_bounds = _continuation_steps_within_bounds(evidence, history)
+    explicit_passed = True if evidence.continuation_passed is None else bool(evidence.continuation_passed)
+    passed = bool(
+        starts_at_zero
+        and accepted
+        and finite
+        and strictly_increasing
+        and reached_alpha_one
+        and within_bounds
+        and explicit_passed
+    )
+    return {
+        "checked": True,
+        "passed": passed,
+        "source": "continuation_history",
+        "history_length": len(history),
+        "starts_at_zero": bool(starts_at_zero),
+        "accepted_alpha_strictly_increasing": bool(strictly_increasing),
+        "all_steps_accepted": bool(accepted),
+        "reached_alpha_one": reached_alpha_one,
+        "final_alpha": final_alpha if np.isfinite(final_alpha) else None,
+        "all_steps_finite": bool(finite),
+        "all_steps_within_bounds": bool(within_bounds),
+    }
+
+
+def _step_finite(step: dict[str, Any]) -> bool:
+    for key in ("alpha_start", "alpha_end", "task_residual_norm", "prior_residual_norm"):
+        if key in step and not np.isfinite(float(step[key])):
+            return False
+    if "q_active" in step:
+        q = np.asarray(step["q_active"], dtype=float)
+        return bool(np.all(np.isfinite(q)))
+    return True
+
+
+def _continuation_steps_within_bounds(evidence: ProjectionCertificateEvidence, history: list[dict[str, Any]]) -> bool:
+    lower = _optional_bound_array(evidence.lower_bounds)
+    upper = _optional_bound_array(evidence.upper_bounds)
+    if lower is None or upper is None:
+        return all(bool(step.get("within_bounds", True)) for step in history)
+    active_tol = _active_bound_tolerance(evidence, _scalar_dtype(evidence), evidence.kkt if isinstance(evidence.kkt, dict) else {})
+    for step in history:
+        if not bool(step.get("within_bounds", True)):
+            return False
+        if "q_active" not in step:
+            continue
+        q = np.asarray(step["q_active"], dtype=float)
+        if q.size != lower.size:
+            continue
+        finite_lower = np.isfinite(lower)
+        finite_upper = np.isfinite(upper)
+        if np.any(q[finite_lower] < lower[finite_lower] - active_tol):
+            return False
+        if np.any(q[finite_upper] > upper[finite_upper] + active_tol):
+            return False
+    return True
+
+
+def _joint_limits_evidence(
+    active_limits: dict[str, Any],
+    kkt: dict[str, Any],
+    explicit_passed: bool | None,
+) -> dict[str, Any]:
+    passed = bool(kkt.get("primal_feasible", False))
+    if explicit_passed is not None:
+        passed = bool(passed and explicit_passed)
+    return {
+        "checked": True,
+        "passed": passed,
+        "active_bound_count": int(active_limits.get("count", 0) or 0),
+        "active_lower": list(active_limits.get("lower", [])),
+        "active_upper": list(active_limits.get("upper", [])),
+        "fixed_coordinates": list(kkt.get("fixed_coordinates", [])),
+        "primal_feasible": bool(kkt.get("primal_feasible", False)),
+        "primal_violation_inf_norm": kkt.get("primal_violation_inf_norm"),
+        "boundary_tolerance": active_limits.get("boundary_tolerance"),
+    }
+
+
+def _numerical_evidence(evidence: ProjectionCertificateEvidence, scalar_dtype: str) -> dict[str, Any]:
+    arrays = [
+        evidence.desired,
+        evidence.projected,
+        evidence.seed,
+        evidence.jacobian,
+        [] if evidence.task_gradient is None else evidence.task_gradient,
+        [] if evidence.prior_gradient is None else evidence.prior_gradient,
+    ]
+    nonfinite_count = 0
+    for value in arrays:
+        arr = np.asarray(value, dtype=float)
+        nonfinite_count += int(np.size(arr) - np.count_nonzero(np.isfinite(arr)))
+    explicit_passed = True if evidence.numerical_gate_passed is None else bool(evidence.numerical_gate_passed)
+    passed = bool(nonfinite_count == 0 and explicit_passed)
+    return {
+        "checked": True,
+        "passed": passed,
+        "jacobian_source": evidence.residual_jacobian_source or evidence.jacobian_source,
+        "scalar_dtype": scalar_dtype,
+        "rank_stability_gate": "not_evaluated",
+        "engine_fd_validation_status": "not_evaluated",
+        "nonfinite_count": nonfinite_count,
+    }
+
+
+def _audit_evidence(
+    evidence: ProjectionCertificateEvidence,
+    *,
+    desired: np.ndarray,
+    projected: np.ndarray,
+    seed: np.ndarray,
+    residual: np.ndarray,
+    demand: np.ndarray,
+    jacobian: np.ndarray,
+    gradient: np.ndarray,
+    prior_gradient: np.ndarray,
+    scalar_dtype: str,
+    scale: float,
+) -> dict[str, Any]:
+    normalized_residual = residual / max(scale, np.finfo(float).tiny)
+    return {
+        "desired_vector": desired.tolist(),
+        "projected_vector": projected.tolist(),
+        "seed_vector": seed.tolist(),
+        "normalized_residual_vector": normalized_residual.tolist(),
+        "demand_vector": demand.tolist(),
+        "relevant_task_jacobian": jacobian.tolist(),
+        "active_coordinates": [int(coord) for coord in evidence.active_coordinates],
+        "q_active": _optional_json_array(evidence.coordinate_values),
+        "lower_bounds": _optional_json_array(evidence.lower_bounds),
+        "upper_bounds": _optional_json_array(evidence.upper_bounds),
+        "task_gradient": gradient.tolist(),
+        "provided_task_gradient": _optional_json_array(evidence.task_gradient),
+        "prior_gradient": prior_gradient.tolist(),
+        "seed_results": [dict(row) for row in evidence.seed_results],
+        "continuation_history": [dict(step) for step in evidence.continuation_history],
+        "scalar_dtype": scalar_dtype,
+        "normalization_scale": float(scale),
+        "residual_parameterization": evidence.residual_parameterization,
+        "jacobian_source": evidence.residual_jacobian_source or evidence.jacobian_source,
+    }
+
+
+def _certificate_passed(certificate_class: str, gates: dict[str, bool | None]) -> bool:
+    if certificate_class in {"solver_failed", "numerical_invalid", "invalid_target_geometry"}:
+        return False
+    required = ["projected_gradient_kkt", "seed_consensus", "continuation", "joint_limits", "numerical"]
+    if certificate_class != "exact_reachable":
+        required.append("residual_explained")
+    return all(bool(gates.get(name, False)) for name in required)
 
 
 def _residual_tolerance(
@@ -437,7 +875,7 @@ def _residual_tolerance(
     if evidence.residual_tolerance is not None:
         return float(evidence.residual_tolerance)
     if evidence.exact_threshold is not None:
-        return float(evidence.exact_threshold)
+        return float(evidence.exact_threshold) * float(scale)
     return 1e-7 * max(1.0, scale, float(np.linalg.norm(desired)), float(np.linalg.norm(projected)))
 
 
@@ -459,6 +897,107 @@ def _optional_array(value: np.ndarray | None) -> np.ndarray | None:
     if not np.all(np.isfinite(arr)):
         return None
     return arr
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    return result if np.isfinite(result) else None
+
+
+def _optional_bound_array(value: np.ndarray | None) -> np.ndarray | None:
+    if value is None:
+        return None
+    arr = np.asarray(value, dtype=float)
+    if np.any(np.isnan(arr)):
+        return None
+    return arr
+
+
+def _optional_json_array(value: np.ndarray | None) -> list[Any]:
+    if value is None:
+        return []
+    return np.asarray(value, dtype=float).tolist()
+
+
+def _scalar_dtype(evidence: ProjectionCertificateEvidence) -> str:
+    if evidence.scalar_dtype:
+        dtype = str(evidence.scalar_dtype).lower()
+    elif isinstance(evidence.kkt, dict) and evidence.kkt.get("scalar_dtype"):
+        dtype = str(evidence.kkt.get("scalar_dtype")).lower()
+    else:
+        dtype = "float64"
+    if "float32" in dtype or dtype in {"single", "fp32"}:
+        return "float32"
+    return "float64"
+
+
+def _stationarity_tolerance(
+    evidence: ProjectionCertificateEvidence,
+    scalar_dtype: str,
+    raw_kkt: dict[str, Any],
+) -> float:
+    del raw_kkt
+    if scalar_dtype == "float32":
+        return 5e-5
+    return max(float(evidence.kkt_abs_tolerance), 1e-7)
+
+
+def _active_bound_tolerance(
+    evidence: ProjectionCertificateEvidence,
+    scalar_dtype: str,
+    raw_kkt: dict[str, Any],
+) -> float:
+    del raw_kkt
+    if scalar_dtype == "float32":
+        return 1e-5
+    return max(float(evidence.boundary_abs_tolerance), 1e-9)
+
+
+def _prior_gradient(evidence: ProjectionCertificateEvidence, gradient: np.ndarray) -> np.ndarray:
+    if evidence.prior_gradient is None:
+        return np.zeros_like(gradient, dtype=float)
+    arr = np.asarray(evidence.prior_gradient, dtype=float).reshape(-1)
+    if arr.size == gradient.size:
+        return arr
+    if arr.size == 0:
+        return np.zeros_like(gradient, dtype=float)
+    return arr
+
+
+def _inf_norm(value: np.ndarray) -> float:
+    arr = np.asarray(value, dtype=float).reshape(-1)
+    return float(np.max(np.abs(arr))) if arr.size else 0.0
+
+
+def _provided_task_gradient_consistent(raw_kkt: dict[str, Any], gradient: np.ndarray, tolerance: float) -> bool:
+    if not raw_kkt or "task_gradient" not in raw_kkt:
+        return True
+    provided = np.asarray(raw_kkt.get("task_gradient", []), dtype=float).reshape(-1)
+    expected = np.asarray(gradient, dtype=float).reshape(-1)
+    if provided.size != expected.size:
+        return False
+    return bool(_inf_norm(provided - expected) <= max(float(tolerance), 1e-9 * max(1.0, _inf_norm(expected))))
+
+
+def _provided_prior_gradient_consistent(raw_kkt: dict[str, Any], prior_gradient: np.ndarray, tolerance: float) -> bool:
+    if not raw_kkt:
+        return True
+    expected_inf = _inf_norm(prior_gradient)
+    if "prior_gradient" in raw_kkt:
+        provided = np.asarray(raw_kkt.get("prior_gradient", []), dtype=float).reshape(-1)
+        expected = np.asarray(prior_gradient, dtype=float).reshape(-1)
+        if provided.size != expected.size:
+            return False
+        return bool(_inf_norm(provided - expected) <= max(float(tolerance), 1e-9 * max(1.0, _inf_norm(expected))))
+    if "prior_gradient_inf_norm" in raw_kkt:
+        provided_inf = float(raw_kkt.get("prior_gradient_inf_norm") or 0.0)
+        return bool(abs(provided_inf - expected_inf) <= max(float(tolerance), 1e-9 * max(1.0, expected_inf)))
+    return True
 
 
 def _safe_fraction(part: float, total: float) -> float:

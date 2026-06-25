@@ -14,6 +14,9 @@ from .projection_certificate import ProjectionCertificate, ProjectionCertificate
 from .reachability_metrics import backend_rank_abs_floor, rank_with_uncertainty, retained_left_singular_vectors
 from .spatial import so3_log
 
+GLOBAL_SEED_RESIDUAL_TOLERANCE = 1e-7
+GLOBAL_TASK_SPACE_TOLERANCE = 1e-4
+
 
 @dataclass(frozen=True)
 class TaskResidualDecomposition:
@@ -113,6 +116,8 @@ def project_endpoint_position_with_certificate(
     neutral_prior_weight: float = 1e-8,
     continuity_prior_weight: float = 1e-8,
     seed_consensus_atol: float = 1e-7,
+    exact_threshold: float | None = None,
+    motion_class: str | None = None,
 ) -> CapabilityProjectionResult:
     from .chain_projection import project_endpoint_position
 
@@ -127,8 +132,14 @@ def project_endpoint_position_with_certificate(
         previous_q=previous_q,
         neutral_prior_weight=neutral_prior_weight,
         continuity_prior_weight=continuity_prior_weight,
+        exact_threshold=exact_threshold,
     )
-    consensus = _projection_seed_consensus(projection, active_coordinates, atol=seed_consensus_atol)
+    consensus = _projection_seed_consensus(
+        projection,
+        active_coordinates,
+        atol=seed_consensus_atol,
+        exact_threshold=exact_threshold,
+    )
     certificate = certify_projection_result(
         adapter,
         q_seed,
@@ -138,6 +149,8 @@ def project_endpoint_position_with_certificate(
         projection,
         task_block="translation",
         seed_consensus=consensus,
+        exact_threshold=exact_threshold,
+        motion_class=motion_class,
     )
     return CapabilityProjectionResult(projection, certificate)
 
@@ -155,6 +168,8 @@ def project_torso_orientation_with_certificate(
     neutral_prior_weight: float = 1e-8,
     continuity_prior_weight: float = 1e-8,
     seed_consensus_atol: float = 1e-7,
+    exact_threshold: float | None = None,
+    motion_class: str | None = None,
 ) -> CapabilityProjectionResult:
     from .chain_projection import project_torso_orientation
 
@@ -169,8 +184,14 @@ def project_torso_orientation_with_certificate(
         previous_q=previous_q,
         neutral_prior_weight=neutral_prior_weight,
         continuity_prior_weight=continuity_prior_weight,
+        exact_threshold=exact_threshold,
     )
-    consensus = _projection_seed_consensus(projection, active_coordinates, atol=seed_consensus_atol)
+    consensus = _projection_seed_consensus(
+        projection,
+        active_coordinates,
+        atol=seed_consensus_atol,
+        exact_threshold=exact_threshold,
+    )
     certificate = certify_projection_result(
         adapter,
         q_seed,
@@ -180,6 +201,8 @@ def project_torso_orientation_with_certificate(
         projection,
         task_block="rotation",
         seed_consensus=consensus,
+        exact_threshold=exact_threshold,
+        motion_class=motion_class,
     )
     return CapabilityProjectionResult(projection, certificate)
 
@@ -194,6 +217,8 @@ def certify_projection_result(
     *,
     task_block: str,
     seed_consensus: dict | None = None,
+    exact_threshold: float | None = None,
+    motion_class: str | None = None,
 ) -> ProjectionCertificate:
     try:
         seed = _task_vector(adapter, q_seed, reference, target, task_block)
@@ -205,6 +230,15 @@ def certify_projection_result(
             active_coordinates,
             task_block,
         )
+        residual_vector = None
+        solver_linearization = _solver_residual_linearization(
+            projection,
+            scale=float(projection.normalization_scale),
+            active_coordinate_count=len(active_coordinates),
+        )
+        if solver_linearization is not None:
+            jacobian, residual_vector, jacobian_source = solver_linearization
+            noise_norm = 0.0
         values, lower, upper = _coordinate_values_and_bounds(adapter, projection.chain_q, active_coordinates)
         evidence = ProjectionCertificateEvidence(
             task_block=task_block,
@@ -212,6 +246,7 @@ def certify_projection_result(
             projected=np.asarray(projection.projected, dtype=float),
             seed=seed,
             jacobian=jacobian,
+            residual=residual_vector,
             scale=float(projection.normalization_scale),
             noise_norm=noise_norm,
             rank_abs_floor=backend_rank_abs_floor(adapter),
@@ -227,8 +262,15 @@ def certify_projection_result(
             normalized_residual=getattr(projection, "normalized_residual", None),
             task_residual=getattr(projection, "residual", None),
             kkt=getattr(projection, "active_limit_kkt", None),
+            task_gradient=getattr(projection, "task_gradient", None),
+            prior_gradient=getattr(projection, "prior_gradient", None),
+            seed_results=getattr(projection, "seed_results", []),
+            continuation_history=getattr(projection, "continuation_history", []),
+            scalar_dtype=getattr(projection, "residual_jacobian_scalar_dtype", None),
+            exact_threshold=exact_threshold,
             residual_parameterization=getattr(projection, "residual_parameterization", None),
             residual_jacobian_source=getattr(projection, "residual_jacobian_source", None),
+            evidence={"motion_class": motion_class} if motion_class else {},
         )
     except Exception:
         evidence = ProjectionCertificateEvidence(
@@ -385,9 +427,18 @@ def _midpoint_seed(
     return adapter.set_velocity_coordinates(q_seed, active_coordinates, np.asarray(midpoints, dtype=float))
 
 
-def _projection_seed_consensus(projection: Any, active_coordinates: list[int], *, atol: float) -> dict:
+def _projection_seed_consensus(
+    projection: Any,
+    active_coordinates: list[int],
+    *,
+    atol: float,
+    exact_threshold: float | None = None,
+) -> dict:
     rows = list(getattr(projection, "seed_results", []) or [])
     selected_seed_index = getattr(projection, "selected_seed_index", None)
+    task_scale = max(float(getattr(projection, "normalization_scale", 1.0) or 1.0), np.finfo(float).tiny)
+    task_space_tolerance = max(float(atol), GLOBAL_TASK_SPACE_TOLERANCE)
+    residual_tolerance = max(float(atol), GLOBAL_SEED_RESIDUAL_TOLERANCE)
     if not rows:
         trivial = not active_coordinates
         return {
@@ -397,23 +448,100 @@ def _projection_seed_consensus(projection: Any, active_coordinates: list[int], *
             "selected_seed_index": selected_seed_index,
             "max_projected_delta": 0.0 if trivial else None,
             "max_residual_delta": 0.0 if trivial else None,
+            "max_task_space_delta": 0.0 if trivial else None,
+            "task_space_spread": 0.0 if trivial else None,
             "tolerance": float(atol),
+            "task_space_tolerance": task_space_tolerance,
+            "task_scale": task_scale,
             "source": "projection_result_seed_results",
             "statuses": ["trivial_rank_zero"] if trivial else [],
+            "consensus_source": "trivial_rank_zero" if trivial else "missing_seed_results",
         }
     selected = next((row for row in rows if row.get("seed_index") == selected_seed_index), None)
-    selected_norm = float((selected or rows[0]).get("task_residual_norm", 0.0))
     accepted = [row for row in rows if row.get("accepted", False)]
-    residual_deltas = [abs(float(row.get("task_residual_norm", 0.0)) - selected_norm) for row in accepted]
+    best_norm = min(
+        (float(row.get("normalized_residual", row.get("task_residual_norm", 0.0)) or 0.0) for row in accepted),
+        default=float((selected or rows[0]).get("normalized_residual", (selected or rows[0]).get("task_residual_norm", 0.0)) or 0.0),
+    )
+    competitive = [
+        row
+        for row in accepted
+        if float(row.get("normalized_residual", row.get("task_residual_norm", 0.0)) or 0.0) <= best_norm + residual_tolerance
+    ]
+    residual_deltas = [
+        abs(float(row.get("normalized_residual", row.get("task_residual_norm", 0.0)) or 0.0) - best_norm)
+        for row in accepted
+    ]
+    vectors = [
+        np.asarray(row["final_task_vector"], dtype=float).reshape(3)
+        for row in competitive
+        if row.get("final_task_vector") is not None
+    ]
+    max_task_space_delta = 0.0
+    if len(vectors) == len(competitive):
+        for i, lhs in enumerate(vectors):
+            for rhs in vectors[i + 1 :]:
+                max_task_space_delta = max(max_task_space_delta, float(np.linalg.norm(lhs - rhs)))
+    elif len(competitive) >= 2:
+        max_task_space_delta = float("inf")
+    task_space_spread = max_task_space_delta / task_scale if np.isfinite(max_task_space_delta) else float("inf")
+    classes = {
+        _seed_consensus_certificate_class(row, exact_threshold=exact_threshold)
+        for row in competitive
+        if row.get("certificate_class") is not None
+    }
+    class_consensus = len(classes) <= 1
     return {
         "checked": True,
-        "passed": bool(getattr(projection, "seed_consensus_passed", False)),
+        "passed": bool(
+            competitive
+            and task_space_spread <= task_space_tolerance
+            and class_consensus
+        ),
         "start_count": int(getattr(projection, "deterministic_start_count", len(rows)) or len(rows)),
         "selected_seed_index": selected_seed_index,
-        "max_projected_delta": None,
+        "max_projected_delta": max_task_space_delta if np.isfinite(max_task_space_delta) else None,
         "max_residual_delta": max(residual_deltas, default=0.0),
+        "max_task_space_delta": max_task_space_delta if np.isfinite(max_task_space_delta) else None,
+        "task_space_spread": task_space_spread if np.isfinite(task_space_spread) else None,
+        "competitive_seed_count": len(competitive),
+        "certificate_class_consensus": class_consensus,
+        "certificate_classes": sorted(classes),
         "tolerance": float(atol),
+        "task_space_tolerance": task_space_tolerance,
+        "global_seed_residual_tolerance": residual_tolerance,
+        "exact_threshold": None if exact_threshold is None else float(exact_threshold),
+        "task_scale": task_scale,
         "source": "projection_result_seed_results",
         "statuses": ["accepted" if row.get("accepted", False) else "rejected" for row in rows],
         "seed_results": rows,
     }
+
+
+def _solver_residual_linearization(
+    projection: Any,
+    *,
+    scale: float,
+    active_coordinate_count: int,
+) -> tuple[np.ndarray, np.ndarray, str] | None:
+    kkt = getattr(projection, "active_limit_kkt", None)
+    raw = kkt.get("raw_evidence") if isinstance(kkt, dict) else None
+    if not isinstance(raw, dict):
+        return None
+    try:
+        jacobian = np.asarray(raw.get("task_jacobian"), dtype=float)
+        residual = np.asarray(raw.get("task_residual"), dtype=float).reshape(3)
+    except (TypeError, ValueError):
+        return None
+    if jacobian.shape != (3, active_coordinate_count):
+        return None
+    unnormalized_scale = max(float(scale), np.finfo(float).tiny)
+    source = str(getattr(projection, "residual_jacobian_source", None) or "solver_residual_jacobian")
+    return jacobian * unnormalized_scale, residual * unnormalized_scale, source
+
+
+def _seed_consensus_certificate_class(row: dict, *, exact_threshold: float | None) -> str:
+    normalized = float(row.get("normalized_residual", row.get("task_residual_norm", 0.0)) or 0.0)
+    if exact_threshold is not None and normalized <= float(exact_threshold):
+        return "exact_reachable"
+    return str(row.get("certificate_class"))

@@ -233,7 +233,7 @@ def test_prismatic_torso_profile_compiles_with_translation_rank_one(tmp_path: Pa
         low_discrepancy_count=4,
     )
     assert profile.failures == []
-    assert profile.capability_status == "full_humanoid_ready"
+    assert profile.capability_status == "capability_limited_passed"
     assert profile.rank_stability["torso"].regular_rank_translation == 1
     assert profile.rank_stability["torso"].regular_rank_rotation == 0
     assert profile.neutral_jacobians["torso"]["engine_translation_crosscheck"]["available"]

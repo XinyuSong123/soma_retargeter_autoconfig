@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import soma_retargeter.robotics.v3.validation as validation_module
+from soma_retargeter.robotics.v3.target_builder import CANONICAL_MOTION_NAMES
 from soma_retargeter.robotics.v3.validation import write_validation_artifacts
 
 
@@ -63,6 +64,26 @@ class _FakeProfile:
 
 
 def _profile_payload(source: Path, *, model_id: str, deterministic_hash: str, residual: float) -> dict:
+    torso_task = {
+        "status": "converged",
+        "converged": True,
+        "residual": residual,
+        "normalized_residual": residual,
+        "normalization_scale": 1.0,
+        "iterations": 1,
+        "active_coordinates": [0],
+        "desired_source": "canonical_targets.transforms",
+        "reference": "Hips",
+        "target": "Chest",
+        "capability_certificate": {
+            "certificate_class": "exact_reachable",
+            "gates": {
+                "exact_threshold_passed": True,
+                "projected_gradient_kkt": True,
+                "seed_consensus": True,
+            },
+        },
+    }
     return {
         "schema_version": 3,
         "model": {
@@ -111,28 +132,23 @@ def _profile_payload(source: Path, *, model_id: str, deterministic_hash: str, re
                 "regular_rank_fraction_threshold": 0.2,
             }
         },
+        "chains": {
+            "torso": {
+                "reference": "Hips",
+                "target": "Chest",
+                "active_velocity_coordinates": [0],
+                "coordinate_labels": ["torso_yaw"],
+                "joint_types": ["revolute"],
+            }
+        },
         "canonical_projection_reports": {
-            "motion_order": ["neutral"],
+            "motion_order": list(CANONICAL_MOTION_NAMES),
             "target_source": "canonical_semantic_targets",
             "failures": [],
             "unreachable_demands": [],
             "motions": {
-                "neutral": {
-                    "tasks": {
-                        "torso": {
-                            "status": "converged",
-                            "converged": True,
-                            "residual": residual,
-                            "normalized_residual": residual,
-                            "normalization_scale": 1.0,
-                            "iterations": 1,
-                            "active_coordinates": [0],
-                            "desired_source": "canonical_targets.transforms",
-                            "reference": "Hips",
-                            "target": "Chest",
-                        }
-                    }
-                }
+                motion: {"tasks": {"torso": json.loads(json.dumps(torso_task))}}
+                for motion in CANONICAL_MOTION_NAMES
             },
         },
         "failures": [],

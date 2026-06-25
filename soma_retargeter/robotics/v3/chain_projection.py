@@ -10,6 +10,7 @@ from .engine_jacobian import engine_relative_jacobian
 from .model_adapter import MuJoCoRuntimeModelAdapter, SemanticSite
 from .numerical_jacobian import numerical_relative_jacobian
 from .projection_solver import (
+    ContinuationSolverConfig,
     SO3_LOG_JACOBIAN_CONVENTION,
     ResidualJacobianEvaluation,
     deterministic_seed_candidates,
@@ -18,6 +19,9 @@ from .projection_solver import (
     solve_bounded_continuation,
 )
 from .spatial import so3_exp, so3_log
+
+GLOBAL_SEED_RESIDUAL_TOLERANCE = 1e-7
+GLOBAL_TASK_SPACE_TOLERANCE = 1e-4
 
 
 @dataclass(frozen=True)
@@ -50,6 +54,8 @@ class ProjectionResult:
     active_limit_kkt: dict = field(default_factory=dict)
     task_gradient: np.ndarray | None = None
     task_gradient_inf_norm: float = 0.0
+    prior_gradient: np.ndarray | None = None
+    prior_gradient_inf_norm: float = 0.0
     capability_certificate: dict = field(default_factory=dict)
     so3_jacobian_convention: str | None = None
 
@@ -85,6 +91,8 @@ class ProjectionResult:
             "active_limit_kkt": active_limit_kkt,
             "task_gradient": [] if self.task_gradient is None else np.asarray(self.task_gradient, dtype=float).tolist(),
             "task_gradient_inf_norm": self.task_gradient_inf_norm,
+            "prior_gradient": [] if self.prior_gradient is None else np.asarray(self.prior_gradient, dtype=float).tolist(),
+            "prior_gradient_inf_norm": self.prior_gradient_inf_norm,
             "capability_certificate": self.capability_certificate,
         }
         if self.so3_jacobian_convention is not None:
@@ -118,6 +126,7 @@ def project_endpoint_position(
     previous_q: np.ndarray | None = None,
     neutral_prior_weight: float = 1e-12,
     continuity_prior_weight: float = 1e-8,
+    exact_threshold: float | None = None,
 ) -> ProjectionResult:
     scale = _position_normalization_scale(adapter, q_seed, reference, target, active_coordinates)
     desired_reference_position = np.asarray(desired_reference_position, dtype=float).copy()
@@ -132,7 +141,8 @@ def project_endpoint_position(
             scale,
             residual_parameterization="position",
         )
-    if seed_residual_abs <= 1e-10:
+    active_values, lower, upper = _initial_and_bounds(adapter, q_seed, active_coordinates)
+    if seed_residual_abs <= 1e-10 and _seed_within_actual_bounds(adapter, q_seed, active_coordinates):
         return _exact_seed_result(
             desired_reference_position,
             current_seed_position,
@@ -140,10 +150,13 @@ def project_endpoint_position(
             seed_residual_abs,
             scale,
             active_coordinates,
+            active_values=active_values,
+            lower_bounds=lower,
+            upper_bounds=upper,
             residual_parameterization="position",
         )
 
-    x0, lo, hi = _initial_and_bounds(adapter, q_seed, active_coordinates)
+    x0, lo, hi = active_values, lower, upper
     prior = _prior_context(
         adapter,
         active_coordinates,
@@ -178,10 +191,28 @@ def project_endpoint_position(
 
         return evaluate
 
-    solve = solve_bounded_continuation(make_evaluator, seeds, lo, hi, active_coordinates=active_coordinates)
+    solve = solve_bounded_continuation(
+        make_evaluator,
+        seeds,
+        lo,
+        hi,
+        active_coordinates=active_coordinates,
+        config=_continuation_config(exact_threshold),
+    )
     q = adapter.set_velocity_coordinates(q_seed, active_coordinates, solve.x)
     projected = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, 3]
     residual_abs = float(np.linalg.norm(projected - desired_reference_position))
+    seed_results = _decorate_seed_results(
+        adapter,
+        q_seed,
+        reference,
+        target,
+        active_coordinates,
+        solve.seed_results,
+        desired_reference_position,
+        scale,
+        task_block="translation",
+    )
     return _projection_result_from_solve(
         desired_reference_position,
         projected,
@@ -190,6 +221,7 @@ def project_endpoint_position(
         scale,
         active_coordinates,
         solve,
+        seed_results=seed_results,
         residual_parameterization="position",
     )
 
@@ -206,6 +238,7 @@ def project_torso_orientation(
     previous_q: np.ndarray | None = None,
     neutral_prior_weight: float = 1e-12,
     continuity_prior_weight: float = 1e-8,
+    exact_threshold: float | None = None,
 ) -> ProjectionResult:
     scale = np.pi
     desired_relative_rotation = np.asarray(desired_relative_rotation, dtype=float).copy()
@@ -222,7 +255,8 @@ def project_torso_orientation(
             residual_parameterization="so3_log",
             so3_jacobian_convention=SO3_LOG_JACOBIAN_CONVENTION,
         )
-    if seed_residual_abs <= 1e-10:
+    active_values, lower, upper = _initial_and_bounds(adapter, q_seed, active_coordinates)
+    if seed_residual_abs <= 1e-10 and _seed_within_actual_bounds(adapter, q_seed, active_coordinates):
         return _exact_seed_result(
             so3_log(desired_relative_rotation),
             so3_log(current_seed_rotation),
@@ -230,11 +264,14 @@ def project_torso_orientation(
             seed_residual_abs,
             scale,
             active_coordinates,
+            active_values=active_values,
+            lower_bounds=lower,
+            upper_bounds=upper,
             residual_parameterization="so3_log",
             so3_jacobian_convention=SO3_LOG_JACOBIAN_CONVENTION,
         )
 
-    x0, lo, hi = _initial_and_bounds(adapter, q_seed, active_coordinates)
+    x0, lo, hi = active_values, lower, upper
     prior = _prior_context(
         adapter,
         active_coordinates,
@@ -272,19 +309,39 @@ def project_torso_orientation(
 
         return evaluate
 
-    solve = solve_bounded_continuation(make_evaluator, seeds, lo, hi, active_coordinates=active_coordinates)
+    solve = solve_bounded_continuation(
+        make_evaluator,
+        seeds,
+        lo,
+        hi,
+        active_coordinates=active_coordinates,
+        config=_continuation_config(exact_threshold),
+    )
     q = adapter.set_velocity_coordinates(q_seed, active_coordinates, solve.x)
     rot = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)[:3, :3]
     err = so3_log(rot.T @ desired_relative_rotation)
     residual_abs = float(np.linalg.norm(err))
+    desired_log = so3_log(desired_relative_rotation)
+    seed_results = _decorate_seed_results(
+        adapter,
+        q_seed,
+        reference,
+        target,
+        active_coordinates,
+        solve.seed_results,
+        desired_log,
+        scale,
+        task_block="rotation",
+    )
     return _projection_result_from_solve(
-        so3_log(desired_relative_rotation),
+        desired_log,
         so3_log(rot),
         q,
         residual_abs,
         scale,
         active_coordinates,
         solve,
+        seed_results=seed_results,
         residual_parameterization="so3_log",
         so3_jacobian_convention=SO3_LOG_JACOBIAN_CONVENTION,
     )
@@ -299,9 +356,11 @@ def _projection_result_from_solve(
     active_coordinates: list[int],
     solve,
     *,
+    seed_results: list[dict] | None = None,
     residual_parameterization: str,
     so3_jacobian_convention: str | None = None,
 ) -> ProjectionResult:
+    rows = list(solve.seed_results if seed_results is None else seed_results)
     return ProjectionResult(
         np.asarray(desired, dtype=float).copy(),
         np.asarray(projected, dtype=float).copy(),
@@ -323,16 +382,66 @@ def _projection_result_from_solve(
         residual_jacobian_source=solve.residual_jacobian_source,
         residual_jacobian_scalar_dtype=solve.residual_jacobian_scalar_dtype,
         deterministic_start_count=solve.deterministic_start_count,
-        seed_results=solve.seed_results,
+        seed_results=rows,
         selected_seed_index=solve.selected_seed_index,
-        seed_consensus_passed=_seed_consensus_passed(solve.seed_results, solve.selected_seed_index),
+        seed_consensus_passed=_seed_consensus_passed(rows, solve.selected_seed_index, task_scale=scale),
         continuation_history=solve.continuation_history,
         deterministic_adaptive_subdivision=solve.deterministic_adaptive_subdivision,
         active_limit_kkt=solve.active_limit_kkt,
         task_gradient=solve.task_gradient,
         task_gradient_inf_norm=solve.task_gradient_inf_norm,
+        prior_gradient=solve.prior_gradient,
+        prior_gradient_inf_norm=solve.prior_gradient_inf_norm,
         so3_jacobian_convention=so3_jacobian_convention,
     )
+
+
+def _decorate_seed_results(
+    adapter: MuJoCoRuntimeModelAdapter,
+    q_seed: np.ndarray,
+    reference: SemanticSite,
+    target: SemanticSite,
+    active_coordinates: list[int],
+    seed_results: list[dict],
+    desired: np.ndarray,
+    scale: float,
+    *,
+    task_block: str,
+) -> list[dict]:
+    rows: list[dict] = []
+    desired = np.asarray(desired, dtype=float).reshape(3)
+    for row in seed_results:
+        payload = dict(row)
+        final_x = np.asarray(payload.get("final_q_active", payload.get("final_x", [])), dtype=float)
+        final_task_vector: np.ndarray | None = None
+        if final_x.shape == (len(active_coordinates),):
+            q = adapter.set_velocity_coordinates(q_seed, active_coordinates, final_x)
+            relative = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)
+            if task_block == "rotation":
+                final_task_vector = so3_log(relative[:3, :3])
+            else:
+                final_task_vector = relative[:3, 3].copy()
+        if final_task_vector is not None:
+            payload["final_task_vector"] = final_task_vector.tolist()
+            payload["task_space_endpoint"] = payload["final_task_vector"]
+            payload["task_space_error_norm"] = float(np.linalg.norm(final_task_vector - desired))
+        normalized = float(payload.get("normalized_residual", payload.get("task_residual_norm", 0.0)) or 0.0)
+        payload["normalized_residual"] = normalized
+        payload["certificate_class"] = _seed_certificate_class(payload, normalized, scale)
+        rows.append(payload)
+    return rows
+
+
+def _seed_certificate_class(seed_result: dict, normalized_residual: float, scale: float) -> str:
+    if not seed_result.get("accepted", False):
+        return "solver_failed"
+    residual_tolerance = 1e-7 * max(1.0, float(scale))
+    if normalized_residual <= residual_tolerance:
+        return "exact_reachable"
+    active_limits = seed_result.get("active_limits", {})
+    if isinstance(active_limits, dict) and int(active_limits.get("count", 0) or 0) > 0:
+        return "capability_limited_joint_limits"
+    return "capability_limited_rank"
 
 
 def _rank_zero_result(
@@ -368,6 +477,8 @@ def _rank_zero_result(
         active_limit_kkt=rank_zero_kkt_evidence(residual_abs),
         task_gradient=np.zeros(0),
         task_gradient_inf_norm=0.0,
+        prior_gradient=np.zeros(0),
+        prior_gradient_inf_norm=0.0,
         so3_jacobian_convention=so3_jacobian_convention,
     )
 
@@ -380,9 +491,19 @@ def _exact_seed_result(
     scale: float,
     active_coordinates: list[int],
     *,
+    active_values: np.ndarray | None = None,
+    lower_bounds: np.ndarray | None = None,
+    upper_bounds: np.ndarray | None = None,
     residual_parameterization: str,
     so3_jacobian_convention: str | None = None,
 ) -> ProjectionResult:
+    final_active = [] if active_values is None else np.asarray(active_values, dtype=float).tolist()
+    active_limits = _exact_active_limit_summary(active_values, lower_bounds, upper_bounds, active_coordinates)
+    free_coordinates = [
+        int(coord)
+        for coord in active_coordinates
+        if coord not in set(active_limits["lower"]) | set(active_limits["upper"]) | set(active_limits["fixed"])
+    ]
     return ProjectionResult(
         np.asarray(desired, dtype=float).copy(),
         np.asarray(projected, dtype=float).copy(),
@@ -403,11 +524,17 @@ def _exact_seed_result(
             {
                 "seed_index": 0,
                 "accepted": True,
-                "initial_x": [],
-                "final_x": [],
+                "initial_x": final_active,
+                "final_x": final_active,
+                "final_q_active": final_active,
+                "final_task_vector": np.asarray(projected, dtype=float).reshape(3).tolist(),
+                "task_space_endpoint": np.asarray(projected, dtype=float).reshape(3).tolist(),
                 "task_residual_norm": float(residual_abs / scale),
+                "normalized_residual": float(residual_abs / scale),
                 "prior_residual_norm": 0.0,
                 "total_residual_norm": float(residual_abs / scale),
+                "active_limits": active_limits,
+                "certificate_class": "exact_reachable",
                 "accepted_step_count": 0,
                 "rejected_step_count": 0,
                 "nfev": 1,
@@ -425,18 +552,61 @@ def _exact_seed_result(
             "scalar_dtype": "float64",
             "active_bound_tolerance": 1e-9,
             "stationarity_tolerance": 1e-7,
+            "primal_violation_inf_norm": 0.0,
+            "primal_feasible": True,
+            "dual_feasibility_inf_norm": 0.0,
+            "dual_feasible": True,
+            "complementarity_inf_norm": 0.0,
+            "complementarity_passed": True,
             "stationarity_inf_norm": 0.0,
             "satisfied": True,
-            "active_lower": [],
-            "active_upper": [],
-            "free_coordinates": list(active_coordinates),
+            "active_lower": active_limits["lower"],
+            "active_upper": active_limits["upper"],
+            "fixed_coordinates": active_limits["fixed"],
+            "free_coordinates": free_coordinates,
             "multipliers": [],
+            "projected_gradient": [0.0 for _ in active_coordinates],
+            "projected_gradient_norm": 0.0,
             "task_gradient": [0.0 for _ in active_coordinates],
+            "task_gradient_inf_norm": 0.0,
         },
         task_gradient=np.zeros(len(active_coordinates), dtype=float),
         task_gradient_inf_norm=0.0,
+        prior_gradient=np.zeros(len(active_coordinates), dtype=float),
+        prior_gradient_inf_norm=0.0,
         so3_jacobian_convention=so3_jacobian_convention,
     )
+
+
+def _exact_active_limit_summary(
+    values: np.ndarray | None,
+    lower: np.ndarray | None,
+    upper: np.ndarray | None,
+    active_coordinates: list[int],
+) -> dict:
+    if values is None or lower is None or upper is None:
+        return {"lower": [], "upper": [], "fixed": [], "count": 0, "boundary_tolerance": 1e-9}
+    active_tol = 1e-9
+    lower_hits: list[int] = []
+    upper_hits: list[int] = []
+    fixed: list[int] = []
+    for idx, coord in enumerate(active_coordinates):
+        finite_lower = bool(np.isfinite(lower[idx]))
+        finite_upper = bool(np.isfinite(upper[idx]))
+        if finite_lower and finite_upper and abs(float(upper[idx] - lower[idx])) <= active_tol:
+            fixed.append(int(coord))
+            continue
+        if finite_lower and values[idx] <= lower[idx] + active_tol:
+            lower_hits.append(int(coord))
+        if finite_upper and values[idx] >= upper[idx] - active_tol:
+            upper_hits.append(int(coord))
+    return {
+        "lower": lower_hits,
+        "upper": upper_hits,
+        "fixed": fixed,
+        "count": len(lower_hits) + len(upper_hits) + len(fixed),
+        "boundary_tolerance": active_tol,
+    }
 
 
 def _initial_and_bounds(
@@ -456,13 +626,31 @@ def _initial_and_bounds(
         lower = info.lower if np.isfinite(info.lower) else -np.pi
         upper = info.upper if np.isfinite(info.upper) else np.pi
         x0.append(value)
-        lo.append(min(float(lower), value))
-        hi.append(max(float(upper), value))
+        lo.append(float(lower))
+        hi.append(float(upper))
     x0_arr = np.asarray(x0, dtype=float)
     lo_arr = np.asarray(lo, dtype=float)
     hi_arr = np.asarray(hi, dtype=float)
     x0_arr = np.clip(x0_arr, lo_arr, hi_arr)
     return x0_arr, lo_arr, hi_arr
+
+
+def _seed_within_actual_bounds(
+    adapter: MuJoCoRuntimeModelAdapter,
+    q_seed: np.ndarray,
+    active_coordinates: list[int],
+) -> bool:
+    tol = 1e-9
+    for dof in active_coordinates:
+        info = adapter.coordinate(dof)
+        if info.joint_type not in {"revolute", "prismatic"}:
+            continue
+        value = float(q_seed[info.qpos_adr])
+        if np.isfinite(info.lower) and value < float(info.lower) - tol:
+            return False
+        if np.isfinite(info.upper) and value > float(info.upper) + tol:
+            return False
+    return True
 
 
 def _position_normalization_scale(
@@ -514,6 +702,12 @@ def _solver_status(success: bool, residual_abs: float) -> str:
     if residual_abs <= 1e-8:
         return "converged"
     return "converged/with_residual"
+
+
+def _continuation_config(exact_threshold: float | None) -> ContinuationSolverConfig | None:
+    if exact_threshold is None:
+        return None
+    return ContinuationSolverConfig(final_numeric_polish_residual_threshold=float(exact_threshold))
 
 
 def _prior_context(
@@ -640,15 +834,37 @@ def _coordinate_scales(adapter: MuJoCoRuntimeModelAdapter, active_coordinates: l
     return np.asarray(scales, dtype=float)
 
 
-def _seed_consensus_passed(seed_results: list[dict], selected_seed_index: int | None) -> bool:
+def _seed_consensus_passed(seed_results: list[dict], selected_seed_index: int | None, *, task_scale: float) -> bool:
     if not seed_results or selected_seed_index is None:
         return True
     selected = next((seed for seed in seed_results if seed["seed_index"] == selected_seed_index), None)
     if selected is None:
         return False
-    selected_norm = float(selected["task_residual_norm"])
-    tolerance = max(1e-7, 1e-5 * max(1.0, selected_norm))
-    return all(float(seed["task_residual_norm"]) <= selected_norm + tolerance for seed in seed_results if seed["accepted"])
+    accepted = [seed for seed in seed_results if seed.get("accepted", False)]
+    if not accepted:
+        return False
+    best_norm = min(float(seed.get("normalized_residual", seed.get("task_residual_norm", 0.0))) for seed in accepted)
+    residual_tolerance = GLOBAL_SEED_RESIDUAL_TOLERANCE
+    competitive = [
+        seed
+        for seed in accepted
+        if float(seed.get("normalized_residual", seed.get("task_residual_norm", 0.0))) <= best_norm + residual_tolerance
+    ]
+    if len(competitive) < 2:
+        return True
+    vectors = []
+    for seed in competitive:
+        vector = seed.get("final_task_vector")
+        if vector is None:
+            return False
+        vectors.append(np.asarray(vector, dtype=float).reshape(3))
+    max_delta = 0.0
+    for i, lhs in enumerate(vectors):
+        for rhs in vectors[i + 1 :]:
+            max_delta = max(max_delta, float(np.linalg.norm(lhs - rhs)))
+    normalized_spread = max_delta / max(float(task_scale), np.finfo(float).tiny)
+    classes = {str(seed.get("certificate_class")) for seed in competitive if seed.get("certificate_class") is not None}
+    return bool(normalized_spread <= GLOBAL_TASK_SPACE_TOLERANCE and len(classes) <= 1)
 
 
 def _empty_subdivision_summary() -> dict:

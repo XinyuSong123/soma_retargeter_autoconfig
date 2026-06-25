@@ -5,6 +5,7 @@ from pathlib import Path
 
 import soma_retargeter.robotics.v3.validation as validation_module
 from soma_retargeter.robotics.v3.robot_zoo import allowed_status_values
+from soma_retargeter.robotics.v3.target_builder import CANONICAL_MOTION_NAMES
 from soma_retargeter.robotics.v3.validation import write_validation_artifacts
 
 
@@ -66,6 +67,45 @@ class _FakeProfile:
 
 
 def _partial_profile_payload(source: Path, *, model_id: str) -> dict:
+    exact_tasks = {
+        "torso": {
+            "status": "converged",
+            "converged": True,
+            "normalized_residual": 0.0,
+            "residual": 0.0,
+            "iterations": 1,
+            "capability_certificate": {
+                "certificate_class": "exact_reachable",
+                "gates": {
+                    "exact_threshold_passed": True,
+                    "projected_gradient_kkt": True,
+                    "seed_consensus": True,
+                },
+            },
+        },
+        "left_foot": {
+            "status": "converged",
+            "converged": True,
+            "normalized_residual": 0.0,
+            "residual": 0.0,
+            "iterations": 1,
+            "capability_certificate": {
+                "certificate_class": "exact_reachable",
+                "gates": {
+                    "exact_threshold_passed": True,
+                    "projected_gradient_kkt": True,
+                    "seed_consensus": True,
+                },
+            },
+        },
+    }
+    motions = {
+        motion: {"tasks": json.loads(json.dumps(exact_tasks))}
+        for motion in CANONICAL_MOTION_NAMES
+    }
+    motions["single_step"]["tasks"]["left_foot"]["status"] = "converged/with_residual"
+    motions["single_step"]["tasks"]["left_foot"]["normalized_residual"] = 0.02
+    motions["single_step"]["tasks"]["left_foot"]["residual"] = 0.01
     return {
         "schema_version": 3,
         "model": {
@@ -116,48 +156,11 @@ def _partial_profile_payload(source: Path, *, model_id: str) -> dict:
             },
         },
         "canonical_projection_reports": {
-            "motion_order": ["neutral", "left_step"],
+            "motion_order": list(CANONICAL_MOTION_NAMES),
             "target_source": "canonical_semantic_targets",
             "failures": [],
             "unreachable_demands": [],
-            "motions": {
-                "neutral": {
-                    "tasks": {
-                        "torso": {
-                            "status": "converged",
-                            "converged": True,
-                            "normalized_residual": 0.0,
-                            "residual": 0.0,
-                            "iterations": 1,
-                        },
-                        "left_foot": {
-                            "status": "converged",
-                            "converged": True,
-                            "normalized_residual": 0.0,
-                            "residual": 0.0,
-                            "iterations": 1,
-                        },
-                    }
-                },
-                "left_step": {
-                    "tasks": {
-                        "torso": {
-                            "status": "converged",
-                            "converged": True,
-                            "normalized_residual": 0.0,
-                            "residual": 0.0,
-                            "iterations": 1,
-                        },
-                        "left_foot": {
-                            "status": "converged/with_residual",
-                            "converged": True,
-                            "normalized_residual": 0.02,
-                            "residual": 0.01,
-                            "iterations": 3,
-                        },
-                    }
-                },
-            },
+            "motions": motions,
         },
         "failures": [],
         "warnings": ["partial humanoid downgrade; unavailable semantics: LeftHand, RightHand"],
@@ -171,16 +174,32 @@ def _capability_limited_profile_payload(source: Path, *, model_id: str) -> dict:
     payload = _partial_profile_payload(source, model_id=model_id)
     payload["warnings"] = []
     payload["capability_status"] = "full_humanoid_ready"
-    limited_task = payload["canonical_projection_reports"]["motions"]["left_step"]["tasks"]["left_foot"]
+    limited_task = payload["canonical_projection_reports"]["motions"]["single_step"]["tasks"]["left_foot"]
+    limited_task["status"] = "converged/with_residual"
+    limited_task["normalized_residual"] = 0.2
+    limited_task["residual"] = 0.2
     limited_task["capability_certificate"] = {
         "certificate_class": "capability_limited_rank",
         "gates": {
-            "compatible_demand_retained": True,
+            "exact_threshold_passed": False,
             "residual_explained": True,
             "projected_gradient_kkt": True,
             "seed_consensus": True,
-            "no_orthogonal_leakage": True,
+            "continuation": True,
+            "joint_limits": True,
+            "numerical": True,
         },
+        "decomposition": {
+            "rank": 2,
+            "residual_norm": 0.2,
+            "demand_norm": 0.2,
+            "rank_incompatible_fraction": 0.98,
+            "active_limit_fraction": 0.0,
+            "rank_incompatible_residual_norm": 0.196,
+            "active_limit_residual_norm": 0.0,
+            "component_tolerance": 1e-7,
+        },
+        "active_limits": {"lower": [], "upper": [], "count": 0},
         "seed_consensus": {"checked": True, "passed": True, "start_count": 4},
     }
     return payload
@@ -218,7 +237,7 @@ def test_partial_passed_remains_terminal_status_with_task_certificates(monkeypat
     assert report["status_reason"] != report["status"]
     assert "partial-humanoid" in report["status_reason"]
     assert sorted(report["task_certificate_summary"]["per_task"]) == ["left_foot", "torso"]
-    assert report["task_certificate_summary"]["per_task"]["left_foot"]["motion_count"] == 2
+    assert report["task_certificate_summary"]["per_task"]["left_foot"]["motion_count"] == len(CANONICAL_MOTION_NAMES)
     assert report["task_certificate_summary"]["per_task"]["left_foot"]["max_normalized_residual"] == 0.02
 
 

@@ -2,9 +2,11 @@ import numpy as np
 
 from soma_retargeter.robotics.v3.model_adapter import SemanticSite
 from soma_retargeter.robotics.v3.rest_frames import calibrate_rest_frames
-from soma_retargeter.robotics.v3.spatial import invert_transform, rotation_error, so3_exp, transform
+from soma_retargeter.robotics.v3.spatial import invert_transform, rotation_error, so3_exp, so3_log, transform
 from soma_retargeter.robotics.v3.target_builder import (
     CANONICAL_MOTION_NAMES,
+    MIXED_TORSO_ROTATION_DIRECTION,
+    TORSO_ROTATION_DEMAND_RADIANS,
     build_targets_from_source_semantic_frames,
     canonical_motion_targets,
     validate_canonical_targets,
@@ -114,6 +116,36 @@ def test_new_required_canonical_motions_are_not_neutral_placeholders():
             for name in neutral.keys() & motion.keys()
         )
         assert max_delta > 1e-3, motion_name
+
+
+def test_mixed_torso_rotation_uses_single_axis_torso_angle_envelope():
+    calibration = _calibration()
+    targets = canonical_motion_targets(calibration)
+    neutral_rel = (
+        invert_transform(targets["neutral"].transforms["Hips"])
+        @ targets["neutral"].transforms["Chest"]
+    )
+
+    for motion_name in ("torso_pitch", "torso_roll", "torso_yaw", "mixed_torso_rotation"):
+        motion_rel = (
+            invert_transform(targets[motion_name].transforms["Hips"])
+            @ targets[motion_name].transforms["Chest"]
+        )
+        angle = rotation_error(neutral_rel[:3, :3], motion_rel[:3, :3])
+        assert abs(angle - 0.25) < 1e-12
+
+    mixed_rel = (
+        invert_transform(targets["mixed_torso_rotation"].transforms["Hips"])
+        @ targets["mixed_torso_rotation"].transforms["Chest"]
+    )
+    mixed_rotvec = so3_log(neutral_rel[:3, :3].T @ mixed_rel[:3, :3])
+    source_axis = MIXED_TORSO_ROTATION_DIRECTION / np.linalg.norm(MIXED_TORSO_ROTATION_DIRECTION)
+    expected_robot_axis = calibration.edge_alignment_rotations["torso"] @ source_axis
+    np.testing.assert_allclose(
+        mixed_rotvec,
+        expected_robot_axis * TORSO_ROTATION_DEMAND_RADIANS,
+        atol=1e-12,
+    )
 
 
 def test_relative_rotation_delta_is_mapped_by_calibrated_conjugation():

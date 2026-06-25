@@ -221,15 +221,24 @@ def test_unitree_distal_offsets_are_sole_and_terminal_geometry_not_body_origins(
         adapter.close()
 
 
-def test_unitree_h1_urdf_semantic_map_is_blocked_without_compiled_geometry_truth():
-    assert not (MAP_ROOT / "unitree_h1_urdf.json").exists()
-
+def test_unitree_h1_urdf_semantic_map_uses_verified_snapshot_variant_evidence():
     expectation = json.loads((EXPECTATION_ROOT / "unitree_h1_urdf.json").read_text())
     assert expectation["verification_status"] == "blocked"
     assert expectation["blocker"]["code"] == "compiled_geometry_unavailable"
 
+    payload = json.loads((MAP_ROOT / "unitree_h1_urdf.json").read_text())
+    assert payload["verification_status"] == "verified"
+    assert payload["model_source"]["path"] == "assets/robot_zoo/snapshots/unitree_h1_urdf/model.urdf"
+    assert validate_verified_semantic_map_payload(payload) == []
+    assert payload["semantics"]["Hips"]["evidence"][-1] == "variant_match:unitree_h1_mjcf"
+    for semantic in ("LeftHand", "RightHand", "LeftFoot", "RightFoot", "LeftToe", "RightToe", "LeftHeel", "RightHeel"):
+        assert payload["semantics"][semantic]["source"] == "verified_variant_geometry"
+        assert any(
+            evidence.startswith("variant_geometry:unitree_h1_mjcf:")
+            for evidence in payload["semantics"][semantic]["evidence"]
+        )
+
     entry = _manifest_entries()["unitree_h1_urdf"]
     resolved = resolve_robot_source(entry, allow_fetch=False)
     assert resolved.available
-    with pytest.raises(ValueError):
-        MuJoCoRuntimeModelAdapter(resolved.path, entry.model_format)
+    assert Path(payload["model_source"]["path"]).exists()

@@ -1,0 +1,28 @@
+{
+  "class_specific_gates": {
+    "capability_limited_joint_limits": {
+      "active_bound_count_min": 1
+    },
+    "capability_limited_mixed": {
+      "requires_active_limit_evidence": true,
+      "requires_rank_incompatible_evidence": true
+    },
+    "capability_limited_rank": {
+      "orthogonal_residual_fraction_min": 0.95,
+      "reachable_residual_fraction_max": 0.05
+    },
+    "unsupported_rank_zero": {
+      "preserve_nonzero_demand": true,
+      "rank": 0
+    }
+  },
+  "exact_projection_thresholds": {
+    "default": 0.05,
+    "foot": 0.06,
+    "hand": 0.12,
+    "neutral": 0.001,
+    "torso": 0.08
+  },
+  "schema_version": 1,
+  "source": "global_step2_3_1_capability_acceptance_policy"
+}

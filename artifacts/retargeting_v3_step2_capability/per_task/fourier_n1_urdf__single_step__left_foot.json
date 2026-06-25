@@ -1,0 +1,4823 @@
+{
+  "certificate_class": "exact_reachable",
+  "model_id": "fourier_n1_urdf",
+  "motion": "single_step",
+  "normalized_residual": 2.5511426377171843e-09,
+  "payload": {
+    "active_coordinates": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "active_limit_kkt": {
+      "active_bound_tolerance": 1e-05,
+      "active_lower": [],
+      "active_upper": [],
+      "complementarity_inf_norm": 0.0,
+      "complementarity_passed": true,
+      "dual_feasibility_inf_norm": 0.0,
+      "dual_feasible": true,
+      "fixed_coordinates": [],
+      "free_coordinates": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "gradient_source": "task_only",
+      "multipliers": [],
+      "objective": "task_only_least_squares",
+      "primal_feasible": true,
+      "primal_violation_inf_norm": 0.0,
+      "prior_gradient": [
+        3.8323281403081807e-16,
+        1.5556070799618295e-14,
+        3.1776231692425243e-15,
+        -4.784470589997087e-16,
+        1.9341362500497447e-14,
+        -6.971241325428177e-14
+      ],
+      "prior_gradient_inf_norm": 6.971241325428177e-14,
+      "projected_gradient": [
+        2.2448294779912338e-10,
+        -1.7297315679934504e-09,
+        -1.1637131874766048e-10,
+        2.139143335351943e-10,
+        -1.0786662783150099e-10,
+        8.116885062741798e-11
+      ],
+      "projected_gradient_norm": 1.7297315679934504e-09,
+      "rank_zero": false,
+      "raw_evidence": {
+        "lower_bounds": [
+          -2.617000102996826,
+          -0.26100000739097595,
+          -2.617000102996826,
+          -0.08720000088214874,
+          -0.4359999895095825,
+          -0.7850000262260437
+        ],
+        "prior_jacobian": [
+          [
+            1.9105845637049497e-07,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.461496271527762e-07,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.9105845637049497e-07,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            4.0929928843233356e-07,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.146789018418109e-06,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            6.369426538796358e-07
+          ]
+        ],
+        "prior_residual": [
+          2.005840627580829e-09,
+          2.8483166565024026e-08,
+          1.6631680322385577e-08,
+          -1.1689418294183204e-09,
+          1.686566769463584e-08,
+          -1.0944849246578397e-07
+        ],
+        "q": [
+          0.010498570257948498,
+          0.05215267968507894,
+          0.0870502182333867,
+          -0.002855958616237792,
+          0.014706861875866664,
+          -0.17183413891208274
+        ],
+        "task_jacobian": [
+          [
+            -0.7381934490871126,
+            0.0025734610002248314,
+            -0.005165444307404022,
+            -0.4062878925213104,
+            -0.004076946211280222,
+            -0.04903503420750169
+          ],
+          [
+            -0.011688375775799176,
+            0.775983580594349,
+            0.05284998821307029,
+            -0.03147959694928671,
+            0.048489931719896136,
+            -0.0006100579902970554
+          ],
+          [
+            -0.043621506046084085,
+            0.045838041735922555,
+            0.002811280237442531,
+            -0.050827591433362386,
+            0.0032910023101090894,
+            -0.05175679758476835
+          ]
+        ],
+        "task_residual": [
+          -1.895216800427708e-10,
+          -2.1479168229843945e-09,
+          -1.3634014861048759e-09
+        ],
+        "upper_bounds": [
+          2.617000102996826,
+          1.5700000524520874,
+          2.617000102996826,
+          2.3559999465942383,
+          0.4359999895095825,
+          0.7850000262260437
+        ]
+      },
+      "satisfied": true,
+      "scalar_dtype": "float32",
+      "stationarity_inf_norm": 1.7297315679934504e-09,
+      "stationarity_tolerance": 5e-05,
+      "task_gradient": [
+        2.2448294779912338e-10,
+        -1.7297315679934504e-09,
+        -1.1637131874766048e-10,
+        2.139143335351943e-10,
+        -1.0786662783150099e-10,
+        8.116885062741798e-11
+      ],
+      "task_gradient_inf_norm": 1.7297315679934504e-09
+    },
+    "capability_certificate": {
+      "active_limits": {
+        "boundary_tolerance": 5.2340002059936526e-08,
+        "count": 0,
+        "lower": [],
+        "upper": []
+      },
+      "audit_evidence": {
+        "active_coordinates": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "continuation_history": [
+          {
+            "accepted": true,
+            "alpha_end": 1.0,
+            "alpha_start": 0.0,
+            "nfev": 28,
+            "njev": 9,
+            "prior_residual_norm": 1.1557126216910242e-07,
+            "q_active": [
+              0.010498570257948498,
+              0.05215267968507894,
+              0.0870502182333867,
+              -0.002855958616237792,
+              0.014706861875866664,
+              -0.17183413891208274
+            ],
+            "seed_index": 0,
+            "status": 3,
+            "step_index": 0,
+            "subdivision_depth": 0,
+            "task_residual_norm": 2.5511426377171843e-09,
+            "task_step_norm": 0.04668262870913346,
+            "within_bounds": true
+          }
+        ],
+        "demand_vector": [
+          0.0017628379814923836,
+          0.03569818162139034,
+          0.00715857523818253
+        ],
+        "desired_vector": [
+          0.03526283480898251,
+          0.15569783018458158,
+          -0.6923075382313683
+        ],
+        "jacobian_source": "engine_relative_jacobian",
+        "lower_bounds": [
+          -2.617000102996826,
+          -0.26100000739097595,
+          -2.617000102996826,
+          -0.08720000088214874,
+          -0.4359999895095825,
+          -0.7850000262260437
+        ],
+        "normalization_scale": 0.7808368190941658,
+        "normalized_residual_vector": [
+          -1.895216800427708e-10,
+          -2.1479168229843945e-09,
+          -1.3634014861048759e-09
+        ],
+        "prior_gradient": [
+          3.8323281403081807e-16,
+          1.5556070799618295e-14,
+          3.1776231692425243e-15,
+          -4.784470589997087e-16,
+          1.9341362500497447e-14,
+          -6.971241325428177e-14
+        ],
+        "projected_vector": [
+          0.03526283466099701,
+          0.15569782850740904,
+          -0.6923075392959623
+        ],
+        "provided_task_gradient": [
+          2.2448294779912338e-10,
+          -1.7297315679934504e-09,
+          -1.1637131874766048e-10,
+          2.139143335351943e-10,
+          -1.0786662783150099e-10,
+          8.116885062741798e-11
+        ],
+        "q_active": [
+          0.010498570257948498,
+          0.05215267968507894,
+          0.0870502182333867,
+          -0.002855958616237792,
+          0.014706861875866664,
+          -0.17183413891208274
+        ],
+        "relevant_task_jacobian": [
+          [
+            -0.576408624661332,
+            0.0020094531014784476,
+            -0.004033369102201423,
+            -0.31724454563281235,
+            -0.0031834297112340597,
+            -0.038288360134759225
+          ],
+          [
+            -0.00912671416115233,
+            0.6059165507405927,
+            0.041267216685457964,
+            -0.02458042834824744,
+            0.03786272404225699,
+            -0.0004763557406065322
+          ],
+          [
+            -0.03406127802512122,
+            0.03579203070258338,
+            0.002195151118186917,
+            -0.03968805481704456,
+            0.0025697357754571326,
+            -0.040413613192591125
+          ]
+        ],
+        "residual_parameterization": "position",
+        "scalar_dtype": "float32",
+        "seed_results": [
+          {
+            "accepted": true,
+            "accepted_step_count": 1,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              0.010498570257948498,
+              0.05215267968507894,
+              0.0870502182333867,
+              -0.002855958616237792,
+              0.014706861875866664,
+              -0.17183413891208274
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.08434404226591095,
+                "minimum_upper_gap": 0.42129312763371585,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.7297315679934504e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.08434404226591095,
+                "minimum_upper_gap": 0.42129312763371585,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.7297315679934504e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 6.508328757978593e-18,
+              "task_cost_before": 6.508328757978593e-18,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283466099701,
+              0.15569782850740904,
+              -0.6923075392959623
+            ],
+            "final_x": [
+              0.010498570257948498,
+              0.05215267968507894,
+              0.0870502182333867,
+              -0.002855958616237792,
+              0.014706861875866664,
+              -0.17183413891208274
+            ],
+            "initial_x": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "nfev": 28,
+            "njev": 9,
+            "normalized_residual": 2.5511426377171843e-09,
+            "prior_residual_norm": 1.1557126216910242e-07,
+            "rejected_step_count": 0,
+            "seed_index": 0,
+            "task_residual_norm": 2.5511426377171843e-09,
+            "task_space_endpoint": [
+              0.03526283466099701,
+              0.15569782850740904,
+              -0.6923075392959623
+            ],
+            "task_space_error_norm": 1.992026102290586e-09,
+            "total_residual_norm": 1.155994159505894e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 3,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.14820298508710977,
+              0.23822228542034102,
+              1.110377651659251,
+              0.45011673643965544,
+              -0.05973866906286511,
+              0.14449921617954803
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3762613204467174,
+                "minimum_upper_gap": 0.49573865857244764,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.5205783197706065e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3762613204467174,
+                "minimum_upper_gap": 0.49573865857244764,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.5205783197706065e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 3.1885195421943484e-15,
+              "task_cost_before": 3.1885195421943484e-15,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.035262836947072204,
+              0.15569782617281977,
+              -0.6923075820878875
+            ],
+            "final_x": [
+              -0.14820298508710977,
+              0.23822228542034102,
+              1.110377651659251,
+              0.45011673643965544,
+              -0.05973866906286511,
+              0.14449921617954803
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 78,
+            "njev": 46,
+            "normalized_residual": 5.646697744872085e-08,
+            "prior_residual_norm": 3.3142311754940253e-07,
+            "rejected_step_count": 0,
+            "seed_index": 1,
+            "task_residual_norm": 5.646697744872085e-08,
+            "task_space_endpoint": [
+              0.035262836947072204,
+              0.15569782617281977,
+              -0.6923075820878875
+            ],
+            "task_space_error_norm": 4.4091495054921176e-08,
+            "total_residual_norm": 3.361990517362585e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 4,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.28469305136153333,
+              0.15430078427802674,
+              0.3853666907971295,
+              0.4782898475964756,
+              -0.010323199178766805,
+              0.3394507968129812
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4153007916690027,
+                "minimum_upper_gap": 0.4455492294130625,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.344179954593154e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4153007916690027,
+                "minimum_upper_gap": 0.4455492294130625,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.344179954593154e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 6.980996105463904e-16,
+              "task_cost_before": 6.980996105463904e-16,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283669258843,
+              0.15569783589161007,
+              -0.6923075579675653
+            ],
+            "final_x": [
+              -0.28469305136153333,
+              0.15430078427802674,
+              0.3853666907971295,
+              0.4782898475964756,
+              -0.010323199178766805,
+              0.3394507968129812
+            ],
+            "initial_x": [
+              -2.617000102996826,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 114,
+            "njev": 76,
+            "normalized_residual": 2.6421574717385608e-08,
+            "prior_residual_norm": 3.1731988745768663e-07,
+            "rejected_step_count": 0,
+            "seed_index": 2,
+            "task_residual_norm": 2.6421574717385608e-08,
+            "task_space_endpoint": [
+              0.03526283669258843,
+              0.15569783589161007,
+              -0.6923075579675653
+            ],
+            "task_space_error_norm": 2.0630938365460092e-08,
+            "total_residual_norm": 3.184179809412548e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 5,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 2,
+              "fixed": [],
+              "lower": [],
+              "upper": [
+                0,
+                1
+              ]
+            },
+            "certificate_class": "capability_limited_joint_limits",
+            "final_q_active": [
+              2.617000102698249,
+              1.5700000524520872,
+              -2.092050715997958,
+              1.5144446488338912,
+              -0.0003359717243575445,
+              0.6459768912819215
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [
+                  0,
+                  1
+                ],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43566401778522496,
+                "minimum_upper_gap": 2.220446049250313e-16,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.54081152646607e-06,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [
+                  0,
+                  1
+                ],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43566401778522496,
+                "minimum_upper_gap": 2.220446049250313e-16,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.54081152646607e-06,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 0.05532835582203121,
+              "task_cost_before": 0.05532835582203121,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03600084976181882,
+              0.2325460225582821,
+              -0.5254907260813267
+            ],
+            "final_x": [
+              2.617000102698249,
+              1.5700000524520872,
+              -2.092050715997958,
+              1.5144446488338912,
+              -0.0003359717243575445,
+              0.6459768912819215
+            ],
+            "initial_x": [
+              2.617000102996826,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 148,
+            "njev": 72,
+            "normalized_residual": 0.2352198032097451,
+            "prior_residual_norm": 1.3032695427038483e-06,
+            "rejected_step_count": 0,
+            "seed_index": 3,
+            "task_residual_norm": 0.2352198032097451,
+            "task_space_endpoint": [
+              0.03600084976181882,
+              0.2325460225582821,
+              -0.5254907260813267
+            ],
+            "task_space_error_norm": 0.18366828292625303,
+            "total_residual_norm": 0.23521980321335556
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 2,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.27896925718702864,
+              -0.02340220493172245,
+              -0.3982649047159434,
+              0.4758400290746165,
+              0.005735416429060722,
+              0.30104962293671933
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.2375978024592535,
+                "minimum_upper_gap": 0.4302645730805218,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.223673386255284e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.2375978024592535,
+                "minimum_upper_gap": 0.4302645730805218,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.223673386255284e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 5.807655236099542e-17,
+              "task_cost_before": 5.807655236099542e-17,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283059830762,
+              0.15569782927431644,
+              -0.6923075423363975
+            ],
+            "final_x": [
+              -0.27896925718702864,
+              -0.02340220493172245,
+              -0.3982649047159434,
+              0.4758400290746165,
+              0.005735416429060722,
+              0.30104962293671933
+            ],
+            "initial_x": [
+              0.0,
+              -0.26100000739097595,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 51,
+            "njev": 27,
+            "normalized_residual": 7.620797357297687e-09,
+            "prior_residual_norm": 2.890291359580173e-07,
+            "rejected_step_count": 0,
+            "seed_index": 4,
+            "task_residual_norm": 7.620797357297687e-09,
+            "task_space_endpoint": [
+              0.03526283059830762,
+              0.15569782927431644,
+              -0.6923075423363975
+            ],
+            "task_space_error_norm": 5.9505991674335505e-09,
+            "total_residual_norm": 2.8912958683780365e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 5,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.053012504758059076,
+              0.2791776967749463,
+              1.6042926326051723,
+              0.4734575218011834,
+              -0.003925046385200476,
+              0.2750891656654951
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43207494312438205,
+                "minimum_upper_gap": 0.439925035894783,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 9.820420065926632e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43207494312438205,
+                "minimum_upper_gap": 0.439925035894783,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 9.820420065926632e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 8.906541580866161e-16,
+              "task_cost_before": 8.906541580866161e-16,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.035262837298108786,
+              0.1556978191853192,
+              -0.6923075178387768
+            ],
+            "final_x": [
+              -0.053012504758059076,
+              0.2791776967749463,
+              1.6042926326051723,
+              0.4734575218011834,
+              -0.003925046385200476,
+              0.2750891656654951
+            ],
+            "initial_x": [
+              0.0,
+              1.5700000524520874,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 133,
+            "njev": 76,
+            "normalized_residual": 2.9843829480926475e-08,
+            "prior_residual_norm": 4.307842082182048e-07,
+            "rejected_step_count": 0,
+            "seed_index": 5,
+            "task_residual_norm": 2.9843829480926475e-08,
+            "task_space_endpoint": [
+              0.035262837298108786,
+              0.1556978191853192,
+              -0.6923075178387768
+            ],
+            "task_space_error_norm": 2.3303160965530076e-08,
+            "total_residual_norm": 4.318167298846494e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 2,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.03017897010435335,
+              0.1613631141533717,
+              -1.1112881310793852,
+              -0.08566461393472358,
+              -0.2836143565262027,
+              -0.07358374675374976
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.0015353869474251658,
+                "minimum_upper_gap": 0.7196143460357852,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.1407686317637473e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.0015353869474251658,
+                "minimum_upper_gap": 0.7196143460357852,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.1407686317637473e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 9.10616372344536e-18,
+              "task_cost_before": 9.10616372344536e-18,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283561868387,
+              0.15569782893983727,
+              -0.6923075364018658
+            ],
+            "final_x": [
+              -0.03017897010435335,
+              0.1613631141533717,
+              -1.1112881310793852,
+              -0.08566461393472358,
+              -0.2836143565262027,
+              -0.07358374675374976
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              -0.08720000088214874,
+              0.0,
+              0.0
+            ],
+            "nfev": 63,
+            "njev": 34,
+            "normalized_residual": 3.017642080075992e-09,
+            "prior_residual_norm": 4.026052173503074e-07,
+            "rejected_step_count": 0,
+            "seed_index": 6,
+            "task_residual_norm": 3.017642080075992e-09,
+            "task_space_endpoint": [
+              0.03526283561868387,
+              0.15569782893983727,
+              -0.6923075364018658
+            ],
+            "task_space_error_norm": 2.3562860283089304e-09,
+            "total_residual_norm": 4.0261652623981015e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 4,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.2863814055817286,
+              0.15093923899904016,
+              0.3785643682248259,
+              0.47833194791315325,
+              0.014940787381225187,
+              0.3412132895973248
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4119392463900161,
+                "minimum_upper_gap": 0.42105920212835735,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.358755250918011e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4119392463900161,
+                "minimum_upper_gap": 0.42105920212835735,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.358755250918011e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 3.3169575695400552e-15,
+              "task_cost_before": 3.3169575695400552e-15,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283070085034,
+              0.15569783185891262,
+              -0.6923075829827844
+            ],
+            "final_x": [
+              -0.2863814055817286,
+              0.15093923899904016,
+              0.3785643682248259,
+              0.47833194791315325,
+              0.014940787381225187,
+              0.3412132895973248
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              2.3559999465942383,
+              0.0,
+              0.0
+            ],
+            "nfev": 107,
+            "njev": 46,
+            "normalized_residual": 5.759303403659209e-08,
+            "prior_residual_norm": 3.1761332781114093e-07,
+            "rejected_step_count": 0,
+            "seed_index": 7,
+            "task_residual_norm": 5.759303403659209e-08,
+            "task_space_endpoint": [
+              0.03526283070085034,
+              0.15569783185891262,
+              -0.6923075829827844
+            ],
+            "task_space_error_norm": 4.49707613886338e-08,
+            "total_residual_norm": 3.22792787361811e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 3,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.15413517652537198,
+              0.25441508716872613,
+              1.1438387048571785,
+              0.46762844610091836,
+              0.004707458123068422,
+              0.228559154758113
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.44070744763265096,
+                "minimum_upper_gap": 0.4312925313865141,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 8.696730283791075e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.44070744763265096,
+                "minimum_upper_gap": 0.4312925313865141,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 8.696730283791075e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 1.355774198506069e-16,
+              "task_cost_before": 1.355774198506069e-16,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283592914582,
+              0.15569782135988186,
+              -0.6923075363519284
+            ],
+            "final_x": [
+              -0.15413517652537198,
+              0.25441508716872613,
+              1.1438387048571785,
+              0.46762844610091836,
+              0.004707458123068422,
+              0.228559154758113
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              -0.7850000262260437
+            ],
+            "nfev": 77,
+            "njev": 23,
+            "normalized_residual": 1.16437717192758e-08,
+            "prior_residual_norm": 3.546689997629738e-07,
+            "rejected_step_count": 0,
+            "seed_index": 8,
+            "task_residual_norm": 1.16437717192758e-08,
+            "task_space_endpoint": [
+              0.03526283592914582,
+              0.15569782135988186,
+              -0.6923075363519284
+            ],
+            "task_space_error_norm": 9.091885671537922e-09,
+            "total_residual_norm": 3.5486008061307616e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 3,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.20198706022401333,
+              0.2622454719565028,
+              0.9370153134627441,
+              0.472341501307029,
+              -0.10821710714127661,
+              0.49838899351959814
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3277828823683059,
+                "minimum_upper_gap": 0.28661103270644556,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.843142475220043e-08,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3277828823683059,
+                "minimum_upper_gap": 0.28661103270644556,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.843142475220043e-08,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 5.569116881831005e-15,
+              "task_cost_before": 5.569116881831005e-15,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.0352628096926495,
+              0.15569778035738607,
+              -0.6923075550225907
+            ],
+            "final_x": [
+              -0.20198706022401333,
+              0.2622454719565028,
+              0.9370153134627441,
+              0.472341501307029,
+              -0.10821710714127661,
+              0.49838899351959814
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.7850000262260437
+            ],
+            "nfev": 76,
+            "njev": 21,
+            "normalized_residual": 7.462651594326915e-08,
+            "prior_residual_norm": 4.556331231078515e-07,
+            "rejected_step_count": 0,
+            "seed_index": 9,
+            "task_residual_norm": 7.462651594326915e-08,
+            "task_space_endpoint": [
+              0.0352628096926495,
+              0.15569778035738607,
+              -0.6923075550225907
+            ],
+            "task_space_error_norm": 5.8271131329222336e-08,
+            "total_residual_norm": 4.617040824541684e-07
+          }
+        ],
+        "seed_vector": [
+          0.03349999682749013,
+          0.11999964856319124,
+          -0.6994661134695508
+        ],
+        "task_gradient": [
+          2.2448294779912336e-10,
+          -1.7297315679934502e-09,
+          -1.1637131874766048e-10,
+          2.139143335351943e-10,
+          -1.0786662783150101e-10,
+          8.116885062741798e-11
+        ],
+        "upper_bounds": [
+          2.617000102996826,
+          1.5700000524520874,
+          2.617000102996826,
+          2.3559999465942383,
+          0.4359999895095825,
+          0.7850000262260437
+        ]
+      },
+      "certificate_class": "exact_reachable",
+      "continuation": {
+        "accepted_alpha_strictly_increasing": true,
+        "all_steps_accepted": true,
+        "all_steps_finite": true,
+        "all_steps_within_bounds": true,
+        "checked": true,
+        "final_alpha": 1.0,
+        "history_length": 1,
+        "passed": true,
+        "reached_alpha_one": true,
+        "source": "continuation_history",
+        "starts_at_zero": true
+      },
+      "decomposition": {
+        "active_limit_fraction": 0.0,
+        "active_limit_residual_norm": 0.0,
+        "compatible_demand_norm": 0.036451515308193724,
+        "compatible_retained_norm": 0.036451513449454506,
+        "compatible_retention_error_norm": 1.992026102290586e-09,
+        "component_tolerance": 1e-07,
+        "demand_norm": 0.036451515308193745,
+        "orthogonal_leakage_norm": 2.01099468844672e-17,
+        "orthogonal_residual_fraction": 4.961053672611674e-16,
+        "orthogonal_residual_norm": 9.88254841070703e-25,
+        "rank": 3,
+        "rank_incompatible_fraction": 4.961053672611674e-16,
+        "rank_incompatible_residual_norm": 9.88254841070703e-25,
+        "rank_threshold": 1e-05,
+        "reachable_residual_fraction": 0.9999999999999996,
+        "reachable_residual_norm": 1.9920261022905853e-09,
+        "residual_norm": 1.992026102290586e-09,
+        "residual_tolerance": 0.04685020914564995,
+        "retained_norm": 0.03645151344945453,
+        "singular_values": [
+          0.6638284478032993,
+          0.6071617096436132,
+          0.04115961894388907
+        ],
+        "tangent_residual_norm": 1.9920261022905853e-09
+      },
+      "deterministic_digest": "0f880c33a17035104d93b8558bdb7b6d3a1b6dd7908be182db5ad0ad27f6ec2c",
+      "exact_threshold": 0.06,
+      "exact_threshold_passed": true,
+      "gates": {
+        "compatible_demand_retained": true,
+        "continuation": true,
+        "exact_threshold_passed": true,
+        "joint_limits": true,
+        "no_orthogonal_leakage": true,
+        "numerical": true,
+        "projected_gradient_kkt": true,
+        "residual_explained": true,
+        "seed_consensus": true
+      },
+      "joint_limits": {
+        "active_bound_count": 0,
+        "active_lower": [],
+        "active_upper": [],
+        "boundary_tolerance": 5.2340002059936526e-08,
+        "checked": true,
+        "fixed_coordinates": [],
+        "passed": true,
+        "primal_feasible": true,
+        "primal_violation_inf_norm": 0.0
+      },
+      "kkt": {
+        "active_bound_tolerance": 1e-05,
+        "active_lower": [],
+        "active_upper": [],
+        "complementarity_inf_norm": 0.0,
+        "complementarity_passed": true,
+        "dual_feasibility_inf_norm": 0.0,
+        "dual_feasible": true,
+        "fixed_coordinates": [],
+        "free_coordinates": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "gradient": [
+          2.2448294779912336e-10,
+          -1.7297315679934502e-09,
+          -1.1637131874766048e-10,
+          2.139143335351943e-10,
+          -1.0786662783150101e-10,
+          8.116885062741798e-11
+        ],
+        "gradient_norm": 1.7663207830958836e-09,
+        "multipliers": [],
+        "primal_feasible": true,
+        "primal_violation_inf_norm": 0.0,
+        "prior_cancellation_ratio": 0.0,
+        "prior_gradient": [
+          3.8323281403081807e-16,
+          1.5556070799618295e-14,
+          3.1776231692425243e-15,
+          -4.784470589997087e-16,
+          1.9341362500497447e-14,
+          -6.971241325428177e-14
+        ],
+        "prior_gradient_inf_norm": 6.971241325428177e-14,
+        "projected_gradient": [
+          2.2448294779912336e-10,
+          -1.7297315679934502e-09,
+          -1.1637131874766048e-10,
+          2.139143335351943e-10,
+          -1.0786662783150101e-10,
+          8.116885062741798e-11
+        ],
+        "projected_gradient_inf_norm": 1.7297315679934502e-09,
+        "projected_gradient_norm": 1.7297315679934502e-09,
+        "provided_prior_gradient_consistent": true,
+        "provided_task_gradient_consistent": true,
+        "raw": {
+          "active_bound_tolerance": 1e-05,
+          "active_lower": [],
+          "active_upper": [],
+          "complementarity_inf_norm": 0.0,
+          "complementarity_passed": true,
+          "dual_feasibility_inf_norm": 0.0,
+          "dual_feasible": true,
+          "fixed_coordinates": [],
+          "free_coordinates": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "gradient_source": "task_only",
+          "multipliers": [],
+          "objective": "task_only_least_squares",
+          "primal_feasible": true,
+          "primal_violation_inf_norm": 0.0,
+          "prior_gradient": [
+            3.8323281403081807e-16,
+            1.5556070799618295e-14,
+            3.1776231692425243e-15,
+            -4.784470589997087e-16,
+            1.9341362500497447e-14,
+            -6.971241325428177e-14
+          ],
+          "prior_gradient_inf_norm": 6.971241325428177e-14,
+          "projected_gradient": [
+            2.2448294779912338e-10,
+            -1.7297315679934504e-09,
+            -1.1637131874766048e-10,
+            2.139143335351943e-10,
+            -1.0786662783150099e-10,
+            8.116885062741798e-11
+          ],
+          "projected_gradient_norm": 1.7297315679934504e-09,
+          "rank_zero": false,
+          "raw_evidence": {
+            "lower_bounds": [
+              -2.617000102996826,
+              -0.26100000739097595,
+              -2.617000102996826,
+              -0.08720000088214874,
+              -0.4359999895095825,
+              -0.7850000262260437
+            ],
+            "prior_jacobian": [
+              [
+                1.9105845637049497e-07,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                5.461496271527762e-07,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.9105845637049497e-07,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                4.0929928843233356e-07,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.146789018418109e-06,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                6.369426538796358e-07
+              ]
+            ],
+            "prior_residual": [
+              2.005840627580829e-09,
+              2.8483166565024026e-08,
+              1.6631680322385577e-08,
+              -1.1689418294183204e-09,
+              1.686566769463584e-08,
+              -1.0944849246578397e-07
+            ],
+            "q": [
+              0.010498570257948498,
+              0.05215267968507894,
+              0.0870502182333867,
+              -0.002855958616237792,
+              0.014706861875866664,
+              -0.17183413891208274
+            ],
+            "task_jacobian": [
+              [
+                -0.7381934490871126,
+                0.0025734610002248314,
+                -0.005165444307404022,
+                -0.4062878925213104,
+                -0.004076946211280222,
+                -0.04903503420750169
+              ],
+              [
+                -0.011688375775799176,
+                0.775983580594349,
+                0.05284998821307029,
+                -0.03147959694928671,
+                0.048489931719896136,
+                -0.0006100579902970554
+              ],
+              [
+                -0.043621506046084085,
+                0.045838041735922555,
+                0.002811280237442531,
+                -0.050827591433362386,
+                0.0032910023101090894,
+                -0.05175679758476835
+              ]
+            ],
+            "task_residual": [
+              -1.895216800427708e-10,
+              -2.1479168229843945e-09,
+              -1.3634014861048759e-09
+            ],
+            "upper_bounds": [
+              2.617000102996826,
+              1.5700000524520874,
+              2.617000102996826,
+              2.3559999465942383,
+              0.4359999895095825,
+              0.7850000262260437
+            ]
+          },
+          "satisfied": true,
+          "scalar_dtype": "float32",
+          "stationarity_inf_norm": 1.7297315679934504e-09,
+          "stationarity_tolerance": 5e-05,
+          "task_gradient": [
+            2.2448294779912338e-10,
+            -1.7297315679934504e-09,
+            -1.1637131874766048e-10,
+            2.139143335351943e-10,
+            -1.0786662783150099e-10,
+            8.116885062741798e-11
+          ],
+          "task_gradient_inf_norm": 1.7297315679934504e-09
+        },
+        "satisfied": true,
+        "source": "independent_recompute",
+        "stationarity_inf_norm": 1.7297315679934502e-09,
+        "stationarity_tolerance": 5e-05,
+        "task_gradient": [
+          2.2448294779912336e-10,
+          -1.7297315679934502e-09,
+          -1.1637131874766048e-10,
+          2.139143335351943e-10,
+          -1.0786662783150101e-10,
+          8.116885062741798e-11
+        ],
+        "task_gradient_inf_norm": 1.7297315679934502e-09,
+        "tolerance": 5e-05
+      },
+      "motion_class": "ordinary",
+      "numerical": {
+        "checked": true,
+        "engine_fd_validation_status": "not_evaluated",
+        "jacobian_source": "engine_relative_jacobian",
+        "nonfinite_count": 0,
+        "passed": true,
+        "rank_stability_gate": "not_evaluated",
+        "scalar_dtype": "float32"
+      },
+      "passed": true,
+      "rank_evidence": {
+        "decomposition_input": {},
+        "evidence": {
+          "motion_class": "ordinary"
+        },
+        "jacobian_source": "engine_relative_jacobian",
+        "noise_norm": 0.0,
+        "normalized_residual": 2.5511426377171843e-09,
+        "rank_abs_floor": 1e-05,
+        "rank_rel_tol": 1e-05,
+        "rank_threshold": 1e-05,
+        "rank_uncertainty_multiplier": 10.0,
+        "residual_jacobian_source": "engine_relative_jacobian",
+        "residual_parameterization": "position",
+        "singular_values": [
+          0.6638284478032993,
+          0.6071617096436132,
+          0.04115961894388907
+        ],
+        "task_residual": 1.992026102290586e-09
+      },
+      "reasons": [
+        "projection residual is within exact-reachable tolerance"
+      ],
+      "schema_version": 2,
+      "seed_consensus": {
+        "certificate_class_consensus": true,
+        "certificate_classes": [
+          "exact_reachable"
+        ],
+        "checked": true,
+        "competitive_seed_count": 9,
+        "exact_threshold": 0.06,
+        "global_seed_residual_tolerance": 1e-07,
+        "max_projected_delta": 6.669246973812642e-08,
+        "max_residual_delta": 0.23521980065860246,
+        "max_task_space_delta": 6.669246973812642e-08,
+        "passed": true,
+        "seed_results": [
+          {
+            "accepted": true,
+            "accepted_step_count": 1,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              0.010498570257948498,
+              0.05215267968507894,
+              0.0870502182333867,
+              -0.002855958616237792,
+              0.014706861875866664,
+              -0.17183413891208274
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.08434404226591095,
+                "minimum_upper_gap": 0.42129312763371585,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.7297315679934504e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.08434404226591095,
+                "minimum_upper_gap": 0.42129312763371585,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.7297315679934504e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 6.508328757978593e-18,
+              "task_cost_before": 6.508328757978593e-18,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283466099701,
+              0.15569782850740904,
+              -0.6923075392959623
+            ],
+            "final_x": [
+              0.010498570257948498,
+              0.05215267968507894,
+              0.0870502182333867,
+              -0.002855958616237792,
+              0.014706861875866664,
+              -0.17183413891208274
+            ],
+            "initial_x": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "nfev": 28,
+            "njev": 9,
+            "normalized_residual": 2.5511426377171843e-09,
+            "prior_residual_norm": 1.1557126216910242e-07,
+            "rejected_step_count": 0,
+            "seed_index": 0,
+            "task_residual_norm": 2.5511426377171843e-09,
+            "task_space_endpoint": [
+              0.03526283466099701,
+              0.15569782850740904,
+              -0.6923075392959623
+            ],
+            "task_space_error_norm": 1.992026102290586e-09,
+            "total_residual_norm": 1.155994159505894e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 3,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.14820298508710977,
+              0.23822228542034102,
+              1.110377651659251,
+              0.45011673643965544,
+              -0.05973866906286511,
+              0.14449921617954803
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3762613204467174,
+                "minimum_upper_gap": 0.49573865857244764,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.5205783197706065e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3762613204467174,
+                "minimum_upper_gap": 0.49573865857244764,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.5205783197706065e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 3.1885195421943484e-15,
+              "task_cost_before": 3.1885195421943484e-15,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.035262836947072204,
+              0.15569782617281977,
+              -0.6923075820878875
+            ],
+            "final_x": [
+              -0.14820298508710977,
+              0.23822228542034102,
+              1.110377651659251,
+              0.45011673643965544,
+              -0.05973866906286511,
+              0.14449921617954803
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 78,
+            "njev": 46,
+            "normalized_residual": 5.646697744872085e-08,
+            "prior_residual_norm": 3.3142311754940253e-07,
+            "rejected_step_count": 0,
+            "seed_index": 1,
+            "task_residual_norm": 5.646697744872085e-08,
+            "task_space_endpoint": [
+              0.035262836947072204,
+              0.15569782617281977,
+              -0.6923075820878875
+            ],
+            "task_space_error_norm": 4.4091495054921176e-08,
+            "total_residual_norm": 3.361990517362585e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 4,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.28469305136153333,
+              0.15430078427802674,
+              0.3853666907971295,
+              0.4782898475964756,
+              -0.010323199178766805,
+              0.3394507968129812
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4153007916690027,
+                "minimum_upper_gap": 0.4455492294130625,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.344179954593154e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4153007916690027,
+                "minimum_upper_gap": 0.4455492294130625,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.344179954593154e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 6.980996105463904e-16,
+              "task_cost_before": 6.980996105463904e-16,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283669258843,
+              0.15569783589161007,
+              -0.6923075579675653
+            ],
+            "final_x": [
+              -0.28469305136153333,
+              0.15430078427802674,
+              0.3853666907971295,
+              0.4782898475964756,
+              -0.010323199178766805,
+              0.3394507968129812
+            ],
+            "initial_x": [
+              -2.617000102996826,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 114,
+            "njev": 76,
+            "normalized_residual": 2.6421574717385608e-08,
+            "prior_residual_norm": 3.1731988745768663e-07,
+            "rejected_step_count": 0,
+            "seed_index": 2,
+            "task_residual_norm": 2.6421574717385608e-08,
+            "task_space_endpoint": [
+              0.03526283669258843,
+              0.15569783589161007,
+              -0.6923075579675653
+            ],
+            "task_space_error_norm": 2.0630938365460092e-08,
+            "total_residual_norm": 3.184179809412548e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 5,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 2,
+              "fixed": [],
+              "lower": [],
+              "upper": [
+                0,
+                1
+              ]
+            },
+            "certificate_class": "capability_limited_joint_limits",
+            "final_q_active": [
+              2.617000102698249,
+              1.5700000524520872,
+              -2.092050715997958,
+              1.5144446488338912,
+              -0.0003359717243575445,
+              0.6459768912819215
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [
+                  0,
+                  1
+                ],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43566401778522496,
+                "minimum_upper_gap": 2.220446049250313e-16,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.54081152646607e-06,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [
+                  0,
+                  1
+                ],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43566401778522496,
+                "minimum_upper_gap": 2.220446049250313e-16,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.54081152646607e-06,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 0.05532835582203121,
+              "task_cost_before": 0.05532835582203121,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03600084976181882,
+              0.2325460225582821,
+              -0.5254907260813267
+            ],
+            "final_x": [
+              2.617000102698249,
+              1.5700000524520872,
+              -2.092050715997958,
+              1.5144446488338912,
+              -0.0003359717243575445,
+              0.6459768912819215
+            ],
+            "initial_x": [
+              2.617000102996826,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 148,
+            "njev": 72,
+            "normalized_residual": 0.2352198032097451,
+            "prior_residual_norm": 1.3032695427038483e-06,
+            "rejected_step_count": 0,
+            "seed_index": 3,
+            "task_residual_norm": 0.2352198032097451,
+            "task_space_endpoint": [
+              0.03600084976181882,
+              0.2325460225582821,
+              -0.5254907260813267
+            ],
+            "task_space_error_norm": 0.18366828292625303,
+            "total_residual_norm": 0.23521980321335556
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 2,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.27896925718702864,
+              -0.02340220493172245,
+              -0.3982649047159434,
+              0.4758400290746165,
+              0.005735416429060722,
+              0.30104962293671933
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.2375978024592535,
+                "minimum_upper_gap": 0.4302645730805218,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.223673386255284e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.2375978024592535,
+                "minimum_upper_gap": 0.4302645730805218,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.223673386255284e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 5.807655236099542e-17,
+              "task_cost_before": 5.807655236099542e-17,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283059830762,
+              0.15569782927431644,
+              -0.6923075423363975
+            ],
+            "final_x": [
+              -0.27896925718702864,
+              -0.02340220493172245,
+              -0.3982649047159434,
+              0.4758400290746165,
+              0.005735416429060722,
+              0.30104962293671933
+            ],
+            "initial_x": [
+              0.0,
+              -0.26100000739097595,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 51,
+            "njev": 27,
+            "normalized_residual": 7.620797357297687e-09,
+            "prior_residual_norm": 2.890291359580173e-07,
+            "rejected_step_count": 0,
+            "seed_index": 4,
+            "task_residual_norm": 7.620797357297687e-09,
+            "task_space_endpoint": [
+              0.03526283059830762,
+              0.15569782927431644,
+              -0.6923075423363975
+            ],
+            "task_space_error_norm": 5.9505991674335505e-09,
+            "total_residual_norm": 2.8912958683780365e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 5,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.053012504758059076,
+              0.2791776967749463,
+              1.6042926326051723,
+              0.4734575218011834,
+              -0.003925046385200476,
+              0.2750891656654951
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43207494312438205,
+                "minimum_upper_gap": 0.439925035894783,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 9.820420065926632e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.43207494312438205,
+                "minimum_upper_gap": 0.439925035894783,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 9.820420065926632e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 8.906541580866161e-16,
+              "task_cost_before": 8.906541580866161e-16,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.035262837298108786,
+              0.1556978191853192,
+              -0.6923075178387768
+            ],
+            "final_x": [
+              -0.053012504758059076,
+              0.2791776967749463,
+              1.6042926326051723,
+              0.4734575218011834,
+              -0.003925046385200476,
+              0.2750891656654951
+            ],
+            "initial_x": [
+              0.0,
+              1.5700000524520874,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.0
+            ],
+            "nfev": 133,
+            "njev": 76,
+            "normalized_residual": 2.9843829480926475e-08,
+            "prior_residual_norm": 4.307842082182048e-07,
+            "rejected_step_count": 0,
+            "seed_index": 5,
+            "task_residual_norm": 2.9843829480926475e-08,
+            "task_space_endpoint": [
+              0.035262837298108786,
+              0.1556978191853192,
+              -0.6923075178387768
+            ],
+            "task_space_error_norm": 2.3303160965530076e-08,
+            "total_residual_norm": 4.318167298846494e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 2,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.03017897010435335,
+              0.1613631141533717,
+              -1.1112881310793852,
+              -0.08566461393472358,
+              -0.2836143565262027,
+              -0.07358374675374976
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.0015353869474251658,
+                "minimum_upper_gap": 0.7196143460357852,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.1407686317637473e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.0015353869474251658,
+                "minimum_upper_gap": 0.7196143460357852,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 1.1407686317637473e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 9.10616372344536e-18,
+              "task_cost_before": 9.10616372344536e-18,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283561868387,
+              0.15569782893983727,
+              -0.6923075364018658
+            ],
+            "final_x": [
+              -0.03017897010435335,
+              0.1613631141533717,
+              -1.1112881310793852,
+              -0.08566461393472358,
+              -0.2836143565262027,
+              -0.07358374675374976
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              -0.08720000088214874,
+              0.0,
+              0.0
+            ],
+            "nfev": 63,
+            "njev": 34,
+            "normalized_residual": 3.017642080075992e-09,
+            "prior_residual_norm": 4.026052173503074e-07,
+            "rejected_step_count": 0,
+            "seed_index": 6,
+            "task_residual_norm": 3.017642080075992e-09,
+            "task_space_endpoint": [
+              0.03526283561868387,
+              0.15569782893983727,
+              -0.6923075364018658
+            ],
+            "task_space_error_norm": 2.3562860283089304e-09,
+            "total_residual_norm": 4.0261652623981015e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 4,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.2863814055817286,
+              0.15093923899904016,
+              0.3785643682248259,
+              0.47833194791315325,
+              0.014940787381225187,
+              0.3412132895973248
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4119392463900161,
+                "minimum_upper_gap": 0.42105920212835735,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.358755250918011e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.4119392463900161,
+                "minimum_upper_gap": 0.42105920212835735,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 6.358755250918011e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 3.3169575695400552e-15,
+              "task_cost_before": 3.3169575695400552e-15,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283070085034,
+              0.15569783185891262,
+              -0.6923075829827844
+            ],
+            "final_x": [
+              -0.2863814055817286,
+              0.15093923899904016,
+              0.3785643682248259,
+              0.47833194791315325,
+              0.014940787381225187,
+              0.3412132895973248
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              2.3559999465942383,
+              0.0,
+              0.0
+            ],
+            "nfev": 107,
+            "njev": 46,
+            "normalized_residual": 5.759303403659209e-08,
+            "prior_residual_norm": 3.1761332781114093e-07,
+            "rejected_step_count": 0,
+            "seed_index": 7,
+            "task_residual_norm": 5.759303403659209e-08,
+            "task_space_endpoint": [
+              0.03526283070085034,
+              0.15569783185891262,
+              -0.6923075829827844
+            ],
+            "task_space_error_norm": 4.49707613886338e-08,
+            "total_residual_norm": 3.22792787361811e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 3,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.15413517652537198,
+              0.25441508716872613,
+              1.1438387048571785,
+              0.46762844610091836,
+              0.004707458123068422,
+              0.228559154758113
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.44070744763265096,
+                "minimum_upper_gap": 0.4312925313865141,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 8.696730283791075e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.44070744763265096,
+                "minimum_upper_gap": 0.4312925313865141,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 8.696730283791075e-09,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 1.355774198506069e-16,
+              "task_cost_before": 1.355774198506069e-16,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.03526283592914582,
+              0.15569782135988186,
+              -0.6923075363519284
+            ],
+            "final_x": [
+              -0.15413517652537198,
+              0.25441508716872613,
+              1.1438387048571785,
+              0.46762844610091836,
+              0.004707458123068422,
+              0.228559154758113
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              -0.7850000262260437
+            ],
+            "nfev": 77,
+            "njev": 23,
+            "normalized_residual": 1.16437717192758e-08,
+            "prior_residual_norm": 3.546689997629738e-07,
+            "rejected_step_count": 0,
+            "seed_index": 8,
+            "task_residual_norm": 1.16437717192758e-08,
+            "task_space_endpoint": [
+              0.03526283592914582,
+              0.15569782135988186,
+              -0.6923075363519284
+            ],
+            "task_space_error_norm": 9.091885671537922e-09,
+            "total_residual_norm": 3.5486008061307616e-07
+          },
+          {
+            "accepted": true,
+            "accepted_step_count": 3,
+            "active_limits": {
+              "boundary_tolerance": 1e-05,
+              "count": 0,
+              "fixed": [],
+              "lower": [],
+              "upper": []
+            },
+            "certificate_class": "exact_reachable",
+            "final_q_active": [
+              -0.20198706022401333,
+              0.2622454719565028,
+              0.9370153134627441,
+              0.472341501307029,
+              -0.10821710714127661,
+              0.49838899351959814
+            ],
+            "final_task_polish": {
+              "accepted": false,
+              "bound_snap": {
+                "accepted": false,
+                "attempted": false,
+                "message": "not attempted",
+                "search_multiplier": 10.0,
+                "snapped_coordinates": [],
+                "stationarity_after": null,
+                "task_cost_after": null
+              },
+              "kkt_after": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3277828823683059,
+                "minimum_upper_gap": 0.28661103270644556,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.843142475220043e-08,
+                "stationarity_tolerance": 5e-05
+              },
+              "kkt_before": {
+                "active_bound_tolerance": 1e-05,
+                "active_lower": [],
+                "active_upper": [],
+                "complementarity_passed": true,
+                "dual_feasible": true,
+                "free_coordinates": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "minimum_lower_gap": 0.3277828823683059,
+                "minimum_upper_gap": 0.28661103270644556,
+                "primal_feasible": true,
+                "satisfied": true,
+                "stationarity_inf_norm": 4.843142475220043e-08,
+                "stationarity_tolerance": 5e-05
+              },
+              "message": "final task-only polish skipped: task-only KKT already satisfied",
+              "nfev": 0,
+              "njev": 0,
+              "numeric_fallback": {
+                "accepted": false,
+                "attempted": false,
+                "kkt_satisfied_after": null,
+                "message": "not attempted",
+                "nfev": 0,
+                "njev": 0,
+                "residual_norm_before": null,
+                "residual_threshold": null,
+                "stationarity_after": null,
+                "status": 0,
+                "success": true,
+                "task_cost_after": null
+              },
+              "objective": "task_only_least_squares",
+              "skipped": true,
+              "status": 0,
+              "success": true,
+              "task_cost_after": 5.569116881831005e-15,
+              "task_cost_before": 5.569116881831005e-15,
+              "x_delta_norm": 0.0
+            },
+            "final_task_vector": [
+              0.0352628096926495,
+              0.15569778035738607,
+              -0.6923075550225907
+            ],
+            "final_x": [
+              -0.20198706022401333,
+              0.2622454719565028,
+              0.9370153134627441,
+              0.472341501307029,
+              -0.10821710714127661,
+              0.49838899351959814
+            ],
+            "initial_x": [
+              0.0,
+              0.6545000225305557,
+              0.0,
+              1.1343999728560448,
+              0.0,
+              0.7850000262260437
+            ],
+            "nfev": 76,
+            "njev": 21,
+            "normalized_residual": 7.462651594326915e-08,
+            "prior_residual_norm": 4.556331231078515e-07,
+            "rejected_step_count": 0,
+            "seed_index": 9,
+            "task_residual_norm": 7.462651594326915e-08,
+            "task_space_endpoint": [
+              0.0352628096926495,
+              0.15569778035738607,
+              -0.6923075550225907
+            ],
+            "task_space_error_norm": 5.8271131329222336e-08,
+            "total_residual_norm": 4.617040824541684e-07
+          }
+        ],
+        "selected_seed_index": 0,
+        "source": "projection_result_seed_results",
+        "start_count": 10,
+        "statuses": [
+          "accepted",
+          "accepted",
+          "accepted",
+          "accepted",
+          "accepted",
+          "accepted",
+          "accepted",
+          "accepted",
+          "accepted",
+          "accepted"
+        ],
+        "task_scale": 0.7808368190941658,
+        "task_space_spread": 8.541153299545365e-08,
+        "task_space_tolerance": 0.0001,
+        "tolerance": 1e-07
+      },
+      "task_block": "translation"
+    },
+    "chain_q": [
+      0.010498570257948498,
+      0.05215267968507894,
+      0.0870502182333867,
+      -0.002855958616237792,
+      0.014706861875866664,
+      -0.17183413891208274,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "continuation_history": [
+      {
+        "accepted": true,
+        "alpha_end": 1.0,
+        "alpha_start": 0.0,
+        "nfev": 28,
+        "njev": 9,
+        "prior_residual_norm": 1.1557126216910242e-07,
+        "q_active": [
+          0.010498570257948498,
+          0.05215267968507894,
+          0.0870502182333867,
+          -0.002855958616237792,
+          0.014706861875866664,
+          -0.17183413891208274
+        ],
+        "seed_index": 0,
+        "status": 3,
+        "step_index": 0,
+        "subdivision_depth": 0,
+        "task_residual_norm": 2.5511426377171843e-09,
+        "task_step_norm": 0.04668262870913346,
+        "within_bounds": true
+      }
+    ],
+    "converged": true,
+    "desired": [
+      0.03526283480898251,
+      0.15569783018458158,
+      -0.6923075382313683
+    ],
+    "desired_source": "canonical_targets.transforms",
+    "deterministic_adaptive_subdivision": {
+      "accepted_step_count": 1,
+      "all_seed_accepted_step_count": 32,
+      "all_seed_rejected_step_count": 0,
+      "configured_max_task_step_norm": 0.25,
+      "max_subdivision_depth": 0,
+      "max_task_step_norm": 0.04668262870913346,
+      "strategy": "deterministic_residual_space_adaptive_subdivision"
+    },
+    "deterministic_start_count": 10,
+    "iterations": 28,
+    "normalization_reference": "neutral_chain_length",
+    "normalization_scale": 0.7808368190941658,
+    "normalized_residual": 2.5511426377171843e-09,
+    "prior_gradient": [
+      3.8323281403081807e-16,
+      1.5556070799618295e-14,
+      3.1776231692425243e-15,
+      -4.784470589997087e-16,
+      1.9341362500497447e-14,
+      -6.971241325428177e-14
+    ],
+    "prior_gradient_inf_norm": 6.971241325428177e-14,
+    "prior_residual_norm": 1.1557126216910242e-07,
+    "projected": [
+      0.03526283466099701,
+      0.15569782850740904,
+      -0.6923075392959623
+    ],
+    "reference": "Hips",
+    "residual": 1.992026102290586e-09,
+    "residual_jacobian_scalar_dtype": "float32",
+    "residual_jacobian_source": "engine_relative_jacobian",
+    "residual_parameterization": "position",
+    "seed_consensus_passed": true,
+    "seed_results": [
+      {
+        "accepted": true,
+        "accepted_step_count": 1,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          0.010498570257948498,
+          0.05215267968507894,
+          0.0870502182333867,
+          -0.002855958616237792,
+          0.014706861875866664,
+          -0.17183413891208274
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.08434404226591095,
+            "minimum_upper_gap": 0.42129312763371585,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 1.7297315679934504e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.08434404226591095,
+            "minimum_upper_gap": 0.42129312763371585,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 1.7297315679934504e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 6.508328757978593e-18,
+          "task_cost_before": 6.508328757978593e-18,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.03526283466099701,
+          0.15569782850740904,
+          -0.6923075392959623
+        ],
+        "final_x": [
+          0.010498570257948498,
+          0.05215267968507894,
+          0.0870502182333867,
+          -0.002855958616237792,
+          0.014706861875866664,
+          -0.17183413891208274
+        ],
+        "initial_x": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "nfev": 28,
+        "njev": 9,
+        "normalized_residual": 2.5511426377171843e-09,
+        "prior_residual_norm": 1.1557126216910242e-07,
+        "rejected_step_count": 0,
+        "seed_index": 0,
+        "task_residual_norm": 2.5511426377171843e-09,
+        "task_space_endpoint": [
+          0.03526283466099701,
+          0.15569782850740904,
+          -0.6923075392959623
+        ],
+        "task_space_error_norm": 1.992026102290586e-09,
+        "total_residual_norm": 1.155994159505894e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 3,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.14820298508710977,
+          0.23822228542034102,
+          1.110377651659251,
+          0.45011673643965544,
+          -0.05973866906286511,
+          0.14449921617954803
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.3762613204467174,
+            "minimum_upper_gap": 0.49573865857244764,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 6.5205783197706065e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.3762613204467174,
+            "minimum_upper_gap": 0.49573865857244764,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 6.5205783197706065e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 3.1885195421943484e-15,
+          "task_cost_before": 3.1885195421943484e-15,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.035262836947072204,
+          0.15569782617281977,
+          -0.6923075820878875
+        ],
+        "final_x": [
+          -0.14820298508710977,
+          0.23822228542034102,
+          1.110377651659251,
+          0.45011673643965544,
+          -0.05973866906286511,
+          0.14449921617954803
+        ],
+        "initial_x": [
+          0.0,
+          0.6545000225305557,
+          0.0,
+          1.1343999728560448,
+          0.0,
+          0.0
+        ],
+        "nfev": 78,
+        "njev": 46,
+        "normalized_residual": 5.646697744872085e-08,
+        "prior_residual_norm": 3.3142311754940253e-07,
+        "rejected_step_count": 0,
+        "seed_index": 1,
+        "task_residual_norm": 5.646697744872085e-08,
+        "task_space_endpoint": [
+          0.035262836947072204,
+          0.15569782617281977,
+          -0.6923075820878875
+        ],
+        "task_space_error_norm": 4.4091495054921176e-08,
+        "total_residual_norm": 3.361990517362585e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 4,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.28469305136153333,
+          0.15430078427802674,
+          0.3853666907971295,
+          0.4782898475964756,
+          -0.010323199178766805,
+          0.3394507968129812
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.4153007916690027,
+            "minimum_upper_gap": 0.4455492294130625,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.344179954593154e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.4153007916690027,
+            "minimum_upper_gap": 0.4455492294130625,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.344179954593154e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 6.980996105463904e-16,
+          "task_cost_before": 6.980996105463904e-16,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.03526283669258843,
+          0.15569783589161007,
+          -0.6923075579675653
+        ],
+        "final_x": [
+          -0.28469305136153333,
+          0.15430078427802674,
+          0.3853666907971295,
+          0.4782898475964756,
+          -0.010323199178766805,
+          0.3394507968129812
+        ],
+        "initial_x": [
+          -2.617000102996826,
+          0.6545000225305557,
+          0.0,
+          1.1343999728560448,
+          0.0,
+          0.0
+        ],
+        "nfev": 114,
+        "njev": 76,
+        "normalized_residual": 2.6421574717385608e-08,
+        "prior_residual_norm": 3.1731988745768663e-07,
+        "rejected_step_count": 0,
+        "seed_index": 2,
+        "task_residual_norm": 2.6421574717385608e-08,
+        "task_space_endpoint": [
+          0.03526283669258843,
+          0.15569783589161007,
+          -0.6923075579675653
+        ],
+        "task_space_error_norm": 2.0630938365460092e-08,
+        "total_residual_norm": 3.184179809412548e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 5,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 2,
+          "fixed": [],
+          "lower": [],
+          "upper": [
+            0,
+            1
+          ]
+        },
+        "certificate_class": "capability_limited_joint_limits",
+        "final_q_active": [
+          2.617000102698249,
+          1.5700000524520872,
+          -2.092050715997958,
+          1.5144446488338912,
+          -0.0003359717243575445,
+          0.6459768912819215
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [
+              0,
+              1
+            ],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.43566401778522496,
+            "minimum_upper_gap": 2.220446049250313e-16,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.54081152646607e-06,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [
+              0,
+              1
+            ],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.43566401778522496,
+            "minimum_upper_gap": 2.220446049250313e-16,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.54081152646607e-06,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 0.05532835582203121,
+          "task_cost_before": 0.05532835582203121,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.03600084976181882,
+          0.2325460225582821,
+          -0.5254907260813267
+        ],
+        "final_x": [
+          2.617000102698249,
+          1.5700000524520872,
+          -2.092050715997958,
+          1.5144446488338912,
+          -0.0003359717243575445,
+          0.6459768912819215
+        ],
+        "initial_x": [
+          2.617000102996826,
+          0.6545000225305557,
+          0.0,
+          1.1343999728560448,
+          0.0,
+          0.0
+        ],
+        "nfev": 148,
+        "njev": 72,
+        "normalized_residual": 0.2352198032097451,
+        "prior_residual_norm": 1.3032695427038483e-06,
+        "rejected_step_count": 0,
+        "seed_index": 3,
+        "task_residual_norm": 0.2352198032097451,
+        "task_space_endpoint": [
+          0.03600084976181882,
+          0.2325460225582821,
+          -0.5254907260813267
+        ],
+        "task_space_error_norm": 0.18366828292625303,
+        "total_residual_norm": 0.23521980321335556
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 2,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.27896925718702864,
+          -0.02340220493172245,
+          -0.3982649047159434,
+          0.4758400290746165,
+          0.005735416429060722,
+          0.30104962293671933
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.2375978024592535,
+            "minimum_upper_gap": 0.4302645730805218,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.223673386255284e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.2375978024592535,
+            "minimum_upper_gap": 0.4302645730805218,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.223673386255284e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 5.807655236099542e-17,
+          "task_cost_before": 5.807655236099542e-17,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.03526283059830762,
+          0.15569782927431644,
+          -0.6923075423363975
+        ],
+        "final_x": [
+          -0.27896925718702864,
+          -0.02340220493172245,
+          -0.3982649047159434,
+          0.4758400290746165,
+          0.005735416429060722,
+          0.30104962293671933
+        ],
+        "initial_x": [
+          0.0,
+          -0.26100000739097595,
+          0.0,
+          1.1343999728560448,
+          0.0,
+          0.0
+        ],
+        "nfev": 51,
+        "njev": 27,
+        "normalized_residual": 7.620797357297687e-09,
+        "prior_residual_norm": 2.890291359580173e-07,
+        "rejected_step_count": 0,
+        "seed_index": 4,
+        "task_residual_norm": 7.620797357297687e-09,
+        "task_space_endpoint": [
+          0.03526283059830762,
+          0.15569782927431644,
+          -0.6923075423363975
+        ],
+        "task_space_error_norm": 5.9505991674335505e-09,
+        "total_residual_norm": 2.8912958683780365e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 5,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.053012504758059076,
+          0.2791776967749463,
+          1.6042926326051723,
+          0.4734575218011834,
+          -0.003925046385200476,
+          0.2750891656654951
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.43207494312438205,
+            "minimum_upper_gap": 0.439925035894783,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 9.820420065926632e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.43207494312438205,
+            "minimum_upper_gap": 0.439925035894783,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 9.820420065926632e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 8.906541580866161e-16,
+          "task_cost_before": 8.906541580866161e-16,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.035262837298108786,
+          0.1556978191853192,
+          -0.6923075178387768
+        ],
+        "final_x": [
+          -0.053012504758059076,
+          0.2791776967749463,
+          1.6042926326051723,
+          0.4734575218011834,
+          -0.003925046385200476,
+          0.2750891656654951
+        ],
+        "initial_x": [
+          0.0,
+          1.5700000524520874,
+          0.0,
+          1.1343999728560448,
+          0.0,
+          0.0
+        ],
+        "nfev": 133,
+        "njev": 76,
+        "normalized_residual": 2.9843829480926475e-08,
+        "prior_residual_norm": 4.307842082182048e-07,
+        "rejected_step_count": 0,
+        "seed_index": 5,
+        "task_residual_norm": 2.9843829480926475e-08,
+        "task_space_endpoint": [
+          0.035262837298108786,
+          0.1556978191853192,
+          -0.6923075178387768
+        ],
+        "task_space_error_norm": 2.3303160965530076e-08,
+        "total_residual_norm": 4.318167298846494e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 2,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.03017897010435335,
+          0.1613631141533717,
+          -1.1112881310793852,
+          -0.08566461393472358,
+          -0.2836143565262027,
+          -0.07358374675374976
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.0015353869474251658,
+            "minimum_upper_gap": 0.7196143460357852,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 1.1407686317637473e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.0015353869474251658,
+            "minimum_upper_gap": 0.7196143460357852,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 1.1407686317637473e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 9.10616372344536e-18,
+          "task_cost_before": 9.10616372344536e-18,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.03526283561868387,
+          0.15569782893983727,
+          -0.6923075364018658
+        ],
+        "final_x": [
+          -0.03017897010435335,
+          0.1613631141533717,
+          -1.1112881310793852,
+          -0.08566461393472358,
+          -0.2836143565262027,
+          -0.07358374675374976
+        ],
+        "initial_x": [
+          0.0,
+          0.6545000225305557,
+          0.0,
+          -0.08720000088214874,
+          0.0,
+          0.0
+        ],
+        "nfev": 63,
+        "njev": 34,
+        "normalized_residual": 3.017642080075992e-09,
+        "prior_residual_norm": 4.026052173503074e-07,
+        "rejected_step_count": 0,
+        "seed_index": 6,
+        "task_residual_norm": 3.017642080075992e-09,
+        "task_space_endpoint": [
+          0.03526283561868387,
+          0.15569782893983727,
+          -0.6923075364018658
+        ],
+        "task_space_error_norm": 2.3562860283089304e-09,
+        "total_residual_norm": 4.0261652623981015e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 4,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.2863814055817286,
+          0.15093923899904016,
+          0.3785643682248259,
+          0.47833194791315325,
+          0.014940787381225187,
+          0.3412132895973248
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.4119392463900161,
+            "minimum_upper_gap": 0.42105920212835735,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 6.358755250918011e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.4119392463900161,
+            "minimum_upper_gap": 0.42105920212835735,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 6.358755250918011e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 3.3169575695400552e-15,
+          "task_cost_before": 3.3169575695400552e-15,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.03526283070085034,
+          0.15569783185891262,
+          -0.6923075829827844
+        ],
+        "final_x": [
+          -0.2863814055817286,
+          0.15093923899904016,
+          0.3785643682248259,
+          0.47833194791315325,
+          0.014940787381225187,
+          0.3412132895973248
+        ],
+        "initial_x": [
+          0.0,
+          0.6545000225305557,
+          0.0,
+          2.3559999465942383,
+          0.0,
+          0.0
+        ],
+        "nfev": 107,
+        "njev": 46,
+        "normalized_residual": 5.759303403659209e-08,
+        "prior_residual_norm": 3.1761332781114093e-07,
+        "rejected_step_count": 0,
+        "seed_index": 7,
+        "task_residual_norm": 5.759303403659209e-08,
+        "task_space_endpoint": [
+          0.03526283070085034,
+          0.15569783185891262,
+          -0.6923075829827844
+        ],
+        "task_space_error_norm": 4.49707613886338e-08,
+        "total_residual_norm": 3.22792787361811e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 3,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.15413517652537198,
+          0.25441508716872613,
+          1.1438387048571785,
+          0.46762844610091836,
+          0.004707458123068422,
+          0.228559154758113
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.44070744763265096,
+            "minimum_upper_gap": 0.4312925313865141,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 8.696730283791075e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.44070744763265096,
+            "minimum_upper_gap": 0.4312925313865141,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 8.696730283791075e-09,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 1.355774198506069e-16,
+          "task_cost_before": 1.355774198506069e-16,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.03526283592914582,
+          0.15569782135988186,
+          -0.6923075363519284
+        ],
+        "final_x": [
+          -0.15413517652537198,
+          0.25441508716872613,
+          1.1438387048571785,
+          0.46762844610091836,
+          0.004707458123068422,
+          0.228559154758113
+        ],
+        "initial_x": [
+          0.0,
+          0.6545000225305557,
+          0.0,
+          1.1343999728560448,
+          0.0,
+          -0.7850000262260437
+        ],
+        "nfev": 77,
+        "njev": 23,
+        "normalized_residual": 1.16437717192758e-08,
+        "prior_residual_norm": 3.546689997629738e-07,
+        "rejected_step_count": 0,
+        "seed_index": 8,
+        "task_residual_norm": 1.16437717192758e-08,
+        "task_space_endpoint": [
+          0.03526283592914582,
+          0.15569782135988186,
+          -0.6923075363519284
+        ],
+        "task_space_error_norm": 9.091885671537922e-09,
+        "total_residual_norm": 3.5486008061307616e-07
+      },
+      {
+        "accepted": true,
+        "accepted_step_count": 3,
+        "active_limits": {
+          "boundary_tolerance": 1e-05,
+          "count": 0,
+          "fixed": [],
+          "lower": [],
+          "upper": []
+        },
+        "certificate_class": "exact_reachable",
+        "final_q_active": [
+          -0.20198706022401333,
+          0.2622454719565028,
+          0.9370153134627441,
+          0.472341501307029,
+          -0.10821710714127661,
+          0.49838899351959814
+        ],
+        "final_task_polish": {
+          "accepted": false,
+          "bound_snap": {
+            "accepted": false,
+            "attempted": false,
+            "message": "not attempted",
+            "search_multiplier": 10.0,
+            "snapped_coordinates": [],
+            "stationarity_after": null,
+            "task_cost_after": null
+          },
+          "kkt_after": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.3277828823683059,
+            "minimum_upper_gap": 0.28661103270644556,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.843142475220043e-08,
+            "stationarity_tolerance": 5e-05
+          },
+          "kkt_before": {
+            "active_bound_tolerance": 1e-05,
+            "active_lower": [],
+            "active_upper": [],
+            "complementarity_passed": true,
+            "dual_feasible": true,
+            "free_coordinates": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "minimum_lower_gap": 0.3277828823683059,
+            "minimum_upper_gap": 0.28661103270644556,
+            "primal_feasible": true,
+            "satisfied": true,
+            "stationarity_inf_norm": 4.843142475220043e-08,
+            "stationarity_tolerance": 5e-05
+          },
+          "message": "final task-only polish skipped: task-only KKT already satisfied",
+          "nfev": 0,
+          "njev": 0,
+          "numeric_fallback": {
+            "accepted": false,
+            "attempted": false,
+            "kkt_satisfied_after": null,
+            "message": "not attempted",
+            "nfev": 0,
+            "njev": 0,
+            "residual_norm_before": null,
+            "residual_threshold": null,
+            "stationarity_after": null,
+            "status": 0,
+            "success": true,
+            "task_cost_after": null
+          },
+          "objective": "task_only_least_squares",
+          "skipped": true,
+          "status": 0,
+          "success": true,
+          "task_cost_after": 5.569116881831005e-15,
+          "task_cost_before": 5.569116881831005e-15,
+          "x_delta_norm": 0.0
+        },
+        "final_task_vector": [
+          0.0352628096926495,
+          0.15569778035738607,
+          -0.6923075550225907
+        ],
+        "final_x": [
+          -0.20198706022401333,
+          0.2622454719565028,
+          0.9370153134627441,
+          0.472341501307029,
+          -0.10821710714127661,
+          0.49838899351959814
+        ],
+        "initial_x": [
+          0.0,
+          0.6545000225305557,
+          0.0,
+          1.1343999728560448,
+          0.0,
+          0.7850000262260437
+        ],
+        "nfev": 76,
+        "njev": 21,
+        "normalized_residual": 7.462651594326915e-08,
+        "prior_residual_norm": 4.556331231078515e-07,
+        "rejected_step_count": 0,
+        "seed_index": 9,
+        "task_residual_norm": 7.462651594326915e-08,
+        "task_space_endpoint": [
+          0.0352628096926495,
+          0.15569778035738607,
+          -0.6923075550225907
+        ],
+        "task_space_error_norm": 5.8271131329222336e-08,
+        "total_residual_norm": 4.617040824541684e-07
+      }
+    ],
+    "selected_seed_index": 0,
+    "solver_message": "`xtol` termination condition is satisfied.; final task-only polish skipped: task-only KKT already satisfied; deterministic_start_count=10; selected_seed_index=0; jacobian_callback=engine_relative_jacobian",
+    "status": "converged",
+    "target": "LeftFoot",
+    "task_gradient": [
+      2.2448294779912338e-10,
+      -1.7297315679934504e-09,
+      -1.1637131874766048e-10,
+      2.139143335351943e-10,
+      -1.0786662783150099e-10,
+      8.116885062741798e-11
+    ],
+    "task_gradient_inf_norm": 1.7297315679934504e-09
+  },
+  "schema_version": 1,
+  "status": "converged",
+  "task": "left_foot"
+}

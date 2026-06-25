@@ -28,6 +28,9 @@ CANONICAL_MOTION_NAMES = (
     "extreme_but_valid_joint_limit_stress",
 )
 
+TORSO_ROTATION_DEMAND_RADIANS = 0.25
+MIXED_TORSO_ROTATION_DIRECTION = np.array([0.15, -0.1, 0.2], dtype=float)
+
 
 @dataclass(frozen=True)
 class SemanticTargets:
@@ -59,10 +62,25 @@ def canonical_motion_targets(calibration: RestCalibration) -> dict[str, Semantic
         "neutral": base,
         "root_translation": _translated(base, np.array([0.1, 0.0, 0.0])),
         "global_root_yaw": _rotated_about(base, "Hips", so3_exp(np.array([0.0, 0.0, 0.35]))),
-        "torso_pitch": _rotate_child(base, "Hips", "Chest", so3_exp(np.array([0.25, 0.0, 0.0]))),
-        "torso_roll": _rotate_child(base, "Hips", "Chest", so3_exp(np.array([0.0, 0.25, 0.0]))),
-        "torso_yaw": _rotate_child(base, "Hips", "Chest", so3_exp(np.array([0.0, 0.0, 0.25]))),
-        "mixed_torso_rotation": _rotate_child(base, "Hips", "Chest", so3_exp(np.array([0.15, -0.1, 0.2]))),
+        "torso_pitch": _rotate_child(
+            base,
+            "Hips",
+            "Chest",
+            so3_exp(np.array([TORSO_ROTATION_DEMAND_RADIANS, 0.0, 0.0])),
+        ),
+        "torso_roll": _rotate_child(
+            base,
+            "Hips",
+            "Chest",
+            so3_exp(np.array([0.0, TORSO_ROTATION_DEMAND_RADIANS, 0.0])),
+        ),
+        "torso_yaw": _rotate_child(
+            base,
+            "Hips",
+            "Chest",
+            so3_exp(np.array([0.0, 0.0, TORSO_ROTATION_DEMAND_RADIANS])),
+        ),
+        "mixed_torso_rotation": _rotate_child(base, "Hips", "Chest", so3_exp(_mixed_torso_rotation_vector())),
         "arms_forward": _move_arms(base, np.array([0.18, 0.0, 0.08])),
         "elbow_bend": _move_arms(base, np.array([0.08, 0.0, -0.05])),
         "overhead_reach": _move_arms(base, np.array([0.05, 0.0, 0.22])),
@@ -80,6 +98,14 @@ def canonical_motion_targets(calibration: RestCalibration) -> dict[str, Semantic
         for name in CANONICAL_MOTION_NAMES
         for source_pose in (source_motions[name],)
     }
+
+
+def _mixed_torso_rotation_vector() -> np.ndarray:
+    direction = MIXED_TORSO_ROTATION_DIRECTION
+    norm = float(np.linalg.norm(direction))
+    if norm <= 1e-12:
+        raise ValueError("mixed torso rotation direction must be nonzero")
+    return direction / norm * TORSO_ROTATION_DEMAND_RADIANS
 
 
 def build_targets_from_source_semantic_frames(

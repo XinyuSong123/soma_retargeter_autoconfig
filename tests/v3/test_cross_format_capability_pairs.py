@@ -65,6 +65,57 @@ def _task_certificates() -> dict[str, dict]:
     }
 
 
+def _write_capable_variant_report(per_robot: Path, model_id: str, *, chest_body: str) -> None:
+    required_tasks = ("torso", "left_hand", "right_hand", "left_foot", "right_foot")
+    payload = {
+        "schema_version": 4,
+        "status": "passed",
+        "manifest_entry": {
+            "id": model_id,
+            "robot_class": "humanoid",
+            "expected_capability": "positive",
+            "required": True,
+        },
+        "runtime_adapter": {"nq": 8, "nv": 8},
+        "semantic_sites": {
+            "Hips": {"body_name": "pelvis", "source": "verified_semantic_map"},
+            "Chest": {"body_name": chest_body, "source": "verified_semantic_map"},
+            "LeftHand": {"body_name": "left_hand", "source": "verified_semantic_map"},
+            "RightHand": {"body_name": "right_hand", "source": "verified_semantic_map"},
+            "LeftFoot": {"body_name": "left_foot", "source": "verified_semantic_map"},
+            "RightFoot": {"body_name": "right_foot", "source": "verified_semantic_map"},
+        },
+        "chains": {
+            "torso": {
+                "reference": "Hips",
+                "target": "Chest",
+                "joint_types": {"revolute": 1},
+                "active_velocity_coordinates": [0],
+                "coordinate_labels": ["waist"],
+            }
+        },
+        "rank_stability": {
+            "torso": {
+                "nominal_rank_rotation": 1,
+                "regular_rank_rotation": 1,
+                "epsilon_stability_gate_passed": True,
+            }
+        },
+        "canonical_projection_reports": {
+            "motion_order": [f"motion_{index}" for index in range(15)],
+            "motions": {"motion_0": {"tasks": {task: {} for task in required_tasks}}},
+            "failures": [],
+        },
+        "task_certificate_summary": {
+            "schema_version": 1,
+            "task_count": len(_task_certificates()),
+            "per_task": _task_certificates(),
+        },
+    }
+    per_robot.mkdir(parents=True, exist_ok=True)
+    (per_robot / f"{model_id}.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
 def test_cross_format_ignores_negative_controls_and_compares_shared_task_certificates(tmp_path: Path):
     per_robot = tmp_path / "per_robot"
     tasks = _task_certificates()
@@ -122,6 +173,24 @@ def test_cross_format_ignores_negative_controls_and_compares_shared_task_certifi
     assert limited["evidence"]["shared_task_certificates"]["status"] == "passed"
     assert limited["evidence"]["shared_task_certificates"]["shared_tasks"] == ["left_foot", "torso"]
     assert limited["evidence"]["shared_task_certificates"]["per_task"]["left_foot"]["status"] == "passed"
+
+
+def test_variant_gate_records_semantic_site_mismatch_without_failing_capability_pair(tmp_path: Path):
+    per_robot = tmp_path / "per_robot"
+    _write_capable_variant_report(per_robot, "demo_urdf", chest_body="torso_link")
+    _write_capable_variant_report(per_robot, "demo_mjcf", chest_body="chest")
+    reports = {
+        "demo_urdf": _summary("passed"),
+        "demo_mjcf": _summary("passed"),
+    }
+
+    cross_format = validation_module._cross_format_report(reports, per_robot, validation_checks={})
+
+    pair = cross_format["gates"]["variant_compatibility"]["pair_statuses"]["demo"]
+    assert pair["status"] == "passed"
+    assert pair["evidence"]["semantic_sites"]["status"] == "failed"
+    assert pair["evidence"]["semantic_sites"]["failures"] == ["semantic_site_mismatch:Chest"]
+    assert pair["failures"] == {}
 
 
 def test_not_eligible_pairs_do_not_fail_variant_gate(tmp_path: Path):

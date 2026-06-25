@@ -1,0 +1,643 @@
+{
+  "algorithm_failure_robot_ids": [
+    "atlas_drc_urdf",
+    "atlas_v4_urdf",
+    "booster_t1_mjcf",
+    "booster_t1_urdf",
+    "fourier_n1_mjcf",
+    "jaxon_urdf",
+    "mujoco_humanoid_mjcf",
+    "pal_talos_mjcf_direct",
+    "robotis_op3_mjcf",
+    "talos_urdf",
+    "valkyrie_urdf"
+  ],
+  "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+  "model_count": 44,
+  "negative_control_robot_ids": [
+    "bolt_urdf",
+    "cassie_mjcf",
+    "cassie_urdf",
+    "franka_panda_mjcf",
+    "rhea_urdf",
+    "stretch3_mjcf",
+    "unitree_go2_mjcf",
+    "unitree_go2_urdf",
+    "upkie_urdf"
+  ],
+  "partial_robot_ids": [
+    "berkeley_humanoid_mjcf_direct",
+    "sigmaban_urdf",
+    "simple_humanoid_urdf"
+  ],
+  "passed_robot_ids": [
+    "adam_lite_mjcf",
+    "apptronik_apollo_mjcf",
+    "draco3_urdf",
+    "elf2_mjcf",
+    "elf2_urdf",
+    "ergocub_urdf",
+    "fourier_gr1_urdf",
+    "fourier_n1_urdf",
+    "jvrc_mjcf",
+    "jvrc_urdf",
+    "robonaut2_urdf",
+    "roboparty_rpo_local",
+    "toddlerbot_2xc_mjcf",
+    "toddlerbot_2xm_mjcf",
+    "toddlerbot_urdf",
+    "unitree_g1_mjcf",
+    "unitree_g1_urdf",
+    "unitree_h1_2_mjcf",
+    "unitree_h1_2_urdf",
+    "unitree_h1_mjcf",
+    "unitree_h1_urdf"
+  ],
+  "reports": {
+    "adam_lite_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "apptronik_apollo_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "atlas_drc_urdf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.297579 threshold=0.12 residual=0.472076",
+        "projection residual gate failed: crossed_body_reach.right_hand normalized_residual=0.12392 threshold=0.12 residual=0.196584"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.297579 threshold=0.12 residual=0.472076; 1 additional algorithm failure(s)",
+      "warnings": []
+    },
+    "atlas_v4_urdf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.135239 threshold=0.12 residual=0.198636"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.135239 threshold=0.12 residual=0.198636",
+      "warnings": []
+    },
+    "berkeley_humanoid_mjcf_direct": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "partial_passed",
+      "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "warnings": [
+        "structured partial humanoid: verified full semantic map is intentionally not emitted",
+        "missing required semantics: LeftHand, RightHand"
+      ]
+    },
+    "bolt_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "booster_t1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.33913 threshold=0.12 residual=0.255105",
+        "projection residual gate failed: mixed_torso_rotation.torso normalized_residual=0.0807021 threshold=0.08 residual=0.253533"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.33913 threshold=0.12 residual=0.255105; 1 additional algorithm failure(s)",
+      "warnings": []
+    },
+    "booster_t1_urdf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.344458 threshold=0.12 residual=0.259113",
+        "projection residual gate failed: mixed_torso_rotation.torso normalized_residual=0.0807021 threshold=0.08 residual=0.253533"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.344458 threshold=0.12 residual=0.259113; 1 additional algorithm failure(s)",
+      "warnings": []
+    },
+    "cassie_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "cassie_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "draco3_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "elf2_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "elf2_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "ergocub_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "fourier_gr1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "fourier_n1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: asymmetric_arm_reach.left_hand normalized_residual=0.129407 threshold=0.12 residual=0.0803162",
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.125246 threshold=0.12 residual=0.077734",
+        "projection residual gate failed: crossed_body_reach.right_hand normalized_residual=0.146672 threshold=0.12 residual=0.091032"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: asymmetric_arm_reach.left_hand normalized_residual=0.129407 threshold=0.12 residual=0.0803162; 2 additional algorithm failure(s)",
+      "warnings": []
+    },
+    "fourier_n1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "franka_panda_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "single_arm",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "jaxon_urdf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: arms_forward.left_hand normalized_residual=0.258956 threshold=0.12 residual=0.276018",
+        "projection residual gate failed: arms_forward.right_hand normalized_residual=0.409749 threshold=0.12 residual=0.436746",
+        "projection residual gate failed: asymmetric_arm_reach.left_hand normalized_residual=0.288062 threshold=0.12 residual=0.307042",
+        "projection residual gate failed: asymmetric_arm_reach.right_hand normalized_residual=0.15073 threshold=0.12 residual=0.160661",
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.341541 threshold=0.12 residual=0.364044",
+        "projection residual gate failed: crossed_body_reach.right_hand normalized_residual=0.372687 threshold=0.12 residual=0.397242",
+        "projection residual gate failed: elbow_bend.left_hand normalized_residual=0.232697 threshold=0.12 residual=0.248028",
+        "projection residual gate failed: elbow_bend.right_hand normalized_residual=0.218419 threshold=0.12 residual=0.232809",
+        "projection residual gate failed: global_root_yaw.left_hand normalized_residual=0.203369 threshold=0.12 residual=0.216769",
+        "projection residual gate failed: global_root_yaw.right_hand normalized_residual=0.194566 threshold=0.12 residual=0.207386",
+        "projection residual gate failed: mixed_torso_rotation.left_hand normalized_residual=0.15929 threshold=0.12 residual=0.169785",
+        "projection residual gate failed: mixed_torso_rotation.right_hand normalized_residual=0.194566 threshold=0.12 residual=0.207386",
+        "projection residual gate failed: neutral.left_hand normalized_residual=0.203369 threshold=0.001 residual=0.216769",
+        "projection residual gate failed: neutral.right_hand normalized_residual=0.198651 threshold=0.001 residual=0.211739",
+        "projection residual gate failed: overhead_reach.right_hand normalized_residual=0.359898 threshold=0.12 residual=0.38361",
+        "projection residual gate failed: root_translation.left_hand normalized_residual=0.203369 threshold=0.12 residual=0.216769",
+        "projection residual gate failed: root_translation.right_hand normalized_residual=0.194566 threshold=0.12 residual=0.207386",
+        "projection residual gate failed: single_step.left_hand normalized_residual=0.203369 threshold=0.12 residual=0.216769",
+        "projection residual gate failed: single_step.right_hand normalized_residual=0.194566 threshold=0.12 residual=0.207386",
+        "projection residual gate failed: squat.left_hand normalized_residual=0.178147 threshold=0.12 residual=0.189885",
+        "projection residual gate failed: squat.right_hand normalized_residual=0.198187 threshold=0.12 residual=0.211245",
+        "projection residual gate failed: torso_pitch.left_hand normalized_residual=0.203369 threshold=0.12 residual=0.216769",
+        "projection residual gate failed: torso_pitch.right_hand normalized_residual=0.198651 threshold=0.12 residual=0.211739",
+        "projection residual gate failed: torso_roll.right_hand normalized_residual=0.194566 threshold=0.12 residual=0.207386",
+        "projection residual gate failed: torso_yaw.left_hand normalized_residual=0.203361 threshold=0.12 residual=0.21676",
+        "projection residual gate failed: torso_yaw.right_hand normalized_residual=0.198651 threshold=0.12 residual=0.211739"
+      ],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: arms_forward.left_hand normalized_residual=0.258956 threshold=0.12 residual=0.276018; 25 additional algorithm failure(s)",
+      "warnings": []
+    },
+    "jvrc_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "jvrc_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "mujoco_humanoid_mjcf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.135871 threshold=0.12 residual=0.113291",
+        "projection residual gate failed: crossed_body_reach.right_hand normalized_residual=0.130196 threshold=0.12 residual=0.108559",
+        "numerical stability gate failed: left_foot has numerical_stability_gate_passed=false",
+        "numerical stability gate failed: left_hand has numerical_stability_gate_passed=false",
+        "numerical stability gate failed: right_foot has numerical_stability_gate_passed=false",
+        "numerical stability gate failed: right_hand has numerical_stability_gate_passed=false",
+        "numerical stability gate failed: torso has numerical_stability_gate_passed=false"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "numerical stability gate failed for task(s): left_foot, left_hand, right_foot, right_hand, torso",
+      "warnings": []
+    },
+    "pal_talos_mjcf_direct": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: neutral.left_hand normalized_residual=0.00545993 threshold=0.001 residual=0.00681014",
+        "projection residual gate failed: neutral.right_hand normalized_residual=0.00537073 threshold=0.001 residual=0.00673197"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: neutral.left_hand normalized_residual=0.00545993 threshold=0.001 residual=0.00681014; 1 additional algorithm failure(s)",
+      "warnings": []
+    },
+    "rhea_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "robonaut2_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "roboparty_rpo_local": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "local_existing",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "robotis_op3_mjcf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.260953 threshold=0.12 residual=0.104393",
+        "projection residual gate failed: crossed_body_reach.right_hand normalized_residual=0.234634 threshold=0.12 residual=0.0939274"
+      ],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.260953 threshold=0.12 residual=0.104393; 1 additional algorithm failure(s)",
+      "warnings": []
+    },
+    "sigmaban_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "partial_passed",
+      "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "warnings": [
+        "structured partial humanoid: verified full semantic map is intentionally not emitted",
+        "missing required semantics: LeftHand, RightHand"
+      ]
+    },
+    "simple_humanoid_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "partial_passed",
+      "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "warnings": [
+        "structured partial humanoid: verified full semantic map is intentionally not emitted",
+        "missing required semantics: LeftHand, RightHand, LeftFoot, RightFoot"
+      ]
+    },
+    "stretch3_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "mobile_manipulator",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "talos_urdf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.157441 threshold=0.12 residual=0.170987"
+      ],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.157441 threshold=0.12 residual=0.170987",
+      "warnings": []
+    },
+    "toddlerbot_2xc_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "toddlerbot_2xm_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "toddlerbot_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "unitree_g1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "unitree_g1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "unitree_go2_mjcf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "quadruped",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "unitree_go2_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "quadruped",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "unitree_h1_2_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "unitree_h1_2_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "unitree_h1_mjcf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "unitree_h1_urdf": {
+      "expected_capability": "positive",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "humanoid",
+      "status": "passed",
+      "status_reason": "profile completed without recorded failures",
+      "warnings": []
+    },
+    "upkie_urdf": {
+      "expected_capability": "negative_control",
+      "failures": [],
+      "redistribution": "kinematic_snapshot",
+      "required": true,
+      "robot_class": "biped_no_arms",
+      "status": "negative_control_passed",
+      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "warnings": [
+        "negative control loaded; humanoid profile compilation intentionally not generated"
+      ]
+    },
+    "valkyrie_urdf": {
+      "expected_capability": "positive",
+      "failures": [
+        "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.143603 threshold=0.12 residual=0.187923",
+        "projection residual gate failed: crossed_body_reach.right_hand normalized_residual=0.136387 threshold=0.12 residual=0.17848"
+      ],
+      "redistribution": "fetch_only",
+      "required": false,
+      "robot_class": "humanoid",
+      "status": "algorithm_failed",
+      "status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.143603 threshold=0.12 residual=0.187923; 1 additional algorithm failure(s)",
+      "warnings": []
+    }
+  },
+  "robot_ids": [
+    "adam_lite_mjcf",
+    "apptronik_apollo_mjcf",
+    "atlas_drc_urdf",
+    "atlas_v4_urdf",
+    "berkeley_humanoid_mjcf_direct",
+    "bolt_urdf",
+    "booster_t1_mjcf",
+    "booster_t1_urdf",
+    "cassie_mjcf",
+    "cassie_urdf",
+    "draco3_urdf",
+    "elf2_mjcf",
+    "elf2_urdf",
+    "ergocub_urdf",
+    "fourier_gr1_urdf",
+    "fourier_n1_mjcf",
+    "fourier_n1_urdf",
+    "franka_panda_mjcf",
+    "jaxon_urdf",
+    "jvrc_mjcf",
+    "jvrc_urdf",
+    "mujoco_humanoid_mjcf",
+    "pal_talos_mjcf_direct",
+    "rhea_urdf",
+    "robonaut2_urdf",
+    "roboparty_rpo_local",
+    "robotis_op3_mjcf",
+    "sigmaban_urdf",
+    "simple_humanoid_urdf",
+    "stretch3_mjcf",
+    "talos_urdf",
+    "toddlerbot_2xc_mjcf",
+    "toddlerbot_2xm_mjcf",
+    "toddlerbot_urdf",
+    "unitree_g1_mjcf",
+    "unitree_g1_urdf",
+    "unitree_go2_mjcf",
+    "unitree_go2_urdf",
+    "unitree_h1_2_mjcf",
+    "unitree_h1_2_urdf",
+    "unitree_h1_mjcf",
+    "unitree_h1_urdf",
+    "upkie_urdf",
+    "valkyrie_urdf"
+  ],
+  "schema_version": 1,
+  "source_access": "git_object",
+  "source_artifact_root": "artifacts/retargeting_v3_step2_assets44",
+  "source_summary_path": "artifacts/retargeting_v3_step2_assets44/summary.json",
+  "source_summary_sha256": "17b0321791b1469fcc45d4641e711586f3da55536be96b689066062d831cabc7",
+  "status_counts": {
+    "algorithm_failed": 11,
+    "negative_control_passed": 9,
+    "partial_passed": 3,
+    "passed": 21
+  }
+}

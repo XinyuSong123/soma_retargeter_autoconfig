@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import inspect
@@ -20,6 +22,7 @@ import xml.etree.ElementTree as ET
 from .model_adapter import MuJoCoRuntimeModelAdapter
 from .model_conversion import compare_runtime_models, convert_urdf_to_canonical_mjcf
 from .model_adapter import NewtonRuntimeModelAdapter
+from .capability_status import evaluate_profile_status
 from .profile import compile_kinematic_profile_v3
 from .robot_zoo import (
     DEFAULT_ROBOT_ZOO_MANIFEST_PATH,
@@ -42,6 +45,38 @@ from .semantic_sites import load_semantic_map
 DEFAULT_LOW_DISCREPANCY_COUNT = 32
 ROBOT_ZOO_MANIFEST_PATH = DEFAULT_ROBOT_ZOO_MANIFEST_PATH
 DEFAULT_ROBOT_ZOO_LOCK_PATH = Path("assets/robot_zoo/robot_zoo_lock.json")
+IMMUTABLE_ASSETS44_BASELINE_COMMIT = "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719"
+IMMUTABLE_ASSETS44_BASELINE_ROOT = "artifacts/retargeting_v3_step2_assets44"
+IMMUTABLE_ASSETS44_BASELINE_COUNTS = {
+    RobotValidationStatus.ALGORITHM_FAILED.value: 11,
+    RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value: 9,
+    RobotValidationStatus.PARTIAL_PASSED.value: 3,
+    RobotValidationStatus.PASSED.value: 21,
+}
+IMMUTABLE_ASSETS44_FINAL_TOTAL = 44
+_BASELINE_ALLOWED_TRANSITIONS = {
+    (RobotValidationStatus.PASSED.value, RobotValidationStatus.PASSED.value),
+    (RobotValidationStatus.PARTIAL_PASSED.value, RobotValidationStatus.PARTIAL_PASSED.value),
+    (
+        RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
+        RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value,
+    ),
+    (RobotValidationStatus.ALGORITHM_FAILED.value, RobotValidationStatus.PASSED.value),
+    (
+        RobotValidationStatus.ALGORITHM_FAILED.value,
+        RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value,
+    ),
+}
+
+
+@dataclass(frozen=True)
+class ImmutableBaselineSnapshot:
+    commit: str
+    artifact_root: str
+    status_by_model: dict[str, str]
+    report_by_model: dict[str, dict]
+    status_counts: dict[str, int]
+    source_command: str
 
 # Compatibility exports for older tests/imports. The manifest remains authoritative.
 try:
@@ -244,6 +279,149 @@ def _deferred_snapshots(lock: dict | None) -> dict:
     }
 
 
+def _certificate_thresholds_artifact() -> dict:
+    return {
+        "schema_version": 1,
+        "source": "global_step2_3_1_capability_acceptance_policy",
+        "exact_projection_thresholds": {
+            "neutral": 1e-3,
+            "foot": 0.06,
+            "hand": 0.12,
+            "torso": 0.08,
+            "default": 0.05,
+        },
+        "class_specific_gates": {
+            "capability_limited_rank": {
+                "orthogonal_residual_fraction_min": 0.95,
+                "reachable_residual_fraction_max": 0.05,
+            },
+            "capability_limited_joint_limits": {
+                "active_bound_count_min": 1,
+            },
+            "capability_limited_mixed": {
+                "requires_rank_incompatible_evidence": True,
+                "requires_active_limit_evidence": True,
+            },
+            "unsupported_rank_zero": {
+                "rank": 0,
+                "preserve_nonzero_demand": True,
+            },
+        },
+    }
+
+
+def _capability_matrix(full_reports: dict[str, dict]) -> dict:
+    rows = {}
+    for model_id, report in sorted(full_reports.items()):
+        canonical = report.get("canonical_projection_reports", {}) if isinstance(report, dict) else {}
+        rows[model_id] = {
+            "status": report.get("status"),
+            "expected_capability": report.get("manifest_entry", {}).get("expected_capability"),
+            "robot_class": report.get("manifest_entry", {}).get("robot_class"),
+            "capability_status": report.get("capability_status"),
+            "motion_order": canonical.get("motion_order", []) if isinstance(canonical, dict) else [],
+            "limited_tasks": _limited_projection_task_labels(report),
+            "failed_tasks": _failed_projection_task_labels(report),
+            "stress_diagnostics": _stress_projection_task_labels(report),
+            "task_certificate_summary": _task_certificate_overview(report.get("task_certificate_summary", {})),
+        }
+    return {
+        "schema_version": 1,
+        "rows": rows,
+        "status_counts": dict(sorted(Counter(row["status"] for row in rows.values()).items())),
+    }
+
+
+def _write_per_task_artifacts(per_task_dir: Path, full_reports: dict[str, dict]) -> None:
+    for model_id, report in sorted(full_reports.items()):
+        canonical = report.get("canonical_projection_reports", {}) if isinstance(report, dict) else {}
+        motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+        if not isinstance(motions, dict):
+            continue
+        for motion_name, motion in sorted(motions.items()):
+            tasks = motion.get("tasks", {}) if isinstance(motion, dict) else {}
+            if not isinstance(tasks, dict):
+                continue
+            for task_name, payload in sorted(tasks.items()):
+                if not isinstance(payload, dict):
+                    continue
+                _write_json(
+                    per_task_dir / f"{model_id}__{motion_name}__{task_name}.json",
+                    {
+                        "schema_version": 1,
+                        "model_id": model_id,
+                        "motion": motion_name,
+                        "task": task_name,
+                        "status": payload.get("status"),
+                        "normalized_residual": payload.get("normalized_residual"),
+                        "certificate_class": (
+                            payload.get("capability_certificate", {}).get("certificate_class")
+                            if isinstance(payload.get("capability_certificate"), dict)
+                            else None
+                        ),
+                        "payload": payload,
+                    },
+                )
+
+
+def _no_failures_artifact(full_reports: dict[str, dict]) -> dict:
+    return {
+        "schema_version": 1,
+        "status": "passed",
+        "reason": "validation produced no source, load, semantic, or algorithm failure reports",
+        "model_count": len(full_reports),
+    }
+
+
+def _limited_projection_task_labels(report: dict) -> list[str]:
+    return _projection_task_labels_by_certificate(
+        report,
+        {
+            "capability_limited_rank",
+            "capability_limited_joint_limits",
+            "capability_limited_mixed",
+            "unsupported_rank_zero",
+        },
+    )
+
+
+def _failed_projection_task_labels(report: dict) -> list[str]:
+    return _projection_task_labels_by_certificate(
+        report,
+        {"solver_failed", "numerical_invalid", "invalid_target_geometry"},
+    )
+
+
+def _stress_projection_task_labels(report: dict) -> list[str]:
+    labels = []
+    canonical = report.get("canonical_projection_reports", {}) if isinstance(report, dict) else {}
+    motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+    stress = motions.get("extreme_but_valid_joint_limit_stress", {}) if isinstance(motions, dict) else {}
+    tasks = stress.get("tasks", {}) if isinstance(stress, dict) else {}
+    if isinstance(tasks, dict):
+        labels.extend(f"extreme_but_valid_joint_limit_stress.{task_name}" for task_name in sorted(tasks))
+    return labels
+
+
+def _projection_task_labels_by_certificate(report: dict, certificate_classes: set[str]) -> list[str]:
+    labels = []
+    canonical = report.get("canonical_projection_reports", {}) if isinstance(report, dict) else {}
+    motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+    if not isinstance(motions, dict):
+        return labels
+    for motion_name, motion in sorted(motions.items()):
+        tasks = motion.get("tasks", {}) if isinstance(motion, dict) else {}
+        if not isinstance(tasks, dict):
+            continue
+        for task_name, payload in sorted(tasks.items()):
+            if not isinstance(payload, dict):
+                continue
+            certificate = payload.get("capability_certificate", {})
+            if isinstance(certificate, dict) and certificate.get("certificate_class") in certificate_classes:
+                labels.append(f"{motion_name}.{task_name}")
+    return labels
+
+
 def write_validation_artifacts(
     output_dir: str | Path = "artifacts/retargeting_v3_step2",
     *,
@@ -268,12 +446,14 @@ def write_validation_artifacts(
     pre_generation_git = _git_snapshot()
     out = Path(output_dir)
     per_robot = out / "per_robot"
+    per_task = out / "per_task"
     failures_dir = out / "failures"
     semantic_maps_dir = out / "semantic_maps"
     test_results_dir = out / "test_results"
-    for directory in (per_robot, failures_dir, semantic_maps_dir, test_results_dir):
+    for directory in (per_robot, per_task, failures_dir, semantic_maps_dir, test_results_dir):
         directory.mkdir(parents=True, exist_ok=True)
     _clear_json_files(per_robot)
+    _clear_json_files(per_task)
     _clear_json_files(failures_dir)
     _clear_json_files(semantic_maps_dir)
     _clear_matching_files(test_results_dir, ("*.json", "*.xml", "*.txt"))
@@ -348,11 +528,16 @@ def write_validation_artifacts(
     _write_json(out / "source_inventory.json", source_inventory)
     _write_json(out / "load_matrix.json", _load_matrix(full_reports))
     _write_json(out / "semantic_matrix.json", _semantic_matrix(full_reports))
+    _write_json(out / "certificate_thresholds.json", _certificate_thresholds_artifact())
+    _write_json(out / "capability_matrix.json", _capability_matrix(full_reports))
+    _write_per_task_artifacts(per_task, full_reports)
+    if not any(failures_dir.glob("*.json")):
+        _write_json(failures_dir / "_no_failures.json", _no_failures_artifact(full_reports))
     _write_json(out / "deferred_snapshots.json", _deferred_snapshots(lock))
     _write_json(out / "cross_format.json", cross_format)
     _write_json(out / "deterministic_rerun.json", deterministic)
     _write_json(out / "validation_checks.json", validation_checks)
-    before_after = _before_after_matrix(reports)
+    before_after = _before_after_matrix(reports, baseline=_baseline_for_reports(reports))
     _write_json(out / "before_after.json", before_after)
 
     status_counts = Counter(item["status"] for item in reports.values())
@@ -812,7 +997,19 @@ def _profile_status(report: dict) -> str:
         return RobotValidationStatus.ALGORITHM_FAILED.value
     if capability == "partial_humanoid":
         return RobotValidationStatus.PARTIAL_PASSED.value
-    if _has_capability_limited_certificate(report):
+    decision = evaluate_profile_status(
+        report.get("canonical_projection_reports", {}),
+        required_tasks=tuple(sorted((report.get("chains") or {}).keys())),
+    )
+    if decision.failures:
+        existing = set(str(failure) for failure in report.setdefault("failures", []))
+        for failure in decision.failures:
+            message = f"capability status gate failed: {failure}"
+            if message not in existing:
+                report["failures"].append(message)
+                existing.add(message)
+        return RobotValidationStatus.ALGORITHM_FAILED.value
+    if decision.status == RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value:
         return RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value
     return RobotValidationStatus.PASSED.value
 
@@ -838,6 +1035,16 @@ def _profile_status_reason(report: dict) -> str:
     if numerical_failures:
         tasks = ", ".join(failure["task"] for failure in numerical_failures)
         return f"numerical stability gate failed for task(s): {tasks}"
+    status_failures = [
+        str(failure)
+        for failure in report.get("failures", [])
+        if str(failure).startswith("capability status gate failed:")
+    ]
+    if status_failures:
+        first = status_failures[0]
+        if len(status_failures) == 1:
+            return first
+        return f"{first}; {len(status_failures) - 1} additional capability status gate failure(s)"
     failures = report.get("failures", [])
     if failures:
         first = str(failures[0])
@@ -1202,28 +1409,197 @@ def _summary_entry(report: dict) -> dict:
     }
 
 
-def _before_after_matrix(reports: dict[str, dict]) -> dict:
+def _baseline_for_reports(reports: dict[str, dict]) -> ImmutableBaselineSnapshot | None:
+    if len(reports) != IMMUTABLE_ASSETS44_FINAL_TOTAL:
+        return None
+    baseline = _load_immutable_assets44_baseline()
+    if set(reports) != set(baseline.status_by_model):
+        return None
+    return baseline
+
+
+@lru_cache(maxsize=1)
+def _load_immutable_assets44_baseline(
+    commit: str = IMMUTABLE_ASSETS44_BASELINE_COMMIT,
+    artifact_root: str = IMMUTABLE_ASSETS44_BASELINE_ROOT,
+) -> ImmutableBaselineSnapshot:
+    source_command = f"git show {commit}:{artifact_root}/summary.json"
+    try:
+        subprocess.check_output(["git", "cat-file", "-e", f"{commit}^{{commit}}"], stderr=subprocess.DEVNULL)
+        raw = subprocess.check_output(
+            ["git", "show", f"{commit}:{artifact_root}/summary.json"],
+            text=True,
+            stderr=subprocess.PIPE,
+        )
+    except subprocess.CalledProcessError as exc:
+        stderr = exc.stderr.strip() if isinstance(exc.stderr, str) else ""
+        message = f"failed to read immutable Assets44 baseline with `{source_command}`"
+        if stderr:
+            message = f"{message}: {stderr}"
+        raise RuntimeError(message) from exc
+    try:
+        summary = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"immutable Assets44 baseline summary is not valid JSON: {source_command}") from exc
+    reports = summary.get("reports", {})
+    if not isinstance(reports, dict):
+        raise RuntimeError(f"immutable Assets44 baseline summary has no reports object: {source_command}")
+    status_by_model = {
+        str(model_id): str(report.get("status", "unknown"))
+        for model_id, report in sorted(reports.items())
+        if isinstance(report, dict)
+    }
+    status_counts = dict(sorted(Counter(status_by_model.values()).items()))
+    _validate_immutable_baseline_counts(status_by_model, status_counts, source_command=source_command)
+    return ImmutableBaselineSnapshot(
+        commit=commit,
+        artifact_root=artifact_root,
+        status_by_model=status_by_model,
+        report_by_model=json.loads(json.dumps(reports)),
+        status_counts=status_counts,
+        source_command=source_command,
+    )
+
+
+def _validate_immutable_baseline_counts(
+    status_by_model: dict[str, str],
+    status_counts: dict[str, int],
+    *,
+    source_command: str,
+) -> None:
+    if len(status_by_model) != IMMUTABLE_ASSETS44_FINAL_TOTAL:
+        raise RuntimeError(
+            "immutable Assets44 baseline model count mismatch: "
+            f"expected {IMMUTABLE_ASSETS44_FINAL_TOTAL}, got {len(status_by_model)} from `{source_command}`"
+        )
+    if status_counts != IMMUTABLE_ASSETS44_BASELINE_COUNTS:
+        raise RuntimeError(
+            "immutable Assets44 baseline status counts mismatch: "
+            f"expected {IMMUTABLE_ASSETS44_BASELINE_COUNTS}, got {status_counts} from `{source_command}`"
+        )
+
+
+def _before_after_matrix(
+    reports: dict[str, dict],
+    *,
+    baseline: ImmutableBaselineSnapshot | None = None,
+) -> dict:
+    if baseline is None:
+        return _before_after_matrix_without_baseline(reports)
+    return _before_after_matrix_with_immutable_baseline(reports, baseline=baseline)
+
+
+def _before_after_matrix_without_baseline(reports: dict[str, dict]) -> dict:
     rows = {}
     transitions = Counter()
     for model_id, report in sorted(reports.items()):
         status = str(report.get("status", "unknown"))
-        before = "partial_passed" if status == RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value else status
-        transition = f"{before}->{status}"
+        transition = f"baseline_unavailable->{status}"
         transitions[transition] += 1
         rows[model_id] = {
-            "before_status": before,
+            "before_status": None,
             "after_status": status,
-            "status_changed": before != status,
+            "transition": transition,
+            "status_changed": None,
             "status_reason": report.get("status_reason", ""),
             "task_certificate_summary": report.get("task_certificate_summary", {}),
         }
     return {
         "schema_version": 1,
-        "basis": "status_integration_legacy_partial_to_capability_limited",
+        "basis": "no_immutable_baseline_for_model_set",
+        "baseline_commit": None,
+        "baseline_artifact_root": None,
+        "baseline_source_command": None,
         "row_count": len(rows),
         "status_transition_counts": dict(sorted(transitions.items())),
         "rows": rows,
     }
+
+
+def _before_after_matrix_with_immutable_baseline(
+    reports: dict[str, dict],
+    *,
+    baseline: ImmutableBaselineSnapshot,
+) -> dict:
+    if set(reports) != set(baseline.status_by_model):
+        missing_current = sorted(set(baseline.status_by_model) - set(reports))
+        missing_baseline = sorted(set(reports) - set(baseline.status_by_model))
+        raise ValueError(
+            "immutable baseline model set mismatch: "
+            f"missing_current={missing_current}, missing_baseline={missing_baseline}"
+        )
+    _validate_immutable_baseline_counts(
+        baseline.status_by_model,
+        baseline.status_counts,
+        source_command=baseline.source_command,
+    )
+    rows = {}
+    transitions = Counter()
+    for model_id, report in sorted(reports.items()):
+        before = baseline.status_by_model[model_id]
+        after = str(report.get("status", "unknown"))
+        transition = f"{before}->{after}"
+        if (before, after) not in _BASELINE_ALLOWED_TRANSITIONS:
+            raise ValueError(f"illegal baseline transition for {model_id}: {transition}")
+        transitions[transition] += 1
+        baseline_report = baseline.report_by_model.get(model_id, {})
+        rows[model_id] = {
+            "before_status": before,
+            "after_status": after,
+            "transition": transition,
+            "status_changed": before != after,
+            "baseline_status_reason": baseline_report.get("status_reason", ""),
+            "status_reason": report.get("status_reason", ""),
+            "baseline_source_command": (
+                f"git show {baseline.commit}:{baseline.artifact_root}/per_robot/{model_id}.json"
+            ),
+            "baseline_summary_source_command": baseline.source_command,
+            "task_certificate_summary": report.get("task_certificate_summary", {}),
+        }
+    current_counts = dict(sorted(Counter(str(report.get("status", "unknown")) for report in reports.values()).items()))
+    _validate_assets44_final_counts(current_counts)
+    return {
+        "schema_version": 2,
+        "basis": "immutable_assets44_git_baseline",
+        "baseline_commit": baseline.commit,
+        "baseline_artifact_root": baseline.artifact_root,
+        "baseline_source_command": baseline.source_command,
+        "baseline_status_counts": baseline.status_counts,
+        "current_status_counts": current_counts,
+        "row_count": len(rows),
+        "status_transition_counts": dict(sorted(transitions.items())),
+        "transition_validation": {
+            "status": "passed",
+            "allowed_transitions": sorted(f"{before}->{after}" for before, after in _BASELINE_ALLOWED_TRANSITIONS),
+            "old_algorithm_failure_count": baseline.status_counts[RobotValidationStatus.ALGORITHM_FAILED.value],
+        },
+        "rows": rows,
+    }
+
+
+def _validate_assets44_final_counts(status_counts: dict[str, int]) -> None:
+    total = sum(status_counts.values())
+    failures = []
+    if total != IMMUTABLE_ASSETS44_FINAL_TOTAL:
+        failures.append(f"total expected {IMMUTABLE_ASSETS44_FINAL_TOTAL}, got {total}")
+    if status_counts.get(RobotValidationStatus.PASSED.value, 0) < IMMUTABLE_ASSETS44_BASELINE_COUNTS[RobotValidationStatus.PASSED.value]:
+        failures.append("passed count is below immutable baseline exact pass count")
+    if status_counts.get(RobotValidationStatus.CAPABILITY_LIMITED_PASSED.value, 0) > IMMUTABLE_ASSETS44_BASELINE_COUNTS[RobotValidationStatus.ALGORITHM_FAILED.value]:
+        failures.append("capability_limited_passed count exceeds old algorithm failure count")
+    expected_exact = {
+        RobotValidationStatus.PARTIAL_PASSED.value: IMMUTABLE_ASSETS44_BASELINE_COUNTS[RobotValidationStatus.PARTIAL_PASSED.value],
+        RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value: IMMUTABLE_ASSETS44_BASELINE_COUNTS[RobotValidationStatus.NEGATIVE_CONTROL_PASSED.value],
+        RobotValidationStatus.ALGORITHM_FAILED.value: 0,
+        RobotValidationStatus.SOURCE_UNAVAILABLE.value: 0,
+        RobotValidationStatus.MODEL_LOAD_FAILED.value: 0,
+        RobotValidationStatus.SEMANTIC_FAILED.value: 0,
+    }
+    for status, expected in expected_exact.items():
+        actual = status_counts.get(status, 0)
+        if actual != expected:
+            failures.append(f"{status} expected {expected}, got {actual}")
+    if failures:
+        raise ValueError("hardened Assets44 final count constraint failed: " + "; ".join(failures))
 
 
 def _task_certificate_overview(summary: dict) -> dict:
@@ -1443,9 +1819,10 @@ def _variant_pair_compatibility(pair: dict, *, per_robot: Path) -> dict:
                 "canonical_projection": _variant_projection_evidence(urdf_report, mjcf_report),
             }
         )
+    fatal_evidence = {name: payload for name, payload in evidence.items() if name != "semantic_sites"}
     failures = {
         name: payload.get("failures", [])
-        for name, payload in evidence.items()
+        for name, payload in fatal_evidence.items()
         if payload.get("status") != "passed"
     }
     return {
@@ -2204,6 +2581,20 @@ def _negative_control_determinism_entry(
         reproduction_command=first.get("reproduction_command", ""),
     )
     matched = first.get("status") == rerun.get("status") and _negative_runtime_summary(first) == _negative_runtime_summary(rerun)
+    comparisons = {
+        "status": {
+            "matched": first.get("status") == rerun.get("status"),
+            "first": first.get("status"),
+            "second": rerun.get("status"),
+            "mismatch_paths": [] if first.get("status") == rerun.get("status") else ["status"],
+        },
+        "runtime_summary": _comparison_result(
+            _negative_runtime_summary(first),
+            _negative_runtime_summary(rerun),
+        ),
+    }
+    for key in _deterministic_comparison_fields():
+        comparisons.setdefault(key, _comparison_result(None, None))
     return {
         "status": "matched" if matched else "mismatched",
         "input_status": first.get("status"),
@@ -2211,18 +2602,7 @@ def _negative_control_determinism_entry(
         "compared": True,
         "profile_comparison": False,
         "reason": "negative controls have no humanoid profile hash; compared load status and runtime dimensions only",
-        "comparisons": {
-            "status": {
-                "matched": first.get("status") == rerun.get("status"),
-                "first": first.get("status"),
-                "second": rerun.get("status"),
-                "mismatch_paths": [] if first.get("status") == rerun.get("status") else ["status"],
-            },
-            "runtime_summary": _comparison_result(
-                _negative_runtime_summary(first),
-                _negative_runtime_summary(rerun),
-            ),
-        },
+        "comparisons": comparisons,
     }
 
 
@@ -2259,6 +2639,9 @@ def _deterministic_comparison_fields() -> list[str]:
         "deterministic_hash",
         "rank_summary",
         "canonical_projection_residuals",
+        "projection_q",
+        "projection_task_vectors",
+        "capability_certificate_identity",
         "semantic_site_evidence",
         "task_certificate_summary",
     ]
@@ -2270,6 +2653,9 @@ def _deterministic_profile_payload(report: dict) -> dict:
         "deterministic_hash": report.get("deterministic_hash"),
         "rank_summary": _rank_summary(report),
         "canonical_projection_residuals": _canonical_projection_residuals(report),
+        "projection_q": _canonical_projection_q(report),
+        "projection_task_vectors": _canonical_projection_task_vectors(report),
+        "capability_certificate_identity": _capability_certificate_identity(report),
         "semantic_site_evidence": _semantic_site_evidence(report),
         "task_certificate_summary": report.get("task_certificate_summary", {}),
     }
@@ -2327,6 +2713,87 @@ def _canonical_projection_residuals(report: dict) -> dict:
             }
             for motion_name, motion_payload in sorted(motions.items())
         },
+    }
+
+
+def _canonical_projection_q(report: dict) -> dict:
+    canonical = report.get("canonical_projection_reports", {})
+    motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+    return {
+        "motion_order": canonical.get("motion_order", []) if isinstance(canonical, dict) else [],
+        "motions": {
+            motion_name: {
+                task_name: {
+                    key: task_payload.get(key)
+                    for key in (
+                        "chain_q",
+                        "active_coordinates",
+                        "selected_seed_index",
+                    )
+                    if key in task_payload
+                }
+                for task_name, task_payload in sorted(motion_payload.get("tasks", {}).items())
+                if isinstance(task_payload, dict)
+            }
+            for motion_name, motion_payload in sorted(motions.items())
+            if isinstance(motion_payload, dict)
+        },
+    }
+
+
+def _canonical_projection_task_vectors(report: dict) -> dict:
+    canonical = report.get("canonical_projection_reports", {})
+    motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+    return {
+        "motion_order": canonical.get("motion_order", []) if isinstance(canonical, dict) else [],
+        "target_source": canonical.get("target_source") if isinstance(canonical, dict) else None,
+        "motions": {
+            motion_name: {
+                task_name: {
+                    key: task_payload.get(key)
+                    for key in (
+                        "desired",
+                        "projected",
+                        "reference",
+                        "target",
+                        "desired_source",
+                        "residual_parameterization",
+                    )
+                    if key in task_payload
+                }
+                for task_name, task_payload in sorted(motion_payload.get("tasks", {}).items())
+                if isinstance(task_payload, dict)
+            }
+            for motion_name, motion_payload in sorted(motions.items())
+            if isinstance(motion_payload, dict)
+        },
+    }
+
+
+def _capability_certificate_identity(report: dict) -> dict:
+    canonical = report.get("canonical_projection_reports", {})
+    motions = canonical.get("motions", {}) if isinstance(canonical, dict) else {}
+    return {
+        "motion_order": canonical.get("motion_order", []) if isinstance(canonical, dict) else [],
+        "motions": {
+            motion_name: {
+                task_name: _task_certificate_identity(task_payload)
+                for task_name, task_payload in sorted(motion_payload.get("tasks", {}).items())
+                if isinstance(task_payload, dict)
+            }
+            for motion_name, motion_payload in sorted(motions.items())
+            if isinstance(motion_payload, dict)
+        },
+    }
+
+
+def _task_certificate_identity(task_payload: dict) -> dict:
+    certificate = task_payload.get("capability_certificate", {})
+    if not isinstance(certificate, dict):
+        certificate = {}
+    return {
+        "certificate_class": certificate.get("certificate_class"),
+        "deterministic_digest": certificate.get("deterministic_digest"),
     }
 
 
@@ -2415,11 +2882,7 @@ def _deterministic_totals(models: dict[str, dict]) -> dict:
         "compared_count": len(compared),
         "matched_count": sum(1 for model in compared if model.get("status") == "matched"),
         "mismatch_count": sum(1 for model in compared if model.get("status") == "mismatched"),
-        "rerun_failed_count": sum(1 for model in compared if model.get("rerun_status") in {
-            RobotValidationStatus.MODEL_LOAD_FAILED.value,
-            RobotValidationStatus.ALGORITHM_FAILED.value,
-            RobotValidationStatus.SEMANTIC_FAILED.value,
-        }),
+        "rerun_failed_count": sum(1 for model in compared if _deterministic_rerun_failed(model)),
         "source_unavailable_count": sum(
             1 for model in models.values() if model.get("status") == "source_unavailable"
         ),
@@ -2428,6 +2891,21 @@ def _deterministic_totals(models: dict[str, dict]) -> dict:
             1 for model in models.values() if model.get("status") == "skipped_non_pass_status"
         ),
     }
+
+
+def _deterministic_rerun_failed(model: dict) -> bool:
+    rerun_status = model.get("rerun_status")
+    if rerun_status in {
+        RobotValidationStatus.MODEL_LOAD_FAILED.value,
+        RobotValidationStatus.SEMANTIC_FAILED.value,
+    }:
+        return True
+    if rerun_status != RobotValidationStatus.ALGORITHM_FAILED.value:
+        return False
+    return not (
+        model.get("input_status") == RobotValidationStatus.ALGORITHM_FAILED.value
+        and model.get("status") == "matched"
+    )
 
 
 def _environment_report(manifest, *, git_snapshot: dict[str, str] | None = None) -> dict:

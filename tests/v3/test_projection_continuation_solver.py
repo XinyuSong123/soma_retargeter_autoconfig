@@ -6,6 +6,15 @@ import numpy as np
 
 from soma_retargeter.robotics.v3.chain_projection import project_endpoint_position, project_torso_orientation
 from soma_retargeter.robotics.v3.model_adapter import MuJoCoRuntimeModelAdapter
+from soma_retargeter.robotics.v3.projection_solver import (
+    ContinuationSolverConfig,
+    ResidualJacobianEvaluation,
+    active_limit_kkt_evidence,
+    solve_bounded_continuation,
+)
+from soma_retargeter.robotics.v3.projection_solver import _bound_snap_candidate
+from soma_retargeter.robotics.v3.projection_solver import _numeric_task_polish_candidate
+from soma_retargeter.robotics.v3.projection_solver import _run_is_better
 from soma_retargeter.robotics.v3.semantic_sites import build_semantic_sites
 from soma_retargeter.robotics.v3.spatial import so3_exp
 
@@ -123,6 +132,178 @@ def _torso_sites(adapter: MuJoCoRuntimeModelAdapter) -> dict:
             "RightFoot": "hips",
         },
     )
+
+
+def test_near_bound_descent_snap_uses_existing_kkt_tolerances() -> None:
+    x = np.array([5e-9])
+    lo = np.array([0.0])
+    hi = np.array([1.0])
+    evaluation = ResidualJacobianEvaluation(
+        task_residual=np.array([1.0]),
+        task_jacobian=np.array([[1.0]]),
+        prior_residual=np.zeros(0),
+        prior_jacobian=np.zeros((0, 1)),
+        jacobian_source="test",
+    )
+    before = active_limit_kkt_evidence(
+        x,
+        lo,
+        hi,
+        evaluation.task_residual,
+        evaluation.task_jacobian,
+    )
+
+    snap = _bound_snap_candidate(
+        lambda values: evaluation,
+        x,
+        evaluation,
+        lo,
+        hi,
+        base_task_cost=1.0,
+        before_kkt=before,
+        start_kkt=before,
+        tie_tolerance=1e-15,
+    )
+
+    assert before["satisfied"] is False
+    assert snap["accepted"] is True
+    np.testing.assert_allclose(snap["x"], lo)
+    assert snap["kkt_after"]["satisfied"] is True
+    assert snap["snapped_coordinates"] == [
+        {"coordinate": 0, "side": "lower", "gap": 5e-9, "gradient": 1.0}
+    ]
+
+
+def test_numeric_polish_fallback_is_gated_by_exact_threshold() -> None:
+    lo = np.array([-1.0])
+    hi = np.array([1.0])
+
+    def evaluate(values: np.ndarray) -> ResidualJacobianEvaluation:
+        x = np.asarray(values, dtype=float)
+        return ResidualJacobianEvaluation(
+            task_residual=np.array([x[0]]),
+            task_jacobian=np.array([[1.0]]),
+            prior_residual=np.zeros(0),
+            prior_jacobian=np.zeros((0, 1)),
+            jacobian_source="test",
+        )
+
+    x0 = np.array([0.05])
+    initial = evaluate(x0)
+    before = active_limit_kkt_evidence(x0, lo, hi, initial.task_residual, initial.task_jacobian)
+    cfg = ContinuationSolverConfig(
+        final_numeric_polish_residual_threshold=0.1,
+        final_numeric_polish_max_nfev=20,
+    )
+
+    numeric = _numeric_task_polish_candidate(
+        evaluate,
+        x0,
+        initial,
+        lo,
+        hi,
+        base_task_cost=float(np.dot(initial.task_residual, initial.task_residual)),
+        before_kkt=before,
+        start_kkt=before,
+        cfg=cfg,
+    )
+
+    assert before["satisfied"] is False
+    assert numeric["attempted"] is True
+    assert numeric["accepted"] is True
+    assert numeric["kkt_after"]["satisfied"] is True
+    assert numeric["task_cost_after"] < 1e-20
+
+
+def test_exact_seed_selection_prefers_successful_continuation_ties() -> None:
+    cfg = ContinuationSolverConfig(final_numeric_polish_residual_threshold=0.06)
+    failed_lower_residual = {
+        "seed_index": 0,
+        "success": False,
+        "task_cost": (5e-9) ** 2,
+        "total_cost": (5e-9) ** 2,
+    }
+    successful_exact_tie = {
+        "seed_index": 1,
+        "success": True,
+        "task_cost": (3e-8) ** 2,
+        "total_cost": (3e-8) ** 2,
+    }
+
+    assert _run_is_better(successful_exact_tie, failed_lower_residual, cfg) is True
+    assert _run_is_better(failed_lower_residual, successful_exact_tie, cfg) is False
+
+
+def test_exact_final_polish_records_alpha_one_completion() -> None:
+    def make_evaluator(seed: np.ndarray):
+        del seed
+
+        def evaluate(values: np.ndarray, alpha: float) -> ResidualJacobianEvaluation:
+            x = np.asarray(values, dtype=float)
+            return ResidualJacobianEvaluation(
+                task_residual=np.array([x[0] - float(alpha)]),
+                task_jacobian=np.array([[1.0]]),
+                prior_residual=np.zeros(0),
+                prior_jacobian=np.zeros((0, 1)),
+                jacobian_source="test",
+            )
+
+        return evaluate
+
+    result = solve_bounded_continuation(
+        make_evaluator,
+        [np.array([0.0])],
+        np.array([-2.0]),
+        np.array([2.0]),
+        active_coordinates=[7],
+        config=ContinuationSolverConfig(
+            max_accepted_steps=0,
+            final_numeric_polish_residual_threshold=0.1,
+        ),
+    )
+
+    assert result.success is True
+    assert np.linalg.norm(result.task_residual) < 1e-12
+    assert result.continuation_history[-1]["alpha_end"] == 1.0
+    assert result.continuation_history[-1]["source"] == "final_task_polish_exact_completion"
+    assert result.seed_results[0]["accepted"] is True
+
+
+def test_final_polish_nonzero_bounded_residual_does_not_complete_alpha_one() -> None:
+    def make_evaluator(seed: np.ndarray):
+        del seed
+
+        def evaluate(values: np.ndarray, alpha: float) -> ResidualJacobianEvaluation:
+            x = np.asarray(values, dtype=float)
+            return ResidualJacobianEvaluation(
+                task_residual=np.array([x[0] - float(alpha)]),
+                task_jacobian=np.array([[1.0]]),
+                prior_residual=np.zeros(0),
+                prior_jacobian=np.zeros((0, 1)),
+                jacobian_source="test",
+            )
+
+        return evaluate
+
+    result = solve_bounded_continuation(
+        make_evaluator,
+        [np.array([0.0])],
+        np.array([-2.0]),
+        np.array([0.95]),
+        active_coordinates=[7],
+        config=ContinuationSolverConfig(
+            max_accepted_steps=0,
+            final_numeric_polish_residual_threshold=0.1,
+        ),
+    )
+
+    assert result.success is False
+    assert 0.01 < np.linalg.norm(result.task_residual) < 0.1
+    assert all(
+        step.get("source") != "final_task_polish_exact_completion"
+        for step in result.continuation_history
+    )
+    assert result.seed_results[0]["accepted"] is False
 
 
 def test_reachable_revolute_endpoint_uses_engine_jacobian_and_continuation(tmp_path: Path):

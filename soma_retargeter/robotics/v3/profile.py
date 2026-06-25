@@ -8,8 +8,12 @@ import hashlib
 import json
 import time
 
-import numpy as np
-
+from .capability_status import (
+    PROFILE_ALGORITHM_FAILED,
+    evaluate_profile_status,
+    profile_status_from_semantic_readiness,
+    projection_exact_threshold,
+)
 from .engine_jacobian import engine_relative_jacobian
 from .kinematic_paths import TASKS, KinematicPath, discover_paths
 from .model_adapter import MuJoCoRuntimeModelAdapter, NewtonRuntimeModelAdapter, SemanticSite
@@ -99,8 +103,9 @@ def compile_kinematic_profile_v3(
             require_distal_site_offsets=require_distal_site_offsets,
         )
         missing = missing_required_semantics(sites)
-        capability_status = _capability_status(sites, missing)
-        if missing and capability_status == "partial_humanoid":
+        semantic_status = _capability_status(sites, missing)
+        capability_status = semantic_status
+        if missing and semantic_status == "partial_humanoid":
             warnings.append(f"partial humanoid downgrade; unavailable semantics: {', '.join(missing)}")
         elif missing:
             failures.append(f"missing required semantics: {', '.join(missing)}")
@@ -178,9 +183,21 @@ def compile_kinematic_profile_v3(
                 "continuity_prior_enabled": False,
                 "sequences": {},
             }
-        quality_failures = _projection_quality_failures(canonical_projection_json)
-        failures.extend(quality_failures)
         projection_reports = _motion_projection_reports(canonical_projection_json)
+        if semantic_status == "full_humanoid_ready":
+            projection_status = evaluate_profile_status(
+                canonical_projection_json,
+                required_tasks=paths.keys(),
+            )
+            capability_status = profile_status_from_semantic_readiness(
+                semantic_status,
+                projection_status.status,
+            )
+            if projection_status.status == PROFILE_ALGORITHM_FAILED:
+                failures.extend(
+                    f"capability status gate failed: {failure}"
+                    for failure in projection_status.failures
+                )
         canonical = {k: v.to_json() for k, v in canonical_objects.items()}
         model_payload = {
             "id": model_id or Path(model_path).stem,
@@ -274,64 +291,9 @@ def _motion_projection_reports(canonical_projection: dict) -> dict:
 
 
 def _projection_quality_failures(canonical_projection: dict) -> list[str]:
-    failures: list[str] = []
-    motions = canonical_projection.get("motions", {})
-    if not isinstance(motions, dict):
-        return failures
-    for motion_name, motion in sorted(motions.items()):
-        tasks = motion.get("tasks", {}) if isinstance(motion, dict) else {}
-        if not isinstance(tasks, dict):
-            continue
-        for task_name, payload in sorted(tasks.items()):
-            if not isinstance(payload, dict):
-                continue
-            if payload.get("status") in {"rank_zero", "unreachable/rank_zero"}:
-                continue
-            if motion_name == "extreme_but_valid_joint_limit_stress":
-                continue
-            normalized = payload.get("normalized_residual")
-            residual = payload.get("residual")
-            threshold = _projection_quality_threshold(str(task_name), str(motion_name))
-            if normalized is None or not np.isfinite(float(normalized)):
-                failures.append(f"projection residual gate failed: {motion_name}.{task_name} normalized_residual nonfinite")
-                continue
-            if float(normalized) > threshold:
-                if _projection_certificate_passes(payload):
-                    continue
-                failures.append(
-                    "projection residual gate failed: "
-                    f"{motion_name}.{task_name} normalized_residual={float(normalized):.6g} threshold={threshold:.6g} residual={float(residual or 0.0):.6g}"
-                )
-    return failures
+    result = evaluate_profile_status(canonical_projection)
+    return [f"capability status gate failed: {failure}" for failure in result.failures]
 
 
 def _projection_quality_threshold(task_name: str, motion_name: str) -> float:
-    if motion_name == "neutral":
-        return 1e-3
-    if "foot" in task_name:
-        return 0.06
-    if "hand" in task_name:
-        return 0.12
-    if "torso" in task_name:
-        return 0.08
-    return 0.05
-
-
-def _projection_certificate_passes(payload: dict) -> bool:
-    certificate = payload.get("capability_certificate", {})
-    if not isinstance(certificate, dict):
-        return False
-    certificate_class = str(certificate.get("certificate_class", ""))
-    if certificate_class not in {
-        "exact_reachable",
-        "capability_limited_rank",
-        "capability_limited_joint_limits",
-        "capability_limited_mixed",
-        "unsupported_rank_zero",
-    }:
-        return False
-    gates = certificate.get("gates", {})
-    if not isinstance(gates, dict):
-        return False
-    required = ("projected_gradient_kkt", "seed_consensus", "residual_explained")
-    return all(gates.get(name) is True for name in required)
+    return projection_exact_threshold(task_name, motion_name)

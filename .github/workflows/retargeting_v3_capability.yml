@@ -5,23 +5,25 @@ on:
     paths:
       - "soma_retargeter/robotics/v3/**"
       - "assets/robot_zoo/**"
-      - "artifacts/retargeting_v3_step2_assets44/**"
+      - "artifacts/retargeting_v3_step2_capability/**"
       - "artifacts/retargeting_v3_step2_numerical/**"
       - "scripts/audit_retargeting_v3_capability.py"
       - "tests/v3/test_capability_acceptance_*.py"
-      - "docs/retargeting_v3/STEP2_3_CAPABILITY_ACCEPTANCE.md"
+      - "docs/retargeting_v3/STEP2_3_1_CAPABILITY_ACCEPTANCE.md"
+      - "docs/retargeting_v3/subagents/capability_agent_f_red_team.md"
       - ".github/workflows/retargeting_v3_capability.yml"
   push:
     branches:
-      - retargeting-v3-step2-capability
+      - retargeting-v3-step2-capability-acceptance-hardening
     paths:
       - "soma_retargeter/robotics/v3/**"
       - "assets/robot_zoo/**"
-      - "artifacts/retargeting_v3_step2_assets44/**"
+      - "artifacts/retargeting_v3_step2_capability/**"
       - "artifacts/retargeting_v3_step2_numerical/**"
       - "scripts/audit_retargeting_v3_capability.py"
       - "tests/v3/test_capability_acceptance_*.py"
-      - "docs/retargeting_v3/STEP2_3_CAPABILITY_ACCEPTANCE.md"
+      - "docs/retargeting_v3/STEP2_3_1_CAPABILITY_ACCEPTANCE.md"
+      - "docs/retargeting_v3/subagents/capability_agent_f_red_team.md"
       - ".github/workflows/retargeting_v3_capability.yml"
   workflow_dispatch:
 
@@ -30,12 +32,11 @@ permissions:
 
 env:
   PYTHONPATH: .
-  RETARGETING_V3_ARTIFACTS: artifacts/retargeting_v3_step2_assets44
   RETARGETING_V3_NUMERICAL_ARTIFACTS: artifacts/retargeting_v3_step2_numerical
   RETARGETING_V3_CAPABILITY_ARTIFACTS: artifacts/retargeting_v3_step2_capability
 
 jobs:
-  capability-red-team:
+  capability-synthetic-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -51,15 +52,47 @@ jobs:
           python -m pip install -e . pytest
       - name: Run capability red-team fixture tests
         run: |
-          python -m pytest -q tests/v3/test_capability_acceptance_*.py
-      - name: Verify Git LFS payloads
+          set -o pipefail
+          mkdir -p "$RETARGETING_V3_CAPABILITY_ARTIFACTS/test_results"
+          python -m pytest -q tests/v3/test_capability_acceptance_*.py \
+            --junitxml "$RETARGETING_V3_CAPABILITY_ARTIFACTS/test_results/junit.xml" \
+            | tee "$RETARGETING_V3_CAPABILITY_ARTIFACTS/test_results/pytest.txt"
+
+  lfs-snapshot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS
         run: |
           git lfs version
+          git lfs pull
+          git lfs fsck
+
+  capability-artifact-live-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest
+      - name: Verify Git LFS
+        run: |
+          git lfs pull
           git lfs fsck
       - name: Run live capability acceptance audit
         run: |
-          mkdir -p "$RETARGETING_V3_CAPABILITY_ARTIFACTS/test_results"
           python scripts/audit_retargeting_v3_capability.py \
-            --artifact-dir "$RETARGETING_V3_ARTIFACTS" \
+            --artifact-dir "$RETARGETING_V3_CAPABILITY_ARTIFACTS" \
             --numerical-artifact-dir "$RETARGETING_V3_NUMERICAL_ARTIFACTS" \
-            --write-report "$RETARGETING_V3_CAPABILITY_ARTIFACTS/test_results/capability_audit.json"
+            --lock assets/robot_zoo/robot_zoo_lock.json \
+            --write-report "$RETARGETING_V3_CAPABILITY_ARTIFACTS/capability_audit.json"

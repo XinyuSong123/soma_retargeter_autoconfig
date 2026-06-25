@@ -1,733 +1,1300 @@
 {
-  "basis": "status_integration_legacy_partial_to_capability_limited",
-  "row_count": 44,
-  "rows": {
-    "adam_lite_mjcf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
+  "after_counts": {
+    "negative_control_passed": 9,
+    "partial_passed": 3,
+    "passed": 32
+  },
+  "allowed_transitions": [
+    "algorithm_failed->capability_limited_passed",
+    "algorithm_failed->passed",
+    "negative_control_passed->negative_control_passed",
+    "partial_passed->partial_passed",
+    "passed->passed"
+  ],
+  "baseline_artifact_root": "artifacts/retargeting_v3_step2_assets44",
+  "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+  "baseline_counts": {
+    "algorithm_failed": 11,
+    "negative_control_passed": 9,
+    "partial_passed": 3,
+    "passed": 21
+  },
+  "basis": "true_baseline_git_object",
+  "current_summary_path": "artifacts/retargeting_v3_step2_capability/summary.json",
+  "final_count_validation": {
+    "failures": [],
+    "status": "passed"
+  },
+  "old_algorithm_failure_transitions": {
+    "after_status_counts": {
+      "passed": 11
     },
-    "apptronik_apollo_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "atlas_drc_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "atlas_v4_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "berkeley_humanoid_mjcf_direct": {
-      "after_status": "partial_passed",
-      "before_status": "partial_passed",
-      "status_changed": false,
-      "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "bolt_urdf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "booster_t1_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "booster_t1_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "cassie_mjcf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "cassie_urdf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "draco3_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "elf2_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "elf2_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "ergocub_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "fourier_gr1_urdf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "fourier_n1_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "fourier_n1_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "franka_panda_mjcf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "jaxon_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "jvrc_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "jvrc_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "mujoco_humanoid_mjcf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "pal_talos_mjcf_direct": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "rhea_urdf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "robonaut2_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "roboparty_rpo_local": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "robotis_op3_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "sigmaban_urdf": {
-      "after_status": "partial_passed",
-      "before_status": "partial_passed",
-      "status_changed": false,
-      "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "simple_humanoid_urdf": {
-      "after_status": "partial_passed",
-      "before_status": "partial_passed",
-      "status_changed": false,
-      "status_reason": "structured partial humanoid expectation documents unavailable required semantics",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "stretch3_mjcf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "talos_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "toddlerbot_2xc_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "toddlerbot_2xm_mjcf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "toddlerbot_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "unitree_g1_mjcf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "unitree_g1_urdf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "unitree_go2_mjcf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "unitree_go2_urdf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "unitree_h1_2_mjcf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "unitree_h1_2_urdf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "unitree_h1_mjcf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "unitree_h1_urdf": {
-      "after_status": "passed",
-      "before_status": "passed",
-      "status_changed": false,
-      "status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
-      }
-    },
-    "upkie_urdf": {
-      "after_status": "negative_control_passed",
-      "before_status": "negative_control_passed",
-      "status_changed": false,
-      "status_reason": "negative control source loaded and was not promoted to a humanoid profile",
-      "task_certificate_summary": {
-        "canonical_motion_count": 0,
-        "status": "unavailable",
-        "task_count": 0,
-        "tasks": []
-      }
-    },
-    "valkyrie_urdf": {
-      "after_status": "capability_limited_passed",
-      "before_status": "partial_passed",
-      "status_changed": true,
-      "status_reason": "capability-limited humanoid passed with 5 available task certificate(s)",
-      "task_certificate_summary": {
-        "canonical_motion_count": 15,
-        "status": "available",
-        "task_count": 5,
-        "tasks": [
-          "left_foot",
-          "left_hand",
-          "right_foot",
-          "right_hand",
-          "torso"
-        ]
+    "row_count": 11,
+    "rows": {
+      "atlas_drc_urdf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 2,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.297579 threshold=0.12 residual=0.472076; 1 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "atlas_v4_urdf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 1,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.135239 threshold=0.12 residual=0.198636",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "booster_t1_mjcf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 2,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.33913 threshold=0.12 residual=0.255105; 1 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "booster_t1_urdf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 2,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.344458 threshold=0.12 residual=0.259113; 1 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "fourier_n1_mjcf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 3,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: asymmetric_arm_reach.left_hand normalized_residual=0.129407 threshold=0.12 residual=0.0803162; 2 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "jaxon_urdf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 26,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: arms_forward.left_hand normalized_residual=0.258956 threshold=0.12 residual=0.276018; 25 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "mujoco_humanoid_mjcf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 7,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "numerical stability gate failed for task(s): left_foot, left_hand, right_foot, right_hand, torso",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "pal_talos_mjcf_direct": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 2,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: neutral.left_hand normalized_residual=0.00545993 threshold=0.001 residual=0.00681014; 1 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "robotis_op3_mjcf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 2,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.260953 threshold=0.12 residual=0.104393; 1 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "talos_urdf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 1,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.157441 threshold=0.12 residual=0.170987",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
+      },
+      "valkyrie_urdf": {
+        "after_failure_count": 0,
+        "after_status": "passed",
+        "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+        "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+        "baseline_failure_count": 2,
+        "before_status": "algorithm_failed",
+        "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.143603 threshold=0.12 residual=0.187923; 1 additional algorithm failure(s)",
+        "status_changed": true,
+        "task_certificate_summary": {
+          "canonical_motion_count": 15,
+          "status": "available",
+          "task_count": 5,
+          "tasks": [
+            "left_foot",
+            "left_hand",
+            "right_foot",
+            "right_hand",
+            "torso"
+          ]
+        },
+        "transition": "algorithm_failed->passed",
+        "transition_allowed": true
       }
     }
   },
-  "schema_version": 1,
+  "row_count": 44,
+  "rows": {
+    "adam_lite_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "apptronik_apollo_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "atlas_drc_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 2,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.297579 threshold=0.12 residual=0.472076; 1 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "atlas_v4_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 1,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.135239 threshold=0.12 residual=0.198636",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "berkeley_humanoid_mjcf_direct": {
+      "after_failure_count": 0,
+      "after_status": "partial_passed",
+      "after_status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "partial_passed",
+      "before_status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "partial_passed->partial_passed",
+      "transition_allowed": true
+    },
+    "bolt_urdf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "booster_t1_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 2,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.33913 threshold=0.12 residual=0.255105; 1 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "booster_t1_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 2,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.344458 threshold=0.12 residual=0.259113; 1 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "cassie_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "cassie_urdf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "draco3_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "elf2_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "elf2_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "ergocub_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "fourier_gr1_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "fourier_n1_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 3,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: asymmetric_arm_reach.left_hand normalized_residual=0.129407 threshold=0.12 residual=0.0803162; 2 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "fourier_n1_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "franka_panda_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "jaxon_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 26,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: arms_forward.left_hand normalized_residual=0.258956 threshold=0.12 residual=0.276018; 25 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "jvrc_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "jvrc_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "mujoco_humanoid_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 7,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "numerical stability gate failed for task(s): left_foot, left_hand, right_foot, right_hand, torso",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "pal_talos_mjcf_direct": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 2,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: neutral.left_hand normalized_residual=0.00545993 threshold=0.001 residual=0.00681014; 1 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "rhea_urdf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "robonaut2_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "roboparty_rpo_local": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "robotis_op3_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 2,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.260953 threshold=0.12 residual=0.104393; 1 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "sigmaban_urdf": {
+      "after_failure_count": 0,
+      "after_status": "partial_passed",
+      "after_status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "partial_passed",
+      "before_status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "partial_passed->partial_passed",
+      "transition_allowed": true
+    },
+    "simple_humanoid_urdf": {
+      "after_failure_count": 0,
+      "after_status": "partial_passed",
+      "after_status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "partial_passed",
+      "before_status_reason": "structured partial humanoid expectation documents unavailable required semantics",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "partial_passed->partial_passed",
+      "transition_allowed": true
+    },
+    "stretch3_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "talos_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 1,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.157441 threshold=0.12 residual=0.170987",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    },
+    "toddlerbot_2xc_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "toddlerbot_2xm_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "toddlerbot_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "unitree_g1_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "unitree_g1_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "unitree_go2_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "unitree_go2_urdf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "unitree_h1_2_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "unitree_h1_2_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "unitree_h1_mjcf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "unitree_h1_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "passed",
+      "before_status_reason": "profile completed without recorded failures",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "passed->passed",
+      "transition_allowed": true
+    },
+    "upkie_urdf": {
+      "after_failure_count": 0,
+      "after_status": "negative_control_passed",
+      "after_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 0,
+      "before_status": "negative_control_passed",
+      "before_status_reason": "negative control source loaded and was not promoted to a humanoid profile",
+      "status_changed": false,
+      "task_certificate_summary": {
+        "canonical_motion_count": 0,
+        "status": "unavailable",
+        "task_count": 0,
+        "tasks": []
+      },
+      "transition": "negative_control_passed->negative_control_passed",
+      "transition_allowed": true
+    },
+    "valkyrie_urdf": {
+      "after_failure_count": 0,
+      "after_status": "passed",
+      "after_status_reason": "full humanoid profile completed 5 task certificate(s) across 15 canonical motion(s)",
+      "baseline_commit": "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719",
+      "baseline_failure_count": 2,
+      "before_status": "algorithm_failed",
+      "before_status_reason": "projection residual gate failed: crossed_body_reach.left_hand normalized_residual=0.143603 threshold=0.12 residual=0.187923; 1 additional algorithm failure(s)",
+      "status_changed": true,
+      "task_certificate_summary": {
+        "canonical_motion_count": 15,
+        "status": "available",
+        "task_count": 5,
+        "tasks": [
+          "left_foot",
+          "left_hand",
+          "right_foot",
+          "right_hand",
+          "torso"
+        ]
+      },
+      "transition": "algorithm_failed->passed",
+      "transition_allowed": true
+    }
+  },
+  "schema_version": 2,
   "status_transition_counts": {
+    "algorithm_failed->passed": 11,
     "negative_control_passed->negative_control_passed": 9,
-    "partial_passed->capability_limited_passed": 23,
     "partial_passed->partial_passed": 3,
-    "passed->passed": 9
+    "passed->passed": 21
+  },
+  "transition_validation": {
+    "invalid_count": 0,
+    "invalid_transition_counts": {},
+    "invalid_transitions": [],
+    "status": "passed"
   }
 }

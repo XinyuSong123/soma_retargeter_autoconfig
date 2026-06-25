@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .capability_projection import project_endpoint_position_with_certificate, project_torso_orientation_with_certificate
+from .capability_status import motion_class_for, projection_exact_threshold
 from .chain_projection import project_endpoint_position, project_torso_orientation
 from .kinematic_paths import TASKS, KinematicPath
 from .model_adapter import MuJoCoRuntimeModelAdapter, SemanticSite
@@ -92,6 +93,8 @@ def project_canonical_motion_sequence(
             q_seed = previous_q if previous_q is not None else q0
             reference = sites[path.reference]
             target = sites[path.target]
+            motion_class = _certificate_motion_class(motion_name)
+            exact_threshold = projection_exact_threshold(task_name, motion_name)
             if task_name == "torso":
                 if use_capability_certificates:
                     result = project_torso_orientation_with_certificate(
@@ -105,6 +108,8 @@ def project_canonical_motion_sequence(
                         previous_q=previous_q,
                         neutral_prior_weight=neutral_prior_weight,
                         continuity_prior_weight=continuity_prior_weight if use_continuity_prior else 0.0,
+                        exact_threshold=exact_threshold,
+                        motion_class=motion_class,
                     )
                 else:
                     result = project_torso_orientation(
@@ -132,6 +137,8 @@ def project_canonical_motion_sequence(
                         previous_q=previous_q,
                         neutral_prior_weight=neutral_prior_weight,
                         continuity_prior_weight=continuity_prior_weight if use_continuity_prior else 0.0,
+                        exact_threshold=exact_threshold,
+                        motion_class=motion_class,
                     )
                 else:
                     result = project_endpoint_position(
@@ -152,8 +159,6 @@ def project_canonical_motion_sequence(
             result_json["reference"] = path.reference
             result_json["target"] = path.target
             result_json["desired_source"] = "canonical_targets.transforms"
-            if use_capability_certificates:
-                result_json["kkt_certificate"] = _red_team_kkt_certificate(result_json)
             motion_report["tasks"][task_name] = result_json
             if result.status == "unreachable/rank_zero":
                 unreachable_demands.append(f"{motion_name}:{task_name}: rank-zero chain has nonzero demand")
@@ -215,39 +220,8 @@ def _ordered_tasks(paths: dict[str, KinematicPath]) -> list[str]:
     return ordered
 
 
-def _red_team_kkt_certificate(task_payload: dict) -> dict:
-    kkt = task_payload.get("active_limit_kkt", {}) if isinstance(task_payload, dict) else {}
-    certificate = task_payload.get("capability_certificate", {}) if isinstance(task_payload, dict) else {}
-    gates = certificate.get("gates", {}) if isinstance(certificate, dict) else {}
-    seed = certificate.get("seed_consensus", {}) if isinstance(certificate, dict) else {}
-    stationarity = float(kkt.get("stationarity_inf_norm", kkt.get("projected_gradient_norm", 0.0)) or 0.0)
-    tolerance = float(kkt.get("stationarity_tolerance", 1e-7) or 1e-7)
-    task_gradient = float(task_payload.get("task_gradient_inf_norm", kkt.get("task_gradient_inf_norm", 0.0)) or 0.0)
-    if task_gradient <= 0.0 and task_payload.get("normalized_residual", 0.0):
-        task_gradient = max(stationarity, 1e-15)
-    seed_checked = bool(seed.get("checked", task_payload.get("deterministic_start_count", 0) not in (None, 0)))
-    seed_passed = bool(seed.get("passed", task_payload.get("seed_consensus_passed", True)))
-    return {
-        "certified": bool(
-            gates.get("projected_gradient_kkt", kkt.get("satisfied", False))
-            and seed_passed
-            and gates.get("residual_explained", True)
-        ),
-        "stationarity_inf_norm": stationarity,
-        "stationarity_tolerance": tolerance,
-        "complementarity_inf_norm": 0.0 if kkt.get("satisfied", False) else stationarity,
-        "complementarity_tolerance": tolerance,
-        "primal_feasible": True,
-        "dual_feasible": bool(kkt.get("satisfied", gates.get("projected_gradient_kkt", False))),
-        "task_gradient_inf_norm": task_gradient,
-        "prior_gradient_inf_norm": 0.0,
-        "prior_cancellation_ratio": 0.0,
-        "seed_consistency": {
-            "checked": seed_checked,
-            "status": "consistent" if seed_passed else "inconsistent_rejected",
-            "start_count": seed.get("start_count", task_payload.get("deterministic_start_count", 0)),
-            "tolerance": seed.get("tolerance", 1e-7),
-        },
-        "certificate_class": certificate.get("certificate_class"),
-        "source": "capability_projection_certificate",
-    }
+def _certificate_motion_class(motion_name: str) -> str:
+    try:
+        return motion_class_for(motion_name)
+    except ValueError:
+        return "ordinary"

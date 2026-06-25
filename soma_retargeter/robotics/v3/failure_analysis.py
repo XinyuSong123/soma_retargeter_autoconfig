@@ -3,16 +3,39 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 import hashlib
 import json
 import math
 import re
+import subprocess
 from typing import Any
 
 
 DEFAULT_FAILURE_REPORT_DIR = Path("artifacts/retargeting_v3_step2_assets44/failures")
+DEFAULT_BASELINE_COMMIT = "5ad5a001c445c525d4c8bbaf6339dec5c5c2c719"
+DEFAULT_BASELINE_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step2_assets44")
 DEFAULT_BASELINE_LEDGER_PATH = Path("artifacts/retargeting_v3_step2_capability/baseline_failure_ledger.json")
+DEFAULT_BASELINE_SUMMARY_PATH = Path("artifacts/retargeting_v3_step2_capability/baseline_summary.json")
+DEFAULT_CAPABILITY_SUMMARY_PATH = Path("artifacts/retargeting_v3_step2_capability/summary.json")
+DEFAULT_BEFORE_AFTER_PATH = Path("artifacts/retargeting_v3_step2_capability/before_after.json")
+
+EXPECTED_BASELINE_STATUS_COUNTS = {
+    "algorithm_failed": 11,
+    "negative_control_passed": 9,
+    "partial_passed": 3,
+    "passed": 21,
+}
+ALLOWED_BASELINE_TRANSITIONS = frozenset(
+    {
+        ("passed", "passed"),
+        ("partial_passed", "partial_passed"),
+        ("negative_control_passed", "negative_control_passed"),
+        ("algorithm_failed", "passed"),
+        ("algorithm_failed", "capability_limited_passed"),
+    }
+)
 
 BASELINE_ROBOT_IDS = (
     "atlas_drc_urdf",
@@ -89,17 +112,232 @@ _NUMERICAL_STABILITY_THRESHOLDS = {
 }
 
 
-def build_baseline_failure_ledger(failure_dir: str | Path = DEFAULT_FAILURE_REPORT_DIR) -> dict[str, Any]:
+class BaselineGitObjectError(RuntimeError):
+    """Raised when the frozen baseline commit or object path cannot be read."""
+
+
+@dataclass(frozen=True)
+class _FrozenReport:
+    path: Path
+    report: dict[str, Any]
+    sha256: str
+
+
+def build_true_baseline_summary(
+    *,
+    source_commit: str = DEFAULT_BASELINE_COMMIT,
+    artifact_root: str | Path = DEFAULT_BASELINE_ARTIFACT_ROOT,
+) -> dict[str, Any]:
+    """Build the immutable baseline status summary from the pinned git commit."""
+
+    root = Path(artifact_root)
+    summary_path = root / "summary.json"
+    raw_summary = _git_show_bytes(source_commit, summary_path)
+    source_summary = _loads_git_json(raw_summary, summary_path)
+    reports = source_summary.get("reports")
+    if not isinstance(reports, dict):
+        raise ValueError(f"{summary_path}: baseline summary reports must be an object")
+
+    robot_ids = tuple(sorted(reports))
+    if len(robot_ids) != 44:
+        raise ValueError(f"{summary_path}: baseline must contain exactly 44 model IDs, found {len(robot_ids)}")
+
+    computed_counts = _status_counts_from_reports(reports)
+    if computed_counts != EXPECTED_BASELINE_STATUS_COUNTS:
+        raise ValueError(
+            f"{summary_path}: baseline status counts must be {EXPECTED_BASELINE_STATUS_COUNTS}, "
+            f"found {computed_counts}"
+        )
+    declared_counts = source_summary.get("status_counts")
+    if declared_counts is not None and dict(declared_counts) != EXPECTED_BASELINE_STATUS_COUNTS:
+        raise ValueError(
+            f"{summary_path}: declared status_counts must be {EXPECTED_BASELINE_STATUS_COUNTS}, "
+            f"found {declared_counts}"
+        )
+
+    baseline_reports = {
+        robot_id: _baseline_summary_report(reports[robot_id])
+        for robot_id in robot_ids
+        if isinstance(reports[robot_id], dict)
+    }
+    if tuple(sorted(baseline_reports)) != robot_ids:
+        raise ValueError(f"{summary_path}: every baseline report row must be an object")
+
+    return {
+        "schema_version": 1,
+        "baseline_commit": source_commit,
+        "source_access": "git_object",
+        "source_artifact_root": _display_path(root),
+        "source_summary_path": _display_path(summary_path),
+        "source_summary_sha256": _sha256_bytes(raw_summary),
+        "model_count": len(robot_ids),
+        "status_counts": dict(EXPECTED_BASELINE_STATUS_COUNTS),
+        "robot_ids": list(robot_ids),
+        "passed_robot_ids": _robot_ids_with_status(baseline_reports, "passed"),
+        "partial_robot_ids": _robot_ids_with_status(baseline_reports, "partial_passed"),
+        "negative_control_robot_ids": _robot_ids_with_status(baseline_reports, "negative_control_passed"),
+        "algorithm_failure_robot_ids": _robot_ids_with_status(baseline_reports, "algorithm_failed"),
+        "reports": baseline_reports,
+    }
+
+
+def write_true_baseline_summary(
+    output_path: str | Path = DEFAULT_BASELINE_SUMMARY_PATH,
+    *,
+    source_commit: str = DEFAULT_BASELINE_COMMIT,
+    artifact_root: str | Path = DEFAULT_BASELINE_ARTIFACT_ROOT,
+) -> dict[str, Any]:
+    summary = build_true_baseline_summary(source_commit=source_commit, artifact_root=artifact_root)
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    return summary
+
+
+def build_capability_before_after(
+    current_summary_path: str | Path = DEFAULT_CAPABILITY_SUMMARY_PATH,
+    *,
+    source_commit: str = DEFAULT_BASELINE_COMMIT,
+    artifact_root: str | Path = DEFAULT_BASELINE_ARTIFACT_ROOT,
+) -> dict[str, Any]:
+    """Build the true before/after matrix using the pinned baseline commit."""
+
+    baseline = build_true_baseline_summary(source_commit=source_commit, artifact_root=artifact_root)
+    current_path = Path(current_summary_path)
+    current_summary = json.loads(current_path.read_text())
+    current_reports = current_summary.get("reports")
+    if not isinstance(current_reports, dict):
+        raise ValueError(f"{current_path}: current summary reports must be an object")
+
+    baseline_reports = baseline["reports"]
+    baseline_ids = set(baseline_reports)
+    current_ids = set(current_reports)
+    if current_ids != baseline_ids:
+        missing = sorted(baseline_ids - current_ids)
+        extra = sorted(current_ids - baseline_ids)
+        raise ValueError(f"{current_path}: current model IDs must match baseline; missing={missing} extra={extra}")
+
+    transition_counts: Counter[str] = Counter()
+    invalid_transition_counts: Counter[str] = Counter()
+    rows: dict[str, Any] = {}
+    old_algorithm_rows: dict[str, Any] = {}
+    for robot_id in sorted(baseline_reports):
+        before = baseline_reports[robot_id]
+        after = current_reports[robot_id]
+        if not isinstance(after, dict):
+            raise ValueError(f"{current_path}: current report row must be an object for {robot_id}")
+        before_status = before.get("status")
+        after_status = after.get("status")
+        transition = f"{before_status}->{after_status}"
+        transition_allowed = (before_status, after_status) in ALLOWED_BASELINE_TRANSITIONS
+        transition_counts[transition] += 1
+        if not transition_allowed:
+            invalid_transition_counts[transition] += 1
+        row = {
+            "baseline_commit": source_commit,
+            "before_status": before_status,
+            "before_status_reason": before.get("status_reason"),
+            "after_status": after_status,
+            "after_status_reason": after.get("status_reason"),
+            "transition": transition,
+            "transition_allowed": transition_allowed,
+            "status_changed": before_status != after_status,
+            "baseline_failure_count": len(before.get("failures") or []),
+            "after_failure_count": len(after.get("failures") or []),
+            "task_certificate_summary": after.get("task_certificate_summary"),
+        }
+        if not transition_allowed:
+            row["blocked_reason"] = "illegal_baseline_transition"
+        rows[robot_id] = row
+        if before_status == "algorithm_failed":
+            old_algorithm_rows[robot_id] = row
+
+    invalid_transitions = [
+        {"robot_id": robot_id, **row}
+        for robot_id, row in rows.items()
+        if row["transition_allowed"] is False
+    ]
+    old_algorithm_counts = Counter(row["after_status"] for row in old_algorithm_rows.values())
+    return {
+        "schema_version": 2,
+        "basis": "true_baseline_git_object",
+        "baseline_commit": source_commit,
+        "baseline_artifact_root": _display_path(Path(artifact_root)),
+        "current_summary_path": _display_path(current_path),
+        "row_count": len(rows),
+        "baseline_counts": dict(baseline["status_counts"]),
+        "after_counts": _status_counts_from_reports(current_reports),
+        "status_transition_counts": dict(sorted(transition_counts.items())),
+        "allowed_transitions": [
+            f"{before}->{after}" for before, after in sorted(ALLOWED_BASELINE_TRANSITIONS)
+        ],
+        "transition_validation": {
+            "status": "passed" if not invalid_transitions else "failed",
+            "invalid_count": len(invalid_transitions),
+            "invalid_transition_counts": dict(sorted(invalid_transition_counts.items())),
+            "invalid_transitions": invalid_transitions,
+        },
+        "final_count_validation": _final_count_validation(_status_counts_from_reports(current_reports), len(rows)),
+        "old_algorithm_failure_transitions": {
+            "row_count": len(old_algorithm_rows),
+            "after_status_counts": dict(sorted(old_algorithm_counts.items())),
+            "rows": old_algorithm_rows,
+        },
+        "rows": rows,
+    }
+
+
+def write_capability_before_after(
+    output_path: str | Path = DEFAULT_BEFORE_AFTER_PATH,
+    *,
+    current_summary_path: str | Path = DEFAULT_CAPABILITY_SUMMARY_PATH,
+    source_commit: str = DEFAULT_BASELINE_COMMIT,
+    artifact_root: str | Path = DEFAULT_BASELINE_ARTIFACT_ROOT,
+) -> dict[str, Any]:
+    before_after = build_capability_before_after(
+        current_summary_path=current_summary_path,
+        source_commit=source_commit,
+        artifact_root=artifact_root,
+    )
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(before_after, indent=2, sort_keys=True) + "\n")
+    return before_after
+
+
+def build_baseline_failure_ledger(
+    failure_dir: str | Path = DEFAULT_FAILURE_REPORT_DIR,
+    *,
+    source_commit: str | None = DEFAULT_BASELINE_COMMIT,
+    artifact_root: str | Path = DEFAULT_BASELINE_ARTIFACT_ROOT,
+) -> dict[str, Any]:
     """Build the frozen Step 2.3 capability failure ledger from report JSON."""
 
-    root = Path(failure_dir)
-    reports = _load_frozen_reports(root)
+    if source_commit is None:
+        root = Path(failure_dir)
+        reports = _load_frozen_reports(root)
+        source_access = "workspace"
+        source_report_directory = _display_path(root)
+        source_artifact_root = None
+    else:
+        root = Path(artifact_root)
+        reports = _load_frozen_git_reports(source_commit, root)
+        source_access = "git_object"
+        source_report_directory = _display_path(root / "failures")
+        source_artifact_root = _display_path(root)
     source_reports: list[dict[str, Any]] = []
     rows: list[dict[str, Any]] = []
     for robot_id in BASELINE_ROBOT_IDS:
-        path, report = reports[robot_id]
-        semantic_map = _load_semantic_map(report)
-        report_sha = _sha256_file(path)
+        frozen = reports[robot_id]
+        path = frozen.path
+        report = frozen.report
+        semantic_map = _load_semantic_map(
+            report,
+            source_commit=source_commit,
+            robot_id=robot_id,
+            artifact_root=root,
+        )
+        report_sha = frozen.sha256
         failures = list(report.get("failures") or [])
         source_reports.append(
             {
@@ -129,7 +367,10 @@ def build_baseline_failure_ledger(failure_dir: str | Path = DEFAULT_FAILURE_REPO
     return {
         "schema_version": 1,
         "ledger_type": "retargeting_v3_step2_3_capability_baseline_failure_ledger",
-        "source_report_directory": _display_path(root),
+        "source_access": source_access,
+        "source_commit": source_commit,
+        "source_artifact_root": source_artifact_root,
+        "source_report_directory": source_report_directory,
         "frozen_robot_ids": list(BASELINE_ROBOT_IDS),
         "counts": {
             "robots": len(BASELINE_ROBOT_IDS),
@@ -160,15 +401,21 @@ def write_baseline_failure_ledger(
     output_path: str | Path = DEFAULT_BASELINE_LEDGER_PATH,
     *,
     failure_dir: str | Path = DEFAULT_FAILURE_REPORT_DIR,
+    source_commit: str | None = DEFAULT_BASELINE_COMMIT,
+    artifact_root: str | Path = DEFAULT_BASELINE_ARTIFACT_ROOT,
 ) -> dict[str, Any]:
-    ledger = build_baseline_failure_ledger(failure_dir)
+    ledger = build_baseline_failure_ledger(
+        failure_dir,
+        source_commit=source_commit,
+        artifact_root=artifact_root,
+    )
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(ledger, indent=2, sort_keys=True) + "\n")
     return ledger
 
 
-def _load_frozen_reports(root: Path) -> dict[str, tuple[Path, dict[str, Any]]]:
+def _load_frozen_reports(root: Path) -> dict[str, _FrozenReport]:
     if not root.is_dir():
         raise FileNotFoundError(f"failure report directory missing: {root}")
     paths = {path.stem: path for path in sorted(root.glob("*.json"))}
@@ -177,10 +424,28 @@ def _load_frozen_reports(root: Path) -> dict[str, tuple[Path, dict[str, Any]]]:
         missing = sorted(set(BASELINE_ROBOT_IDS) - set(found))
         extra = sorted(set(found) - set(BASELINE_ROBOT_IDS))
         raise ValueError(f"failure report IDs must match frozen baseline; missing={missing} extra={extra}")
-    reports: dict[str, tuple[Path, dict[str, Any]]] = {}
+    reports: dict[str, _FrozenReport] = {}
     for robot_id in BASELINE_ROBOT_IDS:
         path = paths[robot_id]
-        reports[robot_id] = (path, json.loads(path.read_text()))
+        reports[robot_id] = _FrozenReport(
+            path=path,
+            report=json.loads(path.read_text()),
+            sha256=_sha256_file(path),
+        )
+    return reports
+
+
+def _load_frozen_git_reports(source_commit: str, artifact_root: Path) -> dict[str, _FrozenReport]:
+    _ensure_git_commit_available(source_commit)
+    reports: dict[str, _FrozenReport] = {}
+    for robot_id in BASELINE_ROBOT_IDS:
+        path = artifact_root / "failures" / f"{robot_id}.json"
+        raw = _git_show_bytes(source_commit, path)
+        reports[robot_id] = _FrozenReport(
+            path=path,
+            report=_loads_git_json(raw, path),
+            sha256=_sha256_bytes(raw),
+        )
     return reports
 
 
@@ -657,9 +922,35 @@ def _find_projection_report(report: dict[str, Any], task: str, target_evidence: 
     return None
 
 
-def _load_semantic_map(report: dict[str, Any]) -> dict[str, Any]:
+def _load_semantic_map(
+    report: dict[str, Any],
+    *,
+    source_commit: str | None = None,
+    robot_id: str | None = None,
+    artifact_root: Path = DEFAULT_BASELINE_ARTIFACT_ROOT,
+) -> dict[str, Any]:
     resolution = report.get("semantic_map_resolution") or {}
-    path = Path(resolution.get("path") or "")
+    path_text = str(resolution.get("path") or "")
+    path = Path(path_text)
+    if source_commit is not None:
+        candidates: list[Path] = []
+        if path_text:
+            candidates.append(path)
+        if robot_id is not None:
+            candidates.append(artifact_root / "semantic_maps" / f"{robot_id}.json")
+        errors: list[str] = []
+        for candidate in candidates:
+            try:
+                raw = _git_show_bytes(source_commit, candidate)
+            except BaselineGitObjectError as exc:
+                errors.append(str(exc))
+                continue
+            payload = _loads_git_json(raw, candidate)
+            payload["_file_sha256"] = _sha256_bytes(raw)
+            return payload
+        raise BaselineGitObjectError(
+            f"semantic map unavailable for {robot_id or '<unknown>'} at baseline commit {source_commit}: {errors}"
+        )
     if not path.exists():
         return {}
     payload = json.loads(path.read_text())
@@ -692,9 +983,112 @@ def _above(value: Any, threshold: float) -> bool:
     return value is not None and float(value) > threshold
 
 
+def _baseline_summary_report(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": row.get("status"),
+        "status_reason": row.get("status_reason"),
+        "expected_capability": row.get("expected_capability"),
+        "robot_class": row.get("robot_class"),
+        "required": row.get("required"),
+        "redistribution": row.get("redistribution"),
+        "failures": list(row.get("failures") or []),
+        "warnings": list(row.get("warnings") or []),
+    }
+
+
+def _robot_ids_with_status(reports: dict[str, dict[str, Any]], status: str) -> list[str]:
+    return [robot_id for robot_id in sorted(reports) if reports[robot_id].get("status") == status]
+
+
+def _status_counts_from_reports(reports: dict[str, Any]) -> dict[str, int]:
+    counts = Counter()
+    for row in reports.values():
+        if not isinstance(row, dict):
+            continue
+        counts[str(row.get("status"))] += 1
+    return dict(sorted(counts.items()))
+
+
+def _final_count_validation(after_counts: dict[str, int], row_count: int) -> dict[str, Any]:
+    failures: list[str] = []
+
+    def count(status: str) -> int:
+        return int(after_counts.get(status, 0))
+
+    if count("passed") < 21:
+        failures.append(f"passed must be >= 21, found {count('passed')}")
+    if count("capability_limited_passed") > 11:
+        failures.append(
+            "capability_limited_passed must be <= 11, "
+            f"found {count('capability_limited_passed')}"
+        )
+    if count("partial_passed") != 3:
+        failures.append(f"partial_passed must be 3, found {count('partial_passed')}")
+    if count("negative_control_passed") != 9:
+        failures.append(f"negative_control_passed must be 9, found {count('negative_control_passed')}")
+    for status in ("algorithm_failed", "source_unavailable", "model_load_failed", "semantic_failed"):
+        if count(status) != 0:
+            failures.append(f"{status} must be 0, found {count(status)}")
+    if count("passed") + count("capability_limited_passed") != 32:
+        failures.append(
+            "passed + capability_limited_passed must be 32, "
+            f"found {count('passed') + count('capability_limited_passed')}"
+        )
+    if row_count != 44:
+        failures.append(f"terminal total must be 44, found {row_count}")
+
+    return {
+        "status": "passed" if not failures else "failed",
+        "failures": failures,
+    }
+
+
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _sha256_bytes(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
 def _display_path(path: Path) -> str:
     return path.as_posix()
+
+
+def _ensure_git_commit_available(source_commit: str) -> None:
+    proc = subprocess.run(
+        ["git", "cat-file", "-e", f"{source_commit}^{{commit}}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        stderr = proc.stderr.strip()
+        raise BaselineGitObjectError(f"baseline commit unavailable: {source_commit}: {stderr}")
+
+
+def _git_show_bytes(source_commit: str, path: str | Path) -> bytes:
+    _ensure_git_commit_available(source_commit)
+    display_path = _display_path(Path(path))
+    spec = f"{source_commit}:{display_path}"
+    proc = subprocess.run(
+        ["git", "show", spec],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if proc.returncode != 0:
+        stderr = proc.stderr.decode("utf-8", errors="replace").strip()
+        raise BaselineGitObjectError(f"baseline git object unavailable: {spec}: {stderr}")
+    return proc.stdout
+
+
+def _loads_git_json(raw: bytes, path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{path}: baseline git object is not valid UTF-8 JSON") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: baseline git object must be a JSON object")
+    return data

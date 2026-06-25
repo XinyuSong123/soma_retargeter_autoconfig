@@ -68,6 +68,9 @@ def test_profile_projects_canonical_motion_targets_instead_of_neutral_fk(tmp_pat
     assert torso_yaw["iterations"] > 0
     assert torso_yaw["active_coordinates"] == [0]
 
+    mixed_torso = reports["mixed_torso_rotation"]["torso"]
+    assert abs(np.linalg.norm(mixed_torso["desired"]) - 0.25) < 1e-6
+
     neutral_left = reports["neutral"]["left_hand"]["desired"]
     arms_left = reports["arms_forward"]["left_hand"]["desired"]
     assert not np.allclose(arms_left, neutral_left)
