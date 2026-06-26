@@ -1,34 +1,33 @@
-# Goal — Step 2.3.1：Capability Acceptance Hardening（严格验收加固）
+# Goal — Step 3.0：V3 Profile Runtime Shadow Integration（最小运行时闭环）
 
-> **Codex 强制执行契约——不得自由扩展范围**
+> **Codex 强制执行契约——禁止自由发挥**
 >
-> 当前分支：`retargeting-v3-step2-capability-acceptance-hardening`  
-> 基线分支：`retargeting-v3-step2-capability-projection-fix`  
-> 基线提交：`95a631173feadd20985a112959d0896203640d8f`  
-> 真实 Assets44 对照提交：`5ad5a001c445c525d4c8bbaf6339dec5c5c2c719`  
-> 当前阶段：**Step 2.3.1 Acceptance Evidence Hardening**
+> 当前分支：`retargeting-v3-step3-runtime-profile-shadow`  
+> 基线分支：`retargeting-v3-step2-capability-acceptance-hardening`  
+> 基线提交：`50a52b2ffbeab03a5636327da021f656a2f044f5`  
+> 当前阶段：**Step 3.0 Runtime Shadow Integration**  
 >
-> 本轮只做验收、证据、状态策略、可复现性和 CI 加固。现有 continuation / KKT / capability solver 不得被重新设计。
+> 本轮只做 **V3 离线 profile 到现有 `NewtonPipeline` 的最小 runtime 接线**。默认行为必须完全不变。实验功能必须通过显式 config 打开。
 >
-> 本轮必须一次创建并持续高强度使用 **6 个 xhigh 专业 subagents**。主 Codex 仅作为 Integrator，必须按本文给出的文件 ownership、合并顺序和验收命令执行。
+> 本轮必须一次创建并持续高强度使用 **6 个 xhigh 专业 subagents**。主 Codex 是 Integrator，负责接口冻结、冲突解决、全量测试、clean artifacts 和最终诚实判定。
 >
-> **禁止进入 Step 3，禁止修改生产 `NewtonPipeline`，禁止放宽任何 numerical 或 projection threshold，禁止按机器人名称加特例，禁止重新处理两个 deferred assets。**
+> **禁止重写生产 retargeter，禁止重写 whole-body IK，禁止调 IK 权重，禁止 contact/collision/temporal smoothing，禁止修改 Step 2.1/2.3 thresholds，禁止添加 robot-specific 数学分支，禁止宣称动作效果已经最终变好。**
 
 ---
 
-## 0. Codex 启动时必须逐项确认
+## 0. 开始前必须执行
 
 ```bash
 conda activate soma-retargeter-v2
 
 git fetch origin --prune
-git checkout retargeting-v3-step2-capability-acceptance-hardening
+git checkout retargeting-v3-step3-runtime-profile-shadow
 git pull --ff-only
 
 git status --short
 git branch --show-current
 git rev-parse HEAD
-git merge-base --is-ancestor 95a631173feadd20985a112959d0896203640d8f HEAD
+git merge-base --is-ancestor 50a52b2ffbeab03a5636327da021f656a2f044f5 HEAD
 
 git lfs install
 git lfs pull
@@ -38,25 +37,25 @@ which python
 python --version
 python - <<'PY'
 import mujoco, newton, warp, numpy, scipy
-print("mujoco", mujoco.__version__)
-print("newton", getattr(newton, "__version__", "unknown"))
-print("warp", getattr(warp, "__version__", "unknown"))
-print("numpy", numpy.__version__)
-print("scipy", scipy.__version__)
+print('mujoco', mujoco.__version__)
+print('newton', getattr(newton, '__version__', 'unknown'))
+print('warp', getattr(warp, '__version__', 'unknown'))
+print('numpy', numpy.__version__)
+print('scipy', scipy.__version__)
 PY
 ```
 
-开始开发前必须满足：
+必须确认：
 
 ```text
-branch = retargeting-v3-step2-capability-acceptance-hardening
+branch = retargeting-v3-step3-runtime-profile-shadow
 worktree clean
 base commit is an ancestor
 Git LFS fsck OK
-所有 snapshot XML 已 materialize，不是 LFS pointer
+snapshot XML materialized, not pointer-only
 ```
 
-若环境不满足，只修环境或 checkout，不得修改算法来绕过依赖问题。
+环境不满足时，只修环境或 checkout，不得修改算法绕过。
 
 ---
 
@@ -65,829 +64,594 @@ Git LFS fsck OK
 按顺序完整阅读：
 
 1. `/goal.md`（本文件）
-2. `docs/retargeting_v3/STEP2_3_CAPABILITY_REPORT.md`
-3. `docs/retargeting_v3/STEP2_3_CAPABILITY_ACCEPTANCE.md`
-4. `docs/retargeting_v3/subagents/capability_agent_f_red_team.md`
-5. `artifacts/retargeting_v3_step2_capability/summary.json`
-6. `artifacts/retargeting_v3_step2_capability/before_after.json`
-7. `artifacts/retargeting_v3_step2_capability/environment.json`
-8. `artifacts/retargeting_v3_step2_capability/capability_audit.json`
-9. `artifacts/retargeting_v3_step2_capability/deterministic_rerun.json`
-10. `artifacts/retargeting_v3_step2_capability/baseline_failure_ledger.json`
-11. `soma_retargeter/robotics/v3/projection_solver.py`
-12. `soma_retargeter/robotics/v3/projection_certificate.py`
-13. `soma_retargeter/robotics/v3/capability_projection.py`
-14. `soma_retargeter/robotics/v3/chain_projection.py`
-15. `soma_retargeter/robotics/v3/canonical_projection.py`
-16. `soma_retargeter/robotics/v3/profile.py`
-17. `soma_retargeter/robotics/v3/validation.py`
-18. `scripts/audit_retargeting_v3_capability.py`
-19. `.github/workflows/retargeting_v3_capability.yml`
+2. `docs/retargeting_v3/STEP2_3_1_CAPABILITY_ACCEPTANCE.md`
+3. `docs/retargeting_v3/subagents/capability_agent_f_red_team.md`
+4. `artifacts/retargeting_v3_step2_capability/summary.json`
+5. `artifacts/retargeting_v3_step2_capability/environment.json`
+6. `artifacts/retargeting_v3_step2_capability/lfs_state.json`
+7. `artifacts/retargeting_v3_step2_capability/per_robot/roboparty_rpo_local.json`
+8. `artifacts/retargeting_v3_step2_capability/per_robot/unitree_g1_mjcf.json`
+9. `artifacts/retargeting_v3_step2_capability/per_robot/unitree_g1_urdf.json`
+10. `soma_retargeter/pipelines/newton_pipeline.py`
+11. `soma_retargeter/pipelines/utils.py`
+12. `soma_retargeter/robotics/human_to_robot_scaler.py`
+13. `soma_retargeter/robotics/v3/target_builder.py`
+14. `soma_retargeter/robotics/v3/rest_frames.py`
+15. `soma_retargeter/robotics/v3/capability_status.py`
+16. `soma_retargeter/robotics/v3/validation.py`
+17. `robot_registry_parser.py`
+18. existing `configs/**/soma_to_*_retargeter_config.json`
 
-不得根据文档中写的 `PASS` 假定当前已经通过。
+不得只读 summary 后直接改 `NewtonPipeline`。
 
 ---
 
-## 2. 当前真实状态和已确认缺陷
+## 2. 当前事实基线
 
-### 2.1 当前 artifacts 的声明
+### 2.1 Step 2.3.1 已完成的离线基础
 
-当前提交声明：
-
-```text
-passed                       9
-capability_limited_passed   23
-partial_passed               3
-negative_control_passed      9
-algorithm_failed             0
-deterministic matched       44/44
-```
-
-这些数字目前只能称为 **claimed result**，不能称为 accepted result。
-
-### 2.2 当前必须修复的 10 个硬缺陷
-
-#### 缺陷 A：CI 没有在实际分支触发
-
-`.github/workflows/retargeting_v3_capability.yml` 当前 push branch 写成：
+当前可信基线：
 
 ```text
-retargeting-v3-step2-capability
+44 in-scope Robot Zoo / local assets
+source/load/semantic failure = 0
+passed = 32
+partial_passed = 3
+negative_control_passed = 9
+algorithm_failed = 0
+deterministic rerun = 44/44 matched
+Git LFS fsck = OK
+full pytest artifact = 365 passed, 10 skipped
 ```
 
-实际分支是：
+这只是 **离线 profile / capability certificate** 通过，不代表生产 demo 已经变好。
+
+### 2.2 当前 runtime pipeline 事实
+
+`NewtonPipeline` 当前：
+
+- 在 `__init__` 中通过 `pipeline_utils.get_robot_mjcf_path(self.target_type)` 加载 runtime MJCF；
+- 使用 `HumanToRobotScaler` 从 source animation buffer 计算 `buffer_effectors`；
+- 再根据 `ik_map` 取 `target_effector_indices`；
+- 在 `execute()` 中把每帧 target 设置到 `position_objectives` / `rotation_objectives`；
+- 现有 output、post-processing、foot stabilization、virtual grounding 均基于旧 target stream。
+
+本轮只能在这个路径中 **加可选 V3 runtime target stream**，不能拆掉现有 pipeline。
+
+### 2.3 当前最小风险策略
+
+本轮分两层：
 
 ```text
-retargeting-v3-step2-capability-acceptance-hardening
+shadow mode   = 计算V3 targets + 写diagnostics，但绝不改变IK输入和输出
+override mode = 显式config开启，只替换RPO/G1语义目标stream，用于短clip smoke，不宣称最终动作质量
 ```
 
-此外 workflow 当前将 `--artifact-dir` 指向旧的 Assets44 artifact root，而不是新的 capability artifact root。
-
-#### 缺陷 B：Agent F handoff 仍然是 FAIL
-
-`docs/retargeting_v3/subagents/capability_agent_f_red_team.md` 当前仍写：
-
-```text
-Live capability audit: FAIL
-Do not accept Step 2.3 capability yet
-```
-
-它必须在最终代码和最终 artifacts 上重新运行后更新，不能只修改文字。
-
-#### 缺陷 C：缺少声明过的测试 artifacts
-
-当前远端缺少：
-
-```text
-artifacts/retargeting_v3_step2_capability/test_results/pytest.txt
-artifacts/retargeting_v3_step2_capability/test_results/junit.xml
-artifacts/retargeting_v3_step2_capability/lfs_state.json
-```
-
-#### 缺陷 D：acceptance ledger 是旧 Step 2.2 ledger
-
-`artifacts/retargeting_v3_step2_capability/acceptance_ledger.json` 当前运行的是：
-
-```text
-audit_retargeting_v3_assets44.py
-```
-
-必须替换为本轮 capability audit 的真实命令、return code、stdout、source commit 和时间。
-
-#### 缺陷 E：artifact source commit 在远端不可解析
-
-当前 `environment.json` 记录：
-
-```text
-8451289ea6ac658b615b9bedcc93b3cf2b31f378
-```
-
-该 commit 当前无法在远端解析。最终 `source_code_commit` 必须：
-
-- 是本仓库真实 commit；
-- 已 push 到远端；
-- 是 artifact commit 的祖先；
-- 可以通过 `git cat-file -e <sha>^{commit}`；
-- artifacts 生成后不得再修改 core code。
-
-#### 缺陷 F：before/after 是程序伪造的
-
-当前 `validation.py::_before_after_matrix()` 使用：
-
-```python
-before = "partial_passed" if status == capability_limited_passed else status
-```
-
-这不是读取真实 baseline，而是在根据 after status 编造 before status。必须删除。
-
-真实 baseline 必须从固定提交：
-
-```text
-5ad5a001c445c525d4c8bbaf6339dec5c5c2c719
-```
-
-读取。
-
-#### 缺陷 G：capability pass 只检查三个 gate
-
-当前 `profile.py::_projection_certificate_passes()` 只要求：
-
-```text
-projected_gradient_kkt
-seed_consensus
-residual_explained
-```
-
-这不足以证明 capability-limited pass。
-
-#### 缺陷 H：`_red_team_kkt_certificate()` 生成了不可独立验证的默认值
-
-当前 `canonical_projection.py::_red_team_kkt_certificate()` 存在以下危险行为：
-
-- `primal_feasible=True` 直接写死；
-- `prior_gradient_inf_norm=0.0` 直接写死；
-- `prior_cancellation_ratio=0.0` 直接写死；
-- `residual_explained` 缺失时默认 True；
-- task gradient 为零时人为改成 `1e-15`；
-- complementarity 不是从原始 q/bounds/gradient 独立计算。
-
-该 helper 必须删除。不能用另一个同名 helper 继续合成“审计友好字段”。
-
-#### 缺陷 I：seed consensus 只比较 residual norm
-
-当前 seed consensus 没有可靠比较多个竞争 seed 的最终 task-space 投影点和 certificate class。
-
-#### 缺陷 J：stress motion 会污染 profile status
-
-当前 `_has_capability_limited_certificate()` 只要发现任何 limited certificate 就将整机标记为 capability-limited，包括：
-
-```text
-extreme_but_valid_joint_limit_stress
-```
-
-Stress motion 只能作为诊断，不能把一个普通动作全部 exact 的机器人降级为 capability-limited。
+默认必须等价于当前 pipeline。
 
 ---
 
 ## 3. 本轮唯一目标
 
-本轮必须把：
+建立以下最小 runtime 数据流：
 
 ```text
-claimed 44/44 terminal pass
+AnimationBuffer frame
+→ source SOMA global semantic frames
+→ load verified V3 runtime profile
+→ target_builder/rest_calibration 生成 robot semantic target transforms
+→ map to existing IK effector order
+→ shadow diagnostics, default no-op
+→ optional experimental override for RPO/G1 smoke
+→ runtime artifact matrix
+→ CI/red-team
 ```
 
-变成：
+最终必须能回答：
 
-```text
-independently recomputed + reproducible + CI-verified 44/44 terminal pass
-```
-
-必须满足：
-
-1. 真正读取固定 baseline；
-2. 真实 before/after；
-3. 21 个 baseline exact pass 不得降级；
-4. 11 个 baseline algorithm failures 才是本轮允许转成 capability-limited 的主要集合；
-5. 每个超阈值普通/扩展任务的 certificate 必须由 raw solver evidence 独立重算；
-6. 不得通过合成字段或默认 True 通过 audit；
-7. stress motion 不参与 profile status；
-8. artifacts 对应远端可解析 clean source commit；
-9. deterministic 真实覆盖 44/44；
-10. CI 在实际分支上真实运行并通过；
-11. Agent F 最终 handoff 必须在最终 HEAD 上给出 PASS。
+1. 不开启 V3 时，`NewtonPipeline` 输出是否 bitwise 或 tolerance 等价于基线？
+2. Shadow mode 是否计算出 finite V3 semantic targets 且不改变 IK targets？
+3. RPO runtime model 与 V3 profile fingerprint/source 是否匹配？
+4. G1 runtime model 与 committed profile 是否匹配；若不匹配，是否 fail closed 或生成独立 runtime-local profile？
+5. Override mode 在 RPO/G1 的短 clip 上是否 finite、deterministic、within limits？
+6. V3 target stream 与旧 scaler target stream 的差异在哪里，是否有 per-frame/per-semantic diagnostics？
 
 ---
 
-## 4. 绝对禁止事项
+## 4. 严格范围边界
 
-本轮禁止：
+### 4.1 本轮包含
 
-- 重新设计或重写 continuation solver；
-- 替换 SciPy solver；
-- 修改 task weights；
-- 修改 neutral/hand/foot/torso exact thresholds；
-- 修改 Step 2.1 epsilon、rank、subspace thresholds；
-- 添加任何 per-robot threshold；
-- 添加 robot ID 数学分支；
-- 修改 semantic maps，除非独立审计发现明确 hash/fingerprint 错误；
-- 修改 Robot Zoo manifest；
-- 重新纳入 `berkeley_humanoid_urdf` 或 `romeo_urdf`；
-- 修改生产 `NewtonPipeline`；
-- 开始 Step 3；
-- 仅改文档中的 FAIL 为 PASS；
-- 仅改 audit 来接受当前 artifacts；
-- 仅改 status 名称；
-- 编造 baseline；
-- 编造 source commit；
-- 手写 KKT 通过字段；
-- 将 stress motion 用作 capability-limited status 依据；
-- 删除失败测试；
-- 用旧 artifacts 冒充新结果。
+- 新增 V3 runtime profile loader；
+- profile/fingerprint/source validation；
+- source SOMA semantic frame extraction；
+- runtime target adapter；
+- `NewtonPipeline` shadow-mode integration；
+- explicit experimental override mode；
+- RPO + G1 short-clip smoke tests；
+- no-op default regression；
+- diagnostics artifacts；
+- CI/red-team。
 
-若真实重算发现 solver 数学错误：
+### 4.2 本轮禁止
 
-1. 必须先新增最小 failing synthetic test；
-2. Agent B 写出数学推导；
-3. Agent F 确认不是 threshold/证据问题；
-4. Integrator 才允许最小修复；
-5. 修复后全量重跑。
-
----
-
-## 5. 不可修改的 baseline truth
-
-### 5.1 Baseline 来源
-
-唯一合法 baseline：
-
-```text
-commit = 5ad5a001c445c525d4c8bbaf6339dec5c5c2c719
-artifact root = artifacts/retargeting_v3_step2_assets44
-```
-
-必须通过 Git 读取，不得读取当前工作树后反推：
-
-```bash
-git show 5ad5a001c445c525d4c8bbaf6339dec5c5c2c719:artifacts/retargeting_v3_step2_assets44/summary.json
-```
-
-每台机器人的 baseline status 必须通过：
-
-```bash
-git show 5ad5a001c445c525d4c8bbaf6339dec5c5c2c719:artifacts/retargeting_v3_step2_assets44/per_robot/<id>.json
-```
-
-或读取该 commit 中 `summary.json.reports`。
-
-### 5.2 Baseline 固定计数
-
-```text
-passed                    21
-partial_passed             3
-negative_control_passed    9
-algorithm_failed          11
-in_scope total            44
-```
-
-### 5.3 合法状态转换
-
-只允许：
-
-```text
-passed                  -> passed
-partial_passed          -> partial_passed
-negative_control_passed -> negative_control_passed
-algorithm_failed        -> passed
-algorithm_failed        -> capability_limited_passed
-```
-
-不允许：
-
-```text
-passed -> capability_limited_passed
-passed -> partial_passed
-partial_passed -> capability_limited_passed
-negative_control_passed -> 任何 humanoid status
-```
-
-若真实新 solver 结果使 baseline `passed` 无法维持 exact pass，则必须：
-
-```text
-Step 2.3.1: BLOCKED
-```
-
-不得修改 baseline 或伪造 transition。
-
-### 5.4 最终计数约束
-
-最终必须满足：
-
-```text
-passed >= 21
-capability_limited_passed <= 11
-partial_passed = 3
-negative_control_passed = 9
-algorithm_failed = 0
-source_unavailable = 0
-model_load_failed = 0
-semantic_failed = 0
-terminal total = 44
-```
-
-其中：
-
-```text
-passed + capability_limited_passed = 32
-```
-
-即 32 个完整 humanoid profile，外加 3 partial 和 9 negative controls。
+- 默认启用 V3；
+- 改变现有默认 output；
+- 删除或绕过 `HumanToRobotScaler`；
+- 重写 `NewtonPipeline.execute()` 主循环；
+- 重写 Newton IK solver；
+- 调 `ik_iterations`、joint limit weight、smooth weight 或 body weights；
+- contact-aware foot IK；
+- collision/self-penetration；
+- temporal smoothing；
+- foot locking；
+- policy/teacher/refinement；
+- 全 44 runtime demo；
+- 修改 Step 2 artifacts；
+- 修改 Step 2 numerical/capability thresholds；
+- robot ID 数学分支；
+- 以 screenshot/目测作为 pass；
+- 进入 Step 3.1 全量 runtime quality 或 Step 4。
 
 ---
 
-## 6. Canonical motion 状态策略——必须精确实现
+## 5. 新配置契约
 
-### 6.1 Motion classes
-
-在代码中定义固定、无机器人特例的 motion class：
-
-```python
-INVARIANCE_MOTIONS = {
-    "neutral",
-    "root_translation",
-    "global_root_yaw",
-}
-
-ORDINARY_MOTIONS = {
-    "torso_pitch",
-    "torso_roll",
-    "torso_yaw",
-    "arms_forward",
-    "elbow_bend",
-    "squat",
-    "single_step",
-}
-
-EXTENDED_MOTIONS = {
-    "mixed_torso_rotation",
-    "overhead_reach",
-    "asymmetric_arm_reach",
-    "crossed_body_reach",
-}
-
-STRESS_MOTIONS = {
-    "extreme_but_valid_joint_limit_stress",
-}
-```
-
-必须测试 motion 集合：
-
-- 无遗漏；
-- 无重复；
-- canonical motion order 中每项恰好属于一个 class。
-
-### 6.2 Invariance motion
-
-Invariance motion 必须 exact：
-
-```text
-normalized_residual <= 现有 exact threshold
-```
-
-不允许 capability-limited certificate 将 calibration、root policy 或 frame bug 包装为 pass。
-
-### 6.3 Ordinary / Extended motion
-
-每个 task 只能得到：
-
-```text
-exact_reachable
-capability_limited_rank
-capability_limited_joint_limits
-capability_limited_mixed
-unsupported_rank_zero
-solver_failed
-numerical_invalid
-invalid_target_geometry
-```
-
-Profile status：
-
-- 所有 ordinary + extended required tasks exact：`passed`；
-- 至少一个 ordinary/extended task 是有效 limited certificate，其他 required tasks 均 exact/valid limited：`capability_limited_passed`；
-- 任意 required task 是 failed/invalid：`algorithm_failed`。
-
-### 6.4 Stress motion
-
-Stress motion 必须：
-
-- finite；
-- within limits；
-- deterministic；
-- 有 exact/limited/failed 诊断；
-
-但：
-
-```text
-Stress motion 不得改变 robot profile status。
-```
-
-### 6.5 Rank-zero
-
-Rank-zero 非零 demand 必须保留：
-
-```text
-demand_residual > 0
-unreachable_demand = true
-rank_zero_reason = no_active_coordinates_nonzero_demand
-```
-
-并且：
-
-- 不向其他 chain 泄漏；
-- projected q 保持合法；
-- certificate class=`unsupported_rank_zero`；
-- profile 可以 capability-limited pass。
-
----
-
-## 7. Certificate schema v2——必须按此字段实现
-
-所有普通/扩展 motion task 都必须输出：
+在 retarget config 中新增一个顶层可选字段：
 
 ```json
 {
-  "capability_certificate": {
-    "schema_version": 2,
-    "certificate_class": "...",
-    "passed": true,
-    "motion_class": "ordinary|extended|invariance|stress",
-    "task_block": "translation|rotation",
-    "exact_threshold": 0.0,
-    "exact_threshold_passed": false,
-    "gates": {},
-    "decomposition": {},
-    "kkt": {},
-    "seed_consensus": {},
-    "continuation": {},
-    "joint_limits": {},
-    "numerical": {},
-    "audit_evidence": {},
-    "deterministic_digest": "..."
+  "v3_runtime_profile": {
+    "enabled": false,
+    "mode": "disabled",
+    "profile_artifact_root": "artifacts/retargeting_v3_step2_capability",
+    "profile_model_id": null,
+    "target_policy": "shadow_only",
+    "fail_on_fingerprint_mismatch": true,
+    "allow_runtime_recompile_on_mismatch": false,
+    "semantic_tasks": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+    "override_tasks": [],
+    "diagnostics_enabled": true,
+    "diagnostics_max_frames": 240,
+    "diagnostics_output_dir": "artifacts/retargeting_v3_step3_runtime_shadow",
+    "write_per_frame_debug": false
   }
 }
 ```
 
-### 7.1 `audit_evidence` 必须包含原始数据
+Allowed modes：
 
 ```text
-desired_vector
-projected_vector
-seed_vector
-normalized_residual_vector
-demand_vector
-relevant_task_jacobian
-active_coordinates
-q_active
-lower_bounds
-upper_bounds
-task_gradient
-prior_gradient
-seed_results
-continuation_history
-scalar_dtype
-normalization_scale
+disabled
+shadow
+override_experimental
 ```
 
-`audit_evidence` 不能只保存已经计算后的 bool。
+### 5.1 Default behavior
 
-### 7.2 禁止重复的伪 certificate
+如果字段缺失或：
 
-删除：
+```json
+{"enabled": false}
+```
+
+则 pipeline必须完全沿用旧逻辑，不读取 profile，不写 diagnostics，不改变 outputs。
+
+### 5.2 Shadow mode
+
+```json
+{
+  "enabled": true,
+  "mode": "shadow",
+  "target_policy": "shadow_only"
+}
+```
+
+要求：
+
+- 计算 V3 targets；
+- 记录 target deltas；
+- 不修改 `self.input_targets`；
+- 不修改 IK objective targets；
+- output CSV/frames 与 disabled mode 在 tolerance 内相同。
+
+### 5.3 Override experimental mode
+
+```json
+{
+  "enabled": true,
+  "mode": "override_experimental",
+  "target_policy": "replace_configured_semantics",
+  "override_tasks": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"]
+}
+```
+
+要求：
+
+- 只替换 `override_tasks` 对应的 existing IK target stream；
+- 不改变 IK map body mapping；
+- 不改变 IK objective weights；
+- 不新增 contact/temporal/collision；
+- 只允许 RPO 和 G1 smoke；
+- 失败必须 fail closed，不得 fallback 成“看似通过”。
+
+---
+
+## 6. Robot / profile 映射策略
+
+默认映射：
+
+```text
+roboparty_rpo -> roboparty_rpo_local
+unitree_g1    -> unitree_g1_mjcf preferred, fallback unitree_g1_urdf only for diagnostic comparison
+```
+
+必须实现：
 
 ```python
-canonical_projection.py::_red_team_kkt_certificate
+resolve_runtime_v3_profile_id(target_type, runtime_mjcf_path, config) -> RuntimeProfileResolution
 ```
 
-新的 audit 直接读取：
+规则：
 
-```text
-capability_certificate
-active_limit_kkt
-seed_results
-continuation_history
-```
-
-若为了兼容保留 `kkt_certificate` 字段，它只能是：
-
-```text
-capability_certificate.kkt 的无修改引用/复制
-```
-
-不得补默认值，不得改零值，不得独立制造 `certified=true`。
+1. 如果 config 显式给 `profile_model_id`，使用显式值；
+2. 否则按上表；
+3. 加载 `per_robot/<profile_model_id>.json`；
+4. 检查状态必须为 `passed` 或 `capability_limited_passed`；
+5. 检查 semantic sites、rest calibration、canonical targets、capability summary存在；
+6. 检查 runtime model fingerprint/source hash；
+7. RPO 必须 strict match；
+8. G1 若 runtime Newton-downloaded model 与 committed snapshot fingerprint 不同：
+   - shadow mode 可记录 `fingerprint_mismatch` 并跳过 target override；
+   - override mode 必须 fail closed，除非显式 `allow_runtime_recompile_on_mismatch=true` 并生成 runtime-local profile artifact；
+9. 不得用 `robot_type` 名称绕过 fingerprint。
 
 ---
 
-## 8. 独立数学重算规则
+## 7. Runtime source semantic frames
 
-Audit 必须从 `audit_evidence` 独立重算，不能相信 artifact 里的 `passed` 或 gate bool。
-
-### 8.1 Task residual
-
-Position：
+必须新增模块：
 
 ```text
-e = (p_projected - p_desired) / L_chain
+soma_retargeter/runtime/v3/source_frames.py
 ```
 
-Orientation：
+职责：
 
-```text
-e = Log(R_projected^T R_desired) / pi
+- 从 `AnimationBuffer` 每帧计算 source global transforms；
+- 将 SOMA skeleton joints 映射到 semantic names：
+  - `Hips`
+  - `Chest`
+  - `LeftHand`
+  - `RightHand`
+  - `LeftFoot`
+  - `RightFoot`
+- 使用现有 skeleton joint names，不能写死只对某个 BVH 文件有效；
+- 若 skeleton 缺 semantic，fail closed；
+- 支持 frame range / max frames；
+- 支持 offset transform；
+- 输出 4x4 numpy transforms，float64；
+- 保留 source joint name evidence。
+
+必须新增：
+
+```python
+@dataclass
+class SourceSemanticFrameBatch:
+    semantic_names: list[str]
+    joint_names: dict[str, str]
+    transforms: dict[str, np.ndarray]  # [F,4,4]
+    frame_count: int
+    sample_rate: float
+    source: str
 ```
 
-artifact 中的 residual vector 与重算结果必须一致。
-
-### 8.2 Task gradient
-
-```text
-g_task = J_task^T e
-```
-
-Audit 重算的 `g_task` 必须与序列化值一致。
-
-### 8.3 Bound-constrained projected gradient
-
-```text
-G(q) = q - clip(q - g_task, lower, upper)
-```
-
-```text
-projected_gradient_inf_norm = ||G(q)||_inf
-```
-
-### 8.4 Primal feasibility
-
-```text
-primal_violation = max(lower - q, q - upper, 0)
-```
-
-`primal_feasible` 必须由该值重算，不能写死 True。
-
-### 8.5 KKT sign / dual feasibility
-
-对最小化任务：
-
-```text
-free coordinate: |g_i| <= tol
-at lower bound:   g_i >= -tol
-at upper bound:   g_i <=  tol
-fixed coordinate: 记录为 fixed，不伪造 free
-```
-
-Audit 必须重算 complementarity/sign violation。
-
-### 8.6 Prior cancellation
-
-必须序列化：
-
-```text
-g_prior = J_prior^T r_prior
-```
-
-定义：
-
-```text
-if ||g_task||_inf <= stationarity_tol and ||g_prior||_inf <= stationarity_tol:
-    prior_cancellation_ratio = 0
-else:
-    prior_cancellation_ratio = ||g_prior||_inf / max(||g_task||_inf, stationarity_tol)
-```
-
-不得要求 `task_gradient_inf_norm > 0`。对于 rank-incompatible residual，正确的 task gradient 可以精确接近零。
-
-### 8.7 Reachable decomposition
-
-使用 uncertainty-aware retained rank：
-
-```text
-J = U S V^T
-P = U_r U_r^T
-e_parallel = P e
-e_orthogonal = (I-P)e
-```
-
-重算并保存：
-
-```text
-reachable_residual_norm
-orthogonal_residual_norm
-reachable_residual_fraction
-orthogonal_residual_fraction
-rank
-rank_threshold
-singular_values
-```
-
-### 8.8 Seed consensus
-
-每个 active chain 至少尝试：
-
-```text
-neutral seed
-selected continuation seed
-limit-aware midpoint/axis seed
-```
-
-每个 seed result 必须保存：
-
-```text
-accepted
-final_task_vector
-normalized_residual
-certificate_class
-active_limits
-final_q_active
-```
-
-定义 competitive seeds：
-
-```text
-normalized_residual <= best + global_seed_residual_tolerance
-```
-
-对 competitive seeds 比较：
-
-```text
-max pairwise ||final_task_vector_i - final_task_vector_j|| / task_scale
-```
-
-必须小于全局 task-space tolerance。
-
-只比较 residual norm 不算 seed consensus。
-
-Rank-zero 可使用 trivial deterministic consensus，但必须明确：
-
-```text
-source = trivial_rank_zero
-```
-
-### 8.9 Continuation
-
-Audit 必须检查：
-
-- alpha 从 0 开始；
-- accepted alpha 严格递增；
-- 最终 alpha=1；
-- 所有 step finite；
-- 所有 q within bounds；
-- final task vector 与最终 artifact 一致；
-- 未达到 alpha=1 不能 certificate pass。
-
-### 8.10 Numerical gate
-
-必须记录：
-
-```text
-jacobian source
-scalar dtype
-rank stability gate
-engine/FD validation status
-nonfinite count
-```
-
-存在 `engine_fd_mismatch`、`nonfinite` 或 `unstable_nonsmooth` 时不能 capability pass。
+不得使用 OCR、viewer 或可视化截图作为 source truth。
 
 ---
 
-## 9. Class-specific certificate gates
+## 8. Runtime V3 target adapter
 
-不得只检查统一的三个 bool。
+必须新增模块：
 
-### 9.1 `exact_reachable`
+```text
+soma_retargeter/runtime/v3/target_adapter.py
+```
+
+职责：
+
+```text
+SourceSemanticFrameBatch + RuntimeV3Profile
+→ per-frame SemanticTargets
+→ existing effector order transforms
+→ diagnostics
+```
 
 必须：
 
-```text
-exact_threshold_passed
-primal_feasible
-projected_gradient_kkt
-seed_consensus
-continuation
-joint_limits
-numerical
+1. 复用 Step 2 的 `build_targets_from_source_semantic_frames()` 和 rest calibration；
+2. 不重新实现一套 scaler；
+3. 保持 parent-frame rotation transfer；
+4. 保持 root horizontal/vertical policy；
+5. 对每个 semantic输出：
+   - desired target transform；
+   - old scaler transform；
+   - translation delta；
+   - rotation delta；
+   - target source；
+   - capability status；
+6. 输出必须可映射回 `HumanToRobotScaler.effector_names()`；
+7. 对没有 capability 的 task，不得伪造 target；
+8. 对 partial/negative model不得进入 override。
+
+---
+
+## 9. NewtonPipeline 集成方式
+
+只能对 `NewtonPipeline` 做最小、安全改动。
+
+### 9.1 `__init__`
+
+允许新增：
+
+```python
+self.v3_runtime_config
+self.v3_runtime_profile
+self.v3_runtime_adapter
+self.v3_runtime_diagnostics
 ```
 
-### 9.2 `capability_limited_rank`
+要求：
 
-必须：
+- 默认 disabled；
+- disabled 时不 import heavyweight v3 runtime modules，或 import 不改变行为；
+- profile load错误在 disabled mode 不影响 pipeline；
+- shadow/override mode 初始化失败必须给清晰错误。
 
-```text
-exact_threshold_passed = false
-rank < task dimension 或存在明确 rank-incompatible component
-orthogonal_residual_fraction >= 0.95（使用全局固定 gate）
-reachable_residual_fraction <= 0.05
-projected_gradient_kkt
-seed_consensus
-continuation
-joint_limits
-numerical
-residual_explained
+### 9.2 `add_input_motions`
+
+现有代码：
+
+```python
+buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(...)
+self.input_targets.append(buffer_effectors[:, self.target_effector_indices, :])
 ```
 
-### 9.3 `capability_limited_joint_limits`
+新增逻辑必须是：
 
-必须：
-
-```text
-exact_threshold_passed = false
-active bound count > 0
-primal_feasible
-KKT sign/complementarity pass
-projected_gradient_kkt
-seed_consensus
-continuation
-joint_limits
-numerical
-residual_explained
+```python
+legacy_buffer_effectors = compute_effectors_from_buffer(...)
+if v3 disabled:
+    buffer_effectors = legacy_buffer_effectors
+elif v3 shadow:
+    v3_targets = compute_v3_targets(...)
+    record diagnostics
+    buffer_effectors = legacy_buffer_effectors
+elif v3 override_experimental:
+    v3_targets = compute_v3_targets(...)
+    buffer_effectors = replace_configured_semantic_targets(legacy_buffer_effectors, v3_targets)
+    record diagnostics
 ```
 
-### 9.4 `capability_limited_mixed`
+不得改变 contact inference、initialization frames、offset semantics、sample rate。
 
-必须同时具有：
+### 9.3 `execute`
+
+本轮不允许重写 `execute()` 主循环。
+
+允许：
+
+- 在输出后写 summary diagnostics；
+- 保存 per-run target diagnostics；
+- 添加 read-only metadata。
+
+禁止：
+
+- 改 IK solver objective order；
+- 改 objective weight；
+- 改 frame stepping；
+- 改 graph capture logic；
+- 改 feet stabilizer逻辑。
+
+---
+
+## 10. Diagnostics artifact schema
+
+新目录：
 
 ```text
-rank-incompatible evidence
-active-limit evidence
-全部 rank 和 joint-limit gates
+artifacts/retargeting_v3_step3_runtime_shadow/
 ```
 
-### 9.5 `unsupported_rank_zero`
-
-必须：
+必须生成：
 
 ```text
-rank = 0
-active coordinate count = 0
-nonzero demand preserved
-projected q unchanged/valid
-no chain leakage
-rank-zero KKT vacuously satisfied
-numerical finite
-deterministic
+environment.json
+commands.txt
+profile_resolution.json
+shadow_summary.json
+override_smoke_summary.json
+per_clip/<robot>/<clip>/target_deltas.json
+per_clip/<robot>/<clip>/pipeline_summary.json
+test_results/pytest.txt
+test_results/junit.xml
+test_results/pytest_summary.json
+acceptance_ledger.json
 ```
 
-### 9.6 Failed classes
+### 10.1 `profile_resolution.json`
 
-以下任何一个出现，robot 必须 `algorithm_failed`：
+必须包含：
 
 ```text
-solver_failed
-numerical_invalid
-invalid_target_geometry
-certificate passed=false
-missing raw audit evidence
-independent audit mismatch
+robot_type
+profile_model_id
+profile_status
+profile_artifact_path
+runtime_mjcf_path
+runtime_fingerprint
+profile_fingerprint
+fingerprint_match
+source_hash_match
+strict_match_required
+resolution_status
+warnings/errors
+```
+
+### 10.2 `target_deltas.json`
+
+必须包含每个 clip：
+
+```text
+robot_type
+mode
+clip_name
+frame_count
+semantic_names
+legacy_target_available
+v3_target_available
+per_semantic:
+  translation_delta_mean/max/p95
+  rotation_delta_mean/max/p95
+  finite_count
+  nan_count
+  skipped_reason
+root_policy:
+  horizontal_scale
+  support_height_policy
+capability_policy:
+  exact/capability_limited/unsupported
+```
+
+### 10.3 `pipeline_summary.json`
+
+必须包含：
+
+```text
+mode
+output_frame_count
+joint_coord_count
+nan_count
+inf_count
+joint_limit_violation_count
+max_joint_limit_violation
+output_equal_to_disabled_baseline  # only for shadow mode
+output_diff_max
+runtime_seconds
 ```
 
 ---
 
-## 10. Profile status 必须由完整任务矩阵计算
+## 11. Test clips and runtime smoke scope
 
-删除当前“发现任意 limited certificate 就 capability-limited”的策略。
+只允许使用仓库已有公开 motion assets。
 
-实现一个单独模块：
-
-```text
-soma_retargeter/robotics/v3/capability_status.py
-```
-
-该模块不得 import Robot Zoo ID，不得读取 manifest，不得按机器人特例。
-
-输入：
+最小 clips：
 
 ```text
-canonical motion task reports
-motion class
-required tasks
+assets/motions/bvh/Neutral_walk_forward_002__A057.bvh
+assets/motions/bvh/wave_R_001__A428.bvh
 ```
 
-输出：
+若某 clip load失败，不能换私有资产。必须记录 failure。
+
+### 11.1 Required robots
 
 ```text
-passed
-capability_limited_passed
-algorithm_failed
+roboparty_rpo
+unitree_g1
 ```
 
-### 10.1 `passed`
+### 11.2 Required modes
 
-- invariance 全 exact；
-- ordinary 全 exact；
-- extended 全 exact；
-- stress 不影响 status；
-- 无 failed certificate。
+For both robots：
 
-### 10.2 `capability_limited_passed`
+```text
+disabled baseline
+shadow
+```
 
-- invariance 全 exact；
-- ordinary/extended 至少一个 valid limited；
-- ordinary/extended 其余全部 exact 或 valid limited；
-- stress 不影响 status；
-- 无 failed/invalid certificate。
+Override：
 
-### 10.3 `algorithm_failed`
+```text
+roboparty_rpo override_experimental required
+unitree_g1 override_experimental only if runtime fingerprint policy passes or runtime-local profile is generated
+```
 
-- invariance 任一不 exact；
-- required ordinary/extended 任一 failed/invalid；
-- certificate evidence 缺失；
-- independent audit不一致。
+### 11.3 Frame budget
 
-Structured partial 和 negative controls 继续由原独立路径处理，不能进入该模块。
+Default smoke：
+
+```text
+max_frames = 120
+```
+
+Longer clips are not required this round.
 
 ---
 
-## 11. 六个 xhigh Subagents——严格 ownership
+## 12. Acceptance gates
+
+### 12.1 No-op / default behavior
+
+- [ ] Missing `v3_runtime_profile` config = old behavior;
+- [ ] `enabled=false` = old behavior;
+- [ ] disabled output equals pre-change output within exact numeric tolerance;
+- [ ] disabled mode does not write Step 3 diagnostics;
+- [ ] existing tests pass.
+
+### 12.2 Shadow behavior
+
+- [ ] shadow computes finite V3 targets for RPO;
+- [ ] shadow computes finite V3 targets or explicit fingerprint-skip for G1;
+- [ ] shadow does not modify `self.input_targets`;
+- [ ] shadow output equals disabled output within tolerance;
+- [ ] diagnostics exist and are deterministic;
+- [ ] no NaN/Inf in diagnostics.
+
+### 12.3 Override smoke behavior
+
+- [ ] RPO override runs at least 2 clips / 120 frames each;
+- [ ] output finite;
+- [ ] no joint limit violations after clamper beyond existing tolerance;
+- [ ] output frame count correct;
+- [ ] diagnostics written;
+- [ ] mode clearly labeled experimental;
+- [ ] G1 override either passes same gates or is fail-closed with fingerprint reason;
+- [ ] no claim of visual quality.
+
+### 12.4 Profile/fingerprint safety
+
+- [ ] RPO strict match;
+- [ ] G1 mismatch not silently ignored;
+- [ ] no robot-name-only acceptance;
+- [ ] profile status must be terminal pass;
+- [ ] partial/negative profile cannot override;
+- [ ] LFS materialized.
+
+### 12.5 Source frame / target correctness
+
+- [ ] source semantic frame extraction tested on synthetic skeleton;
+- [ ] 4x4 transforms valid SE(3);
+- [ ] root translation policy matches Step 2 target_builder tests;
+- [ ] target adapter reuses Step 2 target_builder;
+- [ ] old scaler target order preserved;
+- [ ] missing semantic fail closed.
+
+### 12.6 CI / provenance
+
+- [ ] clean source commit;
+- [ ] clean artifact commit;
+- [ ] pytest/junit saved;
+- [ ] GitHub Actions green;
+- [ ] Agent F PASS;
+- [ ] no local absolute paths;
+- [ ] no private assets;
+- [ ] no Step 2 artifact mutation except read-only references.
+
+---
+
+## 13. 六个 xhigh Subagents
 
 每个 agent 必须：
 
@@ -895,436 +659,363 @@ Structured partial 和 negative controls 继续由原独立路径处理，不能
 - reasoning strength=`xhigh`；
 - 先写 failing tests；
 - 只修改 owned files；
-- 不得修改别人的 owned files；
-- 每个逻辑变更一个小 commit；
-- handoff 写明 commit、files、commands、results、risks；
-- 不得声明未运行的测试通过。
+- 小 commits；
+- handoff包含 commit、files、commands、tests、数值结果、风险、未完成项；
+- 不得声明未运行测试通过。
 
-### Agent A — Baseline Truth and Real Before/After
+### Agent A — Runtime Profile Loader and Fingerprint Gate
 
-**唯一目标**：删除伪 baseline，建立固定 commit 的真实对照。
+**唯一目标**：安全加载 Step 2.3 profile，不让 runtime 用错模型。
 
-**Owned files**
+Owned files：
 
 ```text
-soma_retargeter/robotics/v3/failure_analysis.py
-scripts/extract_capability_failure_ledger.py
-scripts/build_capability_before_after.py              # 新增
-artifacts/retargeting_v3_step2_capability/baseline_summary.json
-artifacts/retargeting_v3_step2_capability/baseline_failure_ledger.json
-artifacts/retargeting_v3_step2_capability/before_after.json
-tests/v3/test_capability_true_baseline_*.py
-docs/retargeting_v3/STEP2_3_1_TRUE_BASELINE.md
-docs/retargeting_v3/subagents/hardening_agent_a_handoff.md
+soma_retargeter/runtime/v3/profile_loader.py
+soma_retargeter/runtime/v3/__init__.py
+soma_retargeter/runtime/__init__.py
+soma_retargeter/pipelines/utils.py                    # 仅允许增加 profile-id resolver helper
+tests/v3/test_runtime_profile_loader_*.py
+tests/v3/test_runtime_fingerprint_gate_*.py
+docs/retargeting_v3/subagents/step3_agent_a_handoff.md
 ```
 
-**必须实现**
+必须实现：
 
-1. 使用 `git show 5ad5...:<path>` 读取 baseline；
-2. commit 不可解析时 fail closed；
-3. baseline model IDs 必须正好44；
-4. baseline counts必须21/3/9/11；
-5. transition matrix必须使用真实 baseline status；
-6. 删除或禁止 `before = partial_passed if after capability_limited`；
-7. 测试伪造 baseline 会失败；
-8. 输出 11 个旧 algorithm failures 的真实 transition。
+1. `RuntimeV3Profile` dataclass；
+2. 从 `artifacts/retargeting_v3_step2_capability/per_robot/<id>.json` 加载；
+3. 校验 schema/status/semantic sites/rest calibration/canonical capability；
+4. resolver：`roboparty_rpo -> roboparty_rpo_local`，`unitree_g1 -> unitree_g1_mjcf`；
+5. runtime MJCF fingerprint check；
+6. RPO strict match required；
+7. G1 mismatch fail-closed unless config explicitly allows runtime-local profile;
+8. LFS pointer detection；
+9. structured error messages；
+10. no robot ID math branch。
 
-### Agent B — Raw Certificate Evidence and Math Recompute Inputs
+### Agent B — Source Semantic Frames and V3 Target Adapter
 
-**唯一目标**：让 certificate 由真实 solver evidence支持，不允许合成字段。
+**唯一目标**：从 runtime animation frames 生成 V3 robot semantic target stream。
 
-**Owned files**
+Owned files：
 
 ```text
-soma_retargeter/robotics/v3/projection_solver.py
-soma_retargeter/robotics/v3/projection_certificate.py
-soma_retargeter/robotics/v3/capability_projection.py
-soma_retargeter/robotics/v3/chain_projection.py
-soma_retargeter/robotics/v3/canonical_projection.py
-tests/v3/test_certificate_raw_evidence_*.py
-tests/v3/test_certificate_independent_recompute_*.py
-tests/v3/test_seed_task_space_consensus_*.py
-tests/v3/test_continuation_evidence_*.py
-docs/retargeting_v3/subagents/hardening_agent_b_handoff.md
+soma_retargeter/runtime/v3/source_frames.py
+soma_retargeter/runtime/v3/target_adapter.py
+soma_retargeter/runtime/v3/diagnostics.py
+tests/v3/test_runtime_source_frames_*.py
+tests/v3/test_runtime_target_adapter_*.py
+tests/v3/test_runtime_target_diagnostics_*.py
+docs/retargeting_v3/subagents/step3_agent_b_handoff.md
 ```
 
-**必须实现**
+必须实现：
 
-1. 删除 `_red_team_kkt_certificate()`；
-2. certificate schema v2；
-3. 序列化 q/bounds/J/e/task gradient/prior gradient；
-4. 序列化每个 seed final task vector；
-5. task-space seed spread；
-6. continuation final alpha=1 evidence；
-7. primal/dual/complementarity真实计算；
-8. 不把零 task gradient改成正数；
-9. 不默认 residual_explained=True；
-10. 不更改 solver thresholds；
-11. 若只增加 evidence，不改变求解结果，必须证明 q/residual 与基线一致。
+1. `SourceSemanticFrameBatch`；
+2. SOMA semantic joint lookup with evidence；
+3. finite SE(3) validation；
+4. frame slicing/max frames；
+5. target_builder reuse；
+6. target -> effector order conversion；
+7. per-semantic delta metrics；
+8. missing semantic fail closed；
+9. no duplicate scaler math；
+10. deterministic diagnostics JSON。
 
-### Agent C — Motion-Class and Profile Status Policy
+### Agent C — NewtonPipeline Shadow No-op Integration
 
-**唯一目标**：正确决定 exact/capability/failed status，stress不污染状态。
+**唯一目标**：把 V3 target stream 接入 pipeline，但 shadow/default不改变输出。
 
-**Owned files**
+Owned files：
 
 ```text
-soma_retargeter/robotics/v3/capability_status.py       # 新增
-soma_retargeter/robotics/v3/profile.py
-soma_retargeter/robotics/v3/robot_zoo.py               # 仅 status enum/terminal set
-soma_retargeter/robotics/v3/status_schema.py           # 可新增
-tests/v3/test_motion_class_partition_*.py
-tests/v3/test_capability_profile_status_*.py
-tests/v3/test_stress_motion_status_isolation_*.py
-tests/v3/test_baseline_exact_no_regression_*.py
-docs/retargeting_v3/subagents/hardening_agent_c_handoff.md
+soma_retargeter/pipelines/newton_pipeline.py
+soma_retargeter/pipelines/v3_runtime_config.py         # 可新增
+tests/v3/test_newton_pipeline_v3_shadow_noop_*.py
+tests/v3/test_newton_pipeline_v3_config_*.py
+docs/retargeting_v3/subagents/step3_agent_c_handoff.md
 ```
 
-**必须实现**
+必须实现：
 
-1. 固定 motion classes；
-2. invariance exact-only；
-3. stress status isolation；
-4. class-specific certificate gates；
-5. `passed` baseline不降级；
-6. partial/negative路径不进入capability状态计算；
-7. 删除 `_has_capability_limited_certificate()` 的 any-certificate语义；
-8. profile failure必须列具体 motion/task/gate。
+1. parse `v3_runtime_profile` config；
+2. disabled/missing config no-op；
+3. shadow mode target computation but no IK input mutation；
+4. diagnostics collection；
+5. no changes to IK solver objective order/weights；
+6. no changes to execute loop except post-run diagnostics write；
+7. unit tests prove `self.input_targets` equality in shadow；
+8. default output equality regression。
 
-### Agent D — Clean Provenance, LFS and Artifact Protocol
+### Agent D — Experimental Override Smoke for RPO/G1
 
-**唯一目标**：保证 artifacts 来自远端可解析 clean source commit。
+**唯一目标**：显式 override mode 的最小 smoke，不调质量。
 
-**Owned files**
+Owned files：
 
 ```text
-scripts/generate_capability_artifacts_clean.sh         # 新增
-scripts/write_capability_provenance.py                 # 新增
-artifacts/retargeting_v3_step2_capability/environment.json
-artifacts/retargeting_v3_step2_capability/lfs_state.json
-artifacts/retargeting_v3_step2_capability/commands.txt
-artifacts/retargeting_v3_step2_capability/acceptance_ledger.json
-tests/v3/test_capability_provenance_*.py
-tests/v3/test_capability_lfs_state_*.py
-docs/retargeting_v3/STEP2_3_1_REPRODUCIBILITY.md
-docs/retargeting_v3/subagents/hardening_agent_d_handoff.md
+soma_retargeter/runtime/v3/override.py
+configs/roboparty_rpo/soma_to_rpo_retargeter_config_v3_shadow.json      # if config layout allows
+configs/roboparty_rpo/soma_to_rpo_retargeter_config_v3_override.json    # if config layout allows
+configs/unitree_g1/soma_to_g1_retargeter_config_v3_shadow.json          # if config layout allows
+configs/unitree_g1/soma_to_g1_retargeter_config_v3_override.json        # if config layout allows
+tests/v3/test_runtime_override_mapping_*.py
+tests/v3/test_runtime_rpo_override_smoke_*.py
+tests/v3/test_runtime_g1_override_policy_*.py
+docs/retargeting_v3/subagents/step3_agent_d_handoff.md
 ```
 
-**必须实现**
+必须实现：
 
-1. 两阶段 code commit / artifact commit；
-2. clean detached worktree运行；
-3. output先写外部临时目录；
-4. source worktree运行前后clean；
-5. source commit已push且可解析；
-6. source commit是artifact commit祖先；
-7. source commit之后无core code diff；
-8. `git lfs pull` 和 `git lfs fsck`；
-9. pointer count=0；
-10. 保存LFS版本/object状态；
-11. no absolute path；
-12. acceptance ledger运行新的capability audit。
+1. replace only configured semantic targets;
+2. preserve old effector order;
+3. override requires explicit mode;
+4. RPO smoke required;
+5. G1 override fail-closed on fingerprint mismatch unless runtime-local profile generated;
+6. output finite tests;
+7. no visual-quality claims;
+8. no weight tuning。
 
-### Agent E — Full 44 Validation, Determinism and CI Integration
+### Agent E — Runtime Artifacts, Scripts and Reproducible Smoke Matrix
 
-**唯一目标**：接入真实 status/certificate，完成44模型重算。
+**唯一目标**：生成可复现 runtime evidence。
 
-**Owned files**
+Owned files：
 
 ```text
-soma_retargeter/robotics/v3/validation.py
-soma_retargeter/tools/validate_kinematic_profile_v3.py
-artifacts/retargeting_v3_step2_capability/summary.json
-artifacts/retargeting_v3_step2_capability/deterministic_rerun.json
-artifacts/retargeting_v3_step2_capability/cross_format.json
-artifacts/retargeting_v3_step2_capability/per_robot/
-artifacts/retargeting_v3_step2_capability/per_task/
-artifacts/retargeting_v3_step2_capability/failures/
-tests/v3/test_full_44_hardened_validation_*.py
-tests/v3/test_hardened_deterministic_rerun_*.py
-tests/v3/test_hardened_cross_format_*.py
-docs/retargeting_v3/STEP2_3_1_VALIDATION_REPORT.md
-docs/retargeting_v3/subagents/hardening_agent_e_handoff.md
+soma_retargeter/tools/run_v3_runtime_shadow_smoke.py
+scripts/run_step3_runtime_shadow_acceptance.sh
+artifacts/retargeting_v3_step3_runtime_shadow/
+tests/v3/test_step3_runtime_artifact_schema_*.py
+tests/v3/test_step3_runtime_smoke_matrix_*.py
+docs/retargeting_v3/STEP3_RUNTIME_SHADOW_REPORT.md
+docs/retargeting_v3/subagents/step3_agent_e_handoff.md
 ```
 
-**必须实现**
+必须实现：
 
-1. 读取 Agent A真实 baseline；
-2. before/after不再内部编造；
-3. 44/44真实rerun；
-4. deterministic比较status、q、task vector、certificate class/digest；
-5. baseline 21 passed无降级；
-6. baseline 3 partial无变化；
-7. baseline 9 negative无变化；
-8. 11旧algorithm failures精确转移；
-9. G1 strict gate保持；
-10. negative-control pair继续not_eligible；
-11. summary计数满足本文件约束；
-12. 若任何 hard gate失败，保留algorithm_failed，不得包装。
+1. command-line smoke runner;
+2. robots/clips/modes matrix;
+3. max_frames support;
+4. save diagnostics schema;
+5. save pytest/junit/summary;
+6. no local absolute paths;
+7. deterministic rerun of diagnostics;
+8. fail if shadow changes output。
 
-### Agent F — Independent Red Team and Final CI
+### Agent F — Red Team, CI and Final Verdict
 
-**唯一目标**：独立攻击最终实现，不参与core修复。
+**唯一目标**：独立验证 Step 3.0，没有参与 core修改。
 
-**Owned files**
+Owned files：
 
 ```text
-scripts/audit_retargeting_v3_capability.py
-.github/workflows/retargeting_v3_capability.yml
-tests/v3/test_capability_acceptance_*.py
-docs/retargeting_v3/STEP2_3_1_CAPABILITY_ACCEPTANCE.md
-docs/retargeting_v3/subagents/capability_agent_f_red_team.md
-artifacts/retargeting_v3_step2_capability/test_results/
-artifacts/retargeting_v3_step2_capability/capability_audit.json
+scripts/audit_retargeting_v3_step3_runtime_shadow.py
+.github/workflows/retargeting_v3_step3_runtime_shadow.yml
+tests/v3/test_step3_runtime_shadow_acceptance_*.py
+docs/retargeting_v3/STEP3_RUNTIME_SHADOW_ACCEPTANCE.md
+docs/retargeting_v3/subagents/step3_agent_f_red_team.md
+artifacts/retargeting_v3_step3_runtime_shadow/test_results/
+artifacts/retargeting_v3_step3_runtime_shadow/acceptance_ledger.json
 ```
 
-**必须先写失败测试覆盖**
+Must test/fail on：
 
-1. fabricated before status；
-2. unresolvable source commit；
-3. wrong workflow branch；
-4. wrong workflow artifact root；
-5. missing pytest/junit/lfs_state；
-6. hardcoded primal feasible；
-7. hardcoded prior gradient zero；
-8. zero task gradient被改成`1e-15`；
-9. missing raw J/e/q/bounds；
-10. KKT bool与独立重算不一致；
-11. seed residual相同但task-space endpoint不同；
-12. continuation未达到alpha=1；
-13. stress-only limited错误改变status；
-14. baseline passed降级；
-15. deterministic只比较部分模型；
-16. LFS pointer-only；
-17. stale Agent F handoff；
-18. stale Step2.2 acceptance ledger。
+1. default output changed；
+2. shadow mutates IK inputs；
+3. override enabled without explicit config；
+4. fingerprint mismatch silently accepted；
+5. partial/negative profile used for override；
+6. LFS pointer profile/snapshot；
+7. missing diagnostics；
+8. diagnostics contain NaN/Inf；
+9. local absolute path leakage；
+10. old Step 2 artifacts mutated；
+11. no CI；
+12. Agent F stale PASS/FAIL mismatch。
 
-**最终 handoff 必须包含**
+Final handoff must include：
 
 ```text
+verdict = PASS or BLOCKED
 final_head
 source_code_commit
 artifact_commit
 workflow_run_id
 pytest summary
-live audit command
-live audit PASS
-LFS fsck PASS
-remaining blockers = 0
-verdict = PASS
+smoke matrix summary
+shadow equality result
+RPO override result
+G1 override/fail-closed result
+remaining blockers
 ```
-
-如果最终仍有 blocker，handoff 必须写 BLOCKED，不能只改 acceptance 文档为 PASS。
 
 ---
 
-## 12. Integrator 的固定执行顺序
+## 14. Integrator 固定执行顺序
 
-不得自行改变顺序。
+不得改变顺序。
 
-### Wave 0 — 冻结基线
+### Wave 0 — Tests and interfaces
 
-1. 启动6个xhigh agents；
-2. Agent A生成真实 baseline；
-3. Agent F提交 failing red-team tests；
-4. Integrator冻结 certificate schema v2 和 status policy；
-5. 此时不得生成最终 artifacts。
+1. 启动6个 xhigh agents；
+2. Agent F写 failing acceptance tests；
+3. Agent A/B冻结 dataclasses；
+4. Integrator冻结 config schema；
+5. 此时不得改 pipeline。
 
-### Wave 1 — Core evidence
+### Wave 1 — Pure runtime modules
 
-并行：
-
-```text
-Agent B raw certificate evidence
-Agent C motion/status policy
-Agent D clean provenance scripts
-```
-
-### Wave 2 — 合并顺序
-
-严格按：
+合并顺序：
 
 ```text
-A → B → C → D
-```
-
-每次合并后运行对应 tests。
-
-### Wave 3 — Full integration
-
-1. Agent E rebase到 A/B/C/D；
-2. 接入 validation；
-3. 运行44模型开发态验证；
-4. 不提交最终 artifacts；
-5. Agent F第一次live audit；
-6. blockers返给owner。
-
-### Wave 4 — Code freeze
-
-1. 所有core tests通过；
-2. 创建 code commit `C`；
-3. push `C`；
-4. 记录 `C` SHA；
-5. 从此禁止修改 core source。
-
-### Wave 5 — Clean artifact generation
-
-1. Agent D脚本从 `C`创建clean detached worktree；
-2. LFS materialize/fsck；
-3. full pytest；
-4. full44 deterministic rerun；
-5. artifacts输出到外部临时目录；
-6. live audit临时目录；
-7. copy到主worktree；
-8. commit artifact commit `A`；
-9. 验证 `C`是`A`祖先；
-10. 验证`C..A`无core code变化。
-
-### Wave 6 — Final red team / CI
-
-1. Agent F在 `A`运行live audit；
-2. 更新Agent F handoff；
-3. push `A`；
-4. GitHub Actions触发；
-5. 记录workflow run ID；
-6. 若CI失败，修复后重新code freeze和全量重跑；
-7. CI green后才允许最终PASS。
-
----
-
-## 13. Clean artifact generation 固定协议
-
-### 13.1 Code freeze commit
-
-假设：
-
-```text
-C=<code source commit>
-```
-
-必须先：
-
-```bash
-git push origin C:retargeting-v3-step2-capability-acceptance-hardening
-git cat-file -e ${C}^{commit}
-```
-
-### 13.2 Detached worktree
-
-```bash
-WORKTREE=../.soma-retargeter-worktrees/capability-hardening-source
-rm -rf "$WORKTREE"
-git worktree add --detach "$WORKTREE" "$C"
-cd "$WORKTREE"
-git status --porcelain   # 必须为空
-git lfs pull
-git lfs fsck
-```
-
-### 13.3 外部输出目录
-
-不得直接在clean source worktree下生成 tracked artifacts：
-
-```bash
-OUT=$(mktemp -d)
+A profile loader → B source/target adapter
 ```
 
 运行：
 
 ```bash
+PYTHONPATH=. python -m pytest -q tests/v3/test_runtime_profile_loader_*.py tests/v3/test_runtime_source_frames_*.py tests/v3/test_runtime_target_adapter_*.py
+```
+
+### Wave 2 — Pipeline shadow
+
+1. 合并 C；
+2. disabled no-op tests；
+3. shadow no-op tests；
+4. 禁止 override 代码先合并。
+
+### Wave 3 — Override smoke
+
+1. 合并 D；
+2. RPO override smoke；
+3. G1 policy/fingerprint tests；
+4. 若 G1 mismatch，不修模型资产，只记录 fail-closed。
+
+### Wave 4 — Artifacts and audit
+
+1. 合并 E；
+2. 生成 runtime artifacts；
+3. 合并 F audit；
+4. Red-team blockers返给owner。
+
+### Wave 5 — Clean artifact generation
+
+1. code freeze commit `C`；
+2. push `C`；
+3. clean detached worktree；
+4. LFS pull/fsck；
+5. pytest；
+6. smoke matrix；
+7. audit；
+8. artifact commit `A`；
+9. CI；
+10. Agent F final PASS/BLOCKED。
+
+---
+
+## 15. Required tests
+
+### 15.1 Targeted
+
+```bash
 PYTHONPATH=. python -m pytest -q \
-  --junitxml "$OUT/junit.xml" \
-  | tee "$OUT/pytest.txt"
-
-PYTHONPATH=. python -m soma_retargeter.tools.validate_kinematic_profile_v3 \
-  --manifest assets/robot_zoo/robot_zoo_manifest.json \
-  --lock assets/robot_zoo/robot_zoo_lock.json \
-  --output-dir "$OUT/artifacts" \
-  --low-discrepancy-count 32 \
-  --deterministic-rerun
-
-PYTHONPATH=. python scripts/audit_retargeting_v3_capability.py \
-  --artifact-dir "$OUT/artifacts" \
-  --numerical-artifact-dir artifacts/retargeting_v3_step2_numerical \
-  --manifest assets/robot_zoo/robot_zoo_manifest.json \
-  --lock assets/robot_zoo/robot_zoo_lock.json \
-  --write-report "$OUT/artifacts/capability_audit.json"
+  tests/v3/test_runtime_profile_loader_*.py \
+  tests/v3/test_runtime_fingerprint_gate_*.py \
+  tests/v3/test_runtime_source_frames_*.py \
+  tests/v3/test_runtime_target_adapter_*.py \
+  tests/v3/test_newton_pipeline_v3_shadow_noop_*.py \
+  tests/v3/test_newton_pipeline_v3_config_*.py \
+  tests/v3/test_runtime_override_mapping_*.py \
+  tests/v3/test_step3_runtime_artifact_schema_*.py \
+  tests/v3/test_step3_runtime_shadow_acceptance_*.py
 ```
 
-Source worktree运行后：
+### 15.2 Full v3
 
 ```bash
-git status --porcelain   # 仍必须为空
+PYTHONPATH=. python -m pytest -q tests/v3
 ```
 
-### 13.4 Artifact commit
-
-将 `$OUT/artifacts` 复制到主开发worktree后：
+### 15.3 Full repo
 
 ```bash
-git add artifacts/retargeting_v3_step2_capability
-git commit -m "artifacts: publish hardened capability acceptance evidence"
-A=$(git rev-parse HEAD)
-
-git merge-base --is-ancestor "$C" "$A"
+PYTHONPATH=. python -m pytest -q
 ```
 
-检查 core drift：
+### 15.4 Smoke command
 
 ```bash
-git diff --name-only "$C..$A" -- \
-  soma_retargeter \
-  tests \
-  scripts \
-  .github
+PYTHONPATH=. python -m soma_retargeter.tools.run_v3_runtime_shadow_smoke \
+  --artifact-root artifacts/retargeting_v3_step3_runtime_shadow \
+  --profile-artifact-root artifacts/retargeting_v3_step2_capability \
+  --robots roboparty_rpo unitree_g1 \
+  --clips assets/motions/bvh/Neutral_walk_forward_002__A057.bvh assets/motions/bvh/wave_R_001__A428.bvh \
+  --modes disabled shadow override_experimental \
+  --max-frames 120
 ```
 
-结果必须为空。若不为空，artifact无效，必须重新freeze和重跑。
+### 15.5 Audit
 
-允许 artifact commit修改：
-
-```text
-artifacts/retargeting_v3_step2_capability/**
-docs/retargeting_v3/**/final-report-only files
+```bash
+PYTHONPATH=. python scripts/audit_retargeting_v3_step3_runtime_shadow.py \
+  --artifact-dir artifacts/retargeting_v3_step3_runtime_shadow \
+  --source-root . \
+  --write-report artifacts/retargeting_v3_step3_runtime_shadow/acceptance_ledger.json
 ```
 
 ---
 
-## 14. 最终 artifacts 必须存在
+## 16. CI requirements
+
+New workflow：
 
 ```text
-artifacts/retargeting_v3_step2_capability/
-  environment.json
-  lfs_state.json
-  commands.txt
-  acceptance_ledger.json
-  baseline_summary.json
-  baseline_failure_ledger.json
-  before_after.json
-  certificate_thresholds.json
-  summary.json
-  capability_matrix.json
-  target_geometry_matrix.json
-  deterministic_rerun.json
-  cross_format.json
-  deferred_snapshots.json
-  source_inventory.json
-  load_matrix.json
-  semantic_matrix.json
-  validation_checks.json
-  capability_audit.json
-  per_robot/*.json
-  per_task/*.json
-  failures/*.json
-  test_results/
-    pytest.txt
-    junit.xml
-    pytest_summary.json
+.github/workflows/retargeting_v3_step3_runtime_shadow.yml
 ```
 
-### 14.1 `environment.json`
+Must include jobs：
 
-必须包含真实值：
+```text
+runtime-shadow-unit-tests
+runtime-shadow-lfs-smoke
+runtime-shadow-artifact-audit
+```
+
+CI must：
+
+- checkout with LFS;
+- `git lfs pull && git lfs fsck`;
+- install package;
+- run targeted tests;
+- run artifact audit;
+- not require private assets;
+- not run full long smoke unless workflow_dispatch/self-hosted;
+- upload compact artifacts if generated。
+
+If CI cannot run full RPO/G1 smoke on GitHub runner, final local artifacts must contain smoke results and CI must at least audit committed artifacts.
+
+---
+
+## 17. Final artifacts requirements
+
+```text
+artifacts/retargeting_v3_step3_runtime_shadow/
+  environment.json
+  commands.txt
+  profile_resolution.json
+  shadow_summary.json
+  override_smoke_summary.json
+  smoke_matrix.json
+  deterministic_rerun.json
+  acceptance_ledger.json
+  per_clip/<robot>/<clip>/target_deltas.json
+  per_clip/<robot>/<clip>/pipeline_summary.json
+  test_results/pytest.txt
+  test_results/junit.xml
+  test_results/pytest_summary.json
+```
+
+`environment.json` must include：
 
 ```text
 source_code_commit
@@ -1332,436 +1023,85 @@ source_code_commit_remote_resolvable=true
 source_code_commit_is_artifact_commit_ancestor=true
 source_worktree_clean_before_run=true
 source_worktree_clean_after_run=true
-core_diff_after_source_commit=[]
 git_status_short=""
-package versions
-seed
-```
-
-### 14.2 `lfs_state.json`
-
-必须包含：
-
-```text
-git_lfs_version
-fsck_returncode=0
-pointer_files_detected=[]
-missing_lfs_objects=[]
-materialized_snapshot_count=38
-tracked_paths
-```
-
-### 14.3 `acceptance_ledger.json`
-
-必须运行：
-
-```text
-scripts/audit_retargeting_v3_capability.py
-```
-
-不得引用旧 Step 2.2 audit。
-
-### 14.4 `before_after.json`
-
-必须记录：
-
-```text
-baseline_commit=5ad5...
-baseline_artifact_root
-baseline status
-current status
-transition
-real source command
-```
-
-不得使用after status推断before status。
-
----
-
-## 15. CI 文件必须精确修改
-
-文件：
-
-```text
-.github/workflows/retargeting_v3_capability.yml
-```
-
-### 15.1 Push trigger
-
-必须包含实际分支：
-
-```yaml
-push:
-  branches:
-    - retargeting-v3-step2-capability-acceptance-hardening
-```
-
-### 15.2 LFS
-
-```yaml
-- uses: actions/checkout@v4
-  with:
-    lfs: true
-
-- name: Verify Git LFS
-  run: |
-    git lfs pull
-    git lfs fsck
-```
-
-### 15.3 Artifact root
-
-必须：
-
-```yaml
-RETARGETING_V3_CAPABILITY_ARTIFACTS: artifacts/retargeting_v3_step2_capability
-```
-
-Audit命令必须使用 capability root：
-
-```bash
-python scripts/audit_retargeting_v3_capability.py \
-  --artifact-dir "$RETARGETING_V3_CAPABILITY_ARTIFACTS" \
-  --numerical-artifact-dir artifacts/retargeting_v3_step2_numerical \
-  --lock assets/robot_zoo/robot_zoo_lock.json
-```
-
-禁止继续 audit：
-
-```text
-artifacts/retargeting_v3_step2_assets44
-```
-
-### 15.4 Hosted jobs
-
-至少包括：
-
-```text
-capability-synthetic-tests
-capability-artifact-live-audit
-lfs-snapshot-smoke
-```
-
-### 15.5 Full 44 job
-
-5个fetch-only模型需要外部cache，因此 full44 可以是：
-
-```text
-self-hosted 或 workflow_dispatch
-```
-
-但最终 committed artifacts必须来自本文件规定的clean local full44 run。
-
-### 15.6 Workflow run evidence
-
-最终 Agent F handoff必须记录：
-
-```text
-workflow name
-run ID
-head SHA
-conclusion=success
-job conclusions
+python/mujoco/newton/warp/numpy/scipy versions
 ```
 
 ---
 
-## 16. 必须新增的测试
+## 18. Final acceptance checklist
 
-### Baseline truth
+### Safety/no-op
 
-- fixed commit读取成功；
-- fixed commit不存在时失败；
-- baseline counts不匹配时失败；
-- fabricated before status失败；
-- baseline passed降级失败。
+- [ ] default config output unchanged;
+- [ ] disabled mode output unchanged;
+- [ ] shadow mode output unchanged;
+- [ ] override requires explicit config;
+- [ ] no Step 2 artifact mutation;
+- [ ] no threshold changes;
+- [ ] no IK weight changes。
 
-### Motion/status
+### Runtime target stream
 
-- stress-only limited仍是`passed`；
-- ordinary limited是`capability_limited_passed`；
-- invariance limited是`algorithm_failed`；
-- missing certificate是`algorithm_failed`；
-- failed certificate是`algorithm_failed`；
-- partial不进入capability状态；
-- negative不进入capability状态。
+- [ ] source semantic frames finite;
+- [ ] V3 targets finite;
+- [ ] target order mapping correct;
+- [ ] diagnostics deterministic;
+- [ ] missing semantic fail closed。
 
-### Certificate recompute
+### RPO/G1
 
-- q越界但`primal_feasible=True`时audit失败；
-- KKT sign错误时失败；
-- raw J/e与gradient不一致时失败；
-- prior gradient被写零时失败；
-- rank residual decomposition不一致时失败；
-- task gradient为真实零时允许；
-- task gradient被人为改`1e-15`时不应成为通过依据；
-- seed residual相同但endpoint不同，consensus失败；
-- continuation final alpha<1失败；
-- pointer-only LFS失败。
+- [ ] RPO strict profile match;
+- [ ] RPO shadow pass;
+- [ ] RPO override smoke pass;
+- [ ] G1 shadow pass or explicit fingerprint-skip;
+- [ ] G1 override pass or explicit fail-closed;
+- [ ] no private assets。
 
-### Provenance
+### Artifacts/CI
 
-- source commit不可解析失败；
-- source不是artifact ancestor失败；
-- source后core drift失败；
-- dirty source worktree失败；
-- missing pytest/junit/lfs_state失败；
-- stale acceptance ledger失败。
-
-### Full regression
-
-- baseline 21 passed保持；
-- 3 partial保持；
-- 9 negative保持；
-- 11 failure transitions合法；
-- deterministic 44/44；
-- G1 strict equivalence保持；
-- RPO保持terminal pass；
-- no epsilon-only failure。
+- [ ] all required artifacts exist;
+- [ ] pytest/junit saved;
+- [ ] smoke matrix saved;
+- [ ] audit PASS;
+- [ ] CI PASS;
+- [ ] Agent F PASS;
+- [ ] worktree clean;
+- [ ] LFS OK。
 
 ---
 
-## 17. 测试命令——必须全部执行
+## 19. Completion definition
 
-### 17.1 Targeted hardening tests
-
-```bash
-PYTHONPATH=. python -m pytest -q \
-  tests/v3/test_capability_true_baseline_*.py \
-  tests/v3/test_certificate_raw_evidence_*.py \
-  tests/v3/test_certificate_independent_recompute_*.py \
-  tests/v3/test_seed_task_space_consensus_*.py \
-  tests/v3/test_continuation_evidence_*.py \
-  tests/v3/test_motion_class_partition_*.py \
-  tests/v3/test_capability_profile_status_*.py \
-  tests/v3/test_stress_motion_status_isolation_*.py \
-  tests/v3/test_capability_provenance_*.py \
-  tests/v3/test_capability_lfs_state_*.py \
-  tests/v3/test_capability_acceptance_*.py
-```
-
-### 17.2 V3 suite
-
-```bash
-PYTHONPATH=. python -m pytest -q tests/v3
-```
-
-### 17.3 Full repository suite
-
-```bash
-PYTHONPATH=. python -m pytest -q
-```
-
-必须保存：
+Final report must be exactly one of：
 
 ```text
-pytest.txt
-junit.xml
-pytest_summary.json
+Step 3.0 Runtime Profile Shadow: PASS
 ```
 
-### 17.4 LFS
-
-```bash
-git lfs fsck
-```
-
-### 17.5 Live audit
-
-```bash
-PYTHONPATH=. python scripts/audit_retargeting_v3_capability.py \
-  --artifact-dir artifacts/retargeting_v3_step2_capability \
-  --numerical-artifact-dir artifacts/retargeting_v3_step2_numerical \
-  --manifest assets/robot_zoo/robot_zoo_manifest.json \
-  --lock assets/robot_zoo/robot_zoo_lock.json \
-  --write-report artifacts/retargeting_v3_step2_capability/capability_audit.json
-```
-
-最终：
+or：
 
 ```text
-status=passed
-failure_count=0
+Step 3.0 Runtime Profile Shadow: BLOCKED
 ```
 
----
-
-## 18. Red-team audit 必须独立检查
-
-`scripts/audit_retargeting_v3_capability.py` 必须：
-
-1. 读取真实 baseline commit；
-2. 验证真实 transitions；
-3. 独立重算所有超阈值 task residual；
-4. 独立重算 Jᵀe；
-5. 独立重算 projected gradient；
-6. 独立重算 primal/dual/complementarity；
-7. 独立重算 prior cancellation；
-8. 独立重算 residual decomposition；
-9. 独立重算 task-space seed spread；
-10. 验证 continuation final alpha=1；
-11. 验证 class-specific gates；
-12. 验证 stress不影响status；
-13. 验证invariance exact；
-14. 验证44/44 deterministic；
-15. 验证source commit；
-16. 验证source→artifact ancestry；
-17. 验证no core drift；
-18. 验证pytest/junit/lfs_state；
-19. 验证LFS materialized；
-20. 验证workflow branch/root；
-21. 验证Agent F最终handoff不是stale FAIL；
-22. 验证acceptance ledger是本轮audit。
-
-Audit 不得：
-
-- 仅验证字段存在；
-- 相信artifact中的`certified=true`；
-- 相信artifact中的gate bool；
-- 使用默认True补字段；
-- 为当前artifact修改期望值；
-- 忽略baseline exact downgrade。
-
----
-
-## 19. 推荐 commit 顺序
-
-必须使用小 commits：
-
-1. `test: expose fabricated capability baseline transitions`
-2. `feat: load immutable Assets44 baseline from git object`
-3. `test: expose synthetic KKT and seed evidence fields`
-4. `feat: serialize raw capability certificate evidence v2`
-5. `fix: remove synthetic red-team KKT certificate fields`
-6. `test: isolate stress motions from profile status`
-7. `feat: add deterministic motion-class status policy`
-8. `test: independently recompute certificate gates`
-9. `feat: harden capability red-team audit`
-10. `feat: add clean capability artifact generation protocol`
-11. `test: validate true 44-model before-after transitions`
-12. `ci: run capability audit on actual branch and artifact root`
-13. `docs: publish six hardening handoffs`
-14. `artifacts: publish hardened capability evidence`
-
-禁止将所有修改压成一个大 commit。
-
----
-
-## 20. 最终验收表
-
-### Baseline
-
-- [ ] baseline来自`5ad5...`；
-- [ ] baseline counts=21/3/9/11；
-- [ ] 无fabricated before；
-- [ ] transitions合法；
-- [ ] 21 baseline passed无降级；
-- [ ] 3 partial无变化；
-- [ ] 9 negative无变化。
-
-### Certificate
-
-- [ ] schema v2；
-- [ ] raw J/e/q/bounds；
-- [ ]真实task/prior gradient；
-- [ ] primal/dual/complementarity真实计算；
-- [ ] task-space seed consensus；
-- [ ] continuation alpha=1；
-- [ ] class-specific gates；
-- [ ] 无synthetic KKT helper；
-- [ ] 无默认True；
-- [ ] 无`1e-15`造假。
-
-### Status
-
-- [ ] invariance exact-only；
-- [ ] stress不影响status；
-- [ ] passed>=21；
-- [ ] capability_limited<=11；
-- [ ] partial=3；
-- [ ] negative=9；
-- [ ] algorithm_failed=0；
-- [ ] total=44。
-
-### Determinism
-
-- [ ] compared=44；
-- [ ] matched=44；
-- [ ] compare status；
-- [ ] compare q；
-- [ ] compare task vector；
-- [ ] compare certificate class；
-- [ ] compare certificate digest。
-
-### Provenance/LFS
-
-- [ ] source commit远端可解析；
-- [ ] source是artifact ancestor；
-- [ ] source后无core drift；
-- [ ] source worktree before/after clean；
-- [ ] LFS fsck PASS；
-- [ ] pointer count=0；
-- [ ] no meshes/fetch-only leakage；
-- [ ] no absolute paths。
-
-### Tests/CI
-
-- [ ] targeted tests通过；
-- [ ] tests/v3通过；
-- [ ] full pytest通过；
-- [ ] pytest.txt存在；
-- [ ] junit.xml存在；
-- [ ] pytest_summary.json存在；
-- [ ] capability audit PASS；
-- [ ] workflow实际分支触发；
-- [ ] workflow audit capability root；
-- [ ] GitHub Actions run success；
-- [ ] workflow run ID记录。
-
-### Process
-
-- [ ] 6个xhigh handoffs完整；
-- [ ] Agent F最终handoff为PASS；
-- [ ] acceptance ledger为Step2.3.1；
-- [ ] 未修改thresholds；
-- [ ] 未添加robot特例；
-- [ ] 未进入Step3。
-
----
-
-## 21. 完成定义
-
-最终只允许写：
+PASS requires all：
 
 ```text
-Step 2.3.1 Capability Acceptance Hardening: PASS
+default no-op verified
+shadow no-op verified
+RPO profile strict matched
+RPO shadow diagnostics finite
+RPO override smoke finite/deterministic
+G1 shadow finite or fingerprint-skip recorded
+G1 override pass or fail-closed recorded
+full tests pass
+runtime artifacts clean
+CI green
+Agent F PASS
+no Step 3.1 quality claims
 ```
 
-或：
+If any hard gate fails, write BLOCKED and list blockers. Do not hide failure by changing mode to disabled or deleting diagnostics.
 
-```text
-Step 2.3.1 Capability Acceptance Hardening: BLOCKED
-```
-
-PASS 必须同时满足：
-
-```text
-真实baseline
-真实transition
-21 exact baseline passes无回归
-11 old failures全部转exact或有效limited
-algorithm_failed=0
-44/44 deterministic
-所有certificate可独立重算
-source commit可解析
-clean provenance
-LFS fsck PASS
-full tests PASS
-live audit PASS
-CI PASS
-Agent F final PASS
-```
-
-任一项不满足必须写 BLOCKED。
-
-**即使本轮 PASS，也必须在此停止。不得自动进入 Step 3，等待用户重新审查。**
+**即使 PASS，也必须在此停止。不要自动开始 Step 3.1 full runtime quality / visual evaluation。**
