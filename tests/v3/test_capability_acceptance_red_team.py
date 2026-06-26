@@ -454,6 +454,34 @@ def test_baseline_truth_rejects_fabricated_before_status_and_pass_downgrade() ->
 
     assert any("fabricated before status" in failure for failure in failures)
     assert any("baseline passed downgraded" in failure for failure in failures)
+    assert any("baseline_source_command" in failure for failure in failures)
+
+
+def test_baseline_truth_requires_pinned_git_source_commands() -> None:
+    expected_summary = f"git show {EXPECTED_BASELINE_COMMIT}:artifacts/retargeting_v3_step2_assets44/summary.json"
+    before_after = {
+        "baseline_commit": EXPECTED_BASELINE_COMMIT,
+        "baseline_artifact_root": "artifacts/retargeting_v3_step2_assets44",
+        "baseline_source_command": expected_summary,
+        "row_count": 1,
+        "rows": {
+            "full_model": {
+                "before_status": "passed",
+                "after_status": "passed",
+                "baseline_source_command": "git show bad:artifacts/old.json",
+                "baseline_summary_source_command": expected_summary,
+            },
+        },
+    }
+    baseline_summary = {
+        "baseline_commit": EXPECTED_BASELINE_COMMIT,
+        "row_count": 1,
+        "rows": {"full_model": {"status": "passed"}},
+    }
+
+    failures = audit_baseline_truth(before_after, baseline_summary)
+
+    assert any("pinned per-robot source command" in failure for failure in failures)
 
 
 def test_before_after_acceptance_rejects_failed_transition_and_final_counts() -> None:

@@ -66,10 +66,20 @@ def test_before_after_uses_real_baseline_instead_of_fabricated_partial(tmp_path:
     assert apptronik["after_status"] == "capability_limited_passed"
     assert apptronik["transition"] == "passed->capability_limited_passed"
     assert apptronik["transition_allowed"] is False
+    assert apptronik["baseline_summary_source_command"] == (
+        f"git show {DEFAULT_BASELINE_COMMIT}:artifacts/retargeting_v3_step2_assets44/summary.json"
+    )
+    assert apptronik["baseline_source_command"] == (
+        f"git show {DEFAULT_BASELINE_COMMIT}:"
+        "artifacts/retargeting_v3_step2_assets44/per_robot/apptronik_apollo_mjcf.json"
+    )
     assert atlas["before_status"] == "algorithm_failed"
     assert atlas["after_status"] == "capability_limited_passed"
     assert atlas["transition"] == "algorithm_failed->capability_limited_passed"
     assert atlas["transition_allowed"] is True
+    assert before_after["baseline_source_command"] == (
+        f"git show {DEFAULT_BASELINE_COMMIT}:artifacts/retargeting_v3_step2_assets44/summary.json"
+    )
     assert before_after["transition_validation"]["status"] == "failed"
     assert before_after["transition_validation"]["invalid_transition_counts"] == {
         "passed->capability_limited_passed": 1

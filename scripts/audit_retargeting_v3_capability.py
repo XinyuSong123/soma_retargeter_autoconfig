@@ -207,6 +207,14 @@ def audit_baseline_truth(before_after: dict[str, Any], baseline_summary: dict[st
         )
     if not before_after.get("baseline_artifact_root"):
         failures.append("before_after.baseline_artifact_root missing")
+    expected_summary_command = (
+        f"git show {EXPECTED_BASELINE_COMMIT}:"
+        "artifacts/retargeting_v3_step2_assets44/summary.json"
+    )
+    if before_after.get("baseline_source_command") != expected_summary_command:
+        failures.append(
+            "before_after.baseline_source_command must record the pinned git-object summary command"
+        )
     rows = before_after.get("rows")
     baseline_rows = baseline_summary.get("rows")
     if not isinstance(baseline_rows, dict):
@@ -241,6 +249,14 @@ def audit_baseline_truth(before_after: dict[str, Any], baseline_summary: dict[st
                 f"{model_id}: fabricated before status {before_status!r}; "
                 f"true baseline status is {true_status!r}"
             )
+        expected_row_command = (
+            f"git show {EXPECTED_BASELINE_COMMIT}:"
+            f"artifacts/retargeting_v3_step2_assets44/per_robot/{model_id}.json"
+        )
+        if row.get("baseline_source_command") != expected_row_command:
+            failures.append(f"{model_id}: before_after row missing pinned per-robot source command")
+        if row.get("baseline_summary_source_command") != expected_summary_command:
+            failures.append(f"{model_id}: before_after row missing pinned summary source command")
         if true_status == "passed" and after_status != "passed":
             failures.append(f"{model_id}: baseline passed downgraded to {after_status!r}")
     return failures

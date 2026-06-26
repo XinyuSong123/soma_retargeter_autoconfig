@@ -51,6 +51,15 @@ BASELINE_ROBOT_IDS = (
     "valkyrie_urdf",
 )
 
+
+def baseline_summary_source_command(source_commit: str, artifact_root: str | Path) -> str:
+    return f"git show {source_commit}:{_display_path(Path(artifact_root) / 'summary.json')}"
+
+
+def baseline_robot_source_command(source_commit: str, artifact_root: str | Path, robot_id: str) -> str:
+    report_path = Path(artifact_root) / "per_robot" / f"{robot_id}.json"
+    return f"git show {source_commit}:{_display_path(report_path)}"
+
 PROJECTION_POSITION_METRIC = "projection_position_normalized_residual"
 PROJECTION_ROTATION_METRIC = "projection_rotation_normalized_residual"
 NUMERICAL_STABILITY_METRIC = "numerical_stability_gate"
@@ -210,6 +219,7 @@ def build_capability_before_after(
         raise ValueError(f"{current_path}: current summary reports must be an object")
 
     baseline_reports = baseline["reports"]
+    summary_source_command = baseline_summary_source_command(source_commit, artifact_root)
     baseline_ids = set(baseline_reports)
     current_ids = set(current_reports)
     if current_ids != baseline_ids:
@@ -235,6 +245,8 @@ def build_capability_before_after(
             invalid_transition_counts[transition] += 1
         row = {
             "baseline_commit": source_commit,
+            "baseline_source_command": baseline_robot_source_command(source_commit, artifact_root, robot_id),
+            "baseline_summary_source_command": summary_source_command,
             "before_status": before_status,
             "before_status_reason": before.get("status_reason"),
             "after_status": after_status,
@@ -263,6 +275,7 @@ def build_capability_before_after(
         "basis": "true_baseline_git_object",
         "baseline_commit": source_commit,
         "baseline_artifact_root": _display_path(Path(artifact_root)),
+        "baseline_source_command": summary_source_command,
         "current_summary_path": _display_path(current_path),
         "row_count": len(rows),
         "baseline_counts": dict(baseline["status_counts"]),
