@@ -1,0 +1,110 @@
+name: Retargeting V3 Step 3 Runtime Shadow
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/pipelines/newton_pipeline.py"
+      - "soma_retargeter/pipelines/v3_runtime_config.py"
+      - "soma_retargeter/tools/run_v3_runtime_shadow_smoke.py"
+      - "soma_retargeter/configs/**/soma_to_*_retargeter_config*.json"
+      - "scripts/audit_retargeting_v3_step3_runtime_shadow.py"
+      - "scripts/run_step3_runtime_shadow_acceptance.sh"
+      - "tests/v3/test_step3_runtime_shadow_acceptance_*.py"
+      - "tests/v3/test_runtime_*_*.py"
+      - "tests/v3/test_newton_pipeline_v3_*.py"
+      - "tests/v3/test_step3_runtime_artifact_schema_*.py"
+      - "tests/v3/test_step3_runtime_smoke_matrix_*.py"
+      - "docs/retargeting_v3/STEP3_RUNTIME_SHADOW_*.md"
+      - "docs/retargeting_v3/subagents/step3_agent_*_*.md"
+      - "artifacts/retargeting_v3_step3_runtime_shadow/**"
+      - ".github/workflows/retargeting_v3_step3_runtime_shadow.yml"
+  push:
+    branches:
+      - retargeting-v3-step3-runtime-profile-shadow
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/pipelines/newton_pipeline.py"
+      - "soma_retargeter/pipelines/v3_runtime_config.py"
+      - "soma_retargeter/tools/run_v3_runtime_shadow_smoke.py"
+      - "soma_retargeter/configs/**/soma_to_*_retargeter_config*.json"
+      - "scripts/audit_retargeting_v3_step3_runtime_shadow.py"
+      - "scripts/run_step3_runtime_shadow_acceptance.sh"
+      - "tests/v3/test_step3_runtime_shadow_acceptance_*.py"
+      - "tests/v3/test_runtime_*_*.py"
+      - "tests/v3/test_newton_pipeline_v3_*.py"
+      - "tests/v3/test_step3_runtime_artifact_schema_*.py"
+      - "tests/v3/test_step3_runtime_smoke_matrix_*.py"
+      - "docs/retargeting_v3/STEP3_RUNTIME_SHADOW_*.md"
+      - "docs/retargeting_v3/subagents/step3_agent_*_*.md"
+      - "artifacts/retargeting_v3_step3_runtime_shadow/**"
+      - ".github/workflows/retargeting_v3_step3_runtime_shadow.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  RETARGETING_V3_STEP3_ARTIFACTS: artifacts/retargeting_v3_step3_runtime_shadow
+
+jobs:
+  runtime-shadow-unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run Agent F runtime-shadow acceptance tests
+        run: |
+          set -o pipefail
+          mkdir -p "$RETARGETING_V3_STEP3_ARTIFACTS/test_results"
+          python -m pytest -q tests/v3/test_step3_runtime_shadow_acceptance_*.py \
+            --junitxml "$RETARGETING_V3_STEP3_ARTIFACTS/test_results/junit.xml" \
+            | tee "$RETARGETING_V3_STEP3_ARTIFACTS/test_results/pytest.txt"
+
+  runtime-shadow-lfs-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+
+  runtime-shadow-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install audit dependencies
+        run: |
+          python -m pip install --upgrade pip
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs pull
+          git lfs fsck
+      - name: Run live Step 3 runtime-shadow red-team audit
+        run: |
+          python scripts/audit_retargeting_v3_step3_runtime_shadow.py \
+            --artifact-dir "$RETARGETING_V3_STEP3_ARTIFACTS" \
+            --source-root . \
+            --output-json "$RETARGETING_V3_STEP3_ARTIFACTS/acceptance_ledger.json"

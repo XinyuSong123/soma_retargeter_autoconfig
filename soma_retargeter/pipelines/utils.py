@@ -32,6 +32,10 @@ _TARGET_TYPE_TO_STR = {
     TargetType.ROBOPARTY_RPO : "roboparty_rpo",
 }
 _STR_TO_TARGET_TYPE = {s : t for t, s in _TARGET_TYPE_TO_STR.items()}
+_DEFAULT_RUNTIME_V3_PROFILE_IDS = {
+    "roboparty_rpo": "roboparty_rpo_local",
+    "unitree_g1": "unitree_g1_mjcf",
+}
 
 
 def get_source_str_from_type(source: SourceType) -> str:
@@ -108,6 +112,13 @@ def get_target_type_from_str(target: str) -> Union[str, TargetType]:
 def get_supported_target_names() -> list[str]:
     """Return built-in target names plus robots declared in params.py."""
     return sorted(set(_STR_TO_TARGET_TYPE.keys()) | set(robot_registry_parser.get_supported_robot_names()))
+
+
+def get_default_runtime_v3_profile_id(target: Union[str, TargetType]) -> str | None:
+    """Return the default Step 2 capability profile id for a runtime target."""
+    target_name = get_target_str_from_type(target)
+    target_name = robot_registry_parser.resolve_robot_name(target_name)
+    return _DEFAULT_RUNTIME_V3_PROFILE_IDS.get(target_name)
 
 
 def get_source_model_mesh(source: SourceType, skeleton) -> dict:

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import copy
+import json
+from pathlib import Path
 
 import warp as wp
 import numpy as np
@@ -13,6 +15,7 @@ import soma_retargeter.assets.bvh as bvh_utils
 import soma_retargeter.utils.newton_utils as newton_utils
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
+from soma_retargeter.pipelines.v3_runtime_config import parse_v3_runtime_profile_config
 from soma_retargeter.pipelines.ik_objectives import IKSmoothJointFilter
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
@@ -97,6 +100,11 @@ class NewtonPipeline:
         else:
             retargeter_config = retarget_config
         retargeter_config = copy.deepcopy(retargeter_config)
+        self.v3_runtime_config = parse_v3_runtime_profile_config(retargeter_config)
+        self.v3_runtime_profile = None
+        self.v3_runtime_profile_resolution = None
+        self.v3_runtime_adapter = None
+        self.v3_runtime_diagnostics = []
         self.stance_width_debug_config = normalize_debug_config(retargeter_config.get(DEBUG_CONFIG_KEY, {}))
         retargeter_config["ik_map"], self.stance_width_debug_summary = apply_debug_options_to_ik_map(
             retargeter_config.get("ik_map", {}),
@@ -132,7 +140,8 @@ class NewtonPipeline:
         self.joint_limit_clamper = None
 
         self.robot_builder = newton.ModelBuilder()
-        self.robot_builder.add_mjcf(str(pipeline_utils.get_robot_mjcf_path(self.target_type)))
+        self.robot_mjcf_path = pipeline_utils.get_robot_mjcf_path(self.target_type)
+        self.robot_builder.add_mjcf(str(self.robot_mjcf_path))
 
         self.human_robot_scaler = HumanToRobotScaler(
             skeleton, retargeter_config['model_height'], io_utils.get_config_file(retargeter_config['human_robot_scaler_config']))
@@ -203,6 +212,8 @@ class NewtonPipeline:
             self.num_initialization_frames = retargeter_config.get('num_initialization_frames', _DEFAULT_NUM_INITIALIZATION_FRAMES)
             self.num_stabilization_frames = retargeter_config.get('num_stabilization_frames', _DEFAULT_NUM_STABILIZATION_FRAMES)
 
+        self._initialize_v3_runtime()
+
     def clear(self):
         """
         Clear all accumulated input motions and reset internal state.
@@ -214,6 +225,181 @@ class NewtonPipeline:
         self.input_sample_rates = []
         self.max_frames = -1
         self.input_contact_scores = []
+        if hasattr(self, "v3_runtime_diagnostics"):
+            self.v3_runtime_diagnostics = []
+
+    def _initialize_v3_runtime(self):
+        cfg = getattr(self, "v3_runtime_config", None)
+        if cfg is None or not cfg.should_compute_targets:
+            return
+
+        try:
+            from soma_retargeter.runtime.v3.profile_loader import load_runtime_v3_profile
+        except Exception as exc:
+            raise RuntimeError(
+                "v3_runtime_profile is enabled but the runtime profile loader is unavailable"
+            ) from exc
+
+        try:
+            profile, resolution = load_runtime_v3_profile(self.target_type, self.robot_mjcf_path, cfg)
+        except Exception as exc:
+            raise RuntimeError(f"v3_runtime_profile initialization failed: {exc}") from exc
+
+        self.v3_runtime_profile = profile
+        self.v3_runtime_profile_resolution = resolution
+        if profile is None:
+            return
+
+        try:
+            from soma_retargeter.runtime.v3.target_adapter import RuntimeV3TargetAdapter
+        except Exception as exc:
+            raise RuntimeError(
+                "v3_runtime_profile is enabled but the runtime target adapter is unavailable"
+            ) from exc
+
+        try:
+            self.v3_runtime_adapter = RuntimeV3TargetAdapter(profile=profile, config=cfg)
+        except TypeError:
+            self.v3_runtime_adapter = RuntimeV3TargetAdapter(profile)
+
+    def _apply_v3_runtime_targets(
+        self,
+        *,
+        buffer,
+        offset,
+        scale_animation,
+        legacy_buffer_effectors,
+        clip_index,
+    ):
+        cfg = getattr(self, "v3_runtime_config", None)
+        if cfg is None or not cfg.should_compute_targets:
+            return legacy_buffer_effectors
+
+        adapter = getattr(self, "v3_runtime_adapter", None)
+        if adapter is None:
+            self._record_v3_runtime_diagnostics(
+                clip_index,
+                {
+                    "skipped_reason": "runtime_target_adapter_unavailable",
+                    "profile_resolution": self._v3_profile_resolution_json(),
+                },
+            )
+            if cfg.shadow_enabled:
+                return legacy_buffer_effectors
+            raise RuntimeError("v3 override_experimental requires an initialized runtime target adapter")
+
+        legacy_for_adapter = np.array(legacy_buffer_effectors, copy=True)
+        kwargs = {
+            "buffer": buffer,
+            "offset": offset,
+            "scale_animation": scale_animation,
+            "legacy_buffer_effectors": legacy_for_adapter,
+            "legacy_effector_names": list(self.human_robot_scaler.effector_names()),
+            "target_effector_indices": list(self.target_effector_indices),
+            "mapped_joints": list(self.mapped_joints),
+            "semantic_tasks": list(cfg.semantic_tasks),
+            "override_tasks": list(cfg.override_tasks),
+            "mode": cfg.mode,
+            "robot_type": (
+                pipeline_utils.get_target_str_from_type(self.target_type)
+                if hasattr(self, "target_type")
+                else ""
+            ),
+            "config": cfg,
+            "profile": getattr(self, "v3_runtime_profile", None),
+            "profile_resolution": getattr(self, "v3_runtime_profile_resolution", None),
+            "clip_index": clip_index,
+            "diagnostics_max_frames": cfg.diagnostics_max_frames,
+        }
+        result = self._call_v3_runtime_adapter(adapter, kwargs)
+        target_effectors, diagnostics = self._normalize_v3_runtime_adapter_result(result)
+        self._record_v3_runtime_diagnostics(clip_index, diagnostics)
+
+        if cfg.shadow_enabled:
+            return legacy_buffer_effectors
+        if cfg.override_enabled:
+            if target_effectors is None:
+                raise RuntimeError("v3 override_experimental adapter did not return target_effectors")
+            return np.asarray(target_effectors, dtype=np.float32)
+        return legacy_buffer_effectors
+
+    def _call_v3_runtime_adapter(self, adapter, kwargs):
+        if hasattr(adapter, "compute_targets"):
+            return adapter.compute_targets(**kwargs)
+        if callable(adapter):
+            return adapter(**kwargs)
+        raise TypeError("v3 runtime target adapter must be callable or expose compute_targets(**kwargs)")
+
+    def _normalize_v3_runtime_adapter_result(self, result):
+        if result is None:
+            return None, {}
+        if isinstance(result, dict):
+            return result.get("target_effectors"), dict(result.get("diagnostics", {}))
+        target_effectors = getattr(result, "target_effectors", None)
+        diagnostics = getattr(result, "diagnostics", {})
+        if hasattr(diagnostics, "to_json"):
+            diagnostics = diagnostics.to_json()
+        return target_effectors, dict(diagnostics or {})
+
+    def _record_v3_runtime_diagnostics(self, clip_index, diagnostics):
+        cfg = getattr(self, "v3_runtime_config", None)
+        if cfg is None or not cfg.should_collect_diagnostics:
+            return
+        self.v3_runtime_diagnostics.append(
+            {
+                "mode": cfg.mode,
+                "clip_index": int(clip_index),
+                "semantic_tasks": list(cfg.semantic_tasks),
+                "diagnostics": self._json_safe(diagnostics),
+            }
+        )
+
+    def _v3_profile_resolution_json(self):
+        resolution = getattr(self, "v3_runtime_profile_resolution", None)
+        if resolution is None:
+            return None
+        if hasattr(resolution, "to_json"):
+            return resolution.to_json()
+        if isinstance(resolution, dict):
+            return dict(resolution)
+        return {"value": str(resolution)}
+
+    def _write_v3_runtime_diagnostics_summary(self, output_buffers=None):
+        cfg = getattr(self, "v3_runtime_config", None)
+        if cfg is None or not cfg.should_collect_diagnostics:
+            return
+        diagnostics = getattr(self, "v3_runtime_diagnostics", [])
+        if not diagnostics:
+            return
+
+        output_dir = Path(cfg.diagnostics_output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if cfg.shadow_enabled:
+            filename = "shadow_summary.json"
+        elif cfg.override_enabled:
+            filename = "override_smoke_summary.json"
+        else:
+            filename = "runtime_summary.json"
+        payload = {
+            "schema_version": 1,
+            "mode": cfg.mode,
+            "clip_count": len(diagnostics),
+            "output_buffer_count": len(output_buffers or []),
+            "profile_resolution": self._v3_profile_resolution_json(),
+            "diagnostics": self._json_safe(diagnostics),
+        }
+        (output_dir / filename).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+    def _json_safe(self, value):
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, dict):
+            return {str(k): self._json_safe(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [self._json_safe(v) for v in value]
+        return value
 
     def add_input_motions(self, buffers: list[AnimationBuffer], offsets: list[wp.transform], scale_animation: bool):
         """
@@ -236,7 +422,14 @@ class NewtonPipeline:
                     self.initialization_pose, buffers[i], self.num_initialization_frames, self.num_stabilization_frames)
 
             self.max_frames = max(self.max_frames, buffer.num_frames)
-            buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
+            legacy_buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
+            buffer_effectors = self._apply_v3_runtime_targets(
+                buffer=buffer,
+                offset=offsets[i],
+                scale_animation=scale_animation,
+                legacy_buffer_effectors=legacy_buffer_effectors,
+                clip_index=len(self.input_targets),
+            )
             if getattr(self, "stance_width_diagnostics_enabled", False):
                 try:
                     self.stance_width_report_inputs.append({
@@ -245,7 +438,7 @@ class NewtonPipeline:
                             offsets[i],
                         ),
                         "source_soma_names": list(buffer.skeleton.joint_names),
-                        "scaled_target_transforms": np.asarray(buffer_effectors, dtype=np.float32),
+                        "scaled_target_transforms": np.asarray(legacy_buffer_effectors, dtype=np.float32),
                         "scaled_target_names": list(self.human_robot_scaler.effector_names()),
                     })
                 except Exception as exc:
@@ -454,6 +647,7 @@ class NewtonPipeline:
                 elif grounding_stats.reason != "ok":
                     print(f"[INFO] Virtual foot grounding skipped: {grounding_stats.reason}")
             output_buffers.append(CSVAnimationBuffer.create_from_raw_data(raw_data, self.input_sample_rates[i]))
+        self._write_v3_runtime_diagnostics_summary(output_buffers)
         return output_buffers
 
     def _build_stance_width_report_for_output(self, env, raw_ik_data, num_frames_to_remove):

@@ -1,0 +1,33 @@
+{
+    "ik_map": {
+        "Hips": "pelvis",
+        "Chest": "torso_link",
+        "LeftArm": "left_shoulder_roll_link",
+        "LeftForeArm": "left_elbow_link",
+        "LeftHand": "left_wrist_yaw_link",
+        "RightArm": "right_shoulder_roll_link",
+        "RightForeArm": "right_elbow_link",
+        "RightHand": "right_wrist_yaw_link",
+        "LeftLeg": "left_hip_roll_link",
+        "LeftShin": "left_knee_link",
+        "LeftFoot": "left_ankle_roll_link",
+        "RightLeg": "right_hip_roll_link",
+        "RightShin": "right_knee_link",
+        "RightFoot": "right_ankle_roll_link"
+    },
+    "v3_runtime_profile": {
+        "enabled": true,
+        "mode": "shadow",
+        "profile_artifact_root": "artifacts/retargeting_v3_step2_capability",
+        "profile_model_id": "unitree_g1_mjcf",
+        "target_policy": "shadow_only",
+        "fail_on_fingerprint_mismatch": true,
+        "allow_runtime_recompile_on_mismatch": false,
+        "semantic_tasks": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
+        "override_tasks": [],
+        "diagnostics_enabled": true,
+        "diagnostics_max_frames": 120,
+        "diagnostics_output_dir": "artifacts/retargeting_v3_step3_runtime_shadow",
+        "write_per_frame_debug": false
+    }
+}
