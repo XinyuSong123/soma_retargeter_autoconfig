@@ -18,13 +18,10 @@ false-positive gate coverage for Step 3 runtime shadow evidence.
 - Live audit result: PASS with `blocking_count=0` after runtime artifacts and verdict documents are current.
 - Required CI jobs are present in `.github/workflows/retargeting_v3_step3_runtime_shadow.yml`.
 
-Commit and workflow IDs are filled by the final source/artifact commit and CI
-verification pass:
-
-- final_head: pending final artifact commit
-- source_code_commit: pending source-code commit
-- artifact_commit: pending artifact commit
-- workflow_run_id: pending GitHub Actions run
+- final_head: this artifact commit
+- source_code_commit: `fc2f85d4bd8c1ee8b495041d3f5842d80d34a921`
+- artifact_commit: this artifact commit
+- workflow_run_id: pending GitHub Actions run after push
 
 ## Commands
 
