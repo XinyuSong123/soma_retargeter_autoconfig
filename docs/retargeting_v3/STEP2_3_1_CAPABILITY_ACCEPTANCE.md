@@ -7,11 +7,11 @@ Step 2.3.1 capability acceptance is complete for branch
 
 ## Final Evidence
 
-- Final pushed head before this documentation update: `9a400658fb348d75009f72bcc2126e07981380bb`
+- Final pushed head before this documentation update: `22e9c4206c2de37d39ecafcd0224fdf89c4e7da2`
 - Clean source commit: `2651709798c0f8f18b3a691b132c1d95d0bb08f7`
 - Published artifact commit: `f10a7af99971eb85b465d21a6b7e3250b6de207c`
 - Capability CI workflow: `Retargeting V3 Capability Acceptance`
-- Previous successful workflow run: `28215466758`
+- Previous successful workflow run: `28215929924`
 - Final artifacts: `artifacts/retargeting_v3_step2_capability/`
 
 ## Required Evidence

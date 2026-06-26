@@ -17,12 +17,12 @@ Owned evidence reviewed:
 
 ## Final Evidence
 
-- final_head: `fc81a2913f105cb16974f03bf2ba0f049943f696`
+- final_head: `22e9c4206c2de37d39ecafcd0224fdf89c4e7da2`
 - source_code_commit: `2651709798c0f8f18b3a691b132c1d95d0bb08f7`
 - artifact_commit: `f10a7af99971eb85b465d21a6b7e3250b6de207c`
-- workflow_run_id: `28215466758`
+- workflow_run_id: `28215929924`
 - workflow name: `Retargeting V3 Capability Acceptance`
-- workflow head SHA: `fc81a2913f105cb16974f03bf2ba0f049943f696`
+- workflow head SHA: `22e9c4206c2de37d39ecafcd0224fdf89c4e7da2`
 - workflow conclusion: `success`
 - CI job conclusions: `capability-artifact-live-audit=success`, `lfs-snapshot-smoke=success`, `capability-synthetic-tests=success`
 
