@@ -17,6 +17,12 @@ mkdir -p "$ARTIFACT_ROOT/test_results"
 
 SMOKE_STDOUT="$ARTIFACT_ROOT/test_results/runtime_shadow_smoke.stdout.txt"
 SMOKE_STDERR="$ARTIFACT_ROOT/test_results/runtime_shadow_smoke.stderr.txt"
+TMP_SMOKE_STDOUT="$(mktemp "${TMPDIR:-/tmp}/step3_runtime_shadow_stdout.XXXXXX")"
+TMP_SMOKE_STDERR="$(mktemp "${TMPDIR:-/tmp}/step3_runtime_shadow_stderr.XXXXXX")"
+cleanup() {
+  rm -f "$TMP_SMOKE_STDOUT" "$TMP_SMOKE_STDERR"
+}
+trap cleanup EXIT
 
 set +e
 PYTHONPATH=. python -m soma_retargeter.tools.run_v3_runtime_shadow_smoke \
@@ -27,10 +33,13 @@ PYTHONPATH=. python -m soma_retargeter.tools.run_v3_runtime_shadow_smoke \
   --modes "${MODES[@]}" \
   --max-frames "$MAX_FRAMES" \
   --fail-on-blocked \
-  > "$SMOKE_STDOUT" \
-  2> "$SMOKE_STDERR"
+  > "$TMP_SMOKE_STDOUT" \
+  2> "$TMP_SMOKE_STDERR"
 SMOKE_RC=$?
 set -e
+mkdir -p "$ARTIFACT_ROOT/test_results"
+cp "$TMP_SMOKE_STDOUT" "$SMOKE_STDOUT"
+cp "$TMP_SMOKE_STDERR" "$SMOKE_STDERR"
 
 set +e
 PYTHONPATH=. python -m pytest -q \
