@@ -1,17 +1,25 @@
-# Goal — Step 3.0：V3 Profile Runtime Shadow Integration（最小运行时闭环）
+# Goal — Step 3.1：Full-Fleet Runtime Quality Evaluation & Runtime-Local Profile Closure
 
-> **Codex 强制执行契约——禁止自由发挥**
+> **Codex 强制执行契约——严禁自由发挥**
 >
-> 当前分支：`retargeting-v3-step3-runtime-profile-shadow`  
-> 基线分支：`retargeting-v3-step2-capability-acceptance-hardening`  
-> 基线提交：`50a52b2ffbeab03a5636327da021f656a2f044f5`  
-> 当前阶段：**Step 3.0 Runtime Shadow Integration**  
+> 当前分支：`retargeting-v3-step3-runtime-quality-eval`  
+> 基线分支：`retargeting-v3-step3-runtime-profile-shadow`  
+> 基线提交：`1b0d223841909bec3fb9b850dee5c4fad1956be1`  
+> 当前阶段：**Step 3.1 Full-Fleet Runtime Quality Evaluation**
 >
-> 本轮只做 **V3 离线 profile 到现有 `NewtonPipeline` 的最小 runtime 接线**。默认行为必须完全不变。实验功能必须通过显式 config 打开。
+> 用户明确要求：**不要只做 RPO/G1，要全量。**  
+> 因此本轮必须让 **44 个 in-scope Robot Zoo / local assets 全部进入 runtime evaluation matrix**。RPO/G1 只作为 pipeline-backed 对照，不再是唯一范围。
 >
-> 本轮必须一次创建并持续高强度使用 **6 个 xhigh 专业 subagents**。主 Codex 是 Integrator，负责接口冻结、冲突解决、全量测试、clean artifacts 和最终诚实判定。
+> 本轮不是“调参让视频好看”。本轮只做：
 >
-> **禁止重写生产 retargeter，禁止重写 whole-body IK，禁止调 IK 权重，禁止 contact/collision/temporal smoothing，禁止修改 Step 2.1/2.3 thresholds，禁止添加 robot-specific 数学分支，禁止宣称动作效果已经最终变好。**
+> 1. 对 44 个 in-scope 模型建立完整 runtime eligibility / profile resolution / target-stream / smoke-evaluation 矩阵；
+> 2. 为所有 fingerprint mismatch 或 runtime source mismatch 的模型生成 **runtime-local V3 profile**，不得静默跳过；
+> 3. 对所有 full humanoid profile 运行 generic runtime V3 target + IK/solver smoke；
+> 4. 对 partial humanoid 运行 supported semantics smoke，不伪造手部能力；
+> 5. 对 negative controls 验证它们不会被提升成 humanoid runtime profile；
+> 6. 建立质量指标体系和 artifacts，为下一轮真正优化提供依据。
+>
+> **禁止重写生产 retargeter，禁止调 IK/objective 权重，禁止 contact/collision/temporal smoothing，禁止修改 Step 2.1/2.3 thresholds，禁止按机器人名称加数学特例，禁止宣称最终动作效果已经解决。**
 
 ---
 
@@ -21,13 +29,13 @@
 conda activate soma-retargeter-v2
 
 git fetch origin --prune
-git checkout retargeting-v3-step3-runtime-profile-shadow
+git checkout retargeting-v3-step3-runtime-quality-eval
 git pull --ff-only
 
 git status --short
 git branch --show-current
 git rev-parse HEAD
-git merge-base --is-ancestor 50a52b2ffbeab03a5636327da021f656a2f044f5 HEAD
+git merge-base --is-ancestor 1b0d223841909bec3fb9b850dee5c4fad1956be1 HEAD
 
 git lfs install
 git lfs pull
@@ -48,7 +56,7 @@ PY
 必须确认：
 
 ```text
-branch = retargeting-v3-step3-runtime-profile-shadow
+branch = retargeting-v3-step3-runtime-quality-eval
 worktree clean
 base commit is an ancestor
 Git LFS fsck OK
@@ -66,34 +74,40 @@ snapshot XML materialized, not pointer-only
 1. `/goal.md`（本文件）
 2. `docs/retargeting_v3/STEP2_3_1_CAPABILITY_ACCEPTANCE.md`
 3. `docs/retargeting_v3/subagents/capability_agent_f_red_team.md`
-4. `artifacts/retargeting_v3_step2_capability/summary.json`
-5. `artifacts/retargeting_v3_step2_capability/environment.json`
-6. `artifacts/retargeting_v3_step2_capability/lfs_state.json`
-7. `artifacts/retargeting_v3_step2_capability/per_robot/roboparty_rpo_local.json`
-8. `artifacts/retargeting_v3_step2_capability/per_robot/unitree_g1_mjcf.json`
-9. `artifacts/retargeting_v3_step2_capability/per_robot/unitree_g1_urdf.json`
-10. `soma_retargeter/pipelines/newton_pipeline.py`
-11. `soma_retargeter/pipelines/utils.py`
-12. `soma_retargeter/robotics/human_to_robot_scaler.py`
-13. `soma_retargeter/robotics/v3/target_builder.py`
-14. `soma_retargeter/robotics/v3/rest_frames.py`
-15. `soma_retargeter/robotics/v3/capability_status.py`
-16. `soma_retargeter/robotics/v3/validation.py`
-17. `robot_registry_parser.py`
-18. existing `configs/**/soma_to_*_retargeter_config.json`
+4. `docs/retargeting_v3/STEP3_RUNTIME_SHADOW_ACCEPTANCE.md`
+5. `docs/retargeting_v3/subagents/step3_agent_f_red_team.md`
+6. `artifacts/retargeting_v3_step2_capability/summary.json`
+7. `artifacts/retargeting_v3_step2_capability/before_after.json`
+8. `artifacts/retargeting_v3_step2_capability/environment.json`
+9. `artifacts/retargeting_v3_step2_capability/lfs_state.json`
+10. `artifacts/retargeting_v3_step3_runtime_shadow/acceptance_ledger.json`
+11. `artifacts/retargeting_v3_step3_runtime_shadow/smoke_matrix.json`
+12. `artifacts/retargeting_v3_step3_runtime_shadow/override_smoke_summary.json`
+13. `soma_retargeter/pipelines/newton_pipeline.py`
+14. `soma_retargeter/pipelines/utils.py`
+15. `soma_retargeter/runtime/v3/profile_loader.py`
+16. `soma_retargeter/runtime/v3/source_frames.py`
+17. `soma_retargeter/runtime/v3/target_adapter.py`
+18. `soma_retargeter/runtime/v3/override.py`
+19. `soma_retargeter/robotics/v3/profile.py`
+20. `soma_retargeter/robotics/v3/validation.py`
+21. `soma_retargeter/robotics/v3/capability_status.py`
+22. `assets/robot_zoo/robot_zoo_lock.json`
+23. `assets/robot_zoo/robot_zoo_manifest.json`
+24. all current Step 3.0 runtime tests under `tests/v3/test_runtime_*` and `tests/v3/test_step3_runtime_*`
 
-不得只读 summary 后直接改 `NewtonPipeline`。
+不得只读 acceptance summary 后直接扩展 pipeline。
 
 ---
 
 ## 2. 当前事实基线
 
-### 2.1 Step 2.3.1 已完成的离线基础
+### 2.1 Step 2.3.1 离线能力基线
 
-当前可信基线：
+当前可信离线 profile/certificate 结果：
 
 ```text
-44 in-scope Robot Zoo / local assets
+44 in-scope assets
 source/load/semantic failure = 0
 passed = 32
 partial_passed = 3
@@ -104,736 +118,761 @@ Git LFS fsck = OK
 full pytest artifact = 365 passed, 10 skipped
 ```
 
-这只是 **离线 profile / capability certificate** 通过，不代表生产 demo 已经变好。
+注意：这只是离线 profile 和 capability certificate 通过，不代表 runtime motion quality 已解决。
 
-### 2.2 当前 runtime pipeline 事实
+### 2.2 Step 3.0 runtime shadow 基线
 
-`NewtonPipeline` 当前：
-
-- 在 `__init__` 中通过 `pipeline_utils.get_robot_mjcf_path(self.target_type)` 加载 runtime MJCF；
-- 使用 `HumanToRobotScaler` 从 source animation buffer 计算 `buffer_effectors`；
-- 再根据 `ik_map` 取 `target_effector_indices`；
-- 在 `execute()` 中把每帧 target 设置到 `position_objectives` / `rotation_objectives`；
-- 现有 output、post-processing、foot stabilization、virtual grounding 均基于旧 target stream。
-
-本轮只能在这个路径中 **加可选 V3 runtime target stream**，不能拆掉现有 pipeline。
-
-### 2.3 当前最小风险策略
-
-本轮分两层：
+当前 Step 3.0 结果：
 
 ```text
-shadow mode   = 计算V3 targets + 写diagnostics，但绝不改变IK输入和输出
-override mode = 显式config开启，只替换RPO/G1语义目标stream，用于短clip smoke，不宣称最终动作质量
+Final HEAD = 1b0d223841909bec3fb9b850dee5c4fad1956be1
+CI run = 28234721577, all 3 jobs success
+Step 3 targeted suite = 62 passed
+Tests/v3 = 347 passed
+Runtime smoke wrapper = passed
+Live audit = PASS, blocking_count=0
+Determinism diagnostics hash = 6c033defc32895342c3c0ca8ad7ab44bd4d352ae13118a2489e884288341454d
 ```
 
-默认必须等价于当前 pipeline。
+Known caveat from Step 3.0：
+
+```text
+full repo pytest was attempted but interrupted after 14m54s;
+only 37 tests had completed;
+full repo pytest was not claimed as passed.
+```
+
+This caveat must remain visible in Step 3.1 until full repo pytest is either completed or explicitly classified.
+
+### 2.3 Step 3.0 runtime scope limitation
+
+Step 3.0 only did RPO/G1 smoke:
+
+```text
+roboparty_rpo: shadow + override smoke passed
+unitree_g1: shadow/fingerprint logic existed, override failed closed on fingerprint mismatch
+```
+
+This is no longer enough. Step 3.1 must cover the full 44 in-scope matrix.
+
+### 2.4 Existing runtime pipeline constraint
+
+`NewtonPipeline` currently has production config and runtime path mainly for built-in/registered robots. Full Robot Zoo models do **not** all have production retargeter configs. Therefore Step 3.1 must implement a separate **full-fleet runtime evaluation harness** instead of pretending every robot is already a production pipeline target.
+
+Do not force every Robot Zoo model into `NewtonPipeline` by generating fake production configs. Production `NewtonPipeline` remains minimal and opt-in.
 
 ---
 
-## 3. 本轮唯一目标
+## 3. Definitions and exact scope
 
-建立以下最小 runtime 数据流：
+### 3.1 In-scope total
+
+The full matrix must be read from:
 
 ```text
-AnimationBuffer frame
-→ source SOMA global semantic frames
-→ load verified V3 runtime profile
-→ target_builder/rest_calibration 生成 robot semantic target transforms
-→ map to existing IK effector order
-→ shadow diagnostics, default no-op
-→ optional experimental override for RPO/G1 smoke
-→ runtime artifact matrix
-→ CI/red-team
+assets/robot_zoo/robot_zoo_lock.json
+artifacts/retargeting_v3_step2_capability/summary.json
 ```
 
-最终必须能回答：
+Expected total:
 
-1. 不开启 V3 时，`NewtonPipeline` 输出是否 bitwise 或 tolerance 等价于基线？
-2. Shadow mode 是否计算出 finite V3 semantic targets 且不改变 IK targets？
-3. RPO runtime model 与 V3 profile fingerprint/source 是否匹配？
-4. G1 runtime model 与 committed profile 是否匹配；若不匹配，是否 fail closed 或生成独立 runtime-local profile？
-5. Override mode 在 RPO/G1 的短 clip 上是否 finite、deterministic、within limits？
-6. V3 target stream 与旧 scaler target stream 的差异在哪里，是否有 per-frame/per-semantic diagnostics？
+```text
+in_scope_total = 44
+```
+
+Do not hardcode a separate list in code. Tests may freeze the count and compare IDs to artifacts, but runtime code must derive from lock/profile artifacts.
+
+### 3.2 Categories
+
+The matrix must classify each model into one of:
+
+```text
+full_humanoid_profile      # expected positive humanoid with passed profile
+partial_humanoid_profile   # structured partial passed
+negative_control           # negative_control_passed
+```
+
+Expected counts:
+
+```text
+full_humanoid_profile = 32
+partial_humanoid_profile = 3
+negative_control = 9
+```
+
+### 3.3 Required modes per category
+
+#### full_humanoid_profile, 32 models
+
+Required evaluations:
+
+```text
+runtime_profile_resolution
+runtime_local_profile_if_needed
+target_stream_generation
+generic_shadow_quality
+generic_override_smoke
+runtime_determinism
+```
+
+#### partial_humanoid_profile, 3 models
+
+Required evaluations:
+
+```text
+runtime_profile_resolution
+runtime_local_profile_if_needed
+supported_semantic_target_stream
+partial_generic_shadow_quality
+no_full_override
+runtime_determinism
+```
+
+#### negative_control, 9 models
+
+Required evaluations:
+
+```text
+runtime_model_load_or_policy_status
+no_humanoid_profile_promotion
+no_target_stream_override
+negative_control_runtime_smoke_if_loadable
+runtime_determinism_of_rejection
+```
+
+### 3.4 Pipeline-backed vs generic harness
+
+Two evaluation pathways must exist:
+
+```text
+pipeline_backed   # existing NewtonPipeline with retarget config; required for RPO and G1 if eligible
+generic_harness   # new full-fleet evaluator using runtime model + V3 profile, required for all 44 categories as applicable
+```
+
+RPO/G1 remain required pipeline-backed controls. All 44 must still be represented in the generic full-fleet matrix.
 
 ---
 
-## 4. 严格范围边界
+## 4. Hard boundaries
 
-### 4.1 本轮包含
+### 4.1 This round includes
 
-- 新增 V3 runtime profile loader；
-- profile/fingerprint/source validation；
-- source SOMA semantic frame extraction；
-- runtime target adapter；
-- `NewtonPipeline` shadow-mode integration；
-- explicit experimental override mode；
-- RPO + G1 short-clip smoke tests；
-- no-op default regression；
-- diagnostics artifacts；
-- CI/red-team。
+- Full 44-model runtime eligibility matrix;
+- runtime-local profile generation for fingerprint/source mismatches;
+- generic runtime target stream for all full/partial humanoids;
+- generic short/mid clip runtime smoke for all full humanoids;
+- partial humanoid supported-semantics smoke;
+- negative-control rejection smoke;
+- RPO/G1 pipeline-backed regression retained;
+- quality metric computation;
+- deterministic rerun;
+- clean artifacts;
+- CI/red-team.
 
-### 4.2 本轮禁止
+### 4.2 This round forbids
 
-- 默认启用 V3；
-- 改变现有默认 output；
-- 删除或绕过 `HumanToRobotScaler`；
-- 重写 `NewtonPipeline.execute()` 主循环；
-- 重写 Newton IK solver；
-- 调 `ik_iterations`、joint limit weight、smooth weight 或 body weights；
-- contact-aware foot IK；
-- collision/self-penetration；
-- temporal smoothing；
-- foot locking；
-- policy/teacher/refinement；
-- 全 44 runtime demo；
-- 修改 Step 2 artifacts；
-- 修改 Step 2 numerical/capability thresholds；
-- robot ID 数学分支；
-- 以 screenshot/目测作为 pass；
-- 进入 Step 3.1 全量 runtime quality 或 Step 4。
-
----
-
-## 5. 新配置契约
-
-在 retarget config 中新增一个顶层可选字段：
-
-```json
-{
-  "v3_runtime_profile": {
-    "enabled": false,
-    "mode": "disabled",
-    "profile_artifact_root": "artifacts/retargeting_v3_step2_capability",
-    "profile_model_id": null,
-    "target_policy": "shadow_only",
-    "fail_on_fingerprint_mismatch": true,
-    "allow_runtime_recompile_on_mismatch": false,
-    "semantic_tasks": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"],
-    "override_tasks": [],
-    "diagnostics_enabled": true,
-    "diagnostics_max_frames": 240,
-    "diagnostics_output_dir": "artifacts/retargeting_v3_step3_runtime_shadow",
-    "write_per_frame_debug": false
-  }
-}
-```
-
-Allowed modes：
-
-```text
-disabled
-shadow
-override_experimental
-```
-
-### 5.1 Default behavior
-
-如果字段缺失或：
-
-```json
-{"enabled": false}
-```
-
-则 pipeline必须完全沿用旧逻辑，不读取 profile，不写 diagnostics，不改变 outputs。
-
-### 5.2 Shadow mode
-
-```json
-{
-  "enabled": true,
-  "mode": "shadow",
-  "target_policy": "shadow_only"
-}
-```
-
-要求：
-
-- 计算 V3 targets；
-- 记录 target deltas；
-- 不修改 `self.input_targets`；
-- 不修改 IK objective targets；
-- output CSV/frames 与 disabled mode 在 tolerance 内相同。
-
-### 5.3 Override experimental mode
-
-```json
-{
-  "enabled": true,
-  "mode": "override_experimental",
-  "target_policy": "replace_configured_semantics",
-  "override_tasks": ["Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot"]
-}
-```
-
-要求：
-
-- 只替换 `override_tasks` 对应的 existing IK target stream；
-- 不改变 IK map body mapping；
-- 不改变 IK objective weights；
-- 不新增 contact/temporal/collision；
-- 只允许 RPO 和 G1 smoke；
-- 失败必须 fail closed，不得 fallback 成“看似通过”。
+- Changing production default behavior;
+- enabling V3 runtime by default;
+- removing existing RPO/G1 pipeline-backed tests;
+- pretending all Robot Zoo models are production `NewtonPipeline` targets;
+- adding fake production configs just to pass tests;
+- tuning IK weights/objective weights;
+- changing exact residual thresholds;
+- changing numerical epsilon/rank/subspace gates;
+- adding robot-ID mathematical special cases;
+- visual-only pass/fail;
+- manual screenshot inspection as evidence;
+- contact/collision/self-penetration runtime solving;
+- foot locking / temporal smoothing;
+- teacher/policy/refinement;
+- modifying Step 2 artifacts;
+- using private or company assets;
+- re-adding deferred `berkeley_humanoid_urdf` or `romeo_urdf` into scope.
 
 ---
 
-## 6. Robot / profile 映射策略
+## 5. Runtime-local profile closure
 
-默认映射：
+Step 3.0 exposed G1 fingerprint mismatch. Step 3.1 must solve this generally.
+
+### 5.1 New concept
+
+Add runtime-local profile generation:
 
 ```text
-roboparty_rpo -> roboparty_rpo_local
-unitree_g1    -> unitree_g1_mjcf preferred, fallback unitree_g1_urdf only for diagnostic comparison
+runtime model source
++ existing verified semantic map / semantic expectation
++ Step 2.3 compiler
+→ runtime-local profile artifact
 ```
 
-必须实现：
+Output root:
 
-```python
-resolve_runtime_v3_profile_id(target_type, runtime_mjcf_path, config) -> RuntimeProfileResolution
+```text
+artifacts/retargeting_v3_step3_runtime_quality/runtime_local_profiles/<model_id>.json
 ```
 
-规则：
+### 5.2 Rules
 
-1. 如果 config 显式给 `profile_model_id`，使用显式值；
-2. 否则按上表；
-3. 加载 `per_robot/<profile_model_id>.json`；
-4. 检查状态必须为 `passed` 或 `capability_limited_passed`；
-5. 检查 semantic sites、rest calibration、canonical targets、capability summary存在；
-6. 检查 runtime model fingerprint/source hash；
-7. RPO 必须 strict match；
-8. G1 若 runtime Newton-downloaded model 与 committed snapshot fingerprint 不同：
-   - shadow mode 可记录 `fingerprint_mismatch` 并跳过 target override；
-   - override mode 必须 fail closed，除非显式 `allow_runtime_recompile_on_mismatch=true` 并生成 runtime-local profile artifact；
-9. 不得用 `robot_type` 名称绕过 fingerprint。
+For each of 44 in-scope entries:
+
+1. Load committed Step 2.3 capability profile.
+2. Resolve runtime source path from lock/snapshot/fetch-only cache/local existing source.
+3. Compute runtime fingerprint.
+4. Compare runtime fingerprint to committed profile fingerprint.
+5. If strict match, reuse committed profile.
+6. If mismatch and model is full/partial humanoid, generate runtime-local profile from the actual runtime source.
+7. Runtime-local profile must pass Step 2.3 status gates or be terminal `runtime_local_profile_failed`.
+8. Negative controls must not generate humanoid profile.
+9. The runtime-local profile must record source profile, runtime source, semantic map, hashes, environment and deterministic hash.
+10. Do not modify Step 2 artifacts.
+
+### 5.3 Fail-closed policy
+
+No row may silently fall back from mismatch to committed profile.
+
+Allowed resolution statuses:
+
+```text
+profile_match
+runtime_local_profile_generated
+runtime_local_profile_failed
+structured_partial_supported
+negative_control_rejected
+source_or_cache_unavailable
+runtime_model_load_failed
+```
+
+For PASS, source/cache/load failures must be zero for all 44; runtime-local profile failures may remain only if the row is reported as `runtime_quality_failed` with exact reason, not as pass.
 
 ---
 
-## 7. Runtime source semantic frames
+## 6. Full-fleet generic runtime harness
 
-必须新增模块：
+Add module:
 
 ```text
-soma_retargeter/runtime/v3/source_frames.py
+soma_retargeter/runtime/v3/fleet_harness.py
 ```
 
-职责：
+The generic harness is not production `NewtonPipeline`. It is an evaluation harness that uses the same runtime model truth and V3 target stream to run per-frame smoke checks.
 
-- 从 `AnimationBuffer` 每帧计算 source global transforms；
-- 将 SOMA skeleton joints 映射到 semantic names：
-  - `Hips`
-  - `Chest`
-  - `LeftHand`
-  - `RightHand`
-  - `LeftFoot`
-  - `RightFoot`
-- 使用现有 skeleton joint names，不能写死只对某个 BVH 文件有效；
-- 若 skeleton 缺 semantic，fail closed；
-- 支持 frame range / max frames；
-- 支持 offset transform；
-- 输出 4x4 numpy transforms，float64；
-- 保留 source joint name evidence。
-
-必须新增：
+### 6.1 Inputs
 
 ```python
 @dataclass
-class SourceSemanticFrameBatch:
-    semantic_names: list[str]
-    joint_names: dict[str, str]
-    transforms: dict[str, np.ndarray]  # [F,4,4]
-    frame_count: int
-    sample_rate: float
-    source: str
+class FleetRuntimeCase:
+    model_id: str
+    category: str
+    runtime_source_path: Path
+    model_format: str
+    profile_path: Path
+    semantic_map_path: Path | None
+    clips: list[Path]
+    modes: list[str]
+    max_frames: int
 ```
 
-不得使用 OCR、viewer 或可视化截图作为 source truth。
+### 6.2 Modes
+
+```text
+target_stream_only
+generic_shadow_quality
+generic_override_smoke
+negative_control_rejection
+partial_supported_smoke
+```
+
+### 6.3 Required behavior
+
+For each full humanoid model:
+
+- load runtime model;
+- load/generate runtime-local profile;
+- extract source semantic frames from each clip;
+- generate V3 target stream;
+- evaluate target stream finite/SE(3)/smoothness metrics;
+- run generic per-frame semantic IK/chain solve smoke or equivalent runtime solver check;
+- compute residual and joint-limit metrics;
+- write per-frame compact stats;
+- never tune weights per robot.
+
+For each partial humanoid:
+
+- only supported semantics are evaluated;
+- missing hands are not fabricated;
+- no full override is attempted;
+- metrics clearly marked partial.
+
+For each negative control:
+
+- load if applicable;
+- prove no humanoid semantic target stream/override generated;
+- record rejection status.
+
+### 6.4 Generic smoke solver
+
+Allowed implementation choices:
+
+```text
+A. Newton IK if a generated generic semantic-body objective map is valid;
+B. Step 2 chain projection per semantic task as runtime frame-by-frame smoke;
+C. MuJoCo/Newton FK residual evaluation against target stream.
+```
+
+Integrator must choose the simplest reliable option, but must document which was used.
+
+Prohibited:
+
+- generating fake pass without moving through runtime model FK;
+- using only offline canonical targets and calling it runtime;
+- using screenshot/video appearance;
+- tuning robot-specific weights.
 
 ---
 
-## 8. Runtime V3 target adapter
+## 7. Motion clips and frame budgets
 
-必须新增模块：
+### 7.1 Clip inventory
 
-```text
-soma_retargeter/runtime/v3/target_adapter.py
-```
-
-职责：
+Use all public clips already committed under:
 
 ```text
-SourceSemanticFrameBatch + RuntimeV3Profile
-→ per-frame SemanticTargets
-→ existing effector order transforms
-→ diagnostics
+assets/motions/bvh/*.bvh
+assets/motions/csv/*.csv
 ```
 
-必须：
+Do not use private clips. Do not download new motion assets.
 
-1. 复用 Step 2 的 `build_targets_from_source_semantic_frames()` 和 rest calibration；
-2. 不重新实现一套 scaler；
-3. 保持 parent-frame rotation transfer；
-4. 保持 root horizontal/vertical policy；
-5. 对每个 semantic输出：
-   - desired target transform；
-   - old scaler transform；
-   - translation delta；
-   - rotation delta；
-   - target source；
-   - capability status；
-6. 输出必须可映射回 `HumanToRobotScaler.effector_names()`；
-7. 对没有 capability 的 task，不得伪造 target；
-8. 对 partial/negative model不得进入 override。
+### 7.2 Required core clips
+
+At minimum every full/partial humanoid must run on:
+
+```text
+assets/motions/bvh/Neutral_walk_forward_002__A057.bvh
+assets/motions/bvh/wave_R_001__A428.bvh
+assets/motions/bvh/body_stretch_1_004__A069.bvh
+assets/motions/bvh/item_pick_up_standing_R_001__A410.bvh
+```
+
+If any of these are missing or unloadable, Step 3.1 is BLOCKED.
+
+### 7.3 Extended clips
+
+All other committed BVH/CSV clips must be included in inventory. The full matrix may use capped frames for runtime cost:
+
+```text
+short_clip_max_frames = 120
+mid_clip_max_frames = 300
+long_clip_sample_stride = deterministic, recorded
+```
+
+Do not randomly sample clips or frames. Any truncation/subsampling must be deterministic and recorded.
+
+### 7.4 Required coverage
+
+PASS requires:
+
+```text
+full humanoid 32 models × required core clips × target_stream_only
+full humanoid 32 models × at least 2 core clips × generic_override_smoke
+partial humanoid 3 models × required core clips × supported target stream
+negative controls 9 models × rejection/load smoke
+pipeline-backed RPO/G1 controls retained
+```
+
+If cost is too high, do not reduce model count. Reduce frames deterministically and record the frame budget.
 
 ---
 
-## 9. NewtonPipeline 集成方式
+## 8. Quality metrics
 
-只能对 `NewtonPipeline` 做最小、安全改动。
-
-### 9.1 `__init__`
-
-允许新增：
-
-```python
-self.v3_runtime_config
-self.v3_runtime_profile
-self.v3_runtime_adapter
-self.v3_runtime_diagnostics
-```
-
-要求：
-
-- 默认 disabled；
-- disabled 时不 import heavyweight v3 runtime modules，或 import 不改变行为；
-- profile load错误在 disabled mode 不影响 pipeline；
-- shadow/override mode 初始化失败必须给清晰错误。
-
-### 9.2 `add_input_motions`
-
-现有代码：
-
-```python
-buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(...)
-self.input_targets.append(buffer_effectors[:, self.target_effector_indices, :])
-```
-
-新增逻辑必须是：
-
-```python
-legacy_buffer_effectors = compute_effectors_from_buffer(...)
-if v3 disabled:
-    buffer_effectors = legacy_buffer_effectors
-elif v3 shadow:
-    v3_targets = compute_v3_targets(...)
-    record diagnostics
-    buffer_effectors = legacy_buffer_effectors
-elif v3 override_experimental:
-    v3_targets = compute_v3_targets(...)
-    buffer_effectors = replace_configured_semantic_targets(legacy_buffer_effectors, v3_targets)
-    record diagnostics
-```
-
-不得改变 contact inference、initialization frames、offset semantics、sample rate。
-
-### 9.3 `execute`
-
-本轮不允许重写 `execute()` 主循环。
-
-允许：
-
-- 在输出后写 summary diagnostics；
-- 保存 per-run target diagnostics；
-- 添加 read-only metadata。
-
-禁止：
-
-- 改 IK solver objective order；
-- 改 objective weight；
-- 改 frame stepping；
-- 改 graph capture logic；
-- 改 feet stabilizer逻辑。
-
----
-
-## 10. Diagnostics artifact schema
-
-新目录：
+Add module:
 
 ```text
-artifacts/retargeting_v3_step3_runtime_shadow/
+soma_retargeter/runtime/v3/quality_metrics.py
 ```
 
-必须生成：
+Metrics must be objective and numeric. No visual claims.
+
+### 8.1 Target-stream metrics
+
+Per model/clip/semantic:
 
 ```text
-environment.json
-commands.txt
-profile_resolution.json
-shadow_summary.json
-override_smoke_summary.json
-per_clip/<robot>/<clip>/target_deltas.json
-per_clip/<robot>/<clip>/pipeline_summary.json
-test_results/pytest.txt
-test_results/junit.xml
-test_results/pytest_summary.json
-acceptance_ledger.json
+finite_count
+nan_count
+se3_orthogonality_error_max
+translation_delta_vs_legacy_mean/p95/max if legacy exists
+rotation_delta_vs_legacy_mean/p95/max if legacy exists
+frame_to_frame_translation_velocity_p95/max
+frame_to_frame_rotation_velocity_p95/max
+target_jump_count
+root_horizontal_scale
+support_height_policy
+capability_status
 ```
 
-### 10.1 `profile_resolution.json`
+### 8.2 Runtime smoke output metrics
 
-必须包含：
-
-```text
-robot_type
-profile_model_id
-profile_status
-profile_artifact_path
-runtime_mjcf_path
-runtime_fingerprint
-profile_fingerprint
-fingerprint_match
-source_hash_match
-strict_match_required
-resolution_status
-warnings/errors
-```
-
-### 10.2 `target_deltas.json`
-
-必须包含每个 clip：
+Per model/clip/mode:
 
 ```text
-robot_type
-mode
-clip_name
-frame_count
-semantic_names
-legacy_target_available
-v3_target_available
-per_semantic:
-  translation_delta_mean/max/p95
-  rotation_delta_mean/max/p95
-  finite_count
-  nan_count
-  skipped_reason
-root_policy:
-  horizontal_scale
-  support_height_policy
-capability_policy:
-  exact/capability_limited/unsupported
-```
-
-### 10.3 `pipeline_summary.json`
-
-必须包含：
-
-```text
-mode
 output_frame_count
 joint_coord_count
 nan_count
 inf_count
 joint_limit_violation_count
 max_joint_limit_violation
-output_equal_to_disabled_baseline  # only for shadow mode
-output_diff_max
+joint_position_abs_p95/max
+joint_velocity_p95/max
+joint_acceleration_p95/max
+task_residual_mean/p95/max
+normalized_task_residual_mean/p95/max
+solver_success_fraction
+solver_iteration_mean/p95/max
 runtime_seconds
 ```
 
----
+### 8.3 Contact/foot quality diagnostics only
 
-## 11. Test clips and runtime smoke scope
-
-只允许使用仓库已有公开 motion assets。
-
-最小 clips：
+Do not solve contact. Only measure:
 
 ```text
-assets/motions/bvh/Neutral_walk_forward_002__A057.bvh
-assets/motions/bvh/wave_R_001__A428.bvh
+support_height_min/max
+foot_height_below_ground_count
+foot_sliding_proxy_if_contact_scores_available
+stance_width_p95/max
 ```
 
-若某 clip load失败，不能换私有资产。必须记录 failure。
+### 8.4 Regression metrics
 
-### 11.1 Required robots
+For pipeline-backed RPO/G1 only:
 
 ```text
-roboparty_rpo
-unitree_g1
+shadow output == disabled baseline
+shadow target stream finite
+override finite
+RPO override diff from disabled recorded
+G1 override pass or fail-closed recorded
 ```
 
-### 11.2 Required modes
-
-For both robots：
-
-```text
-disabled baseline
-shadow
-```
-
-Override：
-
-```text
-roboparty_rpo override_experimental required
-unitree_g1 override_experimental only if runtime fingerprint policy passes or runtime-local profile is generated
-```
-
-### 11.3 Frame budget
-
-Default smoke：
-
-```text
-max_frames = 120
-```
-
-Longer clips are not required this round.
+For generic harness, do not claim equivalence to old pipeline if old pipeline does not exist.
 
 ---
 
-## 12. Acceptance gates
+## 9. Artifact schema
 
-### 12.1 No-op / default behavior
+Output root:
 
-- [ ] Missing `v3_runtime_profile` config = old behavior;
-- [ ] `enabled=false` = old behavior;
-- [ ] disabled output equals pre-change output within exact numeric tolerance;
-- [ ] disabled mode does not write Step 3 diagnostics;
-- [ ] existing tests pass.
+```text
+artifacts/retargeting_v3_step3_runtime_quality/
+```
 
-### 12.2 Shadow behavior
+Required files:
 
-- [ ] shadow computes finite V3 targets for RPO;
-- [ ] shadow computes finite V3 targets or explicit fingerprint-skip for G1;
-- [ ] shadow does not modify `self.input_targets`;
-- [ ] shadow output equals disabled output within tolerance;
-- [ ] diagnostics exist and are deterministic;
-- [ ] no NaN/Inf in diagnostics.
+```text
+environment.json
+commands.txt
+source_inventory.json
+model_matrix.json
+profile_resolution_matrix.json
+runtime_local_profile_summary.json
+clip_inventory.json
+target_stream_matrix.json
+generic_smoke_matrix.json
+pipeline_backed_matrix.json
+quality_summary.json
+failure_matrix.json
+deterministic_rerun.json
+acceptance_ledger.json
+per_model/<model_id>/profile_resolution.json
+per_model/<model_id>/clip_matrix.json
+per_model/<model_id>/quality_metrics.json
+per_model/<model_id>/failures.json
+per_clip/<model_id>/<clip_id>/target_deltas.json
+per_clip/<model_id>/<clip_id>/smoke_summary.json
+runtime_local_profiles/*.json
+test_results/pytest.txt
+test_results/junit.xml
+test_results/pytest_summary.json
+```
 
-### 12.3 Override smoke behavior
+### 9.1 `model_matrix.json`
 
-- [ ] RPO override runs at least 2 clips / 120 frames each;
-- [ ] output finite;
-- [ ] no joint limit violations after clamper beyond existing tolerance;
-- [ ] output frame count correct;
-- [ ] diagnostics written;
-- [ ] mode clearly labeled experimental;
-- [ ] G1 override either passes same gates or is fail-closed with fingerprint reason;
-- [ ] no claim of visual quality.
+Must include all 44 rows:
 
-### 12.4 Profile/fingerprint safety
+```text
+model_id
+category
+profile_status
+expected_capability
+runtime_source_status
+runtime_profile_resolution_status
+target_stream_status
+generic_smoke_status
+pipeline_backed_status
+negative_control_status
+final_step3_1_status
+```
 
-- [ ] RPO strict match;
-- [ ] G1 mismatch not silently ignored;
-- [ ] no robot-name-only acceptance;
-- [ ] profile status must be terminal pass;
-- [ ] partial/negative profile cannot override;
-- [ ] LFS materialized.
+Allowed final statuses:
 
-### 12.5 Source frame / target correctness
+```text
+runtime_quality_passed
+runtime_quality_warned
+runtime_quality_failed
+partial_runtime_passed
+negative_control_runtime_passed
+blocked_source_or_profile
+```
 
-- [ ] source semantic frame extraction tested on synthetic skeleton;
-- [ ] 4x4 transforms valid SE(3);
-- [ ] root translation policy matches Step 2 target_builder tests;
-- [ ] target adapter reuses Step 2 target_builder;
-- [ ] old scaler target order preserved;
-- [ ] missing semantic fail closed.
+For PASS, all 44 must be terminal and none may be `blocked_source_or_profile`.
 
-### 12.6 CI / provenance
+Runtime quality failures may remain only if fully quantified and not infrastructure blockers. The overall Step 3.1 can PASS as an evaluation milestone with `runtime_quality_failed` rows, provided all evidence is complete. Do not report algorithm success as 44/44 if quality failures remain.
 
-- [ ] clean source commit;
-- [ ] clean artifact commit;
-- [ ] pytest/junit saved;
-- [ ] GitHub Actions green;
-- [ ] Agent F PASS;
-- [ ] no local absolute paths;
-- [ ] no private assets;
-- [ ] no Step 2 artifact mutation except read-only references.
+### 9.2 `quality_summary.json`
+
+Must report:
+
+```text
+in_scope_total = 44
+full_humanoid_total = 32
+partial_total = 3
+negative_total = 9
+profile_match_count
+runtime_local_profile_generated_count
+runtime_local_profile_failed_count
+target_stream_success_count
+generic_smoke_success_count
+generic_smoke_failed_count
+pipeline_backed_success_count
+pipeline_backed_fail_closed_count
+quality_failed_count
+deterministic_compared_count
+deterministic_matched_count
+```
+
+### 9.3 `failure_matrix.json`
+
+Every failure row must include:
+
+```text
+model_id
+clip_id
+mode
+stage
+failure_type
+message
+numeric_context
+reproduction_command
+next_action
+```
+
+No generic `failed` strings.
 
 ---
 
-## 13. 六个 xhigh Subagents
+## 10. Six xhigh subagents
 
-每个 agent 必须：
+Each agent must:
 
-- 独立 worktree/branch；
-- reasoning strength=`xhigh`；
-- 先写 failing tests；
-- 只修改 owned files；
-- 小 commits；
-- handoff包含 commit、files、commands、tests、数值结果、风险、未完成项；
-- 不得声明未运行测试通过。
+- use an independent worktree/branch;
+- record reasoning strength = `xhigh`;
+- write failing tests first;
+- only edit owned files;
+- make small commits;
+- write handoff with commit, files, commands, tests, numeric results, blockers and risks;
+- not claim unrun tests.
 
-### Agent A — Runtime Profile Loader and Fingerprint Gate
+### Agent A — Fleet Inventory, Runtime Source Resolution and Runtime-Local Profiles
 
-**唯一目标**：安全加载 Step 2.3 profile，不让 runtime 用错模型。
+**Goal**: Make every one of the 44 in-scope models resolvable as runtime source, and generate runtime-local profiles for mismatches.
 
-Owned files：
+Owned files:
 
 ```text
+soma_retargeter/runtime/v3/fleet_inventory.py
+soma_retargeter/runtime/v3/runtime_local_profile.py
 soma_retargeter/runtime/v3/profile_loader.py
-soma_retargeter/runtime/v3/__init__.py
-soma_retargeter/runtime/__init__.py
-soma_retargeter/pipelines/utils.py                    # 仅允许增加 profile-id resolver helper
-tests/v3/test_runtime_profile_loader_*.py
-tests/v3/test_runtime_fingerprint_gate_*.py
-docs/retargeting_v3/subagents/step3_agent_a_handoff.md
+soma_retargeter/tools/compile_runtime_local_profiles_v3.py
+artifacts/retargeting_v3_step3_runtime_quality/profile_resolution_matrix.json
+artifacts/retargeting_v3_step3_runtime_quality/runtime_local_profile_summary.json
+artifacts/retargeting_v3_step3_runtime_quality/runtime_local_profiles/
+tests/v3/test_step3_fleet_inventory_*.py
+tests/v3/test_step3_runtime_local_profile_*.py
+docs/retargeting_v3/subagents/step3_1_agent_a_handoff.md
 ```
 
-必须实现：
+Hard requirements:
 
-1. `RuntimeV3Profile` dataclass；
-2. 从 `artifacts/retargeting_v3_step2_capability/per_robot/<id>.json` 加载；
-3. 校验 schema/status/semantic sites/rest calibration/canonical capability；
-4. resolver：`roboparty_rpo -> roboparty_rpo_local`，`unitree_g1 -> unitree_g1_mjcf`；
-5. runtime MJCF fingerprint check；
-6. RPO strict match required；
-7. G1 mismatch fail-closed unless config explicitly allows runtime-local profile;
-8. LFS pointer detection；
-9. structured error messages；
-10. no robot ID math branch。
+1. Derive 44 IDs from lock/profile artifacts, not a separate hardcoded list.
+2. Verify category counts 32/3/9.
+3. Resolve source path for snapshots, fetch-only cache and local RPO.
+4. Detect LFS pointer-only files.
+5. Generate runtime-local profile when fingerprint mismatches.
+6. Fail closed for negative controls.
+7. Runtime-local profile must include source profile ID, runtime source hash, semantic map hash, deterministic hash.
+8. No Step 2 artifact mutation.
 
-### Agent B — Source Semantic Frames and V3 Target Adapter
+### Agent B — Full-Fleet Target Stream and Source Motion Coverage
 
-**唯一目标**：从 runtime animation frames 生成 V3 robot semantic target stream。
+**Goal**: Generate deterministic V3 target streams for all full/partial humanoids across required clips.
 
-Owned files：
+Owned files:
 
 ```text
 soma_retargeter/runtime/v3/source_frames.py
 soma_retargeter/runtime/v3/target_adapter.py
-soma_retargeter/runtime/v3/diagnostics.py
-tests/v3/test_runtime_source_frames_*.py
-tests/v3/test_runtime_target_adapter_*.py
-tests/v3/test_runtime_target_diagnostics_*.py
-docs/retargeting_v3/subagents/step3_agent_b_handoff.md
+soma_retargeter/runtime/v3/clip_inventory.py
+soma_retargeter/runtime/v3/target_stream.py
+artifacts/retargeting_v3_step3_runtime_quality/clip_inventory.json
+artifacts/retargeting_v3_step3_runtime_quality/target_stream_matrix.json
+artifacts/retargeting_v3_step3_runtime_quality/per_clip/**/target_deltas.json
+tests/v3/test_step3_clip_inventory_*.py
+tests/v3/test_step3_full_fleet_target_stream_*.py
+tests/v3/test_step3_partial_target_stream_*.py
+docs/retargeting_v3/subagents/step3_1_agent_b_handoff.md
 ```
 
-必须实现：
+Hard requirements:
 
-1. `SourceSemanticFrameBatch`；
-2. SOMA semantic joint lookup with evidence；
-3. finite SE(3) validation；
-4. frame slicing/max frames；
-5. target_builder reuse；
-6. target -> effector order conversion；
-7. per-semantic delta metrics；
-8. missing semantic fail closed；
-9. no duplicate scaler math；
-10. deterministic diagnostics JSON。
+1. Use all required core clips.
+2. Inventory all committed BVH/CSV clips.
+3. Deterministic frame caps/stride.
+4. Full humanoid target streams finite for required semantics.
+5. Partial models evaluate only supported semantics.
+6. Missing semantic = structured failure, not fallback.
+7. Reuse Step 2 target builder/rest calibration.
+8. No duplicate scaler math.
+9. SE(3) validation for every transform.
 
-### Agent C — NewtonPipeline Shadow No-op Integration
+### Agent C — Generic Runtime Harness and Smoke Solver
 
-**唯一目标**：把 V3 target stream 接入 pipeline，但 shadow/default不改变输出。
+**Goal**: Run a generic full-fleet runtime smoke for all 32 full humanoids and structured smoke/rejection for the rest.
 
-Owned files：
+Owned files:
 
 ```text
-soma_retargeter/pipelines/newton_pipeline.py
-soma_retargeter/pipelines/v3_runtime_config.py         # 可新增
-tests/v3/test_newton_pipeline_v3_shadow_noop_*.py
-tests/v3/test_newton_pipeline_v3_config_*.py
-docs/retargeting_v3/subagents/step3_agent_c_handoff.md
+soma_retargeter/runtime/v3/fleet_harness.py
+soma_retargeter/runtime/v3/generic_smoke.py
+soma_retargeter/runtime/v3/generic_ik.py        # only if needed; no production pipeline changes
+soma_retargeter/runtime/v3/runtime_status.py
+artifacts/retargeting_v3_step3_runtime_quality/generic_smoke_matrix.json
+artifacts/retargeting_v3_step3_runtime_quality/per_model/*/quality_metrics.json
+artifacts/retargeting_v3_step3_runtime_quality/per_clip/**/smoke_summary.json
+tests/v3/test_step3_generic_harness_*.py
+tests/v3/test_step3_full_humanoid_smoke_*.py
+tests/v3/test_step3_negative_control_rejection_*.py
+docs/retargeting_v3/subagents/step3_1_agent_c_handoff.md
 ```
 
-必须实现：
+Hard requirements:
 
-1. parse `v3_runtime_profile` config；
-2. disabled/missing config no-op；
-3. shadow mode target computation but no IK input mutation；
-4. diagnostics collection；
-5. no changes to IK solver objective order/weights；
-6. no changes to execute loop except post-run diagnostics write；
-7. unit tests prove `self.input_targets` equality in shadow；
-8. default output equality regression。
+1. All 32 full humanoids enter generic smoke.
+2. 3 partial humanoids enter partial supported smoke.
+3. 9 negatives are rejected, not promoted.
+4. Runtime model FK/solver must be used; not offline-only canonical targets.
+5. No per-robot weights or thresholds.
+6. Smoke can fail quality, but must produce numeric evidence.
+7. No NaN/Inf accepted as pass.
+8. Joint limit violations measured and classified.
+9. Runtime results deterministic.
 
-### Agent D — Experimental Override Smoke for RPO/G1
+### Agent D — Quality Metrics, Comparators and Pipeline-Backed Controls
 
-**唯一目标**：显式 override mode 的最小 smoke，不调质量。
+**Goal**: Measure runtime quality objectively and preserve RPO/G1 pipeline-backed regressions.
 
-Owned files：
-
-```text
-soma_retargeter/runtime/v3/override.py
-configs/roboparty_rpo/soma_to_rpo_retargeter_config_v3_shadow.json      # if config layout allows
-configs/roboparty_rpo/soma_to_rpo_retargeter_config_v3_override.json    # if config layout allows
-configs/unitree_g1/soma_to_g1_retargeter_config_v3_shadow.json          # if config layout allows
-configs/unitree_g1/soma_to_g1_retargeter_config_v3_override.json        # if config layout allows
-tests/v3/test_runtime_override_mapping_*.py
-tests/v3/test_runtime_rpo_override_smoke_*.py
-tests/v3/test_runtime_g1_override_policy_*.py
-docs/retargeting_v3/subagents/step3_agent_d_handoff.md
-```
-
-必须实现：
-
-1. replace only configured semantic targets;
-2. preserve old effector order;
-3. override requires explicit mode;
-4. RPO smoke required;
-5. G1 override fail-closed on fingerprint mismatch unless runtime-local profile generated;
-6. output finite tests;
-7. no visual-quality claims;
-8. no weight tuning。
-
-### Agent E — Runtime Artifacts, Scripts and Reproducible Smoke Matrix
-
-**唯一目标**：生成可复现 runtime evidence。
-
-Owned files：
+Owned files:
 
 ```text
+soma_retargeter/runtime/v3/quality_metrics.py
+soma_retargeter/runtime/v3/comparators.py
 soma_retargeter/tools/run_v3_runtime_shadow_smoke.py
-scripts/run_step3_runtime_shadow_acceptance.sh
-artifacts/retargeting_v3_step3_runtime_shadow/
-tests/v3/test_step3_runtime_artifact_schema_*.py
-tests/v3/test_step3_runtime_smoke_matrix_*.py
-docs/retargeting_v3/STEP3_RUNTIME_SHADOW_REPORT.md
-docs/retargeting_v3/subagents/step3_agent_e_handoff.md
+soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py
+artifacts/retargeting_v3_step3_runtime_quality/pipeline_backed_matrix.json
+artifacts/retargeting_v3_step3_runtime_quality/quality_summary.json
+tests/v3/test_step3_quality_metrics_*.py
+tests/v3/test_step3_pipeline_backed_controls_*.py
+tests/v3/test_step3_g1_runtime_local_profile_policy_*.py
+docs/retargeting_v3/subagents/step3_1_agent_d_handoff.md
 ```
 
-必须实现：
+Hard requirements:
 
-1. command-line smoke runner;
-2. robots/clips/modes matrix;
-3. max_frames support;
-4. save diagnostics schema;
-5. save pytest/junit/summary;
-6. no local absolute paths;
-7. deterministic rerun of diagnostics;
-8. fail if shadow changes output。
+1. RPO pipeline-backed disabled/shadow/override still pass.
+2. G1 pipeline-backed mismatch is either runtime-local profile resolved or fail-closed with explicit reason.
+3. Shadow no-op remains true for pipeline-backed controls.
+4. Quality metrics include target residuals, joint stats, smoothness, finite counts.
+5. No visual claims.
+6. No IK weight changes.
+7. No production default behavior changes.
 
-### Agent F — Red Team, CI and Final Verdict
+### Agent E — Full-Fleet Orchestration, Clean Artifacts and Determinism
 
-**唯一目标**：独立验证 Step 3.0，没有参与 core修改。
+**Goal**: Orchestrate the full matrix and produce clean, reproducible artifacts.
 
-Owned files：
+Owned files:
 
 ```text
-scripts/audit_retargeting_v3_step3_runtime_shadow.py
-.github/workflows/retargeting_v3_step3_runtime_shadow.yml
-tests/v3/test_step3_runtime_shadow_acceptance_*.py
-docs/retargeting_v3/STEP3_RUNTIME_SHADOW_ACCEPTANCE.md
-docs/retargeting_v3/subagents/step3_agent_f_red_team.md
-artifacts/retargeting_v3_step3_runtime_shadow/test_results/
-artifacts/retargeting_v3_step3_runtime_shadow/acceptance_ledger.json
+scripts/run_step3_full_fleet_runtime_quality.sh
+soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py
+artifacts/retargeting_v3_step3_runtime_quality/
+tests/v3/test_step3_full_fleet_artifact_schema_*.py
+tests/v3/test_step3_full_fleet_determinism_*.py
+docs/retargeting_v3/STEP3_1_FULL_FLEET_RUNTIME_QUALITY_REPORT.md
+docs/retargeting_v3/subagents/step3_1_agent_e_handoff.md
 ```
 
-Must test/fail on：
+Hard requirements:
 
-1. default output changed；
-2. shadow mutates IK inputs；
-3. override enabled without explicit config；
-4. fingerprint mismatch silently accepted；
-5. partial/negative profile used for override；
-6. LFS pointer profile/snapshot；
-7. missing diagnostics；
-8. diagnostics contain NaN/Inf；
-9. local absolute path leakage；
-10. old Step 2 artifacts mutated；
-11. no CI；
-12. Agent F stale PASS/FAIL mismatch。
+1. Clean source commit / artifact commit protocol.
+2. All 44 rows in model matrix.
+3. Required artifacts present.
+4. Deterministic rerun covers all terminal rows.
+5. Source worktree clean before/after.
+6. No local absolute paths.
+7. LFS state recorded.
+8. Full tests or documented full-repo pytest classification.
+9. If full repo pytest is interrupted or too slow again, classify with exact last test and reason; do not claim pass.
 
-Final handoff must include：
+### Agent F — Independent Red Team, CI and Final Verdict
+
+**Goal**: Attack the full-fleet claims and decide PASS/BLOCKED.
+
+Owned files:
+
+```text
+scripts/audit_retargeting_v3_step3_full_fleet.py
+.github/workflows/retargeting_v3_step3_full_fleet.yml
+tests/v3/test_step3_full_fleet_acceptance_*.py
+docs/retargeting_v3/STEP3_1_FULL_FLEET_RUNTIME_QUALITY_ACCEPTANCE.md
+docs/retargeting_v3/subagents/step3_1_agent_f_red_team.md
+artifacts/retargeting_v3_step3_runtime_quality/test_results/
+artifacts/retargeting_v3_step3_runtime_quality/acceptance_ledger.json
+```
+
+Must fail on:
+
+1. Matrix has fewer than 44 rows.
+2. Any full humanoid omitted from target stream.
+3. Any full humanoid omitted from generic smoke without structured blocker.
+4. Any negative control promoted to humanoid target stream.
+5. RPO/G1 pipeline controls removed.
+6. Default or shadow mode mutates outputs.
+7. Runtime profile mismatch silently ignored.
+8. Runtime-local profile generated but not validated.
+9. Quality metrics missing numeric fields.
+10. NaN/Inf hidden or counted as pass.
+11. Joint limit violations not reported.
+12. Local absolute path leakage.
+13. LFS pointer-only model/profile.
+14. Step 2 artifacts modified.
+15. CI only tests RPO/G1.
+16. Agent handoff claims unrun tests.
+17. Full-repo pytest caveat omitted.
+
+Final handoff must include:
 
 ```text
 verdict = PASS or BLOCKED
@@ -841,267 +880,296 @@ final_head
 source_code_commit
 artifact_commit
 workflow_run_id
+44-row matrix summary
+profile resolution summary
+target stream summary
+generic smoke summary
+pipeline-backed control summary
+quality failure count
 pytest summary
-smoke matrix summary
-shadow equality result
-RPO override result
-G1 override/fail-closed result
+full-repo pytest classification
 remaining blockers
 ```
 
 ---
 
-## 14. Integrator 固定执行顺序
+## 11. Integrator fixed execution order
 
-不得改变顺序。
+Do not change this order.
 
-### Wave 0 — Tests and interfaces
+### Wave 0 — Freeze scope and red-team tests
 
-1. 启动6个 xhigh agents；
-2. Agent F写 failing acceptance tests；
-3. Agent A/B冻结 dataclasses；
-4. Integrator冻结 config schema；
-5. 此时不得改 pipeline。
+1. Start 6 xhigh agents.
+2. Agent F writes failing acceptance tests for 44-row matrix and RPO/G1-only cheating.
+3. Agent A freezes fleet inventory schema.
+4. Agent B freezes target stream schema.
+5. Integrator freezes artifact schema.
 
-### Wave 1 — Pure runtime modules
+### Wave 1 — Source/profile closure
 
-合并顺序：
+Merge order:
 
 ```text
-A profile loader → B source/target adapter
+Agent A only
 ```
 
-运行：
+Run:
 
 ```bash
-PYTHONPATH=. python -m pytest -q tests/v3/test_runtime_profile_loader_*.py tests/v3/test_runtime_source_frames_*.py tests/v3/test_runtime_target_adapter_*.py
+PYTHONPATH=. python -m pytest -q tests/v3/test_step3_fleet_inventory_*.py tests/v3/test_step3_runtime_local_profile_*.py
 ```
 
-### Wave 2 — Pipeline shadow
+### Wave 2 — Target streams
 
-1. 合并 C；
-2. disabled no-op tests；
-3. shadow no-op tests；
-4. 禁止 override 代码先合并。
+Merge order:
 
-### Wave 3 — Override smoke
+```text
+Agent B
+```
 
-1. 合并 D；
-2. RPO override smoke；
-3. G1 policy/fingerprint tests；
-4. 若 G1 mismatch，不修模型资产，只记录 fail-closed。
+Run:
 
-### Wave 4 — Artifacts and audit
+```bash
+PYTHONPATH=. python -m pytest -q tests/v3/test_step3_clip_inventory_*.py tests/v3/test_step3_full_fleet_target_stream_*.py tests/v3/test_step3_partial_target_stream_*.py
+```
 
-1. 合并 E；
-2. 生成 runtime artifacts；
-3. 合并 F audit；
-4. Red-team blockers返给owner。
+### Wave 3 — Generic smoke
 
-### Wave 5 — Clean artifact generation
+Merge order:
 
-1. code freeze commit `C`；
-2. push `C`；
-3. clean detached worktree；
-4. LFS pull/fsck；
-5. pytest；
-6. smoke matrix；
-7. audit；
-8. artifact commit `A`；
-9. CI；
-10. Agent F final PASS/BLOCKED。
+```text
+Agent C
+```
+
+Run generic harness tests. Do not touch NewtonPipeline.
+
+### Wave 4 — Quality and pipeline controls
+
+Merge order:
+
+```text
+Agent D
+```
+
+Verify RPO/G1 Step 3.0 controls still pass.
+
+### Wave 5 — Full orchestration
+
+Merge order:
+
+```text
+Agent E
+```
+
+Generate development artifacts. Run Agent F first live audit. Return blockers to owners.
+
+### Wave 6 — Clean artifacts and final red-team
+
+1. Freeze code commit `C`.
+2. Push `C`.
+3. Clean detached worktree from `C`.
+4. `git lfs pull && git lfs fsck`.
+5. Run full matrix.
+6. Run targeted tests and tests/v3.
+7. Attempt full repo pytest; record result honestly.
+8. Run audit.
+9. Commit artifacts `A`.
+10. Push.
+11. CI green.
+12. Agent F final PASS/BLOCKED.
 
 ---
 
-## 15. Required tests
+## 12. Required commands
 
-### 15.1 Targeted
+### 12.1 Targeted tests
 
 ```bash
 PYTHONPATH=. python -m pytest -q \
-  tests/v3/test_runtime_profile_loader_*.py \
-  tests/v3/test_runtime_fingerprint_gate_*.py \
-  tests/v3/test_runtime_source_frames_*.py \
-  tests/v3/test_runtime_target_adapter_*.py \
-  tests/v3/test_newton_pipeline_v3_shadow_noop_*.py \
-  tests/v3/test_newton_pipeline_v3_config_*.py \
-  tests/v3/test_runtime_override_mapping_*.py \
-  tests/v3/test_step3_runtime_artifact_schema_*.py \
-  tests/v3/test_step3_runtime_shadow_acceptance_*.py
+  tests/v3/test_step3_fleet_inventory_*.py \
+  tests/v3/test_step3_runtime_local_profile_*.py \
+  tests/v3/test_step3_clip_inventory_*.py \
+  tests/v3/test_step3_full_fleet_target_stream_*.py \
+  tests/v3/test_step3_partial_target_stream_*.py \
+  tests/v3/test_step3_generic_harness_*.py \
+  tests/v3/test_step3_full_humanoid_smoke_*.py \
+  tests/v3/test_step3_negative_control_rejection_*.py \
+  tests/v3/test_step3_quality_metrics_*.py \
+  tests/v3/test_step3_pipeline_backed_controls_*.py \
+  tests/v3/test_step3_full_fleet_artifact_schema_*.py \
+  tests/v3/test_step3_full_fleet_determinism_*.py \
+  tests/v3/test_step3_full_fleet_acceptance_*.py
 ```
 
-### 15.2 Full v3
+### 12.2 V3 suite
 
 ```bash
 PYTHONPATH=. python -m pytest -q tests/v3
 ```
 
-### 15.3 Full repo
+### 12.3 Full repo suite
 
 ```bash
 PYTHONPATH=. python -m pytest -q
 ```
 
-### 15.4 Smoke command
+If full repo suite is too slow/interrupted, save:
 
-```bash
-PYTHONPATH=. python -m soma_retargeter.tools.run_v3_runtime_shadow_smoke \
-  --artifact-root artifacts/retargeting_v3_step3_runtime_shadow \
-  --profile-artifact-root artifacts/retargeting_v3_step2_capability \
-  --robots roboparty_rpo unitree_g1 \
-  --clips assets/motions/bvh/Neutral_walk_forward_002__A057.bvh assets/motions/bvh/wave_R_001__A428.bvh \
-  --modes disabled shadow override_experimental \
-  --max-frames 120
+```text
+start time
+stop time
+duration
+last completed test count
+last visible test/path
+reason
+whether any failure occurred before interruption
 ```
 
-### 15.5 Audit
+Do not report full repo suite as passed unless it completes with exit code 0.
+
+### 12.4 Full fleet command
 
 ```bash
-PYTHONPATH=. python scripts/audit_retargeting_v3_step3_runtime_shadow.py \
-  --artifact-dir artifacts/retargeting_v3_step3_runtime_shadow \
+PYTHONPATH=. python -m soma_retargeter.tools.run_v3_full_fleet_runtime_quality \
+  --artifact-root artifacts/retargeting_v3_step3_runtime_quality \
+  --step2-profile-root artifacts/retargeting_v3_step2_capability \
+  --step3-shadow-root artifacts/retargeting_v3_step3_runtime_shadow \
+  --lock assets/robot_zoo/robot_zoo_lock.json \
+  --manifest assets/robot_zoo/robot_zoo_manifest.json \
+  --clip-root assets/motions \
+  --required-core-clips \
+    assets/motions/bvh/Neutral_walk_forward_002__A057.bvh \
+    assets/motions/bvh/wave_R_001__A428.bvh \
+    assets/motions/bvh/body_stretch_1_004__A069.bvh \
+    assets/motions/bvh/item_pick_up_standing_R_001__A410.bvh \
+  --short-max-frames 120 \
+  --mid-max-frames 300 \
+  --deterministic-rerun
+```
+
+### 12.5 Audit
+
+```bash
+PYTHONPATH=. python scripts/audit_retargeting_v3_step3_full_fleet.py \
+  --artifact-dir artifacts/retargeting_v3_step3_runtime_quality \
   --source-root . \
-  --write-report artifacts/retargeting_v3_step3_runtime_shadow/acceptance_ledger.json
+  --write-report artifacts/retargeting_v3_step3_runtime_quality/acceptance_ledger.json
 ```
 
 ---
 
-## 16. CI requirements
+## 13. CI requirements
 
-New workflow：
-
-```text
-.github/workflows/retargeting_v3_step3_runtime_shadow.yml
-```
-
-Must include jobs：
+New workflow:
 
 ```text
-runtime-shadow-unit-tests
-runtime-shadow-lfs-smoke
-runtime-shadow-artifact-audit
+.github/workflows/retargeting_v3_step3_full_fleet.yml
 ```
 
-CI must：
+Required jobs:
+
+```text
+full-fleet-static-and-unit
+full-fleet-artifact-audit
+lfs-and-snapshot-smoke
+pipeline-backed-regression
+```
+
+CI must:
 
 - checkout with LFS;
-- `git lfs pull && git lfs fsck`;
+- run `git lfs pull && git lfs fsck`;
 - install package;
-- run targeted tests;
-- run artifact audit;
-- not require private assets;
-- not run full long smoke unless workflow_dispatch/self-hosted;
-- upload compact artifacts if generated。
+- run targeted tests that do not require private caches;
+- audit committed full-fleet artifacts;
+- verify model matrix has 44 rows;
+- verify CI is not RPO/G1-only;
+- upload compact artifacts if generated.
 
-If CI cannot run full RPO/G1 smoke on GitHub runner, final local artifacts must contain smoke results and CI must at least audit committed artifacts.
-
----
-
-## 17. Final artifacts requirements
-
-```text
-artifacts/retargeting_v3_step3_runtime_shadow/
-  environment.json
-  commands.txt
-  profile_resolution.json
-  shadow_summary.json
-  override_smoke_summary.json
-  smoke_matrix.json
-  deterministic_rerun.json
-  acceptance_ledger.json
-  per_clip/<robot>/<clip>/target_deltas.json
-  per_clip/<robot>/<clip>/pipeline_summary.json
-  test_results/pytest.txt
-  test_results/junit.xml
-  test_results/pytest_summary.json
-```
-
-`environment.json` must include：
-
-```text
-source_code_commit
-source_code_commit_remote_resolvable=true
-source_code_commit_is_artifact_commit_ancestor=true
-source_worktree_clean_before_run=true
-source_worktree_clean_after_run=true
-git_status_short=""
-python/mujoco/newton/warp/numpy/scipy versions
-```
+Full 44 runtime recomputation may be local/self-hosted due fetch-only cache and runtime cost, but committed artifacts must record the local clean run and CI must audit them.
 
 ---
 
-## 18. Final acceptance checklist
+## 14. Final acceptance gates
 
-### Safety/no-op
+### Scope
 
-- [ ] default config output unchanged;
-- [ ] disabled mode output unchanged;
-- [ ] shadow mode output unchanged;
-- [ ] override requires explicit config;
-- [ ] no Step 2 artifact mutation;
-- [ ] no threshold changes;
-- [ ] no IK weight changes。
+- [ ] 44 in-scope model rows.
+- [ ] Counts 32 full, 3 partial, 9 negative.
+- [ ] No deferred assets reintroduced.
+- [ ] No model skipped just because it is not RPO/G1.
 
-### Runtime target stream
+### Runtime profile
 
-- [ ] source semantic frames finite;
-- [ ] V3 targets finite;
-- [ ] target order mapping correct;
-- [ ] diagnostics deterministic;
-- [ ] missing semantic fail closed。
+- [ ] Runtime source resolved for all 44.
+- [ ] Runtime-local profile generated for every full/partial mismatch.
+- [ ] No silent fingerprint mismatch.
+- [ ] Negative controls not promoted.
+- [ ] Runtime-local profile failures are explicit and quantified.
 
-### RPO/G1
+### Target streams
 
-- [ ] RPO strict profile match;
-- [ ] RPO shadow pass;
-- [ ] RPO override smoke pass;
-- [ ] G1 shadow pass or explicit fingerprint-skip;
-- [ ] G1 override pass or explicit fail-closed;
-- [ ] no private assets。
+- [ ] Full humanoid target streams generated for required clips.
+- [ ] Partial target streams generated for supported semantics only.
+- [ ] SE(3)/finite checks pass or structured failure.
+- [ ] Target stream metrics written.
 
-### Artifacts/CI
+### Generic smoke
 
-- [ ] all required artifacts exist;
-- [ ] pytest/junit saved;
-- [ ] smoke matrix saved;
-- [ ] audit PASS;
-- [ ] CI PASS;
-- [ ] Agent F PASS;
-- [ ] worktree clean;
-- [ ] LFS OK。
+- [ ] 32 full humanoids enter generic smoke.
+- [ ] 3 partials enter partial smoke.
+- [ ] 9 negatives enter rejection smoke.
+- [ ] No NaN/Inf hidden.
+- [ ] Joint-limit metrics written.
+- [ ] Quality failures are quantified.
+
+### Pipeline controls
+
+- [ ] RPO disabled/shadow/override retained.
+- [ ] G1 pipeline-backed policy retained.
+- [ ] Shadow no-op still true.
+- [ ] No production default behavior change.
+
+### Reproducibility
+
+- [ ] Deterministic rerun covers all terminal rows.
+- [ ] Clean source/artifact commits.
+- [ ] LFS OK.
+- [ ] No absolute paths/private assets.
+- [ ] Tests saved.
+- [ ] Full repo pytest result classified honestly.
+- [ ] CI green.
+- [ ] Agent F final PASS/BLOCKED.
 
 ---
 
-## 19. Completion definition
+## 15. What PASS means
 
-Final report must be exactly one of：
-
-```text
-Step 3.0 Runtime Profile Shadow: PASS
-```
-
-or：
+Final report must be exactly one of:
 
 ```text
-Step 3.0 Runtime Profile Shadow: BLOCKED
+Step 3.1 Full-Fleet Runtime Quality Evaluation: PASS
 ```
 
-PASS requires all：
+or:
 
 ```text
-default no-op verified
-shadow no-op verified
-RPO profile strict matched
-RPO shadow diagnostics finite
-RPO override smoke finite/deterministic
-G1 shadow finite or fingerprint-skip recorded
-G1 override pass or fail-closed recorded
-full tests pass
-runtime artifacts clean
-CI green
-Agent F PASS
-no Step 3.1 quality claims
+Step 3.1 Full-Fleet Runtime Quality Evaluation: BLOCKED
 ```
 
-If any hard gate fails, write BLOCKED and list blockers. Do not hide failure by changing mode to disabled or deleting diagnostics.
+PASS means:
 
-**即使 PASS，也必须在此停止。不要自动开始 Step 3.1 full runtime quality / visual evaluation。**
+```text
+44-row matrix complete
+all infrastructure blockers resolved or explicitly failed with numeric evidence
+RPO/G1 pipeline controls intact
+all full/partial/negative categories evaluated
+artifacts clean and deterministic
+CI/audit pass
+```
+
+PASS does **not** mean every robot's motion looks good. If quality failures remain, they must be counted and summarized. The point of this round is to know exactly where runtime quality fails across the full fleet.
+
+If any model is omitted, if the matrix is RPO/G1-only, if evidence is missing, or if Codex hides failures by status renaming, final verdict must be BLOCKED.
+
+Even if PASS, stop after Step 3.1. Do not start optimization/tuning automatically.
