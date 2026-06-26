@@ -6,12 +6,12 @@
     "requested": 17,
     "runtime_failed_artifact_fallback": 0,
     "runtime_failed_no_artifact": 0,
-    "runtime_loaded": 15,
-    "runtime_unavailable_artifact_fallback": 2,
-    "source_unavailable": 2,
+    "runtime_loaded": 16,
+    "runtime_unavailable_artifact_fallback": 1,
+    "source_unavailable": 1,
     "status_counts": {
-      "runtime_loaded": 15,
-      "runtime_unavailable_artifact_fallback": 2
+      "runtime_loaded": 16,
+      "runtime_unavailable_artifact_fallback": 1
     }
   },
   "differentials": {
@@ -6885,7 +6885,7 @@
         "nq": 44,
         "nv": 44
       },
-      "runtime_error": "declared local cache files are unavailable: ${ROBOT_ZOO_CACHE}/talos-data/urdf/talos_full.urdf, ${LOCAL_SOURCE_PATH}/talos_full.urdf",
+      "runtime_error": "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/talos-data/urdf/talos_full.urdf",
       "semantic_map": {
         "auxiliary_semantics": [],
         "exists": true,
@@ -7068,7 +7068,7 @@
       "source": {
         "format": "urdf",
         "local_file_sha256": null,
-        "reason": "declared local cache files are unavailable: ${ROBOT_ZOO_CACHE}/talos-data/urdf/talos_full.urdf, ${LOCAL_SOURCE_PATH}/talos_full.urdf",
+        "reason": "declared local cache files are unavailable: ${ROBOT_DESCRIPTIONS_CACHE}/talos-data/urdf/talos_full.urdf",
         "resolver": "robot_descriptions_local_cache",
         "source_path": null,
         "source_status": "source_unavailable"
@@ -19777,7 +19777,7 @@
       "classification_flags": [
         "standalone_geometry_probe"
       ],
-      "map_change_recommendation": "source_unavailable_no_runtime_correction",
+      "map_change_recommendation": "none",
       "model_id": "jaxon_urdf",
       "paths": {
         "left_foot": {
@@ -19799,7 +19799,7 @@
             "LLEG_LINK4",
             "LLEG_LINK5"
           ],
-          "chain_length": null,
+          "chain_length": 1.07717161144,
           "coordinate_labels": [
             "LLEG_JOINT0",
             "LLEG_JOINT1",
@@ -19808,9 +19808,76 @@
             "LLEG_JOINT4",
             "LLEG_JOINT5"
           ],
-          "coordinate_limits": [],
-          "desired_distance": null,
-          "desired_distance_to_chain_length_ratio": null,
+          "coordinate_limits": [
+            {
+              "dof_adr": 26,
+              "index": 26,
+              "joint_name": "LLEG_JOINT0",
+              "joint_type": "revolute",
+              "label": "LLEG_JOINT0",
+              "limited": true,
+              "lower": -1.097200036049,
+              "qpos_adr": 26,
+              "upper": 1.026620030403
+            },
+            {
+              "dof_adr": 27,
+              "index": 27,
+              "joint_name": "LLEG_JOINT1",
+              "joint_type": "revolute",
+              "label": "LLEG_JOINT1",
+              "limited": true,
+              "lower": -0.523599028587,
+              "qpos_adr": 27,
+              "upper": 0.725028991699
+            },
+            {
+              "dof_adr": 28,
+              "index": 28,
+              "joint_name": "LLEG_JOINT2",
+              "joint_type": "revolute",
+              "label": "LLEG_JOINT2",
+              "limited": true,
+              "lower": -2.118429899216,
+              "qpos_adr": 28,
+              "upper": 0.785398006439
+            },
+            {
+              "dof_adr": 29,
+              "index": 29,
+              "joint_name": "LLEG_JOINT3",
+              "joint_type": "revolute",
+              "label": "LLEG_JOINT3",
+              "limited": true,
+              "lower": 0.0,
+              "qpos_adr": 29,
+              "upper": 2.774189949036
+            },
+            {
+              "dof_adr": 30,
+              "index": 30,
+              "joint_name": "LLEG_JOINT4",
+              "joint_type": "revolute",
+              "label": "LLEG_JOINT4",
+              "limited": true,
+              "lower": -1.385640025139,
+              "qpos_adr": 30,
+              "upper": 1.473430037498
+            },
+            {
+              "dof_adr": 31,
+              "index": 31,
+              "joint_name": "LLEG_JOINT5",
+              "joint_type": "revolute",
+              "label": "LLEG_JOINT5",
+              "limited": true,
+              "lower": -1.047199964523,
+              "qpos_adr": 31,
+              "upper": 1.047199964523
+            }
+          ],
+          "desired_distance": 0.948633900545,
+          "desired_distance_to_chain_length_ratio": 0.880671093139,
           "joint_types": [
             "revolute",
             "revolute",
@@ -19826,17 +19893,51 @@
             "joint_type_counts": {
               "revolute": 6
             },
-            "limited_count": null,
-            "unlimited_count": null
+            "limited_count": 6,
+            "unlimited_count": 0
           },
-          "neutral_relative_position": null,
-          "neutral_relative_rotation_xyzw": null,
-          "neutral_relative_transform": null,
+          "neutral_relative_position": [
+            0.04,
+            0.10000000149,
+            -0.942500014305
+          ],
+          "neutral_relative_rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "neutral_relative_transform": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.10000000149
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              -0.942500014305
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "reference_body": "BODY",
           "reference_branch_bodies": [],
           "reference_semantic": "Hips",
-          "source_distance": null,
-          "source_to_robot_segment_ratio": null,
+          "source_distance": 0.945601296128,
+          "source_to_robot_segment_ratio": 0.99680318781,
           "target_body": "LLEG_LINK5",
           "target_branch_bodies": [
             "LLEG_LINK5",
@@ -19874,7 +19975,7 @@
             "LARM_LINK7",
             "LARM_FINGER0"
           ],
-          "chain_length": null,
+          "chain_length": 1.065886932876,
           "coordinate_labels": [
             "LARM_JOINT0",
             "LARM_JOINT1",
@@ -19886,9 +19987,109 @@
             "LARM_JOINT7",
             "LARM_F_JOINT0"
           ],
-          "coordinate_limits": [],
-          "desired_distance": null,
-          "desired_distance_to_chain_length_ratio": null,
+          "coordinate_limits": [
+            {
+              "dof_adr": 6,
+              "index": 6,
+              "joint_name": "LARM_JOINT0",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT0",
+              "limited": true,
+              "lower": -1.420799970627,
+              "qpos_adr": 6,
+              "upper": 0.144750997424
+            },
+            {
+              "dof_adr": 7,
+              "index": 7,
+              "joint_name": "LARM_JOINT1",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT1",
+              "limited": true,
+              "lower": -3.141590118408,
+              "qpos_adr": 7,
+              "upper": 3.141590118408
+            },
+            {
+              "dof_adr": 8,
+              "index": 8,
+              "joint_name": "LARM_JOINT2",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT2",
+              "limited": true,
+              "lower": 0.276199996471,
+              "qpos_adr": 8,
+              "upper": 3.141590118408
+            },
+            {
+              "dof_adr": 9,
+              "index": 9,
+              "joint_name": "LARM_JOINT3",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT3",
+              "limited": true,
+              "lower": -3.141590118408,
+              "qpos_adr": 9,
+              "upper": 3.141590118408
+            },
+            {
+              "dof_adr": 10,
+              "index": 10,
+              "joint_name": "LARM_JOINT4",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT4",
+              "limited": true,
+              "lower": -2.190059900284,
+              "qpos_adr": 10,
+              "upper": 1.047199964523
+            },
+            {
+              "dof_adr": 11,
+              "index": 11,
+              "joint_name": "LARM_JOINT5",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT5",
+              "limited": true,
+              "lower": -3.141590118408,
+              "qpos_adr": 11,
+              "upper": 3.141590118408
+            },
+            {
+              "dof_adr": 12,
+              "index": 12,
+              "joint_name": "LARM_JOINT6",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT6",
+              "limited": true,
+              "lower": -1.544939994812,
+              "qpos_adr": 12,
+              "upper": 1.570799946785
+            },
+            {
+              "dof_adr": 13,
+              "index": 13,
+              "joint_name": "LARM_JOINT7",
+              "joint_type": "revolute",
+              "label": "LARM_JOINT7",
+              "limited": true,
+              "lower": -1.413720011711,
+              "qpos_adr": 13,
+              "upper": 1.047199964523
+            },
+            {
+              "dof_adr": 14,
+              "index": 14,
+              "joint_name": "LARM_F_JOINT0",
+              "joint_type": "revolute",
+              "label": "LARM_F_JOINT0",
+              "limited": true,
+              "lower": -1.396260023117,
+              "qpos_adr": 14,
+              "upper": 0.61086499691
+            }
+          ],
+          "desired_distance": 0.824196365024,
+          "desired_distance_to_chain_length_ratio": 0.773249337807,
           "joint_types": [
             "revolute",
             "revolute",
@@ -19907,17 +20108,51 @@
             "joint_type_counts": {
               "revolute": 9
             },
-            "limited_count": null,
-            "unlimited_count": null
+            "limited_count": 9,
+            "unlimited_count": 0
           },
-          "neutral_relative_position": null,
-          "neutral_relative_rotation_xyzw": null,
-          "neutral_relative_transform": null,
+          "neutral_relative_position": [
+            0.03,
+            0.157250078082,
+            -0.808499883155
+          ],
+          "neutral_relative_rotation_xyzw": [
+            0.707108062685,
+            8.96324e-07,
+            -0.707105499685,
+            8.9632e-07
+          ],
+          "neutral_relative_transform": [
+            [
+              3.624629e-06,
+              2.535182e-06,
+              -0.99999999999,
+              0.03
+            ],
+            [
+              9e-12,
+              -0.999999999997,
+              -2.535182e-06,
+              0.157250078082
+            ],
+            [
+              -0.999999999993,
+              0.0,
+              -3.624629e-06,
+              -0.808499883155
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "reference_body": "CHEST_LINK2",
           "reference_branch_bodies": [],
           "reference_semantic": "Chest",
-          "source_distance": null,
-          "source_to_robot_segment_ratio": null,
+          "source_distance": 0.755887188156,
+          "source_to_robot_segment_ratio": 0.917120264337,
           "target_body": "LARM_FINGER0",
           "target_branch_bodies": [
             "LARM_FINGER0",
@@ -19952,7 +20187,7 @@
             "RLEG_LINK4",
             "RLEG_LINK5"
           ],
-          "chain_length": null,
+          "chain_length": 1.07717161144,
           "coordinate_labels": [
             "RLEG_JOINT0",
             "RLEG_JOINT1",
@@ -19961,9 +20196,76 @@
             "RLEG_JOINT4",
             "RLEG_JOINT5"
           ],
-          "coordinate_limits": [],
-          "desired_distance": null,
-          "desired_distance_to_chain_length_ratio": null,
+          "coordinate_limits": [
+            {
+              "dof_adr": 32,
+              "index": 32,
+              "joint_name": "RLEG_JOINT0",
+              "joint_type": "revolute",
+              "label": "RLEG_JOINT0",
+              "limited": true,
+              "lower": -1.026620030403,
+              "qpos_adr": 32,
+              "upper": 1.097200036049
+            },
+            {
+              "dof_adr": 33,
+              "index": 33,
+              "joint_name": "RLEG_JOINT1",
+              "joint_type": "revolute",
+              "label": "RLEG_JOINT1",
+              "limited": true,
+              "lower": -0.725028991699,
+              "qpos_adr": 33,
+              "upper": 0.523599028587
+            },
+            {
+              "dof_adr": 34,
+              "index": 34,
+              "joint_name": "RLEG_JOINT2",
+              "joint_type": "revolute",
+              "label": "RLEG_JOINT2",
+              "limited": true,
+              "lower": -2.118429899216,
+              "qpos_adr": 34,
+              "upper": 0.785398006439
+            },
+            {
+              "dof_adr": 35,
+              "index": 35,
+              "joint_name": "RLEG_JOINT3",
+              "joint_type": "revolute",
+              "label": "RLEG_JOINT3",
+              "limited": true,
+              "lower": 0.0,
+              "qpos_adr": 35,
+              "upper": 2.774189949036
+            },
+            {
+              "dof_adr": 36,
+              "index": 36,
+              "joint_name": "RLEG_JOINT4",
+              "joint_type": "revolute",
+              "label": "RLEG_JOINT4",
+              "limited": true,
+              "lower": -1.385640025139,
+              "qpos_adr": 36,
+              "upper": 1.473430037498
+            },
+            {
+              "dof_adr": 37,
+              "index": 37,
+              "joint_name": "RLEG_JOINT5",
+              "joint_type": "revolute",
+              "label": "RLEG_JOINT5",
+              "limited": true,
+              "lower": -1.047199964523,
+              "qpos_adr": 37,
+              "upper": 1.047199964523
+            }
+          ],
+          "desired_distance": 0.948633900545,
+          "desired_distance_to_chain_length_ratio": 0.880671093139,
           "joint_types": [
             "revolute",
             "revolute",
@@ -19979,17 +20281,51 @@
             "joint_type_counts": {
               "revolute": 6
             },
-            "limited_count": null,
-            "unlimited_count": null
+            "limited_count": 6,
+            "unlimited_count": 0
           },
-          "neutral_relative_position": null,
-          "neutral_relative_rotation_xyzw": null,
-          "neutral_relative_transform": null,
+          "neutral_relative_position": [
+            0.04,
+            -0.10000000149,
+            -0.942500014305
+          ],
+          "neutral_relative_rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "neutral_relative_transform": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              -0.10000000149
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              -0.942500014305
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "reference_body": "BODY",
           "reference_branch_bodies": [],
           "reference_semantic": "Hips",
-          "source_distance": null,
-          "source_to_robot_segment_ratio": null,
+          "source_distance": 0.945595675699,
+          "source_to_robot_segment_ratio": 0.996797263049,
           "target_body": "RLEG_LINK5",
           "target_branch_bodies": [
             "RLEG_LINK5",
@@ -20027,7 +20363,7 @@
             "RARM_LINK7",
             "RARM_FINGER0"
           ],
-          "chain_length": null,
+          "chain_length": 1.065886932876,
           "coordinate_labels": [
             "RARM_JOINT0",
             "RARM_JOINT1",
@@ -20039,9 +20375,109 @@
             "RARM_JOINT7",
             "RARM_F_JOINT0"
           ],
-          "coordinate_limits": [],
-          "desired_distance": null,
-          "desired_distance_to_chain_length_ratio": null,
+          "coordinate_limits": [
+            {
+              "dof_adr": 16,
+              "index": 16,
+              "joint_name": "RARM_JOINT0",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT0",
+              "limited": true,
+              "lower": -0.144750997424,
+              "qpos_adr": 16,
+              "upper": 1.420799970627
+            },
+            {
+              "dof_adr": 17,
+              "index": 17,
+              "joint_name": "RARM_JOINT1",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT1",
+              "limited": true,
+              "lower": -3.141590118408,
+              "qpos_adr": 17,
+              "upper": 3.141590118408
+            },
+            {
+              "dof_adr": 18,
+              "index": 18,
+              "joint_name": "RARM_JOINT2",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT2",
+              "limited": true,
+              "lower": -3.141590118408,
+              "qpos_adr": 18,
+              "upper": -0.276199996471
+            },
+            {
+              "dof_adr": 19,
+              "index": 19,
+              "joint_name": "RARM_JOINT3",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT3",
+              "limited": true,
+              "lower": -3.141590118408,
+              "qpos_adr": 19,
+              "upper": 3.141590118408
+            },
+            {
+              "dof_adr": 20,
+              "index": 20,
+              "joint_name": "RARM_JOINT4",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT4",
+              "limited": true,
+              "lower": -2.190059900284,
+              "qpos_adr": 20,
+              "upper": 1.047199964523
+            },
+            {
+              "dof_adr": 21,
+              "index": 21,
+              "joint_name": "RARM_JOINT5",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT5",
+              "limited": true,
+              "lower": -3.141590118408,
+              "qpos_adr": 21,
+              "upper": 3.141590118408
+            },
+            {
+              "dof_adr": 22,
+              "index": 22,
+              "joint_name": "RARM_JOINT6",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT6",
+              "limited": true,
+              "lower": -1.570799946785,
+              "qpos_adr": 22,
+              "upper": 1.544939994812
+            },
+            {
+              "dof_adr": 23,
+              "index": 23,
+              "joint_name": "RARM_JOINT7",
+              "joint_type": "revolute",
+              "label": "RARM_JOINT7",
+              "limited": true,
+              "lower": -1.413720011711,
+              "qpos_adr": 23,
+              "upper": 1.047199964523
+            },
+            {
+              "dof_adr": 24,
+              "index": 24,
+              "joint_name": "RARM_F_JOINT0",
+              "joint_type": "revolute",
+              "label": "RARM_F_JOINT0",
+              "limited": true,
+              "lower": -1.396260023117,
+              "qpos_adr": 24,
+              "upper": 0.61086499691
+            }
+          ],
+          "desired_distance": 0.824196350513,
+          "desired_distance_to_chain_length_ratio": 0.773249324193,
           "joint_types": [
             "revolute",
             "revolute",
@@ -20060,17 +20496,51 @@
             "joint_type_counts": {
               "revolute": 9
             },
-            "limited_count": null,
-            "unlimited_count": null
+            "limited_count": 9,
+            "unlimited_count": 0
           },
-          "neutral_relative_position": null,
-          "neutral_relative_rotation_xyzw": null,
-          "neutral_relative_transform": null,
+          "neutral_relative_position": [
+            -0.03,
+            -0.157250002027,
+            -0.808499883155
+          ],
+          "neutral_relative_rotation_xyzw": [
+            0.0,
+            0.707108062685,
+            0.0,
+            0.707105499686
+          ],
+          "neutral_relative_transform": [
+            [
+              -3.624629e-06,
+              0.0,
+              0.999999999993,
+              -0.03
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              -0.157250002027
+            ],
+            [
+              -0.999999999993,
+              0.0,
+              -3.624629e-06,
+              -0.808499883155
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "reference_body": "CHEST_LINK2",
           "reference_branch_bodies": [],
           "reference_semantic": "Chest",
-          "source_distance": null,
-          "source_to_robot_segment_ratio": null,
+          "source_distance": 0.755908664335,
+          "source_to_robot_segment_ratio": 0.917146337599,
           "target_body": "RARM_FINGER0",
           "target_branch_bodies": [
             "RARM_FINGER0",
@@ -20099,15 +20569,49 @@
             "CHEST_LINK1",
             "CHEST_LINK2"
           ],
-          "chain_length": null,
+          "chain_length": 0.461640536866,
           "coordinate_labels": [
             "CHEST_JOINT0",
             "CHEST_JOINT1",
             "CHEST_JOINT2"
           ],
-          "coordinate_limits": [],
-          "desired_distance": null,
-          "desired_distance_to_chain_length_ratio": null,
+          "coordinate_limits": [
+            {
+              "dof_adr": 0,
+              "index": 0,
+              "joint_name": "CHEST_JOINT0",
+              "joint_type": "revolute",
+              "label": "CHEST_JOINT0",
+              "limited": true,
+              "lower": -0.198550999165,
+              "qpos_adr": 0,
+              "upper": 0.198550999165
+            },
+            {
+              "dof_adr": 1,
+              "index": 1,
+              "joint_name": "CHEST_JOINT1",
+              "joint_type": "revolute",
+              "label": "CHEST_JOINT1",
+              "limited": true,
+              "lower": -0.034906599671,
+              "qpos_adr": 1,
+              "upper": 0.61086499691
+            },
+            {
+              "dof_adr": 2,
+              "index": 2,
+              "joint_name": "CHEST_JOINT2",
+              "joint_type": "revolute",
+              "label": "CHEST_JOINT2",
+              "limited": true,
+              "lower": -1.056599974632,
+              "qpos_adr": 2,
+              "upper": 1.056599974632
+            }
+          ],
+          "desired_distance": 0.461538990637,
+          "desired_distance_to_chain_length_ratio": 0.999780031819,
           "joint_types": [
             "revolute",
             "revolute",
@@ -20120,17 +20624,51 @@
             "joint_type_counts": {
               "revolute": 3
             },
-            "limited_count": null,
-            "unlimited_count": null
+            "limited_count": 3,
+            "unlimited_count": 0
           },
-          "neutral_relative_position": null,
-          "neutral_relative_rotation_xyzw": null,
-          "neutral_relative_transform": null,
+          "neutral_relative_position": [
+            0.006000000052,
+            0.0,
+            0.461499989033
+          ],
+          "neutral_relative_rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "neutral_relative_transform": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.006000000052
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.461499989033
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "reference_body": "BODY",
           "reference_branch_bodies": [],
           "reference_semantic": "Hips",
-          "source_distance": null,
-          "source_to_robot_segment_ratio": null,
+          "source_distance": 0.195752045729,
+          "source_to_robot_segment_ratio": 0.424128946201,
           "target_body": "CHEST_LINK2",
           "target_branch_bodies": [
             "CHEST_LINK2",
@@ -20144,29 +20682,24 @@
       "runtime": {
         "body_count": 40,
         "coordinate_count": 38,
-        "fallback_artifact_path": "artifacts/retargeting_v3_step2_assets44/per_robot/jaxon_urdf.json",
-        "fallback_artifact_status": "algorithm_failed",
         "loader_provenance": {
           "backend": "newton",
-          "compiled_model_manifest": {
-            "reason": "runtime backend does not expose a serialized compiled-model manifest",
-            "status": "unavailable"
-          },
-          "loader": "newton.ModelBuilder.add_urdf",
-          "model_format": "urdf"
+          "load_path": "${ROBOT_DESCRIPTIONS_CACHE}/jaxon_description/urdf/jaxon_jvrc.urdf",
+          "patches": [],
+          "temporary_load_copy": null
         },
         "nq": 38,
         "nv": 38
       },
-      "runtime_error": "declared local cache files are unavailable: ${ROBOT_ZOO_CACHE}/jaxon_description/urdf/jaxon_jvrc.urdf, ${LOCAL_SOURCE_PATH}/jaxon_jvrc.urdf",
+      "runtime_error": null,
       "semantic_map": {
         "auxiliary_semantics": [],
         "exists": true,
-        "fingerprint_matches_runtime": null,
+        "fingerprint_matches_runtime": false,
         "model_fingerprint": "0e741b4e5d88c6a1b743817d6dcaaeda21c0bbed9941dba6eb6dba61f1f7d48f",
         "model_id": "jaxon_urdf",
         "path": "assets/robot_zoo/semantic_maps/jaxon_urdf.json",
-        "runtime_fingerprint": null,
+        "runtime_fingerprint": "3771a2000d2937ec984b234f947dfd828cec299fb0e0362c490f10bed588e6e8",
         "semantic_count": 6,
         "verification_status": "verified"
       },
@@ -20191,9 +20724,43 @@
             0.0,
             1.0
           ],
-          "neutral_world_position": null,
-          "neutral_world_rotation_xyzw": null,
-          "neutral_world_transform": null,
+          "neutral_world_position": [
+            0.006000000052,
+            0.0,
+            0.461499989033
+          ],
+          "neutral_world_rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "neutral_world_transform": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.006000000052
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.461499989033
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "semantic_name": "Chest",
           "source": "verified_semantic_map",
           "target_frame_convention": "body_origin_frame"
@@ -20218,9 +20785,43 @@
             0.0,
             1.0
           ],
-          "neutral_world_position": null,
-          "neutral_world_rotation_xyzw": null,
-          "neutral_world_transform": null,
+          "neutral_world_position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "neutral_world_rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "neutral_world_transform": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "semantic_name": "Hips",
           "source": "verified_semantic_map",
           "target_frame_convention": "body_origin_frame"
@@ -20246,9 +20847,43 @@
             0.0,
             1.0
           ],
-          "neutral_world_position": null,
-          "neutral_world_rotation_xyzw": null,
-          "neutral_world_transform": null,
+          "neutral_world_position": [
+            0.04,
+            0.10000000149,
+            -0.942500014305
+          ],
+          "neutral_world_rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "neutral_world_transform": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.10000000149
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              -0.942500014305
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "semantic_name": "LeftFoot",
           "source": "verified_topology_terminal_link",
           "target_frame_convention": "verified_body_local_offset"
@@ -20274,9 +20909,43 @@
             0.0,
             1.0
           ],
-          "neutral_world_position": null,
-          "neutral_world_rotation_xyzw": null,
-          "neutral_world_transform": null,
+          "neutral_world_position": [
+            0.036000000052,
+            0.157250078082,
+            -0.346999894122
+          ],
+          "neutral_world_rotation_xyzw": [
+            0.707108062685,
+            8.96324e-07,
+            -0.707105499685,
+            8.9632e-07
+          ],
+          "neutral_world_transform": [
+            [
+              3.624629e-06,
+              2.535182e-06,
+              -0.99999999999,
+              0.036000000052
+            ],
+            [
+              9e-12,
+              -0.999999999997,
+              -2.535182e-06,
+              0.157250078082
+            ],
+            [
+              -0.999999999993,
+              0.0,
+              -3.624629e-06,
+              -0.346999894122
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "semantic_name": "LeftHand",
           "source": "verified_topology_terminal_link",
           "target_frame_convention": "verified_body_local_offset"
@@ -20302,9 +20971,43 @@
             0.0,
             1.0
           ],
-          "neutral_world_position": null,
-          "neutral_world_rotation_xyzw": null,
-          "neutral_world_transform": null,
+          "neutral_world_position": [
+            0.04,
+            -0.10000000149,
+            -0.942500014305
+          ],
+          "neutral_world_rotation_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "neutral_world_transform": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.04
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              -0.10000000149
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              -0.942500014305
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "semantic_name": "RightFoot",
           "source": "verified_topology_terminal_link",
           "target_frame_convention": "verified_body_local_offset"
@@ -20330,9 +21033,43 @@
             0.0,
             1.0
           ],
-          "neutral_world_position": null,
-          "neutral_world_rotation_xyzw": null,
-          "neutral_world_transform": null,
+          "neutral_world_position": [
+            -0.023999999948,
+            -0.157250002027,
+            -0.346999894122
+          ],
+          "neutral_world_rotation_xyzw": [
+            0.0,
+            0.707108062685,
+            0.0,
+            0.707105499686
+          ],
+          "neutral_world_transform": [
+            [
+              -3.624629e-06,
+              0.0,
+              0.999999999993,
+              -0.023999999948
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              -0.157250002027
+            ],
+            [
+              -0.999999999993,
+              0.0,
+              -3.624629e-06,
+              -0.346999894122
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
           "semantic_name": "RightHand",
           "source": "verified_topology_terminal_link",
           "target_frame_convention": "verified_body_local_offset"
@@ -20340,24 +21077,24 @@
       },
       "source": {
         "format": "urdf",
-        "local_file_sha256": null,
-        "reason": "declared local cache files are unavailable: ${ROBOT_ZOO_CACHE}/jaxon_description/urdf/jaxon_jvrc.urdf, ${LOCAL_SOURCE_PATH}/jaxon_jvrc.urdf",
+        "local_file_sha256": "dc9640effe2d162260bd49c476597ba69e67cc1bab56fbfb661aa56fc2b50deb",
+        "reason": "",
         "resolver": "robot_descriptions_local_cache",
-        "source_path": null,
-        "source_status": "source_unavailable"
+        "source_path": "${ROBOT_DESCRIPTIONS_CACHE}/jaxon_description/urdf/jaxon_jvrc.urdf",
+        "source_status": "available"
       },
-      "status": "runtime_unavailable_artifact_fallback",
+      "status": "runtime_loaded",
       "symmetry": {
         "arm_active_coordinate_delta": 0,
-        "arm_neutral_distance_delta": 1.4510765478092935e-08,
-        "arm_neutral_distance_left": null,
-        "arm_neutral_distance_right": null,
+        "arm_neutral_distance_delta": 1.4511e-08,
+        "arm_neutral_distance_left": 0.824196365024,
+        "arm_neutral_distance_right": 0.824196350513,
         "foot_local_mirror_error": 0.0,
         "hand_local_mirror_error": 0.0,
         "leg_active_coordinate_delta": 0,
         "leg_neutral_distance_delta": 0.0,
-        "leg_neutral_distance_left": null,
-        "leg_neutral_distance_right": null
+        "leg_neutral_distance_left": 0.948633900545,
+        "leg_neutral_distance_right": 0.948633900545
       }
     },
     {
@@ -21208,7 +21945,7 @@
         "coordinate_count": 59,
         "loader_provenance": {
           "backend": "newton",
-          "load_path": "${HOME}/.cache/robot_descriptions/nasa-urdf-robots/val_description/model/robots/valkyrie_sim.urdf",
+          "load_path": "${ROBOT_DESCRIPTIONS_CACHE}/nasa-urdf-robots/val_description/model/robots/valkyrie_sim.urdf",
           "patches": [],
           "temporary_load_copy": null
         },
@@ -21604,7 +22341,7 @@
         "local_file_sha256": "c7eb44747abbb5e96af117f4bd9bbe05eec16a47a544bb1962f0564a2bb9ed10",
         "reason": "",
         "resolver": "robot_descriptions_local_cache",
-        "source_path": "${LOCAL_SOURCE_PATH}/valkyrie_sim.urdf",
+        "source_path": "${ROBOT_DESCRIPTIONS_CACHE}/nasa-urdf-robots/val_description/model/robots/valkyrie_sim.urdf",
         "source_status": "available"
       },
       "status": "runtime_loaded",
