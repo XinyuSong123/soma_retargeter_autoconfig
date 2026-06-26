@@ -1,22 +1,47 @@
 {
-  "artifact_dir": "artifacts/retargeting_v3_step3_runtime_shadow",
+  "blockers": [],
   "blocking_count": 0,
-  "finding_count": 0,
-  "findings": [],
-  "gate_counts": {
-    "default_output_changed": 0,
-    "diagnostics_nan_inf": 0,
-    "fingerprint_mismatch_silent": 0,
-    "lfs_pointer_profile_or_snapshot": 0,
-    "local_absolute_path_leakage": 0,
-    "missing_ci": 0,
-    "missing_diagnostics": 0,
-    "override_without_explicit_config": 0,
-    "partial_or_negative_profile_override": 0,
-    "shadow_mutates_ik_inputs": 0,
-    "stale_agent_f_verdict": 0,
-    "step2_artifacts_mutated": 0
+  "g1_override_result": "passed",
+  "gates": [
+    {
+      "detail": "all requested robot/clip/mode rows are present",
+      "name": "required_matrix_materialized",
+      "status": "passed"
+    },
+    {
+      "detail": "all shadow rows equal disabled baseline",
+      "name": "shadow_output_equal_to_disabled",
+      "status": "passed"
+    },
+    {
+      "detail": "diagnostics_hash=b124f2129a29daa0be466cbb883fac74a1693570ee32ba85351a129d119ab904",
+      "name": "diagnostics_deterministic",
+      "status": "passed"
+    },
+    {
+      "detail": "no local absolute path tokens found",
+      "name": "no_local_absolute_paths",
+      "status": "passed"
+    },
+    {
+      "detail": "RPO override rows passed",
+      "name": "rpo_override_smoke",
+      "status": "passed"
+    },
+    {
+      "detail": "G1 override passed or fail-closed",
+      "name": "g1_override_policy",
+      "status": "passed"
+    }
+  ],
+  "remaining_blockers": [],
+  "row_status_counts": {
+    "fail_closed": 2,
+    "passed": 10
   },
-  "source_root": ".",
-  "status": "PASS"
+  "rpo_override_result": "passed",
+  "schema_version": 1,
+  "shadow_equality_result": "passed",
+  "status": "passed",
+  "verdict": "PASS"
 }

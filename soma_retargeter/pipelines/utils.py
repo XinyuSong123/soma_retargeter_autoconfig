@@ -9,7 +9,6 @@ import newton
 
 import soma_retargeter.robot_registry_parser as robot_registry_parser
 import soma_retargeter.utils.io_utils as io_utils
-import soma_retargeter.assets.usd as usd_utils
 
 
 class SourceType(IntEnum):
@@ -136,6 +135,8 @@ def get_source_model_mesh(source: SourceType, skeleton) -> dict:
         ValueError: If the source type is not recognized.
     """
     if source == SourceType.SOMA:
+        import soma_retargeter.assets.usd as usd_utils
+
         return usd_utils.load_skeletal_mesh_from_usd(
             str(io_utils.get_config_file('soma', 'soma_base_skel_minimal.usd')),
             skeleton,

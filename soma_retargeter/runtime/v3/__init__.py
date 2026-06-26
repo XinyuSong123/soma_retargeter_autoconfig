@@ -1,15 +1,5 @@
 """Runtime V3 profile shadow integration helpers."""
 
-from .profile_loader import (
-    RuntimeModelIdentity,
-    RuntimeProfileResolution,
-    RuntimeProfileStatusError,
-    RuntimeV3ProfileError,
-    RuntimeV3Profile,
-    load_runtime_v3_profile,
-    resolve_runtime_v3_profile_id,
-)
-
 __all__ = [
     "RuntimeModelIdentity",
     "RuntimeProfileResolution",
@@ -25,6 +15,18 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    if name in {
+        "RuntimeModelIdentity",
+        "RuntimeProfileResolution",
+        "RuntimeProfileStatusError",
+        "RuntimeV3ProfileError",
+        "RuntimeV3Profile",
+        "load_runtime_v3_profile",
+        "resolve_runtime_v3_profile_id",
+    }:
+        from . import profile_loader
+
+        return getattr(profile_loader, name)
     if name in {"SourceSemanticFrameBatch", "extract_source_semantic_frames"}:
         from .source_frames import SourceSemanticFrameBatch, extract_source_semantic_frames
 

@@ -1,0 +1,119 @@
+name: Retargeting V3 Step 3.1 Full Fleet Runtime Quality
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "soma_retargeter/tools/compile_runtime_local_profiles_v3.py"
+      - "scripts/audit_retargeting_v3_step3_full_fleet.py"
+      - "scripts/run_step3_full_fleet_runtime_quality.sh"
+      - "tests/v3/test_step3_*runtime_quality.py"
+      - "tests/v3/test_step3_full_fleet_acceptance_audit.py"
+      - "artifacts/retargeting_v3_step3_runtime_quality/**"
+      - ".github/workflows/retargeting_v3_step3_full_fleet.yml"
+  push:
+    branches:
+      - retargeting-v3-step3-runtime-quality-eval
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "soma_retargeter/tools/compile_runtime_local_profiles_v3.py"
+      - "scripts/audit_retargeting_v3_step3_full_fleet.py"
+      - "scripts/run_step3_full_fleet_runtime_quality.sh"
+      - "tests/v3/test_step3_*runtime_quality.py"
+      - "tests/v3/test_step3_full_fleet_acceptance_audit.py"
+      - "artifacts/retargeting_v3_step3_runtime_quality/**"
+      - ".github/workflows/retargeting_v3_step3_full_fleet.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  STEP3_1_ARTIFACTS: artifacts/retargeting_v3_step3_runtime_quality
+
+jobs:
+  full-fleet-static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run static full-fleet tests
+        run: |
+          python -m pytest -q \
+            tests/v3/test_step3_fleet_inventory_runtime_quality.py \
+            tests/v3/test_step3_clip_inventory_runtime_quality.py \
+            tests/v3/test_step3_full_fleet_acceptance_audit.py
+
+  full-fleet-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Step 3.1 artifacts
+        run: |
+          python scripts/audit_retargeting_v3_step3_full_fleet.py \
+            --artifact-dir "$STEP3_1_ARTIFACTS" \
+            --source-root .
+
+  lfs-and-snapshot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+      - name: Verify 44-row committed matrix
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          matrix = json.loads(Path("artifacts/retargeting_v3_step3_runtime_quality/model_matrix.json").read_text())
+          assert matrix["in_scope_total"] == 44
+          assert len(matrix["rows"]) == 44
+          PY
+
+  pipeline-backed-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check pipeline-backed controls artifact
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path("artifacts/retargeting_v3_step3_runtime_quality/pipeline_backed_matrix.json").read_text())
+          controls = payload["controls"]
+          assert controls["rpo_present"] is True
+          assert controls["g1_present"] is True
+          assert controls["shadow_noop_verified"] is True
+          assert controls["g1_fail_closed_recorded"] is True
+          PY
