@@ -7,23 +7,30 @@ on:
       - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
       - "soma_retargeter/tools/compile_runtime_local_profiles_v3.py"
       - "scripts/audit_retargeting_v3_step3_full_fleet.py"
+      - "scripts/generate_step3_full_fleet_hardened_artifacts.sh"
       - "scripts/run_step3_full_fleet_runtime_quality.sh"
       - "tests/v3/test_step3_*runtime_quality.py"
       - "tests/v3/test_step3_full_fleet_acceptance_audit.py"
       - "artifacts/retargeting_v3_step3_runtime_quality/**"
+      - "docs/retargeting_v3/STEP3_1_FULL_FLEET_RUNTIME_QUALITY_ACCEPTANCE.md"
+      - "docs/retargeting_v3/subagents/step3_1_agent_f_red_team.md"
       - ".github/workflows/retargeting_v3_step3_full_fleet.yml"
   push:
     branches:
+      - retargeting-v3-step3-full-fleet-hardening
       - retargeting-v3-step3-runtime-quality-eval
     paths:
       - "soma_retargeter/runtime/v3/**"
       - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
       - "soma_retargeter/tools/compile_runtime_local_profiles_v3.py"
       - "scripts/audit_retargeting_v3_step3_full_fleet.py"
+      - "scripts/generate_step3_full_fleet_hardened_artifacts.sh"
       - "scripts/run_step3_full_fleet_runtime_quality.sh"
       - "tests/v3/test_step3_*runtime_quality.py"
       - "tests/v3/test_step3_full_fleet_acceptance_audit.py"
       - "artifacts/retargeting_v3_step3_runtime_quality/**"
+      - "docs/retargeting_v3/STEP3_1_FULL_FLEET_RUNTIME_QUALITY_ACCEPTANCE.md"
+      - "docs/retargeting_v3/subagents/step3_1_agent_f_red_team.md"
       - ".github/workflows/retargeting_v3_step3_full_fleet.yml"
   workflow_dispatch:
 
@@ -116,4 +123,58 @@ jobs:
           assert controls["g1_present"] is True
           assert controls["shadow_noop_verified"] is True
           assert controls["g1_fail_closed_recorded"] is True
+          PY
+
+  quality-status-semantics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check audit status semantics
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pytest -q tests/v3/test_step3_full_fleet_acceptance_audit.py -k "residual_only or dishonest or provenance or final_head_ci"
+
+  final-head-ci-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - full-fleet-static-and-unit
+      - full-fleet-artifact-audit
+      - lfs-and-snapshot-smoke
+      - pipeline-backed-regression
+      - quality-status-semantics
+    if: always()
+    steps:
+      - name: Record final HEAD CI evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          job_conclusions = {name: data["result"] for name, data in sorted(needs.items())}
+          conclusion = "success" if all(result == "success" for result in job_conclusions.values()) else "failure"
+          payload = {
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "conclusion": conclusion,
+              "job_conclusions": job_conclusions,
+          }
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("```json\n")
+              handle.write(json.dumps(payload, indent=2, sort_keys=True))
+              handle.write("\n```\n")
+          if conclusion != "success":
+              sys.exit(1)
           PY

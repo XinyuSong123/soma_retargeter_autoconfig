@@ -13,6 +13,14 @@ from soma_retargeter.robotics.v3.spatial import rotation_error
 
 from .fleet_inventory import FleetRuntimeCase
 from .quality_metrics import contact_diagnostics, smoke_output_metrics
+from .runtime_quality_gates import (
+    BLOCKED_SOURCE_OR_PROFILE,
+    NEGATIVE_CONTROL_RUNTIME_PASSED,
+    PARTIAL_RUNTIME_PASSED,
+    RESIDUAL_ONLY_SOLVER_TYPE,
+    RUNTIME_QUALITY_FAILED,
+    classify_runtime_quality,
+)
 
 
 @dataclass(frozen=True)
@@ -22,11 +30,27 @@ class GenericSmokeResult:
     metrics: dict[str, Any]
     residuals: dict[str, Any]
     error: str | None = None
+    solver_type: str | None = None
+    solver_backed: bool = False
+    residual_only: bool = False
+    quality_pass_allowed: bool = False
+    quality_classification: str | None = None
+    classification_reason: str | None = None
+    quality_gate_results: dict[str, Any] | None = None
+    failure_or_warning_reasons: list[str] | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
             "status": self.status,
             "mode": self.mode,
+            "solver_type": self.solver_type or self.residuals.get("solver"),
+            "solver_backed": self.solver_backed,
+            "residual_only": self.residual_only,
+            "quality_pass_allowed": self.quality_pass_allowed,
+            "quality_classification": self.quality_classification or self.status,
+            "classification_reason": self.classification_reason,
+            "quality_gate_results": self.quality_gate_results or {},
+            "failure_or_warning_reasons": list(self.failure_or_warning_reasons or []),
             "metrics": self.metrics,
             "residuals": self.residuals,
             "error": self.error,
@@ -87,32 +111,69 @@ def run_full_humanoid_fk_smoke(
             solver_iterations=np.zeros(frame_count),
         )
         metrics.update(contact_diagnostics(target_transforms))
-        status = "passed" if metrics["nan_count"] == 0 and metrics["inf_count"] == 0 else "failed"
+        metrics["target_se3_orthogonality_error_max"] = _target_se3_orthogonality_error_max(target_transforms)
+        classification = classify_runtime_quality(
+            metrics,
+            solver_type=RESIDUAL_ONLY_SOLVER_TYPE,
+            solver_backed=False,
+        )
+        metrics.update(_classification_metrics(classification))
         return GenericSmokeResult(
-            status=status,
+            status=str(classification["classification"]),
             mode="generic_fk_residual_smoke",
             metrics=metrics,
             residuals={
-                "solver": "runtime_model_fk_residual_evaluation",
+                "solver": RESIDUAL_ONLY_SOLVER_TYPE,
+                "solver_type": RESIDUAL_ONLY_SOLVER_TYPE,
                 "per_semantic": per_semantic,
                 "residual_sample_count": len(residual_values),
             },
+            solver_type=str(classification["solver_type"]),
+            solver_backed=bool(classification["solver_backed"]),
+            residual_only=bool(classification["residual_only"]),
+            quality_pass_allowed=bool(classification["quality_pass_allowed"]),
+            quality_classification=str(classification["quality_classification"]),
+            classification_reason=str(classification["classification_reason"]),
+            quality_gate_results=dict(classification["quality_gate_results"]),
+            failure_or_warning_reasons=list(classification["failure_or_warning_reasons"]),
         )
     except Exception as exc:
+        metrics = {
+            "output_frame_count": 0,
+            "joint_coord_count": int(getattr(adapter, "nq", 0)),
+            "nan_count": 0,
+            "inf_count": 0,
+            "output_finite": False,
+            "joint_limit_violation_count": 0,
+            "max_joint_limit_violation": 0.0,
+            "normalized_task_residual_mean": 0.0,
+            "normalized_task_residual_p95": 0.0,
+            "normalized_task_residual_max": 0.0,
+            "solver_success_fraction": 0.0,
+            "runtime_seconds": 0.0,
+        }
+        classification = classify_runtime_quality(
+            metrics,
+            solver_type=RESIDUAL_ONLY_SOLVER_TYPE,
+            solver_backed=False,
+        )
+        metrics.update(_classification_metrics(classification))
+        metrics["classification_reason"] = f"runtime_model_fk_residual_evaluation_failed: {type(exc).__name__}: {exc}"
         return GenericSmokeResult(
-            status="failed",
+            status=RUNTIME_QUALITY_FAILED,
             mode="generic_fk_residual_smoke",
-            metrics={
-                "output_frame_count": 0,
-                "joint_coord_count": int(getattr(adapter, "nq", 0)),
-                "nan_count": 0,
-                "inf_count": 0,
-                "joint_limit_violation_count": 0,
-                "max_joint_limit_violation": 0.0,
-                "runtime_seconds": 0.0,
-            },
-            residuals={"solver": "runtime_model_fk_residual_evaluation", "per_semantic": {}},
+            metrics=metrics,
+            residuals={"solver": RESIDUAL_ONLY_SOLVER_TYPE, "solver_type": RESIDUAL_ONLY_SOLVER_TYPE, "per_semantic": {}},
             error=f"{type(exc).__name__}: {exc}",
+            solver_type=str(classification["solver_type"]),
+            solver_backed=bool(classification["solver_backed"]),
+            residual_only=bool(classification["residual_only"]),
+            quality_pass_allowed=bool(classification["quality_pass_allowed"]),
+            quality_classification=RUNTIME_QUALITY_FAILED,
+            classification_reason=str(metrics["classification_reason"]),
+            quality_gate_results=dict(classification["quality_gate_results"]),
+            failure_or_warning_reasons=list(classification["failure_or_warning_reasons"])
+            or ["runtime_model_fk_residual_evaluation_failed"],
         )
     finally:
         if owns_adapter:
@@ -149,6 +210,12 @@ def run_partial_supported_smoke(
                 "missing_required_semantics": list(case.missing_required_semantics),
                 "full_override_attempted": False,
             },
+            solver_type="partial_supported_semantic_runtime_load_and_fk",
+            solver_backed=False,
+            residual_only=False,
+            quality_pass_allowed=False,
+            quality_classification=PARTIAL_RUNTIME_PASSED,
+            classification_reason="partial_supported_semantics_smoke_completed",
         )
     except Exception as exc:
         return GenericSmokeResult(
@@ -157,6 +224,13 @@ def run_partial_supported_smoke(
             metrics={"output_frame_count": 0, "joint_coord_count": 0, "nan_count": 0, "inf_count": 0, "runtime_seconds": 0.0},
             residuals={"solver": "partial_supported_semantic_runtime_load_and_fk"},
             error=f"{type(exc).__name__}: {exc}",
+            solver_type="partial_supported_semantic_runtime_load_and_fk",
+            solver_backed=False,
+            residual_only=False,
+            quality_pass_allowed=False,
+            quality_classification=BLOCKED_SOURCE_OR_PROFILE,
+            classification_reason="partial_supported_semantic_runtime_load_failed",
+            failure_or_warning_reasons=["partial_supported_semantic_runtime_load_failed"],
         )
     finally:
         if owns_adapter:
@@ -174,6 +248,13 @@ def run_negative_control_rejection_smoke(case: FleetRuntimeCase) -> GenericSmoke
             metrics={"output_frame_count": 0, "joint_coord_count": 0, "nan_count": 0, "inf_count": 0, "runtime_seconds": 0.0},
             residuals={"solver": "negative_control_runtime_load", "humanoid_profile_generated": False},
             error=f"{type(exc).__name__}: {exc}",
+            solver_type="negative_control_runtime_load",
+            solver_backed=False,
+            residual_only=False,
+            quality_pass_allowed=False,
+            quality_classification=BLOCKED_SOURCE_OR_PROFILE,
+            classification_reason="negative_control_runtime_load_failed",
+            failure_or_warning_reasons=["negative_control_runtime_load_failed"],
         )
     try:
         q0 = adapter.neutral_q()
@@ -193,6 +274,12 @@ def run_negative_control_rejection_smoke(case: FleetRuntimeCase) -> GenericSmoke
                 "humanoid_profile_generated": False,
                 "target_stream_override_generated": False,
             },
+            solver_type="negative_control_runtime_load_and_reject_humanoid_profile",
+            solver_backed=False,
+            residual_only=False,
+            quality_pass_allowed=False,
+            quality_classification=NEGATIVE_CONTROL_RUNTIME_PASSED,
+            classification_reason="negative_control_loaded_and_rejected_from_humanoid_quality",
         )
     finally:
         adapter.close()
@@ -221,3 +308,31 @@ def _frame_count(transforms: Mapping[str, np.ndarray]) -> int:
     for value in transforms.values():
         return int(np.asarray(value).shape[0])
     return 0
+
+
+def _target_se3_orthogonality_error_max(transforms: Mapping[str, np.ndarray]) -> float:
+    orthogonality_error_max = 0.0
+    for stack_value in transforms.values():
+        stack = np.asarray(stack_value, dtype=np.float64)
+        if stack.ndim != 3 or stack.shape[1:] != (4, 4) or stack.shape[0] == 0:
+            continue
+        rotations = stack[:, :3, :3]
+        errors = np.linalg.norm(np.matmul(np.swapaxes(rotations, 1, 2), rotations) - np.eye(3), axis=(1, 2))
+        orthogonality_error_max = max(orthogonality_error_max, float(np.max(errors)) if errors.size else 0.0)
+    if abs(orthogonality_error_max) < 1e-15:
+        return 0.0
+    return round(orthogonality_error_max, 12)
+
+
+def _classification_metrics(classification: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "solver_type": str(classification["solver_type"]),
+        "solver_backed": bool(classification["solver_backed"]),
+        "residual_only": bool(classification["residual_only"]),
+        "quality_pass_allowed": bool(classification["quality_pass_allowed"]),
+        "quality_classification": str(classification["quality_classification"]),
+        "classification_reason": str(classification["classification_reason"]),
+        "quality_gate_results": dict(classification["quality_gate_results"]),
+        "failure_or_warning_reasons": list(classification["failure_or_warning_reasons"]),
+        "runtime_quality_gates": dict(classification["gates"]),
+    }

@@ -9,6 +9,7 @@ runtime-shadow smoke evidence.
 from __future__ import annotations
 
 import argparse
+from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 import json
 import math
@@ -30,8 +31,12 @@ MIN_NON_RPO_G1_ROWS = 40
 REQUIRED_ARTIFACT_FILES = (
     "environment.json",
     "commands.txt",
+    "model_matrix.json",
     "full_fleet_matrix.json",
     "quality_summary.json",
+    "target_stream_matrix.json",
+    "generic_smoke_matrix.json",
+    "pipeline_backed_matrix.json",
     "pipeline_controls.json",
     "acceptance_ledger.json",
     "test_results/pytest.txt",
@@ -40,13 +45,17 @@ REQUIRED_ARTIFACT_FILES = (
 )
 ACCEPTANCE_GATES = (
     "missing_required_artifacts",
+    "clean_provenance",
     "matrix_shape",
     "status_counts_32_3_9",
+    "status_count_honesty",
     "non_rpo_g1_full_fleet",
     "negative_controls_not_promoted",
     "quality_numeric_fields",
+    "runtime_quality_label_honesty",
     "absolute_path_leakage",
     "pipeline_controls_present",
+    "final_head_ci",
     "full_repo_pytest_caveat",
     "stale_agent_f_verdict",
 )
@@ -94,6 +103,37 @@ FORBIDDEN_NEGATIVE_QUALITY_STATUSES = {
     "quality_passed",
     "runtime_quality_passed",
 }
+RUNTIME_QUALITY_PASS_STATUSES = {
+    "accepted",
+    "pass",
+    "passed",
+    "quality_accepted",
+    "quality_passed",
+    "runtime_quality_passed",
+    "full_fleet_quality_pass",
+}
+RUNTIME_QUALITY_FAILURE_STATUSES = {
+    "blocked",
+    "failed",
+    "quality_failed",
+    "runtime_quality_failed",
+}
+RESIDUAL_ONLY_SMOKE_MODES = {
+    "generic_fk_residual_smoke",
+}
+PROVENANCE_REQUIRED_TRUE_FIELDS = (
+    "source_code_commit_remote_resolvable",
+    "source_code_commit_is_artifact_commit_ancestor",
+    "source_worktree_clean_before_run",
+    "source_worktree_clean_after_run",
+)
+REQUIRED_FINAL_HEAD_CI_JOBS = (
+    "full-fleet-static-and-unit",
+    "full-fleet-artifact-audit",
+    "lfs-and-snapshot-smoke",
+    "pipeline-backed-regression",
+    "quality-status-semantics",
+)
 ALLOWED_FULL_REPO_PYTEST_CLASSIFICATIONS = {
     "not_run_scoped_caveat",
     "full_repo_passed",
@@ -102,6 +142,8 @@ ALLOWED_FULL_REPO_PYTEST_CLASSIFICATIONS = {
 LOCAL_ABSOLUTE_PATH_RE = re.compile(
     r"(?<![\w$])/(?:mnt|home|Users|tmp|var|private/var)/[^\s\"'<>),\]}`:]+"
 )
+CONCRETE_SHA_RE = re.compile(r"\b[0-9a-f]{40}\b", flags=re.IGNORECASE)
+CONCRETE_RUN_ID_RE = re.compile(r"\b[1-9][0-9]{5,}\b")
 
 
 @dataclass(frozen=True)
@@ -125,6 +167,7 @@ class AuditResult:
     gate_counts: dict[str, int]
     findings: list[Finding]
     full_repo_pytest: dict[str, Any]
+    final_head_ci: dict[str, Any]
 
     @property
     def blocking_findings(self) -> list[Finding]:
@@ -137,25 +180,36 @@ class AuditResult:
 def run_audit(
     artifact_dir: Path = DEFAULT_ARTIFACT_DIR,
     source_root: Path = DEFAULT_SOURCE_ROOT,
+    *,
+    require_final_head_ci: bool = False,
 ) -> AuditResult:
     artifact_dir = artifact_dir.resolve()
     source_root = source_root.resolve()
     findings: list[Finding] = []
 
     matrix_payload = _read_json(artifact_dir / "full_fleet_matrix.json")
+    model_matrix_payload = _read_json(artifact_dir / "model_matrix.json")
     summary = _read_json(artifact_dir / "quality_summary.json")
+    environment = _read_json(artifact_dir / "environment.json")
+    generic_smoke = _read_json(artifact_dir / "generic_smoke_matrix.json")
     controls = _read_json(artifact_dir / "pipeline_controls.json")
     acceptance_ledger = _read_json(artifact_dir / "acceptance_ledger.json")
     rows = _matrix_rows(matrix_payload)
+    generic_rows = _generic_smoke_rows(generic_smoke)
+    final_head_ci = _final_head_ci_record(acceptance_ledger, summary)
 
     findings.extend(_audit_required_artifacts(artifact_dir))
+    findings.extend(_audit_clean_provenance(environment))
     findings.extend(_audit_matrix_shape(rows, summary))
     findings.extend(_audit_status_counts(rows, summary))
+    findings.extend(_audit_status_count_honesty(rows, summary, model_matrix_payload, generic_rows))
     findings.extend(_audit_non_rpo_g1_full_fleet(rows, summary))
     findings.extend(_audit_negative_controls_not_promoted(rows))
     findings.extend(_audit_quality_numeric_fields(rows))
+    findings.extend(_audit_runtime_quality_label_honesty(rows, generic_rows, summary))
     findings.extend(_audit_absolute_paths(artifact_dir, source_root))
     findings.extend(_audit_pipeline_controls(rows, controls))
+    findings.extend(_audit_final_head_ci(acceptance_ledger, summary, source_root, require_final_head_ci=require_final_head_ci))
     findings.extend(_audit_full_repo_pytest_caveat(acceptance_ledger, source_root))
 
     pre_verdict_status = "PASS" if not [finding for finding in findings if finding.severity == "error"] else "BLOCKED"
@@ -176,6 +230,7 @@ def run_audit(
         gate_counts=gate_counts,
         findings=findings,
         full_repo_pytest=acceptance_ledger.get("full_repo_pytest", {}),
+        final_head_ci=final_head_ci,
     )
 
 
@@ -185,9 +240,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-root", default=str(DEFAULT_SOURCE_ROOT))
     parser.add_argument("--output-json")
     parser.add_argument("--write-report", dest="output_json")
+    parser.add_argument(
+        "--require-final-head-ci",
+        action="store_true",
+        help=(
+            "Require committed/external final HEAD CI metadata. The default audit omits this "
+            "self-referential gate so artifact-audit CI can run on the same commit it validates."
+        ),
+    )
     args = parser.parse_args(argv)
 
-    result = run_audit(artifact_dir=Path(args.artifact_dir), source_root=Path(args.source_root))
+    result = run_audit(
+        artifact_dir=Path(args.artifact_dir),
+        source_root=Path(args.source_root),
+        require_final_head_ci=args.require_final_head_ci,
+    )
     payload = result.to_json()
     if args.output_json:
         output = Path(args.output_json)
@@ -271,6 +338,69 @@ def _audit_matrix_shape(rows: list[dict[str, Any]], summary: dict[str, Any]) -> 
     return findings
 
 
+def _audit_clean_provenance(environment: dict[str, Any]) -> list[Finding]:
+    findings: list[Finding] = []
+    git = environment.get("git") if isinstance(environment.get("git"), dict) else {}
+    status_text = "\n".join(
+        str(value)
+        for value in (
+            environment.get("git_status_short"),
+            git.get("status_short") if isinstance(git, dict) else None,
+        )
+        if value
+    )
+    for line in _nonempty_lines(status_text):
+        findings.append(
+            _finding(
+                "clean_provenance",
+                "environment.json",
+                "artifact provenance records a dirty worktree status line",
+                {"status_line": line},
+            )
+        )
+    for field in PROVENANCE_REQUIRED_TRUE_FIELDS:
+        if environment.get(field) is not True:
+            findings.append(
+                _finding(
+                    "clean_provenance",
+                    "environment.json",
+                    "clean-provenance field must be recorded as true",
+                    {"field": field, "value": environment.get(field)},
+                )
+            )
+    core_diff = environment.get("core_diff_after_source_commit")
+    if core_diff != []:
+        findings.append(
+            _finding(
+                "clean_provenance",
+                "environment.json",
+                "core source diff after source commit must be recorded as empty",
+                {"core_diff_after_source_commit": core_diff},
+            )
+        )
+    source_commit = environment.get("source_code_commit") or environment.get("source_commit") or git.get("head")
+    if not _is_concrete_sha(source_commit):
+        findings.append(
+            _finding(
+                "clean_provenance",
+                "environment.json",
+                "source_code_commit must be a concrete 40-character SHA",
+                {"source_code_commit": source_commit},
+            )
+        )
+    artifact_commit = environment.get("artifact_commit")
+    if artifact_commit is not None and not _is_concrete_sha(artifact_commit):
+        findings.append(
+            _finding(
+                "clean_provenance",
+                "environment.json",
+                "artifact_commit must be a concrete 40-character SHA when recorded",
+                {"artifact_commit": artifact_commit},
+            )
+        )
+    return findings
+
+
 def _audit_status_counts(rows: list[dict[str, Any]], summary: dict[str, Any]) -> list[Finding]:
     findings: list[Finding] = []
     row_counts = _status_bucket_counts(rows)
@@ -302,6 +432,85 @@ def _audit_status_counts(rows: list[dict[str, Any]], summary: dict[str, Any]) ->
                 {"actual_counts": summary_counts, "expected_counts": EXPECTED_STATUS_COUNTS},
             )
         )
+    return findings
+
+
+def _audit_status_count_honesty(
+    rows: list[dict[str, Any]],
+    summary: dict[str, Any],
+    model_matrix_payload: dict[str, Any],
+    generic_rows: list[dict[str, Any]],
+) -> list[Finding]:
+    findings: list[Finding] = []
+    final_counts = Counter(_row_final_status(row) for row in rows if _row_final_status(row))
+    summary_final_counts = summary.get("final_status_counts")
+    if not isinstance(summary_final_counts, dict):
+        findings.append(
+            _finding(
+                "status_count_honesty",
+                "quality_summary.json",
+                "quality summary must record final_status_counts",
+                {"actual_final_status_counts": dict(final_counts)},
+            )
+        )
+    else:
+        for status in sorted(set(final_counts) | set(str(key) for key in summary_final_counts)):
+            actual = final_counts.get(status, 0)
+            expected = _as_int(summary_final_counts.get(status)) or 0
+            if actual != expected:
+                findings.append(
+                    _finding(
+                        "status_count_honesty",
+                        "quality_summary.json",
+                        "summary final_status_counts must match full_fleet_matrix rows",
+                        {"status": status, "actual": actual, "summary": summary_final_counts.get(status)},
+                    )
+                )
+    model_rows = _matrix_rows(model_matrix_payload)
+    if model_rows:
+        model_counts = _status_bucket_counts(model_rows)
+        row_counts = _status_bucket_counts(rows)
+        if model_counts != row_counts:
+            findings.append(
+                _finding(
+                    "status_count_honesty",
+                    "model_matrix.json",
+                    "model_matrix status partition must match full_fleet_matrix",
+                    {"model_matrix_counts": model_counts, "full_fleet_counts": row_counts},
+                )
+            )
+    if generic_rows:
+        generic_success_count = _unique_smoke_model_count(generic_rows, _is_pass_status)
+        generic_failed_count = _unique_smoke_model_count(generic_rows, _is_failure_status)
+        for field, actual in (
+            ("generic_smoke_success_count", generic_success_count),
+            ("generic_smoke_failed_count", generic_failed_count),
+        ):
+            if field in summary and (_as_int(summary.get(field)) or 0) != actual:
+                findings.append(
+                    _finding(
+                        "status_count_honesty",
+                        "quality_summary.json",
+                        f"summary {field} must match generic_smoke_matrix rows",
+                        {"field": field, "actual": actual, "summary": summary.get(field)},
+                    )
+                )
+    quality_failed_count = _as_int(summary.get("quality_failed_count"))
+    if quality_failed_count is not None:
+        inferred_problem_models = _quality_pass_problem_models(rows, generic_rows)
+        if quality_failed_count < len(inferred_problem_models):
+            findings.append(
+                _finding(
+                    "status_count_honesty",
+                    "quality_summary.json",
+                    "quality_failed_count understates rows that cannot honestly be runtime quality passes",
+                    {
+                        "quality_failed_count": quality_failed_count,
+                        "minimum_inferred_quality_problem_count": len(inferred_problem_models),
+                        "sample_models": sorted(inferred_problem_models)[:10],
+                    },
+                )
+            )
     return findings
 
 
@@ -452,6 +661,94 @@ def _audit_quality_numeric_fields(rows: list[dict[str, Any]]) -> list[Finding]:
     return findings
 
 
+def _audit_runtime_quality_label_honesty(
+    rows: list[dict[str, Any]],
+    generic_rows: list[dict[str, Any]],
+    summary: dict[str, Any],
+) -> list[Finding]:
+    findings: list[Finding] = []
+    residual_only_models: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    solver_backed_pass_models: set[str] = set()
+    for index, smoke_row in enumerate(generic_rows):
+        model_id = _model_id(smoke_row)
+        category = str(smoke_row.get("category") or "").lower()
+        mode = _smoke_mode(smoke_row)
+        status = _smoke_status(smoke_row)
+        if category == "full_humanoid_profile" and _is_residual_only_smoke(smoke_row):
+            if model_id:
+                residual_only_models[model_id].append(smoke_row)
+            if _is_pass_status(status):
+                findings.append(
+                    _finding(
+                        "runtime_quality_label_honesty",
+                        f"generic_smoke_matrix[{index}] {model_id or 'unknown_model'}",
+                        "residual-only FK smoke must not be labeled as a runtime quality pass",
+                        {
+                            "mode": mode,
+                            "status": status,
+                            "required_status_semantics": [
+                                "runtime_evaluation_completed",
+                                "runtime_quality_warned",
+                                "runtime_quality_failed",
+                            ],
+                            "residual_metrics": _smoke_residual_metric_sample(smoke_row),
+                        },
+                    )
+                )
+        elif category == "full_humanoid_profile" and model_id and _is_pass_status(status):
+            solver_backed_pass_models.add(model_id)
+    for index, row in enumerate(rows):
+        model_id = _model_id(row)
+        if not _is_runtime_quality_pass_row(row):
+            continue
+        if _as_int(row.get("joint_limit_violation_count")) not in (None, 0):
+            findings.append(
+                _finding(
+                    "runtime_quality_label_honesty",
+                    _row_subject(index, row),
+                    "runtime_quality_passed row reports joint-limit violations",
+                    {
+                        "joint_limit_violation_count": row.get("joint_limit_violation_count"),
+                        "max_joint_limit_violation": row.get("max_joint_limit_violation"),
+                    },
+                )
+            )
+        max_violation = _as_float(row.get("max_joint_limit_violation"))
+        if max_violation is not None and max_violation > 0:
+            findings.append(
+                _finding(
+                    "runtime_quality_label_honesty",
+                    _row_subject(index, row),
+                    "runtime_quality_passed row reports nonzero max_joint_limit_violation",
+                    {"max_joint_limit_violation": max_violation},
+                )
+            )
+        if residual_only_models.get(model_id) and model_id not in solver_backed_pass_models:
+            findings.append(
+                _finding(
+                    "runtime_quality_label_honesty",
+                    _row_subject(index, row),
+                    "runtime_quality_passed row is backed only by residual-only FK smoke evidence",
+                    {
+                        "model_id": model_id,
+                        "final_status": _row_final_status(row),
+                        "generic_smoke_modes": sorted({_smoke_mode(smoke) for smoke in residual_only_models[model_id]}),
+                        "residual_metrics": _smoke_residual_metric_sample(residual_only_models[model_id][0]),
+                    },
+                )
+            )
+    if summary.get("quality_failed_count") == 0 and _quality_pass_problem_models(rows, generic_rows):
+        findings.append(
+            _finding(
+                "runtime_quality_label_honesty",
+                "quality_summary.json",
+                "summary claims zero quality failures while pass-labeled rows have quality blockers",
+                {"quality_failed_count": summary.get("quality_failed_count")},
+            )
+        )
+    return findings
+
+
 def _audit_numeric_ordering(index: int, row: dict[str, Any], prefix: str) -> list[Finding]:
     mean = _as_float(row.get(f"{prefix}_mean"))
     p95 = _as_float(row.get(f"{prefix}_p95"))
@@ -525,26 +822,100 @@ def _audit_pipeline_controls(rows: list[dict[str, Any]], controls: dict[str, Any
                     {"required_one_of": ["pipeline_control_id", "control_artifact"]},
                 )
             )
-        modes = row.get("control_modes") or row.get("pipeline_control_modes") or []
-        if not isinstance(modes, list) or not {"disabled", "shadow"}.issubset({str(mode) for mode in modes}):
+    return findings
+
+
+def _audit_final_head_ci(
+    acceptance_ledger: dict[str, Any],
+    summary: dict[str, Any],
+    source_root: Path,
+    *,
+    require_final_head_ci: bool,
+) -> list[Finding]:
+    findings: list[Finding] = []
+    record = _final_head_ci_record(acceptance_ledger, summary)
+    if not record:
+        if require_final_head_ci:
             findings.append(
                 _finding(
-                    "pipeline_controls_present",
-                    subject,
-                    "matrix row must record disabled and shadow pipeline controls",
-                    {"control_modes": modes},
+                    "final_head_ci",
+                    "acceptance_ledger.json",
+                    "final HEAD CI evidence is missing",
+                    {"required_field": "final_head_ci"},
                 )
             )
-        for flag in REQUIRED_ROW_CONTROL_FLAGS:
-            if not _is_pass(row.get(flag)):
-                findings.append(
-                    _finding(
-                        "pipeline_controls_present",
-                        subject,
-                        "matrix row is missing a required pipeline-control pass flag",
-                        {"flag": flag, "value": row.get(flag)},
-                    )
+    else:
+        workflow_run_id = record.get("workflow_run_id") or record.get("run_id")
+        head_sha = record.get("head_sha") or record.get("final_head")
+        conclusion = str(record.get("conclusion") or "").lower()
+        if not _is_concrete_run_id(workflow_run_id):
+            findings.append(
+                _finding(
+                    "final_head_ci",
+                    "acceptance_ledger.json",
+                    "workflow_run_id must be concrete final HEAD CI evidence",
+                    {"workflow_run_id": workflow_run_id},
                 )
+            )
+        if not _is_concrete_sha(head_sha):
+            findings.append(
+                _finding(
+                    "final_head_ci",
+                    "acceptance_ledger.json",
+                    "head_sha must be a concrete 40-character SHA",
+                    {"head_sha": head_sha},
+                )
+            )
+        if conclusion != "success":
+            findings.append(
+                _finding(
+                    "final_head_ci",
+                    "acceptance_ledger.json",
+                    "final HEAD CI conclusion must be success",
+                    {"conclusion": record.get("conclusion")},
+                )
+            )
+        job_conclusions = _job_conclusions(record.get("job_conclusions") or record.get("jobs"))
+        if not job_conclusions:
+            findings.append(
+                _finding(
+                    "final_head_ci",
+                    "acceptance_ledger.json",
+                    "final HEAD CI job conclusions are missing",
+                    {"required_jobs": list(REQUIRED_FINAL_HEAD_CI_JOBS)},
+                )
+            )
+        else:
+            for job in REQUIRED_FINAL_HEAD_CI_JOBS:
+                if job not in job_conclusions:
+                    findings.append(
+                        _finding(
+                            "final_head_ci",
+                            "acceptance_ledger.json",
+                            "final HEAD CI evidence is missing a required job conclusion",
+                            {"required_job": job, "job_conclusions": job_conclusions},
+                        )
+                    )
+            for job, conclusion_value in sorted(job_conclusions.items()):
+                if str(conclusion_value).lower() != "success":
+                    findings.append(
+                        _finding(
+                            "final_head_ci",
+                            "acceptance_ledger.json",
+                            "final HEAD CI job conclusion must be success",
+                            {"job": job, "conclusion": conclusion_value},
+                        )
+                    )
+    handoff_text = _read_text(source_root / AGENT_F_HANDOFF)
+    if require_final_head_ci and not _handoff_has_final_head_ci(handoff_text):
+        findings.append(
+            _finding(
+                "final_head_ci",
+                str(AGENT_F_HANDOFF),
+                "Agent F handoff must record workflow_run_id, head_sha, success conclusion, and job conclusions",
+                {},
+            )
+        )
     return findings
 
 
@@ -672,6 +1043,10 @@ def _matrix_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def _generic_smoke_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    return _matrix_rows(payload)
+
+
 def _summary_status_counts(summary: dict[str, Any]) -> dict[str, int] | None:
     value = summary.get("status_counts") if isinstance(summary, dict) else None
     if not isinstance(value, dict):
@@ -718,6 +1093,99 @@ def _status_bucket(row: dict[str, Any]) -> str:
     return status
 
 
+def _row_final_status(row: dict[str, Any]) -> str:
+    return str(
+        row.get("final_step3_1_status")
+        or row.get("runtime_quality_status")
+        or row.get("quality_classification")
+        or ""
+    ).lower()
+
+
+def _is_runtime_quality_pass_row(row: dict[str, Any]) -> bool:
+    return _is_pass_status(_row_final_status(row))
+
+
+def _is_pass_status(status: Any) -> bool:
+    return str(status or "").lower() in RUNTIME_QUALITY_PASS_STATUSES
+
+
+def _is_failure_status(status: Any) -> bool:
+    return str(status or "").lower() in RUNTIME_QUALITY_FAILURE_STATUSES
+
+
+def _unique_smoke_model_count(generic_rows: list[dict[str, Any]], predicate) -> int:
+    return len(
+        {
+            _model_id(row)
+            for row in generic_rows
+            if _model_id(row) and predicate(_smoke_status(row))
+        }
+    )
+
+
+def _smoke_status(row: dict[str, Any]) -> str:
+    summary = row.get("smoke_summary") if isinstance(row.get("smoke_summary"), dict) else {}
+    return str(
+        row.get("runtime_quality_status")
+        or row.get("quality_classification")
+        or summary.get("status")
+        or row.get("status")
+        or ""
+    ).lower()
+
+
+def _smoke_mode(row: dict[str, Any]) -> str:
+    summary = row.get("smoke_summary") if isinstance(row.get("smoke_summary"), dict) else {}
+    return str(summary.get("mode") or row.get("mode") or "").lower()
+
+
+def _is_residual_only_smoke(row: dict[str, Any]) -> bool:
+    mode = _smoke_mode(row)
+    if mode in RESIDUAL_ONLY_SMOKE_MODES or "fk_residual" in mode:
+        return True
+    summary = row.get("smoke_summary") if isinstance(row.get("smoke_summary"), dict) else {}
+    residuals = summary.get("residuals") if isinstance(summary.get("residuals"), dict) else {}
+    solver = str(residuals.get("solver") or "").lower()
+    return solver in {"runtime_model_fk_residual_evaluation", "runtime_model_fk_residual_evaluation_only"}
+
+
+def _smoke_residual_metric_sample(row: dict[str, Any]) -> dict[str, Any]:
+    summary = row.get("smoke_summary") if isinstance(row.get("smoke_summary"), dict) else {}
+    metrics = summary.get("metrics") if isinstance(summary.get("metrics"), dict) else {}
+    keys = (
+        "normalized_task_residual_mean",
+        "normalized_task_residual_p95",
+        "task_residual_mean",
+        "task_residual_p95",
+        "joint_limit_violation_count",
+        "max_joint_limit_violation",
+        "solver_iteration_mean",
+    )
+    return {key: metrics.get(key) for key in keys if key in metrics}
+
+
+def _quality_pass_problem_models(rows: list[dict[str, Any]], generic_rows: list[dict[str, Any]]) -> set[str]:
+    residual_only_models = {_model_id(row) for row in generic_rows if _is_residual_only_smoke(row)}
+    solver_backed_models = {
+        _model_id(row)
+        for row in generic_rows
+        if _model_id(row) and not _is_residual_only_smoke(row) and _is_pass_status(_smoke_status(row))
+    }
+    problem_models: set[str] = set()
+    for row in rows:
+        model_id = _model_id(row)
+        if not model_id or not _is_runtime_quality_pass_row(row):
+            continue
+        joint_limit_count = _as_int(row.get("joint_limit_violation_count"))
+        max_violation = _as_float(row.get("max_joint_limit_violation"))
+        if joint_limit_count not in (None, 0) or (max_violation is not None and max_violation > 0):
+            problem_models.add(model_id)
+        if model_id in residual_only_models and model_id not in solver_backed_models:
+            problem_models.add(model_id)
+    return problem_models
+
+
 def _model_id(row: dict[str, Any]) -> str:
     return str(row.get("model_id") or row.get("profile_model_id") or row.get("robot_id") or "").strip()
 
@@ -738,6 +1206,57 @@ def _duplicates(values: Iterable[str]) -> set[str]:
             duplicates.add(value)
         seen.add(value)
     return duplicates
+
+
+def _final_head_ci_record(acceptance_ledger: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+    for payload in (acceptance_ledger, summary):
+        if not isinstance(payload, dict):
+            continue
+        for key in ("final_head_ci", "ci"):
+            value = payload.get(key)
+            if isinstance(value, dict):
+                return value
+    return {}
+
+
+def _job_conclusions(value: Any) -> dict[str, str]:
+    if isinstance(value, dict):
+        return {str(key): str(child).lower() for key, child in value.items()}
+    if isinstance(value, list):
+        conclusions: dict[str, str] = {}
+        for item in value:
+            if isinstance(item, dict):
+                name = item.get("name") or item.get("job") or item.get("id")
+                conclusion = item.get("conclusion") or item.get("status")
+                if name:
+                    conclusions[str(name)] = str(conclusion or "").lower()
+            elif isinstance(item, str):
+                conclusions[item] = item.lower()
+        return conclusions
+    return {}
+
+
+def _handoff_has_final_head_ci(text: str) -> bool:
+    lower = text.lower()
+    return (
+        bool(re.search(r"workflow_run_id\s*[:=]\s*`?[1-9][0-9]{5,}`?", text, flags=re.IGNORECASE))
+        and bool(re.search(r"(?:head_sha|head sha|final_head)\s*[:=]\s*`?[0-9a-f]{40}`?", text, flags=re.IGNORECASE))
+        and ("conclusion=success" in lower or re.search(r"conclusion\s*[:=]\s*`?success`?", lower) is not None)
+        and "job conclusion" in lower
+        and "success" in lower
+    )
+
+
+def _is_concrete_sha(value: Any) -> bool:
+    return isinstance(value, str) and CONCRETE_SHA_RE.fullmatch(value.strip()) is not None
+
+
+def _is_concrete_run_id(value: Any) -> bool:
+    return isinstance(value, (str, int)) and CONCRETE_RUN_ID_RE.fullmatch(str(value).strip()) is not None
+
+
+def _nonempty_lines(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines() if line.strip()]
 
 
 def _read_json(path: Path) -> dict[str, Any]:

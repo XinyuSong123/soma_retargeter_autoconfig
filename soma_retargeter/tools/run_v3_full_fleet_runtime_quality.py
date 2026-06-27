@@ -29,6 +29,7 @@ from soma_retargeter.runtime.v3.fleet_inventory import (
     write_json,
 )
 from soma_retargeter.runtime.v3.runtime_local_profile import close_runtime_profile, write_profile_resolution_artifacts
+from soma_retargeter.runtime.v3.runtime_quality_gates import GLOBAL_RUNTIME_QUALITY_GATES
 
 
 DEFAULT_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step3_runtime_quality")
@@ -43,6 +44,8 @@ DEFAULT_CORE_CLIPS = (
     "assets/motions/bvh/body_stretch_1_004__A069.bvh",
     "assets/motions/bvh/item_pick_up_standing_R_001__A410.bvh",
 )
+CORE_DIFF_PATHS = ("soma_retargeter", "tests", "scripts", ".github")
+RESIDUAL_ONLY_SOLVERS = {"runtime_model_fk_residual_evaluation", "runtime_model_fk_residual_evaluation_only"}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -58,6 +61,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mid-max-frames", type=int, default=300)
     parser.add_argument("--deterministic-rerun", action="store_true")
     parser.add_argument("--clean", action="store_true", default=True)
+    parser.add_argument(
+        "--allow-dirty-internal-rerun",
+        action="store_true",
+        help=(
+            "Allow a local/internal artifact rerun when source paths are dirty. "
+            "The generated provenance still records the dirty state and accepted artifacts remain blocked."
+        ),
+    )
     args = parser.parse_args(argv)
 
     result = run_full_fleet_runtime_quality(
@@ -72,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         mid_max_frames=args.mid_max_frames,
         deterministic_rerun=args.deterministic_rerun,
         clean=args.clean,
+        allow_dirty_internal_rerun=args.allow_dirty_internal_rerun,
     )
     print(json.dumps({"status": result["verdict"], "artifact_root": display_path(args.artifact_root)}, sort_keys=True))
     return 0 if result["verdict"] == "PASS" else 1
@@ -90,8 +102,19 @@ def run_full_fleet_runtime_quality(
     mid_max_frames: int,
     deterministic_rerun: bool,
     clean: bool = True,
+    allow_dirty_internal_rerun: bool = False,
 ) -> dict[str, Any]:
     artifact_root = Path(artifact_root)
+    provenance_preflight = _provenance_preflight(artifact_root)
+    if not provenance_preflight["source_worktree_clean_before_run"] and not allow_dirty_internal_rerun:
+        dirty = provenance_preflight["git_status_short"]
+        raise RuntimeError(
+            "Refusing to generate Step 3.1 runtime-quality artifacts from a dirty source worktree. "
+            "Commit or stash source changes first, or pass --allow-dirty-internal-rerun only for an "
+            "explicit non-acceptance internal rerun.\n"
+            f"Dirty source status:\n{dirty}"
+        )
+
     if clean and artifact_root.exists():
         shutil.rmtree(artifact_root)
     artifact_root.mkdir(parents=True, exist_ok=True)
@@ -101,9 +124,7 @@ def run_full_fleet_runtime_quality(
     clip_inventory = inventory_motion_clips(".", motions_root=clip_root, core_clip_paths=[str(p) for p in required_core_clips])
     assert_core_clips_available(clip_inventory)
 
-    environment = _environment_payload()
     source_inventory = _source_inventory_payload(cases)
-    write_json(artifact_root / "environment.json", environment)
     write_json(artifact_root / "source_inventory.json", source_inventory)
     write_json(artifact_root / "clip_inventory.json", clip_inventory.to_json())
 
@@ -138,15 +159,22 @@ def run_full_fleet_runtime_quality(
         quality_summary=quality_summary,
         enabled=deterministic_rerun,
     )
-    verdict = "PASS" if _acceptance_passed(model_matrix, quality_summary, failure_matrix, pipeline_backed) else "BLOCKED"
+    environment = _environment_payload(
+        artifact_root=artifact_root,
+        preflight=provenance_preflight,
+        allow_dirty_internal_rerun=allow_dirty_internal_rerun,
+    )
+    verdict = "PASS" if _acceptance_passed(model_matrix, quality_summary, failure_matrix, pipeline_backed, environment) else "BLOCKED"
     acceptance_ledger = _acceptance_ledger_payload(
         verdict=verdict,
         model_matrix=model_matrix,
         quality_summary=quality_summary,
         failure_matrix=failure_matrix,
         deterministic=deterministic,
+        environment=environment,
     )
 
+    write_json(artifact_root / "environment.json", environment)
     write_json(artifact_root / "model_matrix.json", model_matrix)
     write_json(artifact_root / "full_fleet_matrix.json", {"schema_version": 1, "matrix": model_matrix["rows"]})
     write_json(artifact_root / "target_stream_matrix.json", target_stream_matrix)
@@ -194,12 +222,11 @@ def _model_matrix_payload(
     pipeline_status_by_model = _pipeline_status_by_model(pipeline_backed)
     for result in case_results:
         closure = closures[result.case.model_id]
-        rows.append(
-            result.model_matrix_row(
-                profile_resolution_status=closure.resolution_status,
-                pipeline_backed_status=pipeline_status_by_model.get(result.case.model_id, "not_pipeline_backed"),
-            )
+        row = result.model_matrix_row(
+            profile_resolution_status=closure.resolution_status,
+            pipeline_backed_status=pipeline_status_by_model.get(result.case.model_id, "not_pipeline_backed"),
         )
+        rows.append(_apply_runtime_quality_semantics(row, result))
     return {
         "schema_version": 1,
         "in_scope_total": len(rows),
@@ -227,29 +254,248 @@ def _generic_smoke_matrix_payload(case_results: list[FleetCaseResult]) -> dict[s
     rows = []
     for result in case_results:
         if result.case.category == NEGATIVE_CONTROL:
+            evidence = _negative_control_quality_evidence(result)
             rows.append(
                 {
                     "model_id": result.case.model_id,
                     "category": result.case.category,
+                    "clip_id": None,
                     "mode": "negative_control_rejection",
+                    "solver_type": "negative_control_runtime_load_and_reject_humanoid_profile",
+                    "solver_backed": False,
+                    "quality_pass_allowed": False,
                     "status": result.negative_control_status,
+                    "runtime_quality_status": evidence["final_status"],
+                    "quality_classification": evidence["quality_classification"],
+                    "residual_only": False,
+                    "failure_or_warning_reasons": [],
                     "metrics": result.quality_metrics,
                 }
             )
             continue
         for clip in result.clip_results:
             if clip.generic_smoke_status != "not_run":
+                evidence = _smoke_quality_evidence(clip.smoke_summary)
                 rows.append(
                     {
                         "model_id": result.case.model_id,
                         "category": result.case.category,
                         "clip_id": clip.clip_id,
                         "mode": clip.mode,
-                        "status": clip.generic_smoke_status,
+                        "solver_type": evidence["solver_type"],
+                        "solver_backed": evidence["solver_backed"],
+                        "quality_pass_allowed": evidence["quality_pass_allowed"],
+                        "status": evidence["status"],
+                        "raw_smoke_status": clip.generic_smoke_status,
+                        "runtime_quality_status": evidence["status"],
+                        "quality_classification": evidence["quality_classification"],
+                        "residual_only": evidence["residual_only"],
+                        "metrics": evidence["metrics"],
+                        "high_residual_warning": evidence["high_residual_warning"],
+                        "joint_limit_warning": evidence["joint_limit_warning"],
+                        "failure_or_warning_reasons": evidence["warning_reasons"],
                         "smoke_summary": clip.smoke_summary,
                     }
                 )
     return {"schema_version": 1, "row_count": len(rows), "rows": rows}
+
+
+def _apply_runtime_quality_semantics(row: dict[str, Any], result: FleetCaseResult) -> dict[str, Any]:
+    evidence = _case_quality_evidence(result)
+    row.update(
+        {
+            "final_step3_1_status": evidence["final_status"],
+            "runtime_quality_status": evidence["final_status"],
+            "runtime_quality_classification": evidence["final_status"],
+            "quality_classification": evidence["quality_classification"],
+            "generic_smoke_status": evidence["generic_smoke_status"],
+            "solver_backed": evidence["solver_backed"],
+            "residual_only": evidence["residual_only"],
+            "quality_pass_allowed": evidence["quality_pass_allowed"],
+            "runtime_quality_warning_reasons": evidence["warning_reasons"],
+            "failure_or_warning_reasons": evidence["warning_reasons"],
+            "high_residual_warning": evidence["high_residual_warning"],
+            "joint_limit_warning": evidence["joint_limit_warning"],
+            "target_stream_jump_warning": evidence["target_stream_jump_warning"],
+        }
+    )
+    if result.case.category == NEGATIVE_CONTROL:
+        row["quality_evaluated"] = False
+        row["promoted_to_runtime_quality"] = False
+        row["quality_classification"] = "negative_control_not_promoted"
+    return row
+
+
+def _case_quality_evidence(result: FleetCaseResult) -> dict[str, Any]:
+    if result.case.category == NEGATIVE_CONTROL:
+        return _negative_control_quality_evidence(result)
+    if result.case.category == PARTIAL_HUMANOID_PROFILE:
+        smoke_failed = any(row.generic_smoke_status == "failed" for row in result.clip_results)
+        target_failed = result.target_stream_status not in {"passed", "partial_supported"}
+        final = "blocked_source_or_profile" if smoke_failed or target_failed else "partial_runtime_passed"
+        return {
+            "final_status": final,
+            "generic_smoke_status": "partial_supported_smoke_failed" if smoke_failed else "partial_supported_smoke_passed",
+            "quality_classification": final,
+            "solver_backed": False,
+            "residual_only": False,
+            "quality_pass_allowed": False,
+            "high_residual_warning": False,
+            "joint_limit_warning": _case_joint_limit_warning(result),
+            "target_stream_jump_warning": _case_target_stream_jump_warning(result),
+            "warning_reasons": _case_warning_reasons(result, []),
+        }
+
+    smoke_evidence = [
+        _smoke_quality_evidence(row.smoke_summary)
+        for row in result.clip_results
+        if row.generic_smoke_status not in {"not_run", "not_applicable"} and row.smoke_summary
+    ]
+    target_failed = result.target_stream_status != "passed"
+    smoke_failed = any(evidence["failed"] for evidence in smoke_evidence)
+    output_failed = any(evidence["output_failed"] for evidence in smoke_evidence)
+    residual_only = bool(smoke_evidence) and all(evidence["residual_only"] for evidence in smoke_evidence)
+    solver_backed = bool(smoke_evidence) and all(evidence["solver_backed"] for evidence in smoke_evidence)
+    high_residual = any(evidence["high_residual_warning"] for evidence in smoke_evidence)
+    joint_limit = any(evidence["joint_limit_warning"] for evidence in smoke_evidence) or _case_joint_limit_warning(result)
+    target_jump = _case_target_stream_jump_warning(result)
+    warning_reasons = _case_warning_reasons(
+        result,
+        [
+            reason
+            for evidence in smoke_evidence
+            for reason in evidence["warning_reasons"]
+        ],
+    )
+
+    if target_failed or smoke_failed or output_failed:
+        final = "runtime_quality_failed"
+    elif solver_backed and not warning_reasons:
+        final = "runtime_quality_passed"
+    elif residual_only or warning_reasons:
+        final = "runtime_quality_warned"
+    else:
+        final = "runtime_evaluation_completed"
+
+    return {
+        "final_status": final,
+        "generic_smoke_status": final,
+        "quality_classification": final,
+        "solver_backed": solver_backed,
+        "residual_only": residual_only,
+        "quality_pass_allowed": bool(smoke_evidence) and all(evidence["quality_pass_allowed"] for evidence in smoke_evidence),
+        "high_residual_warning": high_residual,
+        "joint_limit_warning": joint_limit,
+        "target_stream_jump_warning": target_jump,
+        "warning_reasons": warning_reasons,
+    }
+
+
+def _negative_control_quality_evidence(result: FleetCaseResult) -> dict[str, Any]:
+    failed = result.final_status == "blocked_source_or_profile"
+    final = "blocked_source_or_profile" if failed else "negative_control_runtime_passed"
+    return {
+        "final_status": final,
+        "generic_smoke_status": "not_applicable_negative_control",
+        "quality_classification": "negative_control_not_promoted",
+        "solver_backed": False,
+        "residual_only": False,
+        "quality_pass_allowed": False,
+        "high_residual_warning": False,
+        "joint_limit_warning": False,
+        "target_stream_jump_warning": False,
+        "warning_reasons": [],
+    }
+
+
+def _smoke_quality_evidence(smoke_summary: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(smoke_summary, dict):
+        smoke_summary = {}
+    metrics = smoke_summary.get("metrics") if isinstance(smoke_summary.get("metrics"), dict) else {}
+    residuals = smoke_summary.get("residuals") if isinstance(smoke_summary.get("residuals"), dict) else {}
+    solver = str(smoke_summary.get("solver_type") or residuals.get("solver") or "")
+    mode = str(smoke_summary.get("mode") or "")
+    raw_status = str(smoke_summary.get("status") or "")
+    residual_only = bool(smoke_summary.get("residual_only", False)) or solver in RESIDUAL_ONLY_SOLVERS or mode == "generic_fk_residual_smoke"
+    solver_backed = bool(smoke_summary.get("solver_backed", False)) or (
+        bool(solver)
+        and not residual_only
+        and solver
+        not in {
+            "partial_supported_semantic_runtime_load_and_fk",
+            "negative_control_runtime_load_and_reject_humanoid_profile",
+        }
+    )
+    quality_pass_allowed = bool(smoke_summary.get("quality_pass_allowed", solver_backed and not residual_only))
+    output_failed = int(metrics.get("nan_count", 0) or 0) > 0 or int(metrics.get("inf_count", 0) or 0) > 0
+    failed = raw_status in {"failed", "runtime_quality_failed"} or output_failed
+    high_residual = _high_residual_warning(metrics)
+    joint_limit = int(metrics.get("joint_limit_violation_count", 0) or 0) > 0 or float(metrics.get("max_joint_limit_violation", 0.0) or 0.0) > 0.0
+    warning_reasons: list[str] = [str(v) for v in smoke_summary.get("failure_or_warning_reasons", [])]
+    if residual_only:
+        warning_reasons.append("residual_only_fk_evaluation")
+    if high_residual:
+        warning_reasons.append("high_task_residual")
+    if joint_limit:
+        warning_reasons.append("joint_limit_violation")
+    summary_classification = str(smoke_summary.get("quality_classification") or "")
+    if summary_classification in {
+        "runtime_quality_passed",
+        "runtime_quality_warned",
+        "runtime_quality_failed",
+        "runtime_evaluation_completed",
+    }:
+        status = summary_classification
+    elif failed:
+        status = "runtime_quality_failed"
+    elif residual_only or warning_reasons:
+        status = "runtime_quality_warned"
+    elif solver_backed:
+        status = "runtime_quality_passed"
+    else:
+        status = "runtime_evaluation_completed"
+    return {
+        "status": status,
+        "quality_classification": status,
+        "solver_type": solver or None,
+        "solver_backed": solver_backed,
+        "residual_only": residual_only,
+        "quality_pass_allowed": quality_pass_allowed,
+        "metrics": metrics,
+        "failed": failed,
+        "output_failed": output_failed,
+        "high_residual_warning": high_residual,
+        "joint_limit_warning": joint_limit,
+        "warning_reasons": sorted(set(warning_reasons)),
+    }
+
+
+def _high_residual_warning(metrics: dict[str, Any]) -> bool:
+    normalized_p95 = float(metrics.get("normalized_task_residual_p95", 0.0) or 0.0)
+    normalized_max = float(metrics.get("normalized_task_residual_max", 0.0) or 0.0)
+    return (
+        normalized_p95 > GLOBAL_RUNTIME_QUALITY_GATES.normalized_task_residual_p95_pass
+        or normalized_max > GLOBAL_RUNTIME_QUALITY_GATES.normalized_task_residual_max_warn
+    )
+
+
+def _case_joint_limit_warning(result: FleetCaseResult) -> bool:
+    return int(result.quality_metrics.get("joint_limit_violation_count", 0) or 0) > 0 or float(
+        result.quality_metrics.get("max_joint_limit_violation", 0.0) or 0.0
+    ) > 0.0
+
+
+def _case_target_stream_jump_warning(result: FleetCaseResult) -> bool:
+    return any(int(row.target_metrics.get("target_jump_count", 0) or 0) > 0 for row in result.clip_results)
+
+
+def _case_warning_reasons(result: FleetCaseResult, reasons: list[str]) -> list[str]:
+    out = list(reasons)
+    if _case_joint_limit_warning(result):
+        out.append("joint_limit_violation")
+    if _case_target_stream_jump_warning(result):
+        out.append("target_stream_jump")
+    return sorted(set(out))
 
 
 def _quality_summary_payload(
@@ -258,10 +504,23 @@ def _quality_summary_payload(
     pipeline_backed: dict[str, Any],
 ) -> dict[str, Any]:
     model_rows = [result.model_matrix_row(profile_resolution_status="", pipeline_backed_status="") for result in case_results]
-    final_counts = Counter(result.final_status for result in case_results)
+    quality_evidence = [_case_quality_evidence(result) for result in case_results]
+    final_counts = Counter(evidence["final_status"] for evidence in quality_evidence)
     target_success = sum(1 for result in case_results if result.target_stream_status in {"passed", "not_applicable_negative_control"})
-    smoke_success = sum(1 for result in case_results if result.generic_smoke_status in {"passed", "partial_supported_smoke_passed", "not_applicable_negative_control"})
-    quality_failed = sum(1 for result in case_results if result.final_status in {"runtime_quality_failed", "blocked_source_or_profile"})
+    smoke_success = final_counts.get("runtime_quality_passed", 0)
+    quality_failed = final_counts.get("runtime_quality_failed", 0) + final_counts.get("blocked_source_or_profile", 0)
+    full_evidence = [
+        evidence
+        for result, evidence in zip(case_results, quality_evidence)
+        if result.case.category == FULL_HUMANOID_PROFILE
+    ]
+    full_smoke_rows = [
+        _smoke_quality_evidence(row.smoke_summary)
+        for result in case_results
+        if result.case.category == FULL_HUMANOID_PROFILE
+        for row in result.clip_results
+        if row.generic_smoke_status not in {"not_run", "not_applicable"} and row.smoke_summary
+    ]
     return {
         "schema_version": 1,
         "row_count": len(case_results),
@@ -278,10 +537,27 @@ def _quality_summary_payload(
         "runtime_local_profile_failed_count": profile_summary.get("runtime_local_profile_failed_count", 0),
         "target_stream_success_count": target_success,
         "generic_smoke_success_count": smoke_success,
-        "generic_smoke_failed_count": sum(1 for result in case_results if "failed" in result.generic_smoke_status),
+        "generic_smoke_completed_count": len(quality_evidence),
+        "generic_smoke_warned_count": final_counts.get("runtime_quality_warned", 0),
+        "generic_smoke_evaluation_completed_count": final_counts.get("runtime_evaluation_completed", 0),
+        "generic_smoke_failed_count": quality_failed,
+        "solver_backed_count": sum(1 for evidence in full_evidence if evidence["solver_backed"]),
+        "residual_only_count": sum(1 for evidence in full_evidence if evidence["residual_only"]),
+        "solver_backed_smoke_row_count": sum(1 for evidence in full_smoke_rows if evidence["solver_backed"]),
+        "residual_only_smoke_row_count": sum(1 for evidence in full_smoke_rows if evidence["residual_only"]),
+        "high_residual_warning_count": sum(1 for evidence in full_evidence if evidence["high_residual_warning"]),
+        "high_residual_smoke_warning_count": sum(1 for evidence in full_smoke_rows if evidence["high_residual_warning"]),
+        "joint_limit_warning_count": sum(1 for evidence in quality_evidence if evidence["joint_limit_warning"]),
+        "joint_limit_smoke_warning_count": sum(1 for evidence in full_smoke_rows if evidence["joint_limit_warning"]),
+        "target_stream_jump_warning_count": sum(1 for evidence in quality_evidence if evidence["target_stream_jump_warning"]),
+        "runtime_quality_passed_count": final_counts.get("runtime_quality_passed", 0),
+        "runtime_quality_warned_count": final_counts.get("runtime_quality_warned", 0),
+        "runtime_evaluation_completed_count": final_counts.get("runtime_evaluation_completed", 0),
+        "runtime_quality_failed_count": final_counts.get("runtime_quality_failed", 0),
         "pipeline_backed_success_count": pipeline_backed.get("status_counts", {}).get("passed", 0),
         "pipeline_backed_fail_closed_count": pipeline_backed.get("status_counts", {}).get("fail_closed", 0),
         "quality_failed_count": quality_failed,
+        "quality_warned_count": final_counts.get("runtime_quality_warned", 0),
         "final_status_counts": dict(sorted(final_counts.items())),
         "deterministic_compared_count": len(case_results),
         "deterministic_matched_count": len(case_results),
@@ -398,6 +674,7 @@ def _acceptance_ledger_payload(
     quality_summary: dict[str, Any],
     failure_matrix: dict[str, Any],
     deterministic: dict[str, Any],
+    environment: dict[str, Any],
 ) -> dict[str, Any]:
     return {
         "schema_version": 1,
@@ -405,6 +682,15 @@ def _acceptance_ledger_payload(
         "status": verdict,
         "matrix_row_count": model_matrix["in_scope_total"],
         "status_counts": quality_summary["status_counts"],
+        "final_status_counts": quality_summary["final_status_counts"],
+        "quality_failed_count": quality_summary["quality_failed_count"],
+        "quality_warned_count": quality_summary["quality_warned_count"],
+        "solver_backed_count": quality_summary["solver_backed_count"],
+        "residual_only_count": quality_summary["residual_only_count"],
+        "high_residual_warning_count": quality_summary["high_residual_warning_count"],
+        "joint_limit_warning_count": quality_summary["joint_limit_warning_count"],
+        "target_stream_jump_warning_count": quality_summary["target_stream_jump_warning_count"],
+        "clean_provenance": _clean_provenance_fields(environment),
         "quality_summary": quality_summary,
         "failure_count": failure_matrix["failure_count"],
         "deterministic_rerun": deterministic,
@@ -422,12 +708,15 @@ def _acceptance_passed(
     quality_summary: dict[str, Any],
     failure_matrix: dict[str, Any],
     pipeline_backed: dict[str, Any],
+    environment: dict[str, Any],
 ) -> bool:
     if model_matrix["in_scope_total"] != 44:
         return False
     if quality_summary["status_counts"] != {"passed": 32, "partial_passed": 3, "negative_control_passed": 9}:
         return False
     if failure_matrix["failure_count"] != 0:
+        return False
+    if not _provenance_is_clean(environment):
         return False
     controls = pipeline_backed.get("controls", {})
     return bool(controls.get("rpo_present")) and bool(controls.get("g1_present"))
@@ -465,18 +754,80 @@ def _source_inventory_payload(cases: list[Any]) -> dict[str, Any]:
     }
 
 
-def _environment_payload() -> dict[str, Any]:
+def _provenance_preflight(artifact_root: Path) -> dict[str, Any]:
+    head = _git(["rev-parse", "HEAD"])
+    branch = _git(["branch", "--show-current"])
+    source_status = _source_status_short(artifact_root)
+    return {
+        "source_code_commit": head,
+        "artifact_commit": head,
+        "source_branch": branch or None,
+        "git_status_short": source_status,
+        "full_git_status_short": _git(["status", "--short"]),
+        "source_worktree_clean_before_run": source_status == "",
+        "source_code_commit_remote_resolvable": _git_remote_resolvable(head),
+        "source_code_commit_is_artifact_commit_ancestor": _git_is_ancestor(head, head),
+        "core_diff_after_source_commit": _core_diff_after_source(head, head),
+    }
+
+
+def _environment_payload(
+    *,
+    artifact_root: Path,
+    preflight: dict[str, Any],
+    allow_dirty_internal_rerun: bool,
+) -> dict[str, Any]:
+    source_status_after = _source_status_short(artifact_root)
+    package_versions = _package_versions()
+    head = str(preflight.get("source_code_commit") or _git(["rev-parse", "HEAD"]))
+    branch = str(preflight.get("source_branch") or _git(["branch", "--show-current"]))
     return {
         "schema_version": 1,
+        "source_code_commit": head,
+        "artifact_commit": str(preflight.get("artifact_commit") or head),
+        "artifact_commit_observed": str(preflight.get("artifact_commit") or head),
+        "source_branch": branch,
+        "source_code_commit_remote_resolvable": bool(preflight.get("source_code_commit_remote_resolvable")),
+        "source_code_commit_is_artifact_commit_ancestor": bool(preflight.get("source_code_commit_is_artifact_commit_ancestor")),
+        "source_worktree_clean_before_run": bool(preflight.get("source_worktree_clean_before_run")),
+        "source_worktree_clean_after_run": source_status_after == "",
+        "git_status_short": str(preflight.get("git_status_short") or ""),
+        "source_git_status_short_before_run": str(preflight.get("git_status_short") or ""),
+        "source_git_status_short_after_run": source_status_after,
+        "full_git_status_short_before_run": str(preflight.get("full_git_status_short") or ""),
+        "core_diff_after_source_commit": list(preflight.get("core_diff_after_source_commit") or []),
+        "dirty_internal_rerun_allowed": bool(allow_dirty_internal_rerun),
         "python": sys.version,
         "platform": platform.platform(),
         "git": {
-            "head": _git(["rev-parse", "HEAD"]),
-            "branch": _git(["branch", "--show-current"]),
-            "status_short": _git(["status", "--short"]),
+            "head": head,
+            "branch": branch,
+            "status_short": str(preflight.get("git_status_short") or ""),
         },
-        "package_versions": _package_versions(),
+        "package_versions": package_versions,
     }
+
+
+def _clean_provenance_fields(environment: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "git_status_short": environment.get("git_status_short"),
+        "source_code_commit_remote_resolvable": environment.get("source_code_commit_remote_resolvable"),
+        "source_code_commit_is_artifact_commit_ancestor": environment.get("source_code_commit_is_artifact_commit_ancestor"),
+        "source_worktree_clean_before_run": environment.get("source_worktree_clean_before_run"),
+        "source_worktree_clean_after_run": environment.get("source_worktree_clean_after_run"),
+        "core_diff_after_source_commit": environment.get("core_diff_after_source_commit"),
+    }
+
+
+def _provenance_is_clean(environment: dict[str, Any]) -> bool:
+    return (
+        environment.get("git_status_short") == ""
+        and environment.get("source_code_commit_remote_resolvable") is True
+        and environment.get("source_code_commit_is_artifact_commit_ancestor") is True
+        and environment.get("source_worktree_clean_before_run") is True
+        and environment.get("source_worktree_clean_after_run") is True
+        and environment.get("core_diff_after_source_commit") == []
+    )
 
 
 def _package_versions() -> dict[str, str]:
@@ -496,6 +847,69 @@ def _git(args: list[str]) -> str:
         return subprocess.check_output(["git", *args], text=True, stderr=subprocess.DEVNULL).strip()
     except Exception:
         return ""
+
+
+def _git_returncode(args: list[str]) -> int:
+    try:
+        return subprocess.run(["git", *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False).returncode
+    except Exception:
+        return 1
+
+
+def _git_remote_resolvable(commit: str | None) -> bool:
+    if not commit:
+        return False
+    return bool(_git(["branch", "-r", "--contains", commit]).strip())
+
+
+def _git_is_ancestor(ancestor: str | None, descendant: str | None) -> bool:
+    if not ancestor or not descendant:
+        return False
+    return _git_returncode(["merge-base", "--is-ancestor", ancestor, descendant]) == 0
+
+
+def _core_diff_after_source(source_commit: str | None, artifact_commit: str | None) -> list[str]:
+    if not source_commit or not artifact_commit:
+        return ["<missing source or artifact commit>"]
+    try:
+        output = subprocess.check_output(
+            ["git", "diff", "--name-only", f"{source_commit}..{artifact_commit}", "--", *CORE_DIFF_PATHS],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        return ["<git diff failed>"]
+    return [line for line in output.splitlines() if line.strip()]
+
+
+def _source_status_short(artifact_root: Path) -> str:
+    status = _git(["status", "--short"])
+    if not status:
+        return ""
+    artifact_prefix = _status_path_prefix(artifact_root)
+    source_lines = []
+    for line in status.splitlines():
+        path = _status_line_path(line)
+        if path and (path == artifact_prefix.rstrip("/") or path.startswith(artifact_prefix)):
+            continue
+        source_lines.append(line)
+    return "\n".join(source_lines)
+
+
+def _status_path_prefix(path: Path) -> str:
+    display = display_path(path)
+    if display is None:
+        return ""
+    if display.startswith("${WORKSPACE}/"):
+        display = display.removeprefix("${WORKSPACE}/")
+    return display.rstrip("/") + "/"
+
+
+def _status_line_path(line: str) -> str:
+    path = line[3:] if len(line) > 3 else line
+    if " -> " in path:
+        path = path.split(" -> ", 1)[1]
+    return path.strip().strip('"')
 
 
 def _write_commands(artifact_root: Path, required_core_clips: list[Path], short_max_frames: int, mid_max_frames: int) -> None:

@@ -20,12 +20,8 @@ from .fleet_inventory import (
     display_path,
     stable_payload_hash,
 )
-from .generic_smoke import (
-    run_full_humanoid_fk_smoke,
-    run_negative_control_rejection_smoke,
-    run_partial_supported_smoke,
-)
 from .quality_metrics import target_stream_metrics
+from .runtime_quality_gates import RUNTIME_QUALITY_FAILED, combine_full_humanoid_classifications
 from .runtime_status import BLOCKED_FINAL_STATUS, NEGATIVE_FINAL_STATUS, PARTIAL_FINAL_STATUS
 from .source_frames import DEFAULT_SEMANTIC_NAMES, extract_source_semantic_frames
 from .target_adapter import build_runtime_semantic_targets
@@ -69,6 +65,8 @@ class FleetCaseResult:
     failures: list[dict[str, Any]]
 
     def model_matrix_row(self, *, profile_resolution_status: str, pipeline_backed_status: str) -> dict[str, Any]:
+        profile_blocked = _profile_resolution_blocks_quality(profile_resolution_status)
+        final_status = BLOCKED_FINAL_STATUS if profile_blocked else self.final_status
         row = self.case.to_json()
         row.update(
             {
@@ -79,19 +77,28 @@ class FleetCaseResult:
                 "generic_smoke_status": self.generic_smoke_status,
                 "pipeline_backed_status": pipeline_backed_status,
                 "negative_control_status": self.negative_control_status,
-                "final_step3_1_status": self.final_status,
-                "runtime_quality_status": self.final_status,
-                "quality_classification": self.final_status,
-                "quality_evaluated": self.case.category != NEGATIVE_CONTROL,
+                "final_step3_1_status": final_status,
+                "runtime_quality_status": final_status,
+                "runtime_quality_classification": final_status,
+                "quality_classification": final_status,
+                "quality_evaluated": self.case.category != NEGATIVE_CONTROL and not profile_blocked,
                 "promoted_to_runtime_quality": False,
-                "humanoid_profile_generated": self.case.category == FULL_HUMANOID_PROFILE,
-                "override_allowed": self.case.category == FULL_HUMANOID_PROFILE,
+                "humanoid_profile_generated": profile_resolution_status == "runtime_local_profile_generated",
+                "override_allowed": self.case.category == FULL_HUMANOID_PROFILE and not profile_blocked,
+                "smoke_type": self.quality_metrics.get("smoke_type", "not_applicable"),
+                "solver_type": self.quality_metrics.get("solver_type", "not_applicable"),
+                "solver_backed": bool(self.quality_metrics.get("solver_backed", False)),
+                "residual_only": bool(self.quality_metrics.get("residual_only", False)),
+                "quality_pass_allowed": bool(self.quality_metrics.get("quality_pass_allowed", False)),
+                "quality_gate_results": dict(self.quality_metrics.get("quality_gate_results", {})),
+                "failure_or_warning_reasons": list(self.quality_metrics.get("failure_or_warning_reasons", [])),
                 "pipeline_control_id": "pipeline_backed_matrix.json",
                 "control_modes": ["disabled", "shadow", "override_experimental"],
                 "legacy_default_unchanged": True,
                 "shadow_noop_verified": True,
                 "override_explicit_only": True,
                 "fingerprint_gate_enforced": True,
+                "profile_resolution_blocked": profile_blocked,
             }
         )
         row.update(_flat_quality_fields(self.quality_metrics))
@@ -106,6 +113,8 @@ def evaluate_case(
     smoke_clip_limit: int = 2,
 ) -> FleetCaseResult:
     if case.category == NEGATIVE_CONTROL:
+        from .generic_smoke import run_negative_control_rejection_smoke
+
         smoke = run_negative_control_rejection_smoke(case)
         metrics = smoke.metrics
         failures = [] if smoke.status == "passed" else [_failure(case, None, "negative_control_rejection", smoke.error or "failed")]
@@ -149,14 +158,20 @@ def evaluate_case(
 
     target_ok = all(row.target_stream_status in {"passed", "partial_supported"} for row in clip_results)
     smoke_rows = [row for row in clip_results if row.generic_smoke_status not in {"not_run", "not_applicable"}]
-    smoke_ok = all(row.generic_smoke_status == "passed" for row in smoke_rows)
     metrics = aggregate_case_metrics(clip_results)
     if case.category == PARTIAL_HUMANOID_PROFILE:
+        smoke_ok = all(row.generic_smoke_status == "passed" for row in smoke_rows)
         final = PARTIAL_FINAL_STATUS if target_ok and smoke_ok else BLOCKED_FINAL_STATUS
         generic_status = "partial_supported_smoke_passed" if smoke_ok else "partial_supported_smoke_failed"
     else:
-        final = "runtime_quality_passed" if target_ok and smoke_ok else "runtime_quality_failed"
-        generic_status = "passed" if smoke_ok else "failed"
+        classifications = [
+            str(row.smoke_summary.get("quality_classification") or row.generic_smoke_status)
+            for row in smoke_rows
+            if row.smoke_summary
+        ]
+        final = combine_full_humanoid_classifications(classifications) if target_ok else RUNTIME_QUALITY_FAILED
+        generic_status = final
+        metrics["runtime_quality_classification"] = final
     return FleetCaseResult(
         case=case,
         clip_results=clip_results,
@@ -183,12 +198,30 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
             "output_inf_count": 0,
             "joint_limit_violation_count": 0,
             "max_joint_limit_violation": 0.0,
+            "normalized_task_residual_mean": 0.0,
+            "normalized_task_residual_p95": 0.0,
+            "normalized_task_residual_max": 0.0,
+            "solver_success_fraction": 0.0,
+            "solver_type": "not_applicable",
+            "smoke_type": "not_applicable",
+            "solver_backed": False,
+            "residual_only": False,
+            "quality_pass_allowed": False,
+            "quality_gate_results": {},
+            "failure_or_warning_reasons": [],
             "runtime_seconds": 0.0,
         }
     frame_count = sum(row.frame_count for row in clip_results)
     smoke_metrics = [row.smoke_summary.get("metrics", {}) for row in clip_results if row.smoke_summary.get("metrics")]
+    smoke_summaries = [row.smoke_summary for row in clip_results if row.smoke_summary]
     target_translation_max = max((m.get("frame_to_frame_translation_velocity_max", 0.0) for row in clip_results for m in [row.target_metrics]), default=0.0)
     target_rotation_max = max((m.get("frame_to_frame_rotation_velocity_max", 0.0) for row in clip_results for m in [row.target_metrics]), default=0.0)
+    reasons: list[str] = []
+    gate_results: dict[str, Any] = {}
+    for summary in smoke_summaries:
+        reasons.extend(str(v) for v in summary.get("failure_or_warning_reasons", []))
+        for key, value in summary.get("quality_gate_results", {}).items():
+            gate_results[key] = bool(gate_results.get(key, True) and value)
     return {
         "frame_count": max(1, frame_count),
         "target_translation_error_mean": 0.0,
@@ -201,7 +234,26 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
         "output_inf_count": sum(int(m.get("inf_count", 0)) for m in smoke_metrics),
         "joint_limit_violation_count": sum(int(m.get("joint_limit_violation_count", 0)) for m in smoke_metrics),
         "max_joint_limit_violation": max((float(m.get("max_joint_limit_violation", 0.0)) for m in smoke_metrics), default=0.0),
+        "normalized_task_residual_mean": max((float(m.get("normalized_task_residual_mean", 0.0)) for m in smoke_metrics), default=0.0),
+        "normalized_task_residual_p95": max((float(m.get("normalized_task_residual_p95", 0.0)) for m in smoke_metrics), default=0.0),
+        "normalized_task_residual_max": max((float(m.get("normalized_task_residual_max", 0.0)) for m in smoke_metrics), default=0.0),
+        "solver_success_fraction": min((float(m.get("solver_success_fraction", 1.0)) for m in smoke_metrics), default=1.0),
+        "solver_type": _aggregate_solver_type(smoke_summaries),
+        "smoke_type": _aggregate_smoke_type(smoke_summaries),
+        "solver_backed": any(bool(summary.get("solver_backed", False)) for summary in smoke_summaries),
+        "residual_only": any(bool(summary.get("residual_only", False)) for summary in smoke_summaries),
+        "quality_pass_allowed": all(bool(summary.get("quality_pass_allowed", False)) for summary in smoke_summaries) if smoke_summaries else False,
+        "quality_gate_results": gate_results,
+        "failure_or_warning_reasons": _dedupe(reasons),
         "runtime_seconds": sum(float(m.get("runtime_seconds", 0.0)) for m in smoke_metrics),
+    }
+
+
+def _profile_resolution_blocks_quality(profile_resolution_status: str) -> bool:
+    return profile_resolution_status in {
+        "runtime_local_profile_failed",
+        "runtime_model_load_failed",
+        "source_or_cache_unavailable",
     }
 
 
@@ -227,6 +279,8 @@ def _evaluate_clip(
         source=display_path(clip_path) or str(clip_path),
     )
     if case.category == PARTIAL_HUMANOID_PROFILE:
+        from .generic_smoke import run_partial_supported_smoke
+
         metrics = target_stream_metrics(source_batch.transforms, capability_status={name: "supported_partial" for name in semantic_names})
         smoke = run_partial_supported_smoke(case, source_batch.transforms) if partial_smoke_enabled else None
         return FleetClipResult(
@@ -242,6 +296,8 @@ def _evaluate_clip(
 
     targets = build_runtime_semantic_targets(source_batch, case.profile, semantic_names=semantic_names, mode="runtime")
     metrics = target_stream_metrics(targets.transforms, capability_status=targets.capability_status)
+    from .generic_smoke import run_full_humanoid_fk_smoke
+
     smoke = run_full_humanoid_fk_smoke(case, targets.transforms) if smoke_enabled else None
     return FleetClipResult(
         clip_id=clip_id(clip_path),
@@ -268,8 +324,38 @@ def _flat_quality_fields(metrics: dict[str, Any]) -> dict[str, Any]:
         "output_inf_count": int(metrics.get("output_inf_count", metrics.get("inf_count", 0) or 0)),
         "joint_limit_violation_count": int(metrics.get("joint_limit_violation_count", 0) or 0),
         "max_joint_limit_violation": float(metrics.get("max_joint_limit_violation", 0.0) or 0.0),
+        "normalized_task_residual_mean": float(metrics.get("normalized_task_residual_mean", 0.0) or 0.0),
+        "normalized_task_residual_p95": float(metrics.get("normalized_task_residual_p95", 0.0) or 0.0),
+        "normalized_task_residual_max": float(metrics.get("normalized_task_residual_max", 0.0) or 0.0),
+        "solver_success_fraction": float(metrics.get("solver_success_fraction", 0.0) or 0.0),
         "runtime_seconds": float(metrics.get("runtime_seconds", 0.0) or 0.0),
     }
+
+
+def _aggregate_solver_type(smoke_summaries: list[dict[str, Any]]) -> str:
+    values = [str(summary.get("solver_type") or summary.get("residuals", {}).get("solver") or "") for summary in smoke_summaries]
+    values = [value for value in values if value]
+    if not values:
+        return "not_applicable"
+    unique = sorted(set(values))
+    return unique[0] if len(unique) == 1 else "+".join(unique)
+
+
+def _aggregate_smoke_type(smoke_summaries: list[dict[str, Any]]) -> str:
+    values = [str(summary.get("mode") or "") for summary in smoke_summaries]
+    values = [value for value in values if value]
+    if not values:
+        return "not_applicable"
+    unique = sorted(set(values))
+    return unique[0] if len(unique) == 1 else "+".join(unique)
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    out: list[str] = []
+    for value in values:
+        if value not in out:
+            out.append(value)
+    return out
 
 
 def _failure(case: FleetRuntimeCase, clip_path: Path | None, stage: str, message: str) -> dict[str, Any]:

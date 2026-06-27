@@ -4,6 +4,7 @@ FULL_FINAL_STATUSES = {
     "runtime_quality_passed",
     "runtime_quality_warned",
     "runtime_quality_failed",
+    "runtime_evaluation_completed",
 }
 PARTIAL_FINAL_STATUS = "partial_runtime_passed"
 NEGATIVE_FINAL_STATUS = "negative_control_runtime_passed"
