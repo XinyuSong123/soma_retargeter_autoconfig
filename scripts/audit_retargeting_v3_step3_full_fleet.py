@@ -15,6 +15,10 @@ import json
 import math
 from pathlib import Path
 import re
+import subprocess
+import urllib.error
+import urllib.parse
+import urllib.request
 from typing import Any, Iterable
 
 
@@ -196,7 +200,9 @@ def run_audit(
     acceptance_ledger = _read_json(artifact_dir / "acceptance_ledger.json")
     rows = _matrix_rows(matrix_payload)
     generic_rows = _generic_smoke_rows(generic_smoke)
-    final_head_ci = _final_head_ci_record(acceptance_ledger, summary)
+    committed_final_head_ci = _final_head_ci_record(acceptance_ledger, summary)
+    live_final_head_ci = _live_final_head_ci_record(source_root) if require_final_head_ci else {}
+    final_head_ci = live_final_head_ci or committed_final_head_ci
 
     findings.extend(_audit_required_artifacts(artifact_dir))
     findings.extend(_audit_clean_provenance(environment))
@@ -209,7 +215,14 @@ def run_audit(
     findings.extend(_audit_runtime_quality_label_honesty(rows, generic_rows, summary))
     findings.extend(_audit_absolute_paths(artifact_dir, source_root))
     findings.extend(_audit_pipeline_controls(rows, controls))
-    findings.extend(_audit_final_head_ci(acceptance_ledger, summary, source_root, require_final_head_ci=require_final_head_ci))
+    findings.extend(
+        _audit_final_head_ci(
+            committed_final_head_ci,
+            final_head_ci,
+            source_root,
+            require_final_head_ci=require_final_head_ci,
+        )
+    )
     findings.extend(_audit_full_repo_pytest_caveat(acceptance_ledger, source_root))
 
     pre_verdict_status = "PASS" if not [finding for finding in findings if finding.severity == "error"] else "BLOCKED"
@@ -826,14 +839,24 @@ def _audit_pipeline_controls(rows: list[dict[str, Any]], controls: dict[str, Any
 
 
 def _audit_final_head_ci(
-    acceptance_ledger: dict[str, Any],
-    summary: dict[str, Any],
+    committed_record: dict[str, Any],
+    record: dict[str, Any],
     source_root: Path,
     *,
     require_final_head_ci: bool,
 ) -> list[Finding]:
     findings: list[Finding] = []
-    record = _final_head_ci_record(acceptance_ledger, summary)
+    current_head = _git_current_head(source_root)
+    committed_head = committed_record.get("head_sha") or committed_record.get("final_head")
+    if committed_record and current_head and _is_concrete_sha(committed_head) and str(committed_head).lower() != current_head.lower():
+        findings.append(
+            _finding(
+                "final_head_ci",
+                "acceptance_ledger.json",
+                "committed final HEAD CI evidence must match the current HEAD",
+                {"committed_head_sha": committed_head, "current_head": current_head},
+            )
+        )
     if not record:
         if require_final_head_ci:
             findings.append(
@@ -841,7 +864,7 @@ def _audit_final_head_ci(
                     "final_head_ci",
                     "acceptance_ledger.json",
                     "final HEAD CI evidence is missing",
-                    {"required_field": "final_head_ci"},
+                    {"required_field": "final_head_ci", "live_lookup": "github_check_runs_for_current_head"},
                 )
             )
     else:
@@ -864,6 +887,15 @@ def _audit_final_head_ci(
                     "acceptance_ledger.json",
                     "head_sha must be a concrete 40-character SHA",
                     {"head_sha": head_sha},
+                )
+            )
+        elif current_head and str(head_sha).lower() != current_head.lower():
+            findings.append(
+                _finding(
+                    "final_head_ci",
+                    "acceptance_ledger.json",
+                    "final HEAD CI evidence must be for the current HEAD",
+                    {"head_sha": head_sha, "current_head": current_head},
                 )
             )
         if conclusion != "success":
@@ -907,12 +939,14 @@ def _audit_final_head_ci(
                         )
                     )
     handoff_text = _read_text(source_root / AGENT_F_HANDOFF)
-    if require_final_head_ci and not _handoff_has_final_head_ci(handoff_text):
+    handoff_has_static_record = _handoff_has_final_head_ci(handoff_text)
+    handoff_has_live_policy = bool(record) and record.get("evidence_source") == "github_check_runs_live" and _handoff_has_live_final_head_ci_policy(handoff_text)
+    if require_final_head_ci and not (handoff_has_static_record or handoff_has_live_policy):
         findings.append(
             _finding(
                 "final_head_ci",
                 str(AGENT_F_HANDOFF),
-                "Agent F handoff must record workflow_run_id, head_sha, success conclusion, and job conclusions",
+                "Agent F handoff must record static final HEAD CI evidence or the live GitHub check-runs closure policy",
                 {},
             )
         )
@@ -1219,6 +1253,141 @@ def _final_head_ci_record(acceptance_ledger: dict[str, Any], summary: dict[str, 
     return {}
 
 
+def _live_final_head_ci_record(source_root: Path) -> dict[str, Any]:
+    head_sha = _git_current_head(source_root)
+    repo_full_name = _git_remote_repo_full_name(source_root)
+    if not head_sha or not repo_full_name:
+        return {}
+
+    check_runs = _github_json(
+        f"https://api.github.com/repos/{repo_full_name}/commits/{head_sha}/check-runs?per_page=100",
+        accept="application/vnd.github+json",
+    )
+    if not isinstance(check_runs, dict):
+        return {}
+    candidates = _final_head_ci_candidates(check_runs.get("check_runs"), head_sha)
+    for candidate in candidates:
+        workflow_run_id = candidate.get("workflow_run_id")
+        run_payload = _github_json(f"https://api.github.com/repos/{repo_full_name}/actions/runs/{workflow_run_id}")
+        if not isinstance(run_payload, dict):
+            continue
+        if str(run_payload.get("head_sha") or "").lower() != head_sha.lower():
+            continue
+        if str(run_payload.get("conclusion") or "").lower() != "success":
+            continue
+        candidate.update(
+            {
+                "workflow_name": run_payload.get("name"),
+                "workflow_id": run_payload.get("workflow_id"),
+                "run_number": run_payload.get("run_number"),
+                "run_attempt": run_payload.get("run_attempt"),
+                "head_branch": run_payload.get("head_branch"),
+                "status": run_payload.get("status"),
+                "conclusion": run_payload.get("conclusion"),
+                "html_url": run_payload.get("html_url"),
+                "created_at": run_payload.get("created_at"),
+                "updated_at": run_payload.get("updated_at"),
+                "repo": repo_full_name,
+                "evidence_source": "github_check_runs_live",
+            }
+        )
+        return candidate
+    return {}
+
+
+def _final_head_ci_candidates(check_runs: Any, head_sha: str) -> list[dict[str, Any]]:
+    if not isinstance(check_runs, list):
+        return []
+    grouped: dict[str, dict[str, Any]] = {}
+    relevant_names = set(REQUIRED_FINAL_HEAD_CI_JOBS) | {"final-head-ci-evidence"}
+    for check_run in check_runs:
+        if not isinstance(check_run, dict):
+            continue
+        name = str(check_run.get("name") or "")
+        if name not in relevant_names:
+            continue
+        run_id = _workflow_run_id_from_details_url(check_run.get("details_url"))
+        if not run_id:
+            continue
+        group = grouped.setdefault(
+            run_id,
+            {
+                "workflow_run_id": run_id,
+                "head_sha": head_sha,
+                "job_conclusions": {},
+                "check_run_ids": {},
+                "check_run_urls": {},
+                "completed_at": "",
+            },
+        )
+        group["job_conclusions"][name] = str(check_run.get("conclusion") or "").lower()
+        group["check_run_ids"][name] = check_run.get("id")
+        group["check_run_urls"][name] = check_run.get("details_url")
+        completed_at = str(check_run.get("completed_at") or "")
+        if completed_at > str(group.get("completed_at") or ""):
+            group["completed_at"] = completed_at
+
+    candidates = []
+    for group in grouped.values():
+        job_conclusions = group.get("job_conclusions") if isinstance(group.get("job_conclusions"), dict) else {}
+        if all(job_conclusions.get(job) == "success" for job in REQUIRED_FINAL_HEAD_CI_JOBS):
+            candidates.append(group)
+    return sorted(candidates, key=lambda item: str(item.get("completed_at") or ""), reverse=True)
+
+
+def _workflow_run_id_from_details_url(value: Any) -> str:
+    text = str(value or "")
+    match = re.search(r"/actions/runs/([1-9][0-9]{5,})(?:/|$)", text)
+    return match.group(1) if match else ""
+
+
+def _github_json(url: str, *, accept: str = "application/vnd.github+json") -> dict[str, Any]:
+    headers = {
+        "Accept": accept,
+        "User-Agent": "soma-retargeter-step3-audit",
+    }
+    request = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _git_current_head(source_root: Path) -> str:
+    return _git_stdout(source_root, "rev-parse", "HEAD")
+
+
+def _git_remote_repo_full_name(source_root: Path) -> str:
+    remote_url = _git_stdout(source_root, "remote", "get-url", "origin")
+    if not remote_url:
+        return ""
+    remote_url = remote_url.removesuffix(".git")
+    if remote_url.startswith("git@github.com:"):
+        return remote_url.removeprefix("git@github.com:")
+    parsed = urllib.parse.urlparse(remote_url)
+    if parsed.netloc.lower() == "github.com":
+        return parsed.path.strip("/")
+    return ""
+
+
+def _git_stdout(source_root: Path, *args: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=source_root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
 def _job_conclusions(value: Any) -> dict[str, str]:
     if isinstance(value, dict):
         return {str(key): str(child).lower() for key, child in value.items()}
@@ -1244,6 +1413,17 @@ def _handoff_has_final_head_ci(text: str) -> bool:
         and ("conclusion=success" in lower or re.search(r"conclusion\s*[:=]\s*`?success`?", lower) is not None)
         and "job conclusion" in lower
         and "success" in lower
+    )
+
+
+def _handoff_has_live_final_head_ci_policy(text: str) -> bool:
+    lower = text.lower()
+    return (
+        "live final-head ci" in lower
+        and "github check-runs" in lower
+        and "--require-final-head-ci" in lower
+        and "current head" in lower
+        and "job conclusions" in lower
     )
 
 
