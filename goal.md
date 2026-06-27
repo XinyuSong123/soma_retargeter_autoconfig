@@ -1,21 +1,17 @@
-# Goal — Step 3.1.1：Full-Fleet Runtime Hardening（全量运行时证据加固与真实 smoke）
+# Goal — Step 3.2：Solver-Backed Generic Runtime Smoke（通用 solver-backed 运行时 smoke / 质量改进）
 
 > **Codex 强制执行契约——不得自由发挥**
 >
-> 当前分支：`retargeting-v3-step3-full-fleet-hardening`  
-> 基线分支：`retargeting-v3-step3-runtime-quality-eval`  
-> 基线提交：`fc0d21a7c00efbdc0c9d64177d4638354066d77e`  
-> 当前阶段：**Step 3.1.1 Full-Fleet Runtime Evidence Hardening**
+> 当前分支：`retargeting-v3-step3-2-solver-backed-generic-smoke`  
+> 基线分支：`retargeting-v3-step3-full-fleet-hardening`  
+> 基线提交：`26817de67bdda0cb315a1237b53c30e4d8199c78`  
+> 当前阶段：**Step 3.2 Solver-Backed Generic Runtime Smoke / Runtime Quality Improvement**
 >
-> 本轮不是继续扩大范围，也不是调动作质量。范围已经固定为 **44 个 in-scope Robot Zoo / local assets**。本轮只修三个问题：
+> Step 3.1.1 已作为 strict final evidence closure 闭环：final HEAD CI green、strict audit PASS、44-row artifacts clean-provenance、status semantics honest。Step 3.2 必须从该闭环基线继续，不能回退到 Step 2 或 Step 3.1 旧分支。
 >
-> 1. 当前 Step 3.1 artifacts 不是 clean-provenance 生成；
-> 2. 当前 generic smoke 太弱，只是 neutral FK residual 评估，却把高 residual 行标成 `runtime_quality_passed`；
-> 3. 当前 CI / red-team evidence 对最终 HEAD 不够硬。
+> 本轮目标是把 Step 3.1.1 的 **residual-only FK evaluation** 推进为 **generic solver-backed runtime smoke evidence**。这不是动作美化、不是视觉验收、不是 robot-specific tuning，也不是生产 `NewtonPipeline` 重写。
 >
-> 必须继续使用 **6 个 xhigh 专业 subagents**。主 Codex 是 Integrator，只负责接口冻结、合并、全量重跑和最终诚实结论。
->
-> **禁止重写生产 `NewtonPipeline`，禁止调 IK/objective 权重，禁止 contact/collision/temporal smoothing，禁止修改 Step 2.1/2.3 thresholds，禁止 robot-ID 数学特例，禁止用 status rename 掩盖质量失败，禁止宣称视觉动作质量已经最终解决。**
+> **禁止修改 Step 2 artifacts / thresholds；禁止修改 Step 3.1.1 frozen artifacts 作为“补丁”；禁止按 robot id 写数学特例或阈值；禁止 IK 权重调参式刷分；禁止 contact / collision / temporal smoothing；禁止把 residual-only 行标成 `runtime_quality_passed`；禁止宣称 production retargeting 或视觉动作质量已经解决。**
 
 ---
 
@@ -23,15 +19,18 @@
 
 ```bash
 conda activate soma-retargeter-v2
+cd ~/Desktop/soma_retargeter_autoconfig
 
 git fetch origin --prune
-git checkout retargeting-v3-step3-full-fleet-hardening
+git switch retargeting-v3-step3-2-solver-backed-generic-smoke || \
+  git switch --track -c retargeting-v3-step3-2-solver-backed-generic-smoke origin/retargeting-v3-step3-2-solver-backed-generic-smoke
+
 git pull --ff-only
 
-git status --short
 git branch --show-current
 git rev-parse HEAD
-git merge-base --is-ancestor fc0d21a7c00efbdc0c9d64177d4638354066d77e HEAD
+git merge-base --is-ancestor 26817de67bdda0cb315a1237b53c30e4d8199c78 HEAD
+git status --short
 
 git lfs install
 git lfs pull
@@ -52,11 +51,11 @@ PY
 必须确认：
 
 ```text
-branch = retargeting-v3-step3-full-fleet-hardening
+branch = retargeting-v3-step3-2-solver-backed-generic-smoke
+base Step 3.1.1 final commit is ancestor
 worktree clean
-base commit is an ancestor
 Git LFS fsck OK
-snapshot XML materialized, not pointer-only
+snapshot XML/URDF materialized, not pointer-only
 ```
 
 环境不满足时，只修环境或 checkout，不得改代码绕过。
@@ -67,145 +66,86 @@ snapshot XML materialized, not pointer-only
 
 按顺序完整阅读：
 
-1. `/goal.md`（本文件）
-2. `docs/retargeting_v3/STEP3_1_FULL_FLEET_RUNTIME_QUALITY_ACCEPTANCE.md`
-3. `docs/retargeting_v3/subagents/step3_1_agent_f_red_team.md`
-4. `artifacts/retargeting_v3_step3_runtime_quality/environment.json`
-5. `artifacts/retargeting_v3_step3_runtime_quality/model_matrix.json`
+1. `goal.md`（本文件）
+2. `docs/retargeting_v3/HANDOVER_NEXT_WINDOW.md`
+3. `docs/retargeting_v3/STEP3_1_FULL_FLEET_RUNTIME_QUALITY_ACCEPTANCE.md`
+4. `docs/retargeting_v3/subagents/step3_1_agent_f_red_team.md`
+5. `artifacts/retargeting_v3_step3_runtime_quality/environment.json`
 6. `artifacts/retargeting_v3_step3_runtime_quality/quality_summary.json`
-7. `artifacts/retargeting_v3_step3_runtime_quality/target_stream_matrix.json`
+7. `artifacts/retargeting_v3_step3_runtime_quality/model_matrix.json`
 8. `artifacts/retargeting_v3_step3_runtime_quality/generic_smoke_matrix.json`
 9. `artifacts/retargeting_v3_step3_runtime_quality/pipeline_backed_matrix.json`
 10. `artifacts/retargeting_v3_step3_runtime_quality/acceptance_ledger.json`
 11. `soma_retargeter/runtime/v3/generic_smoke.py`
 12. `soma_retargeter/runtime/v3/fleet_harness.py`
 13. `soma_retargeter/runtime/v3/quality_metrics.py`
-14. `soma_retargeter/runtime/v3/runtime_local_profile.py`
-15. `soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py`
-16. `scripts/audit_retargeting_v3_step3_full_fleet.py`
-17. `.github/workflows/retargeting_v3_step3_full_fleet.yml`
-18. Step 3.0 runtime shadow artifacts under `artifacts/retargeting_v3_step3_runtime_shadow/`
-19. Step 2.3.1 profile artifacts under `artifacts/retargeting_v3_step2_capability/`
+14. `soma_retargeter/runtime/v3/runtime_quality_gates.py`
+15. `soma_retargeter/runtime/v3/runtime_status.py`
+16. `soma_retargeter/runtime/v3/runtime_local_profile.py`
+17. `soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py`
+18. `scripts/audit_retargeting_v3_step3_full_fleet.py`
+19. `.github/workflows/retargeting_v3_step3_full_fleet.yml`
+20. `tests/v3/test_step3_full_fleet_acceptance_audit.py`
+21. `tests/v3/test_step3_runtime_quality_gates_status_semantics.py`
 
-不得只读 acceptance 文档就把当前状态视为通过。
+不要只读 summary。必须理解 Step 3.1.1 为什么是 honest evidence milestone，而不是 runtime quality success milestone。
 
 ---
 
-## 2. 当前真实状态与硬 blocker
+## 2. 当前真实基线
 
-### 2.1 Step 3.1 当前声明
+Step 3.1.1 closed baseline：
 
-当前分支声称：
+```text
+final_head = 26817de67bdda0cb315a1237b53c30e4d8199c78
+GitHub Actions run = 28286161586
+strict audit = PASS, blocking_count = 0
+focused tests = 20 passed
+git lfs fsck = OK
+```
+
+Step 3.1.1 artifact truth：
 
 ```text
 in_scope_total = 44
-full_humanoid_profile = 32
-partial_humanoid_profile = 3
-negative_control = 9
-runtime_quality_passed = 32
-partial_runtime_passed = 3
-negative_control_runtime_passed = 9
-quality_failed_count = 0
-deterministic = 44/44
+full_humanoid_total = 32
+partial_total = 3
+negative_total = 9
+
+runtime_quality_passed_count = 0
+runtime_quality_warned_count = 23
+runtime_quality_failed_count = 9
+partial_runtime_passed_count = 3
+negative_control_runtime_passed_count = 9
+
+solver_backed_count = 0
+residual_only_count = 32
+deterministic_matched_count = 44
 ```
 
-这些数字只能称为 **claimed artifact result**，不能直接接受为 Step 3.1 PASS。
-
-### 2.2 Hard blocker A — dirty provenance
-
-当前：
+Interpretation：
 
 ```text
-artifacts/retargeting_v3_step3_runtime_quality/environment.json
+Step 3.1.1 proved evidence honesty.
+Step 3.2 must improve runtime smoke depth by adding generic solver-backed evidence.
 ```
-
-记录了非空 `git.status_short`，包含大量 `M` 和 `??` 文件。也就是说当前 artifacts 是在脏 worktree / 未提交代码状态下生成的。
-
-本轮必须修复为：
-
-```text
-git_status_short = ""
-source_code_commit_remote_resolvable = true
-source_code_commit_is_artifact_commit_ancestor = true
-source_worktree_clean_before_run = true
-source_worktree_clean_after_run = true
-core_diff_after_source_commit = []
-```
-
-### 2.3 Hard blocker B — generic smoke 太弱
-
-当前 `generic_smoke.py` 的 full humanoid smoke 是：
-
-```text
-runtime model neutral FK
-vs
-V3 target stream residual
-```
-
-它没有真正做 runtime per-frame projection / IK / chain solve。很多行 residual 很大，但只要 finite 就被标成 `runtime_quality_passed`。
-
-示例模式：
-
-```text
-normalized_task_residual_mean ≈ 0.75
-task_residual_p95 ≈ 4.0
-status = passed
-```
-
-本轮必须二选一，不能模糊：
-
-1. **实现更强 generic runtime solver smoke**，使 `runtime_quality_passed` 真的表示 residual / limit / determinism gates 通过；或
-2. **收紧 status 语义**，把当前 neutral-FK residual evaluation 改成 `runtime_evaluation_completed` / `runtime_quality_warned` / `runtime_quality_failed`，不得把高 residual 行称为 quality passed。
-
-推荐优先选择方案 1；若计算量或工程风险过大，可以选择方案 2，但必须在 summary 中诚实显示质量失败/警告数量。
-
-### 2.4 Hard blocker C — current HEAD 没有 CI 证据
-
-当前 HEAD 上没有可见 workflow run/status。最终必须有：
-
-```text
-workflow_run_id
-head_sha
-conclusion=success
-job conclusions
-```
-
-并写入 Agent F final handoff。
-
-### 2.5 Hard blocker D — full repo pytest 仍未完成
-
-当前 acceptance ledger 已诚实记录 full repo pytest 中断，这是好的，但最终 PASS 需要：
-
-- 要么 full repo pytest 完成；
-- 要么明确将 full repo pytest 作为 non-blocking caveat，并确保 targeted / v3 / acceptance tests 全部覆盖本轮改动。
-
-不得把 full repo pytest 写成 passed，除非真实 exit code 0。
 
 ---
 
 ## 3. 本轮唯一目标
 
-将当前：
-
-```text
-44-row full-fleet artifact scaffold
-```
-
-硬化为：
-
-```text
-clean-provenance + CI-verified + status-honest + runtime-solver-backed full-fleet evaluation
-```
+实现并验收一个 **generic solver-backed runtime smoke**，用于 full humanoid profiles 的 Step 3 runtime quality evidence。
 
 完成后必须能回答：
 
-1. 44 行矩阵是否来自 clean source commit？
-2. 每行是否经过真实 runtime source/profile resolution？
-3. Full humanoid 的 generic smoke 到底是 solver-backed 通过，还是只是 residual evaluation 警告/失败？
-4. 哪些机器人 residual 高、joint limit 违规、target stream jump 或 solver失败？
-5. 哪些结果只是 evaluation completed，而不是 quality passed？
-6. RPO/G1 pipeline-backed controls 是否仍保持 Step 3.0 no-op / override / fail-closed 语义？
-7. CI 是否在最终 HEAD 上通过？
+1. 32 个 full humanoid 是否都被 solver-backed smoke 尝试过？
+2. 哪些模型 solver-backed smoke completed？哪些 fail-closed？为什么？
+3. `solver_backed_count` 是否从 `0` 变为真实的正数？
+4. residual-only fallback 是否仍被禁止计入 `runtime_quality_passed`？
+5. 哪些 warned/failed 是由 residual、joint-limit、NaN/Inf、target stream、solver convergence 或 determinism 引起？
+6. 是否保持全局 gates，不按 robot id 调阈值？
+7. RPO/G1 pipeline controls、negative controls、partial profiles 是否仍保持 Step 3.1.1 语义？
+8. 新 artifacts 是否来自 clean source commit，并由 final HEAD CI 验证？
 
 ---
 
@@ -213,814 +153,394 @@ clean-provenance + CI-verified + status-honest + runtime-solver-backed full-flee
 
 ### 4.1 本轮包含
 
-- clean artifact generation protocol；
-- audit 对 dirty provenance 的硬检查；
-- generic smoke status 语义收紧；
-- solver-backed full humanoid smoke 或 honest residual-only classification；
-- quality thresholds / warning gates，仅用于 runtime quality classification，不修改 Step 2 thresholds；
-- runtime-local profile forced-mismatch tests；
-- full 44 matrix deterministic rerun；
-- CI / red-team final evidence。
+- generic solver-backed smoke 的设计与实现；
+- full humanoid runtime smoke 从 residual-only FK evaluation 向 solver-backed evidence 迁移；
+- 全局 solver-smoke gates / status semantics；
+- fail-closed solver diagnostics；
+- deterministic frame sampling / deterministic artifact hashing；
+- 新 Step 3.2 artifact tree；
+- Step 3.2 audit；
+- focused tests 与 final HEAD CI evidence。
 
 ### 4.2 本轮禁止
 
-- 修改 production `NewtonPipeline` 默认行为；
-- 修改 Step 2 artifacts；
-- 修改 Step 2 exact residual / numerical thresholds；
-- 调 IK weights；
-- 添加 robot-specific quality thresholds；
-- 把 residual 大的 neutral-FK evaluation 叫 `runtime_quality_passed`；
-- 只改 audit 来接受坏 artifacts；
-- 只改文档；
-- 删除 high-residual metrics；
-- 用截图/视频目测作为 pass；
-- 开始优化/tuning；
-- 将 deferred `berkeley_humanoid_urdf` / `romeo_urdf` 重新加入 scope。
+- 修改 Step 2 artifacts、Step 2 thresholds 或 Step 2 acceptance 语义；
+- 修改 Step 3.1.1 closed artifact tree 作为“刷结果”手段；
+- 重写 production `NewtonPipeline` 默认行为；
+- 默认启用 runtime override；
+- 按 robot id 写特殊数学、特殊阈值、特殊白名单；
+- 调 IK/objective weights 来追单个机器人；
+- contact、collision、temporal smoothing、视觉动作质量调优；
+- 把 residual-only fallback 叫做 `runtime_quality_passed`；
+- 将 negative controls 提升为 humanoid runtime quality passes；
+- 声称 full-fleet production retargeting 已解决。
 
 ---
 
-## 5. 新 status 语义
+## 5. 允许的 solver-backed smoke 方向
 
-必须统一使用以下 final statuses：
+Codex 可以选择下面任一方案，但必须全局、通用、可审计、fail-closed。
+
+### 5.1 方案 A：generic chain-projection frame smoke（推荐优先）
+
+对每个 full humanoid，从 V3 profile / target stream 中提取可用 body/task anchors，执行 deterministic frame-level projection：
 
 ```text
-runtime_quality_passed
-runtime_quality_warned
-runtime_quality_failed
-runtime_evaluation_completed
-partial_runtime_passed
-negative_control_runtime_passed
-blocked_source_or_profile
+source target stream frame
+→ runtime model kinematic state candidate
+→ generic chain/body projection update
+→ FK verify target residuals + joint limits
 ```
 
-### 5.1 `runtime_quality_passed`
+要求：
+
+- 不依赖 robot id；
+- anchor/task 来自 profile capability 和 runtime model introspection；
+- 使用固定全局 gates；
+- 如果 anchor 不足、模型不可解、projection 不收敛，则 fail-closed 并记录原因；
+- completed smoke 必须产生 solver-backed metrics。
+
+### 5.2 方案 B：generic Newton IK smoke
+
+使用 repo 中已有 Newton/MuJoCo 能力，在 isolated smoke path 内对抽样 frames 执行 generic IK/projection。
+
+要求：
+
+- 不重写 production `NewtonPipeline`；
+- 不默认打开 experimental runtime override；
+- 不调 robot-specific IK weights；
+- 全局 iteration / tolerance / sampling config；
+- convergence failure 必须进入 `runtime_quality_warned` 或 `runtime_quality_failed`，不能被吞掉。
+
+---
+
+## 6. Status 语义必须保持
+
+### 6.1 `runtime_quality_passed`
 
 只允许 full humanoid 使用，且必须满足：
 
 ```text
 runtime profile resolved
-source/load finite
-target stream finite
-solver-backed smoke executed
-normalized_task_residual_p95 <= global runtime gate
-joint_limit_violation_count == 0 或 violation <= global tolerance
-nan_count = 0
-inf_count = 0
+runtime source materialized
+V3 target stream finite
+solver_backed_smoke_attempted = true
+solver_backed_smoke_completed = true
+solver_backed = true
+normalized_task_residual_p95 <= global pass gate
+joint_limit_violation_count == 0 或 <= global tolerance
+output_nan_count = 0
+output_inf_count = 0
 deterministic matched
 ```
 
-### 5.2 `runtime_quality_warned`
+### 6.2 `runtime_quality_warned`
 
-允许 full humanoid 使用，表示：
+表示 infrastructure 和 solver/evaluation 完成，但 global warning gates 暴露问题，例如：
 
 ```text
-all infrastructure complete
-all metrics finite
-solver/evaluation completed
-but residual, joint-limit, smoothness, or support-height metrics exceed warning gates
+high residual
+joint-limit warning
+solver convergence weak
+target stream jump
+support-height warning
+velocity / smoothness warning
 ```
 
-Warned 不是 failure，但不能计入 `runtime_quality_passed_count`。
+Warned 不能计入 `runtime_quality_passed_count`。
 
-### 5.3 `runtime_quality_failed`
+### 6.3 `runtime_quality_failed`
 
 表示：
 
 ```text
-runtime solver failed
-NaN/Inf
+solver failed closed
 source/profile unexpectedly unavailable
 target stream invalid
-joint limits severely violated
-metric missing
+NaN/Inf
+severe joint-limit violation
+required metric missing
+determinism mismatch
 ```
 
-### 5.4 `runtime_evaluation_completed`
+### 6.4 `runtime_evaluation_completed`
 
-仅用于 residual-only evaluation。若没有真正 solver-backed smoke，只能写这个或 `runtime_quality_warned/failed`，不能写 `runtime_quality_passed`。
+只用于 residual-only fallback。没有 solver-backed smoke 时，不能写 `runtime_quality_passed`。
 
-### 5.5 Partial / negative
+### 6.5 Partial / negative
 
-Partial：
+Partial 保持：
 
 ```text
 partial_runtime_passed
 ```
 
-只表示 supported semantics smoke 完成，不表示 full humanoid pass。
-
-Negative：
+Negative controls 保持：
 
 ```text
 negative_control_runtime_passed
 ```
 
-只表示 load/rejection成功，不能进入 humanoid quality counts。
+它们不进入 full humanoid runtime quality passed count。
 
 ---
 
-## 6. Runtime quality gates
+## 7. Artifact 策略
 
-新增文件：
-
-```text
-soma_retargeter/runtime/v3/runtime_quality_gates.py
-```
-
-全局 gates 必须固定，不得按机器人改：
+本轮必须创建新的 Step 3.2 artifact tree，不要覆盖 Step 3.1.1 closed artifacts：
 
 ```text
-nan_count = 0
-inf_count = 0
-joint_limit_violation_severe_threshold = 1e-5
-normalized_task_residual_p95_pass = 0.15
-normalized_task_residual_p95_warn = 0.60
-normalized_task_residual_max_warn = 1.20
-joint_velocity_p95_warn = global numeric gate, derived from data but fixed in artifact
-joint_acceleration_p95_warn = global numeric gate, derived from data but fixed in artifact
-se3_orthogonality_error_max <= 1e-8
+artifacts/retargeting_v3_step3_2_solver_backed_smoke/
 ```
 
-If Codex thinks these gates are too strict/loose, it must:
-
-1. add synthetic/calibration evidence;
-2. use one global change;
-3. write ADR in report;
-4. never set per-robot gates.
-
-The gates classify runtime quality only. They must not modify Step 2 offline pass/fail.
-
----
-
-## 7. Stronger generic smoke requirement
-
-Current `run_full_humanoid_fk_smoke()` must not remain the only full-humanoid smoke path if status is `runtime_quality_passed`.
-
-### 7.1 Acceptable smoke implementations
-
-Choose one and document it:
-
-#### Option A — chain-projection frame smoke, preferred
-
-For each full humanoid / required clip / sampled frame:
+至少包含：
 
 ```text
-V3 target stream target transform
-+ runtime profile chain/path/sites
-+ Step 2 projection solver
-→ projected q for each semantic task
-→ residual / limit / certificate metrics
+environment.json
+commands.txt
+model_matrix.json
+solver_smoke_matrix.json
+generic_smoke_matrix.json
+quality_summary.json
+acceptance_ledger.json
+deterministic_rerun.json
+pipeline_backed_matrix.json 或 pipeline_controls_reference.json
+test_results/pytest.txt
+test_results/pytest_summary.json
 ```
 
-This is still not whole-body production IK, but it is solver-backed and uses runtime model truth.
-
-#### Option B — generic Newton IK smoke
-
-Generate generic semantic body objectives and run Newton IK with fixed global weights.
-
-Allowed only if:
-
-- no per-robot weights;
-- objective mapping derives from verified semantics;
-- no production config mutation;
-- deterministic;
-- failed robots report numeric failures.
-
-#### Option C — residual-only evaluation
-
-Allowed only as fallback. It must be classified as:
-
-```text
-runtime_evaluation_completed
-runtime_quality_warned
-runtime_quality_failed
-```
-
-Not `runtime_quality_passed`.
-
-### 7.2 Solver-backed metrics
-
-For solver-backed rows, save:
-
-```text
-solver_type
-sampled_frame_count
-semantic_task_count
-solver_success_fraction
-projection_status_counts
-normalized_task_residual_mean/p95/max
-joint_limit_violation_count
-max_joint_limit_violation
-certificate_class_counts
-runtime_seconds
-```
-
-### 7.3 Residual-only metrics
-
-For residual-only rows, save:
-
-```text
-solver_type = runtime_model_fk_residual_evaluation_only
-quality_pass_allowed = false
-classification_reason
-```
-
-Audit must fail if residual-only row is labeled `runtime_quality_passed`.
-
----
-
-## 8. Runtime-local profile mismatch coverage
-
-Current full-fleet artifacts show zero runtime-local profiles generated. That may be legitimate if all committed snapshot runtime sources match, but the code path must be tested.
-
-Must add tests:
-
-1. forced fingerprint mismatch full humanoid -> runtime-local profile generation;
-2. forced mismatch negative control -> no humanoid profile generation;
-3. runtime-local profile fails -> row is `blocked_source_or_profile` or `runtime_quality_failed`, not pass;
-4. runtime-local profile artifacts include source profile ID, runtime source hash, semantic map hash, deterministic hash;
-5. committed Step 2 artifacts are unchanged.
-
----
-
-## 9. Artifact schema changes
-
-Output root remains:
-
-```text
-artifacts/retargeting_v3_step3_runtime_quality/
-```
-
-Required files remain, but update contents.
-
-### 9.1 `environment.json`
-
-Must include:
+`quality_summary.json` 至少记录：
 
 ```text
 schema_version
-source_code_commit
-source_code_commit_remote_resolvable=true
-source_code_commit_is_artifact_commit_ancestor=true
-source_worktree_clean_before_run=true
-source_worktree_clean_after_run=true
-git_status_short=""
-core_diff_after_source_commit=[]
-artifact_commit
-python/mujoco/newton/warp/numpy/scipy versions
-```
-
-`git.status_short` containing `M` or `??` is a hard failure.
-
-### 9.2 `quality_summary.json`
-
-Must include:
-
-```text
-in_scope_total = 44
-full_humanoid_total = 32
-partial_total = 3
-negative_total = 9
+base_step3_1_1_final_head
+in_scope_total
+full_humanoid_total
+partial_total
+negative_total
+solver_backed_attempted_count
+solver_backed_completed_count
+solver_backed_failed_count
+solver_backed_count
+residual_only_count
 runtime_quality_passed_count
 runtime_quality_warned_count
 runtime_quality_failed_count
-runtime_evaluation_completed_count
 partial_runtime_passed_count
 negative_control_runtime_passed_count
-solver_backed_row_count
-residual_only_row_count
-quality_failed_count
-high_residual_row_count
-joint_limit_warning_row_count
 deterministic_compared_count
 deterministic_matched_count
 ```
 
-### 9.3 `model_matrix.json`
-
-Each full humanoid row must include:
+每个 full humanoid row 至少记录：
 
 ```text
 model_id
 category
-final_step3_1_status
-runtime_quality_classification
-smoke_type
+source_status
+runtime_quality_status
+solver_backed_smoke_attempted
+solver_backed_smoke_completed
 solver_backed
-residual_only
-normalized_task_residual_p95
-normalized_task_residual_max
+solver_mode
+solver_failure_reason / warning_reasons
+frame_count
+sampled_frame_indices
+normalized_task_residual_mean / p95 / max
+target_translation_error_mean / p95 / max
+target_rotation_error_mean / p95 / max
 joint_limit_violation_count
 max_joint_limit_violation
-quality_gate_results
-failure_or_warning_reasons
+output_nan_count
+output_inf_count
+runtime_seconds
+deterministic_hash_inputs
 ```
 
-### 9.4 `generic_smoke_matrix.json`
-
-Each row must include:
+Artifact provenance 必须记录：
 
 ```text
-model_id
-clip_id
-mode
-solver_type
-solver_backed
-quality_pass_allowed
-status
-quality_classification
-metrics
-failure_or_warning_reasons
-```
-
-### 9.5 `acceptance_ledger.json`
-
-Must be generated by current audit only:
-
-```text
-scripts/audit_retargeting_v3_step3_full_fleet.py
-```
-
-Must include:
-
-```text
-blocking_count
-finding_count
-quality_warning_count
-runtime_quality_passed_count
-runtime_quality_warned_count
-runtime_quality_failed_count
-ci_run_id if available
-full_repo_pytest classification
+git_status_short = ""
+source_worktree_clean_before_run = true
+source_worktree_clean_after_run = true
+source_code_commit_remote_resolvable = true
+source_code_commit_is_artifact_commit_ancestor = true
+core_diff_after_source_commit = []
 ```
 
 ---
 
-## 10. Clean generation protocol
+## 8. Audit 与测试要求
 
-Must implement script:
+必须新增或扩展 Step 3.2 专用 audit。推荐新增：
 
 ```text
-scripts/generate_step3_full_fleet_hardened_artifacts.sh
+scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py
 ```
 
-Protocol:
+Audit 必须 fail closed：
 
-1. Ensure current worktree clean.
-2. Commit all code/tests/docs first -> code commit `C`.
-3. Push `C`.
-4. Create detached clean worktree from `C`.
-5. Run `git lfs pull && git lfs fsck`.
-6. Run targeted tests.
-7. Run `tests/v3`.
-8. Attempt full repo pytest and record honest classification.
-9. Run full-fleet quality command into external temp dir, not tracked tree.
-10. Run audit on temp artifacts.
-11. Ensure clean source worktree remains clean.
-12. Copy artifacts into main worktree.
-13. Commit artifact commit `A`.
-14. Verify `C` is ancestor of `A`.
-15. Verify `git diff --name-only C..A -- soma_retargeter tests scripts .github` is empty.
-16. Push `A`.
-17. Wait for CI, record run ID.
+```text
+44 rows present
+32/3/9 partition preserved
+Step 3.1.1 final head recorded as baseline
+clean provenance
+full humanoid solver_backed_smoke_attempted_count == 32
+solver_backed_completed_count > 0
+solver_backed_count > 0
+residual_only rows are never runtime_quality_passed
+runtime_quality_passed rows require solver_backed=true
+negative controls not promoted
+partial rows not counted as full humanoid passes
+pipeline controls retained/referenced
+numeric metrics finite and ordered
+NaN/Inf counts zero for completed rows
+deterministic rerun matched
+final HEAD CI evidence present in strict mode
+```
 
-No artifact is accepted without this protocol.
+如果 solver-backed completed count 仍为 0，最终状态必须是 BLOCKED，并记录 blockers；不得把 Step 3.2 写成 PASS。
+
+必须新增 focused tests。推荐覆盖：
+
+```text
+tests/v3/test_step3_2_solver_backed_smoke_status_semantics.py
+tests/v3/test_step3_2_solver_backed_smoke_artifact_schema.py
+tests/v3/test_step3_2_solver_backed_smoke_audit.py
+tests/v3/test_step3_2_solver_backed_smoke_determinism.py
+```
+
+至少测试：
+
+- solver-backed false 的 full humanoid 不能 `runtime_quality_passed`；
+- residual-only fallback 不能 pass；
+- `runtime_quality_passed` 必须有 `solver_backed=true`、finite metrics、joint-limit gate；
+- negative controls 不被 promoted；
+- missing solver evidence 触发 audit failure；
+- deterministic hash 对稳定 artifacts 匹配；
+- no robot-specific threshold table / whitelist introduced。
 
 ---
 
-## 11. CI requirements
+## 9. 建议执行顺序
 
-Workflow:
-
-```text
-.github/workflows/retargeting_v3_step3_full_fleet.yml
-```
-
-Must run on:
-
-```yaml
-push:
-  branches:
-    - retargeting-v3-step3-full-fleet-hardening
-```
-
-Required jobs:
-
-```text
-full-fleet-static-and-unit
-full-fleet-artifact-audit
-lfs-and-snapshot-smoke
-pipeline-backed-regression
-quality-status-semantics
-```
-
-CI must fail if:
-
-- model matrix rows != 44;
-- dirty provenance;
-- residual-only row labeled `runtime_quality_passed`;
-- high residual row labeled pass without solver-backed evidence;
-- RPO/G1 pipeline controls missing;
-- CI is RPO/G1-only;
-- acceptance ledger missing current audit;
-- Agent F handoff stale.
+1. 建立 Step 3.2 artifact schema 和 audit skeleton；
+2. 写 failing tests，锁定 status semantics；
+3. 实现 generic solver-backed smoke path；
+4. 接入 fleet harness / full-fleet runner；
+5. 生成新 Step 3.2 artifacts；
+6. 做 deterministic rerun；
+7. 更新 acceptance ledger / handoff；
+8. 增加或更新 GitHub Actions workflow；
+9. 跑 focused tests、audit、LFS fsck；
+10. push 后记录 final HEAD CI evidence；
+11. strict audit with final-head CI；
+12. 写最终诚实结论。
 
 ---
 
-## 12. Six xhigh subagents
+## 10. 推荐命令模板
 
-Every agent must:
-
-- use independent worktree/branch;
-- record reasoning strength=`xhigh`;
-- write failing tests first;
-- only modify owned files;
-- make small commits;
-- write handoff with commit/files/commands/tests/numeric results/blockers/risks;
-- never claim unrun tests.
-
-### Agent A — Clean Provenance and Artifact Protocol
-
-**Goal**: make dirty artifact generation impossible.
-
-Owned files:
-
-```text
-scripts/generate_step3_full_fleet_hardened_artifacts.sh
-scripts/write_step3_full_fleet_environment.py
-soma_retargeter/runtime/v3/provenance.py
-artifacts/retargeting_v3_step3_runtime_quality/environment.json
-artifacts/retargeting_v3_step3_runtime_quality/commands.txt
-tests/v3/test_step3_full_fleet_provenance_*.py
-docs/retargeting_v3/subagents/step3_1_1_agent_a_handoff.md
-```
-
-Must implement:
-
-1. source/artifact two-commit protocol;
-2. clean detached worktree;
-3. LFS fsck state;
-4. remote-resolvable source commit;
-5. source clean before/after;
-6. core diff after source commit empty;
-7. audit fails old dirty `environment.json` fixture;
-8. no local absolute paths.
-
-### Agent B — Quality Status Semantics and Gates
-
-**Goal**: stop labeling residual-only/high-residual rows as quality pass.
-
-Owned files:
-
-```text
-soma_retargeter/runtime/v3/runtime_quality_gates.py
-soma_retargeter/runtime/v3/runtime_status.py
-soma_retargeter/runtime/v3/quality_metrics.py
-tests/v3/test_step3_quality_status_semantics_*.py
-tests/v3/test_step3_runtime_quality_gates_*.py
-docs/retargeting_v3/subagents/step3_1_1_agent_b_handoff.md
-```
-
-Must implement:
-
-1. final statuses from section 5;
-2. global quality gates;
-3. pass/warn/fail classification;
-4. residual-only cannot pass;
-5. high residual -> warn/fail unless solver-backed gates pass;
-6. negative/partial not counted as full quality pass;
-7. no per-robot thresholds;
-8. tests for current bad pattern.
-
-### Agent C — Solver-Backed Generic Runtime Smoke
-
-**Goal**: replace or complement neutral-FK residual smoke with actual solver-backed runtime smoke.
-
-Owned files:
-
-```text
-soma_retargeter/runtime/v3/generic_smoke.py
-soma_retargeter/runtime/v3/fleet_harness.py
-soma_retargeter/runtime/v3/generic_projection_smoke.py      # may add
-soma_retargeter/runtime/v3/generic_ik.py                    # only if needed
-tests/v3/test_step3_solver_backed_generic_smoke_*.py
-tests/v3/test_step3_residual_only_not_quality_pass_*.py
-docs/retargeting_v3/subagents/step3_1_1_agent_c_handoff.md
-```
-
-Must implement:
-
-1. chain projection or generic IK smoke;
-2. runtime model FK/solver actually used;
-3. no neutral-only pass;
-4. full humanoid 2 core clips minimum solver-backed smoke;
-5. deterministic frame sampling;
-6. solver success / residual / limits metrics;
-7. fallback residual-only classified as evaluation/warn/fail;
-8. no per-robot tuning.
-
-### Agent D — Runtime-Local Profile Mismatch Tests and Closure
-
-**Goal**: prove mismatch path works even if real 44 snapshots mostly match.
-
-Owned files:
-
-```text
-soma_retargeter/runtime/v3/runtime_local_profile.py
-soma_retargeter/runtime/v3/profile_loader.py
-soma_retargeter/tools/compile_runtime_local_profiles_v3.py
-tests/v3/test_step3_forced_runtime_profile_mismatch_*.py
-tests/v3/test_step3_negative_mismatch_no_profile_*.py
-artifacts/retargeting_v3_step3_runtime_quality/runtime_local_profile_summary.json
-artifacts/retargeting_v3_step3_runtime_quality/runtime_local_profiles/
-docs/retargeting_v3/subagents/step3_1_1_agent_d_handoff.md
-```
-
-Must implement:
-
-1. forced mismatch fixture;
-2. runtime-local profile generation for full/partial;
-3. fail closed for negative;
-4. deterministic hash;
-5. no Step 2 artifact mutation;
-6. source/profile/map hash saved;
-7. mismatch never silently ignored.
-
-### Agent E — Full-Fleet Orchestration and Artifacts
-
-**Goal**: regenerate full 44 artifacts with hardened status and solver evidence.
-
-Owned files:
-
-```text
-soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py
-scripts/run_step3_full_fleet_runtime_quality.sh
-artifacts/retargeting_v3_step3_runtime_quality/
-tests/v3/test_step3_full_fleet_artifact_schema_runtime_quality.py
-tests/v3/test_step3_full_fleet_determinism_runtime_quality.py
-docs/retargeting_v3/STEP3_1_1_FULL_FLEET_HARDENING_REPORT.md
-docs/retargeting_v3/subagents/step3_1_1_agent_e_handoff.md
-```
-
-Must implement:
-
-1. 44 rows still present;
-2. new status counts;
-3. quality warning/failure rows preserved;
-4. deterministic rerun compares status, metrics, residuals and hashes;
-5. full repo pytest classification saved;
-6. no dirty artifacts;
-7. commands saved;
-8. high residual not hidden.
-
-### Agent F — Independent Red Team and CI
-
-**Goal**: attack final claims and decide PASS/BLOCKED.
-
-Owned files:
-
-```text
-scripts/audit_retargeting_v3_step3_full_fleet.py
-.github/workflows/retargeting_v3_step3_full_fleet.yml
-tests/v3/test_step3_full_fleet_acceptance_*.py
-docs/retargeting_v3/STEP3_1_1_FULL_FLEET_HARDENING_ACCEPTANCE.md
-docs/retargeting_v3/subagents/step3_1_1_agent_f_red_team.md
-artifacts/retargeting_v3_step3_runtime_quality/test_results/
-artifacts/retargeting_v3_step3_runtime_quality/acceptance_ledger.json
-```
-
-Must fail on:
-
-1. dirty `environment.json`;
-2. source commit not remote-resolvable;
-3. residual-only row marked `runtime_quality_passed`;
-4. normalized residual p95 above pass gate but pass status without solver-backed evidence;
-5. 44-row matrix missing;
-6. negative control promoted;
-7. RPO/G1 pipeline controls missing;
-8. full repo pytest caveat absent or falsely passed;
-9. current HEAD CI absent;
-10. stale handoff PASS;
-11. Step 2 artifacts modified;
-12. local absolute path leakage;
-13. LFS pointer-only files.
-
-Final handoff must include:
-
-```text
-verdict = PASS or BLOCKED
-final_head
-source_code_commit
-artifact_commit
-workflow_run_id
-44-row matrix summary
-runtime_quality_passed/warned/failed counts
-residual-only row count
-solver-backed row count
-RPO/G1 pipeline control summary
-pytest summary
-full-repo pytest classification
-remaining blockers
-```
-
----
-
-## 13. Integrator fixed order
-
-Do not change order.
-
-### Wave 0 — Red-team tests first
-
-1. Start six xhigh agents.
-2. Agent F writes failing tests for dirty provenance and residual-only pass.
-3. Agent B freezes status semantics.
-4. Integrator freezes artifact schema.
-
-### Wave 1 — Provenance and status
-
-Merge:
-
-```text
-Agent A -> Agent B
-```
-
-Run targeted tests.
-
-### Wave 2 — Smoke solver
-
-Merge Agent C. Verify residual-only rows cannot pass.
-
-### Wave 3 — Runtime-local mismatch
-
-Merge Agent D. Verify forced mismatch tests.
-
-### Wave 4 — Full orchestration
-
-Merge Agent E. Generate development artifacts. Run Agent F live audit. Return blockers.
-
-### Wave 5 — Clean final artifacts
-
-1. code freeze commit `C`;
-2. push `C`;
-3. clean detached worktree;
-4. LFS pull/fsck;
-5. targeted tests;
-6. tests/v3;
-7. full repo pytest attempt/classification;
-8. full-fleet command;
-9. audit;
-10. artifact commit `A`;
-11. push `A`;
-12. CI;
-13. Agent F final PASS/BLOCKED.
-
----
-
-## 14. Required commands
-
-### 14.1 Targeted tests
+Codex 可以调整文件名，但如果调整，必须同步更新 goal / docs / tests / CI。
 
 ```bash
 PYTHONPATH=. python -m pytest -q \
-  tests/v3/test_step3_full_fleet_provenance_*.py \
-  tests/v3/test_step3_quality_status_semantics_*.py \
-  tests/v3/test_step3_runtime_quality_gates_*.py \
-  tests/v3/test_step3_solver_backed_generic_smoke_*.py \
-  tests/v3/test_step3_residual_only_not_quality_pass_*.py \
-  tests/v3/test_step3_forced_runtime_profile_mismatch_*.py \
-  tests/v3/test_step3_negative_mismatch_no_profile_*.py \
-  tests/v3/test_step3_full_fleet_artifact_schema_runtime_quality.py \
-  tests/v3/test_step3_full_fleet_determinism_runtime_quality.py \
-  tests/v3/test_step3_full_fleet_acceptance_*.py
-```
+  tests/v3/test_step3_2_solver_backed_smoke_status_semantics.py \
+  tests/v3/test_step3_2_solver_backed_smoke_artifact_schema.py \
+  tests/v3/test_step3_2_solver_backed_smoke_audit.py \
+  tests/v3/test_step3_2_solver_backed_smoke_determinism.py
 
-### 14.2 V3 suite
-
-```bash
-PYTHONPATH=. python -m pytest -q tests/v3
-```
-
-### 14.3 Full repo suite
-
-```bash
-PYTHONPATH=. python -m pytest -q
-```
-
-If interrupted/too slow, save exact classification. Do not report pass unless exit code 0.
-
-### 14.4 Full fleet command
-
-```bash
-PYTHONPATH=. python -m soma_retargeter.tools.run_v3_full_fleet_runtime_quality \
-  --artifact-root artifacts/retargeting_v3_step3_runtime_quality \
-  --step2-profile-root artifacts/retargeting_v3_step2_capability \
-  --step3-shadow-root artifacts/retargeting_v3_step3_runtime_shadow \
-  --lock assets/robot_zoo/robot_zoo_lock.json \
-  --manifest assets/robot_zoo/robot_zoo_manifest.json \
-  --clip-root assets/motions \
-  --required-core-clips \
-    assets/motions/bvh/Neutral_walk_forward_002__A057.bvh \
-    assets/motions/bvh/wave_R_001__A428.bvh \
-    assets/motions/bvh/body_stretch_1_004__A069.bvh \
-    assets/motions/bvh/item_pick_up_standing_R_001__A410.bvh \
-  --short-max-frames 120 \
-  --mid-max-frames 300 \
+PYTHONPATH=. python soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py \
+  --artifact-dir artifacts/retargeting_v3_step3_2_solver_backed_smoke \
+  --enable-solver-backed-generic-smoke \
   --deterministic-rerun
-```
 
-### 14.5 Audit
+PYTHONPATH=. python scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py \
+  --artifact-dir artifacts/retargeting_v3_step3_2_solver_backed_smoke \
+  --source-root .
 
-```bash
-PYTHONPATH=. python scripts/audit_retargeting_v3_step3_full_fleet.py \
-  --artifact-dir artifacts/retargeting_v3_step3_runtime_quality \
+PYTHONPATH=. python scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py \
+  --artifact-dir artifacts/retargeting_v3_step3_2_solver_backed_smoke \
   --source-root . \
-  --write-report artifacts/retargeting_v3_step3_runtime_quality/acceptance_ledger.json
+  --require-final-head-ci
 ```
 
 ---
 
-## 15. Final acceptance checklist
+## 11. PASS / BLOCKED 定义
 
-### Scope
+### Step 3.2 PASS 必须表示
 
-- [ ] 44 model rows;
-- [ ] 32 full / 3 partial / 9 negative;
-- [ ] non-RPO/G1 rows >= 41;
-- [ ] no deferred assets reintroduced;
-- [ ] no model omitted.
+```text
+Step 3.1.1 baseline preserved
+new Step 3.2 artifact tree generated from clean source
+44-row full-fleet matrix preserved
+32 full humanoids attempted solver-backed smoke
+solver_backed_completed_count > 0
+solver_backed_count > 0
+residual_only_count reduced below Step 3.1.1 baseline OR every residual-only fallback is explicitly non-pass
+no residual-only full humanoid row is runtime_quality_passed
+runtime_quality_passed rows, if any, are solver-backed and gate-valid
+negative controls not promoted
+partial profiles not counted as full humanoid passes
+deterministic rerun matched
+focused tests passed
+Git LFS fsck OK
+final HEAD CI green
+strict Step 3.2 audit passes
+```
 
-### Provenance
+PASS 不代表：
 
-- [ ] clean source commit;
-- [ ] artifact commit;
-- [ ] source remote-resolvable;
-- [ ] source clean before/after;
-- [ ] core diff after source commit empty;
-- [ ] environment git status empty;
-- [ ] LFS OK;
-- [ ] no absolute paths.
+```text
+all humanoids pass runtime quality
+visual motion quality is solved
+production deployment is ready
+contact/collision/smoothing is solved
+robot-specific tuning has been performed
+```
 
-### Runtime status honesty
+### Step 3.2 BLOCKED 必须表示
 
-- [ ] residual-only rows not labeled runtime_quality_passed;
-- [ ] high residual rows warned/failed unless solver-backed gates pass;
-- [ ] quality warning/failure counts explicit;
-- [ ] no hidden NaN/Inf;
-- [ ] joint limit violations reported.
-
-### Generic smoke
-
-- [ ] solver-backed rows exist for full humanoids, or residual-only status is honest;
-- [ ] solver type recorded;
-- [ ] solver success metrics recorded;
-- [ ] partial supported smoke works;
-- [ ] negatives rejected.
-
-### Pipeline controls
-
-- [ ] RPO/G1 Step 3.0 controls retained;
-- [ ] shadow no-op retained;
-- [ ] G1 fail-closed or runtime-local policy recorded;
-- [ ] production default unchanged.
-
-### Tests/CI
-
-- [ ] targeted tests pass;
-- [ ] tests/v3 pass;
-- [ ] full repo pytest pass or caveat recorded honestly;
-- [ ] audit PASS;
-- [ ] CI current HEAD success;
-- [ ] Agent F final PASS/BLOCKED.
+如果 solver-backed completed count 仍为 0、final HEAD CI 缺失、strict audit 有 blocker、或 status semantics 不诚实，必须写 BLOCKED。BLOCKED 也必须产出有用 diagnostics，不得隐藏失败。
 
 ---
 
-## 16. Completion definition
+## 12. 6 个建议 subagents
 
-Final report must be exactly one of:
-
-```text
-Step 3.1.1 Full-Fleet Runtime Hardening: PASS
-```
-
-or:
+继续使用专业分工；主 Codex 是 Integrator。
 
 ```text
-Step 3.1.1 Full-Fleet Runtime Hardening: BLOCKED
+Agent A — Solver-smoke design / generic kinematic projection
+Agent B — Runtime integration / fleet harness wiring
+Agent C — Artifact schema / deterministic regeneration
+Agent D — Tests / status semantics
+Agent E — CI / workflow / LFS evidence
+Agent F — Red-team audit / final strict acceptance
 ```
 
-PASS means:
+每个 agent 都必须遵守：不 robot-specific tuning、不修改 Step 2 thresholds、不弱化 audit、不把 residual-only 改名成 pass。
+
+---
+
+## 13. 最终 handoff 必须写清
+
+最终交付时写入 `docs/retargeting_v3/HANDOVER_NEXT_WINDOW.md` 或 Step 3.2 handoff：
 
 ```text
-44-row matrix complete
-clean provenance fixed
-CI current HEAD green
-runtime quality status honest
-residual-only smoke not overclaimed
-solver-backed or warned/failed rows classified correctly
-RPO/G1 pipeline controls intact
-all artifacts deterministic and auditable
+branch
+final_head
+workflow_run_id
+job conclusions
+strict audit result
+focused tests result
+LFS fsck result
+artifact counts
+solver_backed_attempted_count
+solver_backed_completed_count
+solver_backed_count
+runtime_quality_passed/warned/failed counts
+known blockers or next Step 3.3 direction
 ```
 
-PASS does **not** mean every robot motion looks good. If runtime quality is bad, the correct result is `runtime_quality_warned` or `runtime_quality_failed` with numeric evidence.
-
-If any hard gate fails, write BLOCKED and list blockers. Stop after this round. Do not start tuning/optimization automatically.
+不要自动开始 Step 3.3。
