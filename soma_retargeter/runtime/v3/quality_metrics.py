@@ -148,12 +148,13 @@ def joint_limit_metrics(q_sequence: np.ndarray, coordinate_info: list[Any]) -> d
     max_violation = 0.0
     for coord in coordinate_info:
         index = int(getattr(coord, "index", coord.get("index") if isinstance(coord, dict) else -1))
+        q_index = int(getattr(coord, "qpos_adr", coord.get("qpos_adr") if isinstance(coord, dict) and "qpos_adr" in coord else index))
         limited = bool(getattr(coord, "limited", coord.get("limited") if isinstance(coord, dict) else False))
-        if index < 0 or index >= q.shape[1] or not limited:
+        if q_index < 0 or q_index >= q.shape[1] or not limited:
             continue
         lower = float(getattr(coord, "lower", coord.get("lower") if isinstance(coord, dict) else -math.inf))
         upper = float(getattr(coord, "upper", coord.get("upper") if isinstance(coord, dict) else math.inf))
-        values = q[:, index]
+        values = q[:, q_index]
         violation = np.maximum(lower - values, values - upper)
         violation = np.maximum(violation, 0.0)
         count += int(np.count_nonzero(violation > 0.0))

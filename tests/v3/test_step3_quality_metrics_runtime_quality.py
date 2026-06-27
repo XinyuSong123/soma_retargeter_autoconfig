@@ -35,3 +35,15 @@ def test_step3_quality_metrics_report_output_and_joint_limit_stats() -> None:
     assert metrics["inf_count"] == 0
     assert metrics["joint_limit_violation_count"] == 2
     assert metrics["max_joint_limit_violation"] == 2.0
+
+
+def test_step3_quality_metrics_use_qpos_address_for_joint_limits_when_available() -> None:
+    q = np.asarray([[99.0, 0.0], [99.0, 0.5]], dtype=float)
+    coords = [
+        {"index": 0, "qpos_adr": 1, "limited": True, "lower": -1.0, "upper": 1.0},
+    ]
+
+    metrics = smoke_output_metrics(q_sequence=q, coordinate_info=coords, residuals=np.asarray([0.0]), runtime_seconds=0.1)
+
+    assert metrics["joint_limit_violation_count"] == 0
+    assert metrics["max_joint_limit_violation"] == 0.0

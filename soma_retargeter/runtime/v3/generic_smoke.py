@@ -18,7 +18,7 @@ from soma_retargeter.robotics.v3.projection_solver import so3_log_residual_jacob
 from soma_retargeter.robotics.v3.spatial import relative_transform, rotation_error, so3_log
 
 from .fleet_inventory import FleetRuntimeCase, stable_payload_hash
-from .quality_metrics import contact_diagnostics, smoke_output_metrics
+from .quality_metrics import contact_diagnostics, joint_limit_metrics, smoke_output_metrics
 from .runtime_quality_gates import (
     BLOCKED_SOURCE_OR_PROFILE,
     NEGATIVE_CONTROL_RUNTIME_PASSED,
@@ -40,17 +40,60 @@ class SolverBackedSmokeConfig:
     ftol: float = 1e-8
     gtol: float = 1e-8
     task_order: tuple[str, ...] = ("torso",)
+    enable_global_quality_hardening: bool = False
+    seed_policy: str = "neutral"
+    reuse_previous_frame_seed: bool = False
+    project_joint_limits: bool = False
+    residual_nonincrease_guard: bool = False
+    residual_nonincrease_tolerance: float = 1e-9
+    line_search_alphas: tuple[float, ...] = ()
+    max_update_norm: float | None = None
 
-    def to_json(self) -> dict[str, Any]:
-        return {
+    @classmethod
+    def global_quality_hardened(
+        cls,
+        *,
+        sample_count: int = 1,
+        max_nfev_per_task: int = 12,
+        task_order: tuple[str, ...] = ("torso",),
+    ) -> "SolverBackedSmokeConfig":
+        return cls(
+            sample_count=sample_count,
+            max_nfev_per_task=max_nfev_per_task,
+            task_order=task_order,
+            enable_global_quality_hardening=True,
+            seed_policy="neutral_with_previous_frame_reuse",
+            reuse_previous_frame_seed=True,
+            project_joint_limits=True,
+            residual_nonincrease_guard=True,
+            line_search_alphas=(1.0, 0.5, 0.25, 0.1, 0.0),
+            max_update_norm=1.0,
+        )
+
+    def to_json(self, *, include_hash: bool = True) -> dict[str, Any]:
+        payload = {
             "sample_count": int(self.sample_count),
             "max_nfev_per_task": int(self.max_nfev_per_task),
             "xtol": float(self.xtol),
             "ftol": float(self.ftol),
             "gtol": float(self.gtol),
             "task_order": list(self.task_order),
+            "enable_global_quality_hardening": bool(self.enable_global_quality_hardening),
+            "seed_policy": str(self.seed_policy),
+            "reuse_previous_frame_seed": bool(self.reuse_previous_frame_seed),
+            "project_joint_limits": bool(self.project_joint_limits),
+            "residual_nonincrease_guard": bool(self.residual_nonincrease_guard),
+            "residual_nonincrease_tolerance": float(self.residual_nonincrease_tolerance),
+            "line_search_alphas": [float(value) for value in self.line_search_alphas],
+            "max_update_norm": None if self.max_update_norm is None else float(self.max_update_norm),
             "global_config": True,
         }
+        if include_hash:
+            payload["solver_config_hash"] = self.config_hash()
+        return payload
+
+    def config_hash(self) -> str:
+        return stable_payload_hash(self.to_json(include_hash=False))
 
 
 @dataclass(frozen=True)
@@ -268,15 +311,26 @@ def run_full_humanoid_solver_backed_smoke(
 
         q0 = adapter.neutral_q()
         q_sequence: list[np.ndarray] = []
+        raw_q_sequence: list[np.ndarray] = []
         residual_values: list[float] = []
         translation_errors: list[float] = []
         rotation_errors: list[float] = []
         solver_iterations: list[float] = []
         solver_successes = 0
         solver_tasks = 0
+        line_search_count = 0
+        rollback_count = 0
+        solver_converged_frame_count = 0
+        solver_failed_frame_count = 0
+        projection_reports: list[dict[str, Any]] = []
+        previous_q: np.ndarray | None = None
 
         for frame_index in sampled_frame_indices:
-            q = q0.copy()
+            q = previous_q.copy() if cfg.reuse_previous_frame_seed and previous_q is not None else q0.copy()
+            if cfg.project_joint_limits:
+                q, _ = _project_q_to_coordinate_limits(adapter, q)
+            frame_raw_q = q.copy()
+            frame_success = True
             frame_task_reports: list[dict[str, Any]] = []
             for task in cfg.task_order:
                 path = paths.get(task)
@@ -301,9 +355,31 @@ def run_full_humanoid_solver_backed_smoke(
                 solver_iterations.append(float(task_result["iterations"]))
                 if task_result["success"]:
                     solver_successes += 1
+                else:
+                    frame_success = False
+                line_search_count += int(task_result.get("line_search_count", 0) or 0)
+                rollback_count += int(task_result.get("rollback_count", 0) or 0)
+                frame_raw_q = np.asarray(task_result.get("q_raw", task_result["q"]), dtype=np.float64)
                 q = np.asarray(task_result["q"], dtype=np.float64)
-                frame_task_reports.append({key: value for key, value in task_result.items() if key != "q"})
+                frame_task_reports.append(
+                    {key: value for key, value in task_result.items() if key not in {"q", "q_raw"}}
+                )
 
+            if cfg.project_joint_limits:
+                q, frame_projection = _project_q_to_coordinate_limits(adapter, q)
+            else:
+                frame_projection = _projection_diagnostics(adapter, frame_raw_q, q)
+            projection_reports.append(
+                {
+                    "frame_index": int(frame_index),
+                    **frame_projection,
+                }
+            )
+            if frame_success:
+                solver_converged_frame_count += 1
+            else:
+                solver_failed_frame_count += 1
+            previous_q = q.copy()
             state = adapter.forward_kinematics(q)
             per_semantic: dict[str, dict[str, Any]] = {}
             for semantic, stack_value in sorted(target_transforms.items()):
@@ -323,10 +399,13 @@ def run_full_humanoid_solver_backed_smoke(
                     "combined_residual": _stable(translation + rotation),
                 }
             q_sequence.append(q)
+            raw_q_sequence.append(frame_raw_q)
             task_diagnostics.append(
                 {
                     "frame_index": int(frame_index),
+                    "seed_policy": cfg.seed_policy,
                     "tasks": frame_task_reports,
+                    "joint_limit_projection": projection_reports[-1],
                     "per_semantic": per_semantic,
                 }
             )
@@ -345,6 +424,9 @@ def run_full_humanoid_solver_backed_smoke(
             )
 
         q_arr = np.vstack(q_sequence)
+        raw_q_arr = np.vstack(raw_q_sequence)
+        pre_projection_joint_limits = joint_limit_metrics(raw_q_arr, adapter.coordinate_info)
+        post_projection_joint_limits = joint_limit_metrics(q_arr, adapter.coordinate_info)
         metrics = smoke_output_metrics(
             q_sequence=q_arr,
             coordinate_info=adapter.coordinate_info,
@@ -365,6 +447,27 @@ def run_full_humanoid_solver_backed_smoke(
         metrics["solver_task_success_count"] = int(solver_successes)
         metrics["solver_backed_smoke_attempted"] = True
         metrics["solver_backed_smoke_completed"] = True
+        metrics["solver_config_hash"] = cfg.config_hash()
+        metrics["solver_iteration_count_mean"] = metrics["solver_iteration_mean"]
+        metrics["solver_iteration_count_p95"] = metrics["solver_iteration_p95"]
+        metrics["solver_iteration_count_max"] = metrics["solver_iteration_max"]
+        metrics["solver_converged_frame_count"] = int(solver_converged_frame_count)
+        metrics["solver_failed_frame_count"] = int(solver_failed_frame_count)
+        metrics["line_search_count"] = int(line_search_count)
+        metrics["rollback_count"] = int(rollback_count)
+        metrics["pre_projection_joint_limit_violation_count"] = int(
+            pre_projection_joint_limits["joint_limit_violation_count"]
+        )
+        metrics["pre_projection_max_joint_limit_violation"] = float(
+            pre_projection_joint_limits["max_joint_limit_violation"]
+        )
+        metrics["post_projection_joint_limit_violation_count"] = int(
+            post_projection_joint_limits["joint_limit_violation_count"]
+        )
+        metrics["post_projection_max_joint_limit_violation"] = float(
+            post_projection_joint_limits["max_joint_limit_violation"]
+        )
+        metrics.update(_aggregate_projection_metrics(projection_reports))
         metrics["sampled_frame_count"] = len(sampled_frame_indices)
         metrics["sampled_frame_indices"] = list(sampled_frame_indices)
         classification = classify_runtime_quality(
@@ -394,7 +497,10 @@ def run_full_humanoid_solver_backed_smoke(
                 "solver": SOLVER_BACKED_GENERIC_SOLVER_TYPE,
                 "solver_type": SOLVER_BACKED_GENERIC_SOLVER_TYPE,
                 "sampled_frame_indices": sampled_frame_indices,
+                "solver_config": cfg.to_json(),
+                "solver_config_hash": cfg.config_hash(),
                 "frame_reports": task_diagnostics,
+                "joint_limit_projection_reports": projection_reports,
                 "missing_tasks": missing_tasks,
             },
             solver_type=SOLVER_BACKED_GENERIC_SOLVER_TYPE,
@@ -544,6 +650,12 @@ def _solve_projection_task(
     task_kind = "rotation" if path.task == "torso" else "translation"
     scale = math.pi if task_kind == "rotation" else _position_scale(adapter, q_seed, reference, target, active, desired_relative)
 
+    def residual_for_q(q: np.ndarray) -> np.ndarray:
+        current = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)
+        if task_kind == "rotation":
+            return so3_log(current[:3, :3].T @ desired_relative[:3, :3]) / scale
+        return (current[:3, 3] - desired_relative[:3, 3]) / scale
+
     def evaluate(values: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, str]:
         q = adapter.set_velocity_coordinates(q_seed, active, values) if active else np.asarray(q_seed, dtype=np.float64)
         current = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)
@@ -582,6 +694,11 @@ def _solve_projection_task(
             "residual_norm": _stable(residual_norm),
             "residual_norm_seed": _stable(residual_norm),
             "jacobian_source": jacobian_source,
+            "line_search_count": 0,
+            "rollback_count": 0,
+            "line_search_alpha": 1.0,
+            "update_norm": 0.0,
+            "q_raw": seed_q,
             "q": seed_q,
         }
 
@@ -604,16 +721,42 @@ def _solve_projection_task(
             gtol=config.gtol,
             max_nfev=config.max_nfev_per_task,
         )
-        final_residual, final_jacobian, final_q, jacobian_source = evaluate(result.x)
+        raw_residual, raw_jacobian, raw_q, jacobian_source = evaluate(result.x)
+        accepted = _select_solver_values(
+            evaluate=evaluate,
+            x0=x0,
+            proposed=np.asarray(result.x, dtype=np.float64),
+            seed_norm=float(np.linalg.norm(seed_residual)),
+            config=config,
+        )
+        final_residual = np.asarray(accepted["residual"], dtype=np.float64)
+        final_jacobian = np.asarray(accepted["jacobian"], dtype=np.float64)
+        final_q_raw = np.asarray(accepted["q"], dtype=np.float64)
+        final_q = final_q_raw
+        projection = _projection_diagnostics(adapter, final_q_raw, final_q)
+        if config.project_joint_limits:
+            projected_q, projection = _project_q_to_coordinate_limits(adapter, final_q_raw)
+            projected_residual = residual_for_q(projected_q)
+            projection["task_residual_norm_pre_projection"] = _stable(float(np.linalg.norm(final_residual)))
+            projection["task_residual_norm_post_projection"] = _stable(float(np.linalg.norm(projected_residual)))
+            projection["task_residual_norm_delta_after_projection"] = _stable(
+                float(np.linalg.norm(projected_residual) - np.linalg.norm(final_residual))
+            )
+            final_q = projected_q
+            final_residual = projected_residual
         finite = bool(
             np.all(np.isfinite(result.x))
+            and np.all(np.isfinite(raw_residual))
+            and np.all(np.isfinite(raw_jacobian))
+            and np.all(np.isfinite(raw_q))
             and np.all(np.isfinite(final_residual))
             and np.all(np.isfinite(final_jacobian))
+            and np.all(np.isfinite(final_q_raw))
             and np.all(np.isfinite(final_q))
         )
         residual_norm = float(np.linalg.norm(final_residual))
         seed_norm = float(np.linalg.norm(seed_residual))
-        success = bool(finite and residual_norm <= seed_norm + 1e-9)
+        success = bool(finite and residual_norm <= seed_norm + config.residual_nonincrease_tolerance)
         return {
             "task": path.task,
             "reference": path.reference,
@@ -627,10 +770,17 @@ def _solve_projection_task(
             "active_velocity_coordinates": list(active),
             "residual_norm": _stable(residual_norm),
             "residual_norm_seed": _stable(seed_norm),
+            "residual_norm_raw": _stable(float(np.linalg.norm(raw_residual))),
             "cost": _stable(float(result.cost)),
             "optimality": _stable(float(result.optimality)),
             "jacobian_source": jacobian_source,
+            "line_search_count": int(accepted["line_search_count"]),
+            "rollback_count": int(accepted["rollback_count"]),
+            "line_search_alpha": _stable(float(accepted["alpha"])),
+            "update_norm": _stable(float(accepted["update_norm"])),
+            "joint_limit_projection": projection,
             "message": str(result.message),
+            "q_raw": final_q_raw,
             "q": final_q,
         }
     except Exception as exc:
@@ -649,7 +799,12 @@ def _solve_projection_task(
             "residual_norm": _stable(seed_norm),
             "residual_norm_seed": _stable(seed_norm),
             "jacobian_source": jacobian_source,
+            "line_search_count": 0,
+            "rollback_count": 1 if config.residual_nonincrease_guard else 0,
+            "line_search_alpha": 0.0,
+            "update_norm": 0.0,
             "message": f"{type(exc).__name__}: {exc}",
+            "q_raw": seed_q,
             "q": seed_q,
         }
 
@@ -678,6 +833,178 @@ def _active_values_and_bounds(
         lower.append(lo)
         upper.append(hi)
     return active, np.asarray(values, dtype=np.float64), np.asarray(lower, dtype=np.float64), np.asarray(upper, dtype=np.float64)
+
+
+def _select_solver_values(
+    *,
+    evaluate: Any,
+    x0: np.ndarray,
+    proposed: np.ndarray,
+    seed_norm: float,
+    config: SolverBackedSmokeConfig,
+) -> dict[str, Any]:
+    proposed = np.asarray(proposed, dtype=np.float64)
+    x0 = np.asarray(x0, dtype=np.float64)
+    if not config.residual_nonincrease_guard:
+        residual, jacobian, q, _ = evaluate(proposed)
+        return {
+            "values": proposed,
+            "residual": residual,
+            "jacobian": jacobian,
+            "q": q,
+            "alpha": 1.0,
+            "line_search_count": 0,
+            "rollback_count": 0,
+            "update_norm": float(np.linalg.norm(proposed - x0)),
+        }
+
+    alphas = tuple(config.line_search_alphas or (1.0, 0.0))
+    best: dict[str, Any] | None = None
+    line_search_count = 0
+    for alpha in alphas:
+        alpha = float(alpha)
+        values = x0 + alpha * (proposed - x0)
+        update_norm = float(np.linalg.norm(values - x0))
+        line_search_count += 1
+        if config.max_update_norm is not None and update_norm > float(config.max_update_norm) + 1e-12:
+            continue
+        residual, jacobian, q, _ = evaluate(values)
+        residual_norm = float(np.linalg.norm(residual))
+        finite = bool(np.all(np.isfinite(values)) and np.all(np.isfinite(residual)) and np.all(np.isfinite(jacobian)) and np.all(np.isfinite(q)))
+        candidate = {
+            "values": values,
+            "residual": residual,
+            "jacobian": jacobian,
+            "q": q,
+            "alpha": alpha,
+            "line_search_count": line_search_count,
+            "rollback_count": 0,
+            "update_norm": update_norm,
+            "residual_norm": residual_norm,
+            "finite": finite,
+        }
+        if best is None or (finite and residual_norm < float(best.get("residual_norm", math.inf))):
+            best = candidate
+        if finite and residual_norm <= seed_norm + config.residual_nonincrease_tolerance:
+            return candidate
+
+    if best is not None and bool(best.get("finite")):
+        best["rollback_count"] = 1
+        return best
+    residual, jacobian, q, _ = evaluate(x0)
+    return {
+        "values": x0,
+        "residual": residual,
+        "jacobian": jacobian,
+        "q": q,
+        "alpha": 0.0,
+        "line_search_count": line_search_count,
+        "rollback_count": 1,
+        "update_norm": 0.0,
+    }
+
+
+def _project_q_to_coordinate_limits(
+    adapter: NewtonRuntimeModelAdapter,
+    q: np.ndarray,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    raw = np.asarray(q, dtype=np.float64)
+    projected = raw.copy()
+    if projected.ndim != 1:
+        projected = projected.reshape(-1).copy()
+    for coord in adapter.coordinate_info:
+        if not bool(coord.limited):
+            continue
+        index = int(coord.qpos_adr)
+        if index < 0 or index >= projected.shape[0]:
+            continue
+        lower = float(coord.lower)
+        upper = float(coord.upper)
+        if not (math.isfinite(lower) and math.isfinite(upper)):
+            continue
+        value = projected[index]
+        if math.isfinite(float(value)):
+            projected[index] = float(np.clip(value, lower, upper))
+    return projected, _projection_diagnostics(adapter, raw, projected)
+
+
+def _projection_diagnostics(
+    adapter: NewtonRuntimeModelAdapter,
+    q_raw: np.ndarray,
+    q_projected: np.ndarray,
+) -> dict[str, Any]:
+    raw = np.asarray(q_raw, dtype=np.float64).reshape(1, -1)
+    projected = np.asarray(q_projected, dtype=np.float64).reshape(1, -1)
+    delta = projected - raw
+    abs_delta = np.abs(delta.reshape(-1))
+    changed_mask = abs_delta > 0.0
+    offenders: list[dict[str, Any]] = []
+    for coord in adapter.coordinate_info:
+        if not bool(coord.limited):
+            continue
+        index = int(coord.qpos_adr)
+        if index < 0 or index >= raw.shape[1]:
+            continue
+        value = float(raw[0, index])
+        lower = float(coord.lower)
+        upper = float(coord.upper)
+        lower_violation = max(lower - value, 0.0) if math.isfinite(lower) else 0.0
+        upper_violation = max(value - upper, 0.0) if math.isfinite(upper) else 0.0
+        violation = max(lower_violation, upper_violation)
+        if violation <= 0.0:
+            continue
+        offenders.append(
+            {
+                "index": int(coord.index),
+                "qpos_adr": index,
+                "label": str(coord.label),
+                "joint_name": str(coord.joint_name),
+                "joint_type": str(coord.joint_type),
+                "lower": _stable(lower),
+                "upper": _stable(upper),
+                "side": "lower" if lower_violation >= upper_violation else "upper",
+                "max_violation": _stable(violation),
+            }
+        )
+    pre = joint_limit_metrics(raw, adapter.coordinate_info)
+    post = joint_limit_metrics(projected, adapter.coordinate_info)
+    return {
+        "enabled": bool(np.any(changed_mask)),
+        "changed_coordinate_count": int(np.count_nonzero(changed_mask)),
+        "changed_frame_count": int(np.count_nonzero(np.any(np.abs(delta) > 0.0, axis=1))),
+        "projection_delta_linf": _stable(float(np.max(abs_delta)) if abs_delta.size else 0.0),
+        "projection_delta_l2": _stable(float(np.linalg.norm(delta))),
+        "projection_delta_p95": _stable(float(np.percentile(abs_delta, 95)) if abs_delta.size else 0.0),
+        "pre_projection_joint_limit_violation_count": int(pre["joint_limit_violation_count"]),
+        "pre_projection_max_joint_limit_violation": float(pre["max_joint_limit_violation"]),
+        "post_projection_joint_limit_violation_count": int(post["joint_limit_violation_count"]),
+        "post_projection_max_joint_limit_violation": float(post["max_joint_limit_violation"]),
+        "offenders": offenders,
+    }
+
+
+def _aggregate_projection_metrics(reports: list[dict[str, Any]]) -> dict[str, Any]:
+    if not reports:
+        return {
+            "projection_repaired_frame_count": 0,
+            "projection_changed_coordinate_count": 0,
+            "projection_delta_linf": 0.0,
+            "projection_delta_l2": 0.0,
+            "projection_delta_p95": 0.0,
+            "projection_residual_worsened_count": 0,
+        }
+    return {
+        "projection_repaired_frame_count": sum(int(row.get("changed_frame_count", 0) or 0) for row in reports),
+        "projection_changed_coordinate_count": sum(int(row.get("changed_coordinate_count", 0) or 0) for row in reports),
+        "projection_delta_linf": max((float(row.get("projection_delta_linf", 0.0) or 0.0) for row in reports), default=0.0),
+        "projection_delta_l2": _stable(sum(float(row.get("projection_delta_l2", 0.0) or 0.0) for row in reports)),
+        "projection_delta_p95": max((float(row.get("projection_delta_p95", 0.0) or 0.0) for row in reports), default=0.0),
+        "projection_residual_worsened_count": sum(
+            1
+            for row in reports
+            if float(row.get("task_residual_norm_delta_after_projection", 0.0) or 0.0) > 1e-12
+        ),
+    }
 
 
 def _relative_jacobian(
@@ -756,6 +1083,24 @@ def _solver_backed_failed_result(
         "runtime_seconds": _stable(time.perf_counter() - started),
         "solver_backed_smoke_attempted": True,
         "solver_backed_smoke_completed": False,
+        "solver_config_hash": config.config_hash(),
+        "solver_iteration_count_mean": 0.0,
+        "solver_iteration_count_p95": 0.0,
+        "solver_iteration_count_max": 0.0,
+        "solver_converged_frame_count": 0,
+        "solver_failed_frame_count": len(sampled_frame_indices),
+        "line_search_count": 0,
+        "rollback_count": 0,
+        "pre_projection_joint_limit_violation_count": 0,
+        "pre_projection_max_joint_limit_violation": 0.0,
+        "post_projection_joint_limit_violation_count": 0,
+        "post_projection_max_joint_limit_violation": 0.0,
+        "projection_repaired_frame_count": 0,
+        "projection_changed_coordinate_count": 0,
+        "projection_delta_linf": 0.0,
+        "projection_delta_l2": 0.0,
+        "projection_delta_p95": 0.0,
+        "projection_residual_worsened_count": 0,
         "sampled_frame_indices": list(sampled_frame_indices),
         "sampled_frame_count": len(sampled_frame_indices),
     }
@@ -772,12 +1117,14 @@ def _solver_backed_failed_result(
         "schema_version": 1,
         "solver_type": SOLVER_BACKED_GENERIC_SOLVER_TYPE,
         "solver_config": config.to_json(),
+        "solver_config_hash": config.config_hash(),
         "sampled_frame_indices": list(sampled_frame_indices),
         "solver_failure_reason": str(reason),
         "stable_hash": stable_payload_hash(
             {
                 "solver_type": SOLVER_BACKED_GENERIC_SOLVER_TYPE,
                 "solver_config": config.to_json(),
+                "solver_config_hash": config.config_hash(),
                 "sampled_frame_indices": list(sampled_frame_indices),
                 "solver_failure_reason": str(reason),
             }

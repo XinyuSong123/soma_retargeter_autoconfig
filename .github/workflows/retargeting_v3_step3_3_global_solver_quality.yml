@@ -1,0 +1,178 @@
+name: Retargeting V3 Step 3.3 Global Solver Quality
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "scripts/audit_retargeting_v3_step3_3_global_solver_quality.py"
+      - "tests/v3/test_step3_quality_metrics_runtime_quality.py"
+      - "tests/v3/test_step3_3_global_solver_quality_*.py"
+      - "artifacts/retargeting_v3_step3_3_global_solver_quality/**"
+      - "docs/retargeting_v3/STEP3_3_GLOBAL_SOLVER_QUALITY_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step3_3_global_solver_quality.yml"
+  push:
+    branches:
+      - retargeting-v3-step3-3-global-solver-quality-hardening
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "scripts/audit_retargeting_v3_step3_3_global_solver_quality.py"
+      - "tests/v3/test_step3_quality_metrics_runtime_quality.py"
+      - "tests/v3/test_step3_3_global_solver_quality_*.py"
+      - "artifacts/retargeting_v3_step3_3_global_solver_quality/**"
+      - "docs/retargeting_v3/STEP3_3_GLOBAL_SOLVER_QUALITY_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step3_3_global_solver_quality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  STEP3_2_BASELINE_ARTIFACTS: artifacts/retargeting_v3_step3_2_solver_backed_smoke
+  STEP3_3_ARTIFACTS: artifacts/retargeting_v3_step3_3_global_solver_quality
+
+jobs:
+  step3-3-static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy scipy mujoco warp-lang
+      - name: Compile Step 3.3 sources
+        run: |
+          python -m py_compile \
+            soma_retargeter/runtime/v3/generic_smoke.py \
+            soma_retargeter/runtime/v3/fleet_harness.py \
+            soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py \
+            scripts/audit_retargeting_v3_step3_3_global_solver_quality.py
+      - name: Run focused Step 3.3 tests
+        run: |
+          python -m pytest -q \
+            tests/v3/test_step3_quality_metrics_runtime_quality.py \
+            tests/v3/test_step3_3_global_solver_quality_audit.py \
+            tests/v3/test_step3_3_global_solver_quality_artifact_schema.py \
+            tests/v3/test_step3_3_global_solver_quality_delta.py \
+            tests/v3/test_step3_3_global_solver_quality_status_semantics.py \
+            tests/v3/test_step3_3_global_solver_quality_no_robot_specific_tuning.py \
+            tests/v3/test_step3_3_global_solver_quality_determinism.py
+
+  step3-3-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Step 3.3 artifacts
+        run: |
+          python scripts/audit_retargeting_v3_step3_3_global_solver_quality.py \
+            --artifact-dir "$STEP3_3_ARTIFACTS" \
+            --baseline-artifact-dir "$STEP3_2_BASELINE_ARTIFACTS" \
+            --source-root .
+
+  step3-3-lfs-and-snapshot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+      - name: Verify Step 3.3 matrix shape
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step3_3_global_solver_quality")
+          summary = json.loads((root / "quality_summary.json").read_text())
+          model = json.loads((root / "model_matrix.json").read_text())
+          solver = json.loads((root / "solver_smoke_matrix.json").read_text())
+          diagnostics = json.loads((root / "solver_diagnostics_matrix.json").read_text())
+          assert summary["in_scope_total"] == 44
+          assert summary["full_humanoid_total"] == 32
+          assert summary["partial_total"] == 3
+          assert summary["negative_total"] == 9
+          assert summary["runtime_quality_failed_count"] < 9
+          assert len(model["rows"]) == 44
+          assert len(solver["rows"]) == 32
+          assert diagnostics["row_count"] == 32
+          PY
+
+  step3-3-pipeline-controls-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check pipeline control evidence is retained or referenced
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step3_3_global_solver_quality")
+          alternatives = [root / "pipeline_backed_matrix.json", root / "pipeline_controls_reference.json"]
+          existing = [path for path in alternatives if path.exists()]
+          assert existing, "missing pipeline-backed matrix or controls reference"
+          payload = json.loads(existing[0].read_text())
+          assert isinstance(payload, dict)
+          PY
+
+  step3-3-final-head-ci-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - step3-3-static-and-unit
+      - step3-3-artifact-audit
+      - step3-3-lfs-and-snapshot-smoke
+      - step3-3-pipeline-controls-reference
+    if: always()
+    steps:
+      - name: Record final HEAD CI evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          job_conclusions = {name: data["result"] for name, data in sorted(needs.items())}
+          conclusion = "success" if all(result == "success" for result in job_conclusions.values()) else "failure"
+          payload = {
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "conclusion": conclusion,
+              "job_conclusions": job_conclusions,
+          }
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("```json\n")
+              handle.write(json.dumps(payload, indent=2, sort_keys=True))
+              handle.write("\n```\n")
+          if conclusion != "success":
+              sys.exit(1)
+          PY
