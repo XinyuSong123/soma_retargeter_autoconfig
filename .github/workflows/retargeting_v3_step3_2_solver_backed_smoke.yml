@@ -1,0 +1,167 @@
+name: Retargeting V3 Step 3.2 Solver-Backed Generic Smoke
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py"
+      - "tests/v3/test_step3_2_solver_backed_smoke_*.py"
+      - "artifacts/retargeting_v3_step3_2_solver_backed_smoke/**"
+      - ".github/workflows/retargeting_v3_step3_2_solver_backed_smoke.yml"
+  push:
+    branches:
+      - retargeting-v3-step3-2-solver-backed-generic-smoke
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py"
+      - "tests/v3/test_step3_2_solver_backed_smoke_*.py"
+      - "artifacts/retargeting_v3_step3_2_solver_backed_smoke/**"
+      - ".github/workflows/retargeting_v3_step3_2_solver_backed_smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  STEP3_2_ARTIFACTS: artifacts/retargeting_v3_step3_2_solver_backed_smoke
+
+jobs:
+  step3-2-static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy scipy mujoco
+      - name: Compile Step 3.2 sources
+        run: |
+          python -m py_compile \
+            soma_retargeter/runtime/v3/generic_smoke.py \
+            soma_retargeter/runtime/v3/fleet_harness.py \
+            soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py \
+            scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py
+      - name: Run focused Step 3.2 tests
+        run: |
+          python -m pytest -q \
+            tests/v3/test_step3_2_solver_backed_smoke_status_semantics.py \
+            tests/v3/test_step3_2_solver_backed_smoke_artifact_schema.py \
+            tests/v3/test_step3_2_solver_backed_smoke_determinism.py \
+            tests/v3/test_step3_2_solver_backed_smoke_audit.py
+
+  step3-2-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Step 3.2 artifacts
+        run: |
+          python scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py \
+            --artifact-dir "$STEP3_2_ARTIFACTS" \
+            --source-root .
+
+  step3-2-lfs-and-snapshot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+      - name: Verify Step 3.2 matrix and solver evidence shape
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step3_2_solver_backed_smoke")
+          model = json.loads((root / "model_matrix.json").read_text())
+          solver = json.loads((root / "solver_smoke_matrix.json").read_text())
+          assert model["in_scope_total"] == 44
+          assert len(model["rows"]) == 44
+          attempted = [
+              row for row in solver["rows"]
+              if row.get("solver_backed_smoke_attempted") is True or row.get("attempted") is True
+          ]
+          assert len(attempted) == 32
+          assert any(row.get("solver_backed_smoke_completed") is True or row.get("completed") is True for row in solver["rows"])
+          PY
+
+  step3-2-pipeline-controls-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check pipeline control evidence is retained or referenced
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step3_2_solver_backed_smoke")
+          alternatives = [root / "pipeline_backed_matrix.json", root / "pipeline_controls_reference.json"]
+          existing = [path for path in alternatives if path.exists()]
+          assert existing, "missing pipeline-backed matrix or controls reference"
+          payload = json.loads(existing[0].read_text())
+          assert isinstance(payload, dict)
+          PY
+
+  step3-2-final-head-ci-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - step3-2-static-and-unit
+      - step3-2-artifact-audit
+      - step3-2-lfs-and-snapshot-smoke
+      - step3-2-pipeline-controls-reference
+    if: always()
+    steps:
+      - name: Record final HEAD CI evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          job_conclusions = {name: data["result"] for name, data in sorted(needs.items())}
+          conclusion = "success" if all(result == "success" for result in job_conclusions.values()) else "failure"
+          payload = {
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "conclusion": conclusion,
+              "job_conclusions": job_conclusions,
+          }
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("```json\n")
+              handle.write(json.dumps(payload, indent=2, sort_keys=True))
+              handle.write("\n```\n")
+          if conclusion != "success":
+              sys.exit(1)
+          PY

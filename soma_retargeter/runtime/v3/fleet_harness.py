@@ -89,6 +89,12 @@ class FleetCaseResult:
                 "solver_type": self.quality_metrics.get("solver_type", "not_applicable"),
                 "solver_backed": bool(self.quality_metrics.get("solver_backed", False)),
                 "residual_only": bool(self.quality_metrics.get("residual_only", False)),
+                "solver_backed_smoke_attempted": bool(self.quality_metrics.get("solver_backed_smoke_attempted", False)),
+                "solver_backed_smoke_completed": bool(self.quality_metrics.get("solver_backed_smoke_completed", False)),
+                "solver_mode": self.quality_metrics.get("solver_type", self.quality_metrics.get("smoke_type", "not_applicable")),
+                "solver_failure_reason": self.quality_metrics.get("solver_failure_reason"),
+                "sampled_frame_indices": list(self.quality_metrics.get("sampled_frame_indices", [])),
+                "deterministic_hash_inputs": dict(self.quality_metrics.get("deterministic_hash_inputs", {})),
                 "quality_pass_allowed": bool(self.quality_metrics.get("quality_pass_allowed", False)),
                 "quality_gate_results": dict(self.quality_metrics.get("quality_gate_results", {})),
                 "failure_or_warning_reasons": list(self.quality_metrics.get("failure_or_warning_reasons", [])),
@@ -111,6 +117,8 @@ def evaluate_case(
     required_core_clips: Iterable[str | Path],
     max_frames: int,
     smoke_clip_limit: int = 2,
+    enable_solver_backed_generic_smoke: bool = False,
+    solver_smoke_config: Any | None = None,
 ) -> FleetCaseResult:
     if case.category == NEGATIVE_CONTROL:
         from .generic_smoke import run_negative_control_rejection_smoke
@@ -136,7 +144,15 @@ def evaluate_case(
         smoke_enabled = case.category == FULL_HUMANOID_PROFILE and clip_index < smoke_clip_limit
         partial_smoke_enabled = case.category == PARTIAL_HUMANOID_PROFILE
         try:
-            result = _evaluate_clip(case, clip_path=clip_path, max_frames=max_frames, smoke_enabled=smoke_enabled, partial_smoke_enabled=partial_smoke_enabled)
+            result = _evaluate_clip(
+                case,
+                clip_path=clip_path,
+                max_frames=max_frames,
+                smoke_enabled=smoke_enabled,
+                partial_smoke_enabled=partial_smoke_enabled,
+                enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
+                solver_smoke_config=solver_smoke_config,
+            )
         except Exception as exc:
             failure = _failure(case, clip_path, "target_or_smoke", f"{type(exc).__name__}: {exc}")
             result = FleetClipResult(
@@ -206,6 +222,11 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
             "smoke_type": "not_applicable",
             "solver_backed": False,
             "residual_only": False,
+            "solver_backed_smoke_attempted": False,
+            "solver_backed_smoke_completed": False,
+            "solver_failure_reason": None,
+            "sampled_frame_indices": [],
+            "deterministic_hash_inputs": {},
             "quality_pass_allowed": False,
             "quality_gate_results": {},
             "failure_or_warning_reasons": [],
@@ -242,6 +263,11 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
         "smoke_type": _aggregate_smoke_type(smoke_summaries),
         "solver_backed": any(bool(summary.get("solver_backed", False)) for summary in smoke_summaries),
         "residual_only": any(bool(summary.get("residual_only", False)) for summary in smoke_summaries),
+        "solver_backed_smoke_attempted": any(bool(summary.get("solver_backed_smoke_attempted", False)) for summary in smoke_summaries),
+        "solver_backed_smoke_completed": any(bool(summary.get("solver_backed_smoke_completed", False)) for summary in smoke_summaries),
+        "solver_failure_reason": _aggregate_solver_failure_reason(smoke_summaries),
+        "sampled_frame_indices": _aggregate_sampled_frame_indices(smoke_summaries),
+        "deterministic_hash_inputs": _aggregate_deterministic_hash_inputs(smoke_summaries),
         "quality_pass_allowed": all(bool(summary.get("quality_pass_allowed", False)) for summary in smoke_summaries) if smoke_summaries else False,
         "quality_gate_results": gate_results,
         "failure_or_warning_reasons": _dedupe(reasons),
@@ -269,6 +295,8 @@ def _evaluate_clip(
     max_frames: int,
     smoke_enabled: bool,
     partial_smoke_enabled: bool,
+    enable_solver_backed_generic_smoke: bool = False,
+    solver_smoke_config: Any | None = None,
 ) -> FleetClipResult:
     animation = _load_bvh_animation(str(clip_path))
     semantic_names = list(case.supported_semantics or DEFAULT_SEMANTIC_NAMES)
@@ -296,13 +324,16 @@ def _evaluate_clip(
 
     targets = build_runtime_semantic_targets(source_batch, case.profile, semantic_names=semantic_names, mode="runtime")
     metrics = target_stream_metrics(targets.transforms, capability_status=targets.capability_status)
-    from .generic_smoke import run_full_humanoid_fk_smoke
+    from .generic_smoke import run_full_humanoid_fk_smoke, run_full_humanoid_solver_backed_smoke
 
-    smoke = run_full_humanoid_fk_smoke(case, targets.transforms) if smoke_enabled else None
+    if smoke_enabled and enable_solver_backed_generic_smoke:
+        smoke = run_full_humanoid_solver_backed_smoke(case, targets.transforms, config=solver_smoke_config)
+    else:
+        smoke = run_full_humanoid_fk_smoke(case, targets.transforms) if smoke_enabled else None
     return FleetClipResult(
         clip_id=clip_id(clip_path),
         clip_path=display_path(clip_path) or str(clip_path),
-        mode="generic_override_smoke" if smoke_enabled else "target_stream_only",
+        mode="solver_backed_generic_smoke" if smoke_enabled and enable_solver_backed_generic_smoke else ("generic_override_smoke" if smoke_enabled else "target_stream_only"),
         frame_count=targets.frame_count,
         target_stream_status="passed",
         generic_smoke_status=smoke.status if smoke else "not_run",
@@ -348,6 +379,35 @@ def _aggregate_smoke_type(smoke_summaries: list[dict[str, Any]]) -> str:
         return "not_applicable"
     unique = sorted(set(values))
     return unique[0] if len(unique) == 1 else "+".join(unique)
+
+
+def _aggregate_solver_failure_reason(smoke_summaries: list[dict[str, Any]]) -> str | None:
+    values = [str(summary.get("solver_failure_reason") or "") for summary in smoke_summaries]
+    values = [value for value in values if value]
+    if not values:
+        return None
+    return ";".join(_dedupe(values))
+
+
+def _aggregate_sampled_frame_indices(smoke_summaries: list[dict[str, Any]]) -> list[int]:
+    out: list[int] = []
+    for summary in smoke_summaries:
+        for value in summary.get("sampled_frame_indices", []):
+            index = int(value)
+            if index not in out:
+                out.append(index)
+    return out
+
+
+def _aggregate_deterministic_hash_inputs(smoke_summaries: list[dict[str, Any]]) -> dict[str, Any]:
+    rows = [
+        summary.get("deterministic_hash_inputs")
+        for summary in smoke_summaries
+        if isinstance(summary.get("deterministic_hash_inputs"), dict) and summary.get("deterministic_hash_inputs")
+    ]
+    if not rows:
+        return {}
+    return {"smoke_rows": rows}
 
 
 def _dedupe(values: list[str]) -> list[str]:

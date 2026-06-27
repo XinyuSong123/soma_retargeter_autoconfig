@@ -30,9 +30,12 @@ from soma_retargeter.runtime.v3.fleet_inventory import (
 )
 from soma_retargeter.runtime.v3.runtime_local_profile import close_runtime_profile, write_profile_resolution_artifacts
 from soma_retargeter.runtime.v3.runtime_quality_gates import GLOBAL_RUNTIME_QUALITY_GATES
+from soma_retargeter.runtime.v3.generic_smoke import SolverBackedSmokeConfig
 
 
 DEFAULT_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step3_runtime_quality")
+DEFAULT_STEP3_2_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step3_2_solver_backed_smoke")
+BASE_STEP3_1_1_FINAL_HEAD = "26817de67bdda0cb315a1237b53c30e4d8199c78"
 DEFAULT_STEP2_PROFILE_ROOT = Path("artifacts/retargeting_v3_step2_capability")
 DEFAULT_STEP3_SHADOW_ROOT = Path("artifacts/retargeting_v3_step3_runtime_shadow")
 DEFAULT_LOCK = Path("assets/robot_zoo/robot_zoo_lock.json")
@@ -50,7 +53,7 @@ RESIDUAL_ONLY_SOLVERS = {"runtime_model_fk_residual_evaluation", "runtime_model_
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--artifact-root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
+    parser.add_argument("--artifact-root", "--artifact-dir", dest="artifact_root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
     parser.add_argument("--step2-profile-root", type=Path, default=DEFAULT_STEP2_PROFILE_ROOT)
     parser.add_argument("--step3-shadow-root", type=Path, default=DEFAULT_STEP3_SHADOW_ROOT)
     parser.add_argument("--lock", type=Path, default=DEFAULT_LOCK)
@@ -59,6 +62,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--required-core-clips", nargs="+", default=list(DEFAULT_CORE_CLIPS))
     parser.add_argument("--short-max-frames", type=int, default=120)
     parser.add_argument("--mid-max-frames", type=int, default=300)
+    parser.add_argument("--enable-solver-backed-generic-smoke", action="store_true")
+    parser.add_argument("--solver-smoke-sample-count", type=int, default=1)
+    parser.add_argument("--solver-smoke-max-nfev-per-task", type=int, default=12)
+    parser.add_argument("--solver-smoke-task-order", nargs="+", default=["torso"])
+    parser.add_argument("--solver-smoke-clip-limit", type=int, default=None)
     parser.add_argument("--deterministic-rerun", action="store_true")
     parser.add_argument("--clean", action="store_true", default=True)
     parser.add_argument(
@@ -82,6 +90,11 @@ def main(argv: list[str] | None = None) -> int:
         short_max_frames=args.short_max_frames,
         mid_max_frames=args.mid_max_frames,
         deterministic_rerun=args.deterministic_rerun,
+        enable_solver_backed_generic_smoke=args.enable_solver_backed_generic_smoke,
+        solver_smoke_sample_count=args.solver_smoke_sample_count,
+        solver_smoke_max_nfev_per_task=args.solver_smoke_max_nfev_per_task,
+        solver_smoke_task_order=tuple(args.solver_smoke_task_order),
+        solver_smoke_clip_limit=args.solver_smoke_clip_limit,
         clean=args.clean,
         allow_dirty_internal_rerun=args.allow_dirty_internal_rerun,
     )
@@ -101,6 +114,11 @@ def run_full_fleet_runtime_quality(
     short_max_frames: int,
     mid_max_frames: int,
     deterministic_rerun: bool,
+    enable_solver_backed_generic_smoke: bool = False,
+    solver_smoke_sample_count: int = 1,
+    solver_smoke_max_nfev_per_task: int = 12,
+    solver_smoke_task_order: tuple[str, ...] = ("torso",),
+    solver_smoke_clip_limit: int | None = None,
     clean: bool = True,
     allow_dirty_internal_rerun: bool = False,
 ) -> dict[str, Any]:
@@ -132,13 +150,20 @@ def run_full_fleet_runtime_quality(
     profile_matrix, profile_summary = write_profile_resolution_artifacts(artifact_root=artifact_root, closures=closures)
     closure_by_model = {closure.model_id: closure for closure in closures}
 
+    solver_smoke_config = SolverBackedSmokeConfig(
+        sample_count=solver_smoke_sample_count,
+        max_nfev_per_task=solver_smoke_max_nfev_per_task,
+        task_order=solver_smoke_task_order,
+    )
     case_results: list[FleetCaseResult] = []
     for case in cases:
         result = evaluate_case(
             case,
             required_core_clips=required_core_clips,
             max_frames=short_max_frames,
-            smoke_clip_limit=2,
+            smoke_clip_limit=solver_smoke_clip_limit if solver_smoke_clip_limit is not None else (1 if enable_solver_backed_generic_smoke else 2),
+            enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
+            solver_smoke_config=solver_smoke_config if enable_solver_backed_generic_smoke else None,
         )
         case_results.append(result)
         _write_per_model_artifacts(artifact_root, result, closure_by_model[case.model_id].resolution_status)
@@ -149,13 +174,20 @@ def run_full_fleet_runtime_quality(
     model_matrix = _model_matrix_payload(case_results, closures=closure_by_model, pipeline_backed=pipeline_backed)
     target_stream_matrix = _target_stream_matrix_payload(case_results)
     generic_smoke_matrix = _generic_smoke_matrix_payload(case_results)
-    quality_summary = _quality_summary_payload(case_results, profile_summary, pipeline_backed)
+    solver_smoke_matrix = _solver_smoke_matrix_payload(generic_smoke_matrix)
+    quality_summary = _quality_summary_payload(
+        case_results,
+        profile_summary,
+        pipeline_backed,
+        enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
+    )
     failure_matrix = _failure_matrix_payload(case_results)
     deterministic = _deterministic_payload(
         model_matrix=model_matrix,
         profile_matrix=profile_matrix,
         target_stream_matrix=target_stream_matrix,
         generic_smoke_matrix=generic_smoke_matrix,
+        solver_smoke_matrix=solver_smoke_matrix,
         quality_summary=quality_summary,
         enabled=deterministic_rerun,
     )
@@ -164,7 +196,14 @@ def run_full_fleet_runtime_quality(
         preflight=provenance_preflight,
         allow_dirty_internal_rerun=allow_dirty_internal_rerun,
     )
-    verdict = "PASS" if _acceptance_passed(model_matrix, quality_summary, failure_matrix, pipeline_backed, environment) else "BLOCKED"
+    verdict = "PASS" if _acceptance_passed(
+        model_matrix,
+        quality_summary,
+        failure_matrix,
+        pipeline_backed,
+        environment,
+        enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
+    ) else "BLOCKED"
     acceptance_ledger = _acceptance_ledger_payload(
         verdict=verdict,
         model_matrix=model_matrix,
@@ -179,13 +218,21 @@ def run_full_fleet_runtime_quality(
     write_json(artifact_root / "full_fleet_matrix.json", {"schema_version": 1, "matrix": model_matrix["rows"]})
     write_json(artifact_root / "target_stream_matrix.json", target_stream_matrix)
     write_json(artifact_root / "generic_smoke_matrix.json", generic_smoke_matrix)
+    write_json(artifact_root / "solver_smoke_matrix.json", solver_smoke_matrix)
     write_json(artifact_root / "pipeline_backed_matrix.json", pipeline_backed)
     write_json(artifact_root / "pipeline_controls.json", pipeline_controls)
     write_json(artifact_root / "quality_summary.json", quality_summary)
     write_json(artifact_root / "failure_matrix.json", failure_matrix)
     write_json(artifact_root / "deterministic_rerun.json", deterministic)
     write_json(artifact_root / "acceptance_ledger.json", acceptance_ledger)
-    _write_commands(artifact_root, required_core_clips, short_max_frames, mid_max_frames)
+    _write_commands(
+        artifact_root,
+        required_core_clips,
+        short_max_frames,
+        mid_max_frames,
+        enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
+        solver_smoke_config=solver_smoke_config,
+    )
     _write_test_placeholders(artifact_root / "test_results")
     return {"verdict": verdict, "quality_summary": quality_summary}
 
@@ -263,6 +310,12 @@ def _generic_smoke_matrix_payload(case_results: list[FleetCaseResult]) -> dict[s
                     "mode": "negative_control_rejection",
                     "solver_type": "negative_control_runtime_load_and_reject_humanoid_profile",
                     "solver_backed": False,
+                    "solver_backed_smoke_attempted": False,
+                    "solver_backed_smoke_completed": False,
+                    "solver_backed_smoke_metrics_finite": True,
+                    "solver_failure_reason": None,
+                    "sampled_frame_indices": [],
+                    "deterministic_hash_inputs": {},
                     "quality_pass_allowed": False,
                     "status": result.negative_control_status,
                     "runtime_quality_status": evidence["final_status"],
@@ -284,6 +337,12 @@ def _generic_smoke_matrix_payload(case_results: list[FleetCaseResult]) -> dict[s
                         "mode": clip.mode,
                         "solver_type": evidence["solver_type"],
                         "solver_backed": evidence["solver_backed"],
+                        "solver_backed_smoke_attempted": evidence["solver_backed_smoke_attempted"],
+                        "solver_backed_smoke_completed": evidence["solver_backed_smoke_completed"],
+                        "solver_backed_smoke_metrics_finite": evidence["solver_backed_smoke_metrics_finite"],
+                        "solver_failure_reason": evidence["solver_failure_reason"],
+                        "sampled_frame_indices": list(evidence["sampled_frame_indices"]),
+                        "deterministic_hash_inputs": evidence["deterministic_hash_inputs"],
                         "quality_pass_allowed": evidence["quality_pass_allowed"],
                         "status": evidence["status"],
                         "raw_smoke_status": clip.generic_smoke_status,
@@ -300,17 +359,56 @@ def _generic_smoke_matrix_payload(case_results: list[FleetCaseResult]) -> dict[s
     return {"schema_version": 1, "row_count": len(rows), "rows": rows}
 
 
+def _solver_smoke_matrix_payload(generic_smoke_matrix: dict[str, Any]) -> dict[str, Any]:
+    rows = []
+    for row in generic_smoke_matrix.get("rows", []):
+        if not isinstance(row, dict):
+            continue
+        if row.get("category") != FULL_HUMANOID_PROFILE:
+            continue
+        evidence = _smoke_quality_evidence(row.get("smoke_summary", row))
+        metrics = evidence["metrics"]
+        rows.append(
+            {
+                "model_id": row.get("model_id"),
+                "category": row.get("category"),
+                "clip_id": row.get("clip_id"),
+                "mode": row.get("mode"),
+                "solver_type": evidence["solver_type"],
+                "solver_backed_smoke_attempted": evidence["solver_backed_smoke_attempted"],
+                "solver_backed_smoke_completed": evidence["solver_backed_smoke_completed"],
+                "solver_backed_smoke_metrics_finite": evidence["solver_backed_smoke_metrics_finite"],
+                "solver_failure_reason": evidence["solver_failure_reason"],
+                "solver_backed": evidence["solver_backed"],
+                "residual_only": evidence["residual_only"],
+                "quality_pass_allowed": evidence["quality_pass_allowed"],
+                "runtime_quality_status": evidence["status"],
+                "quality_classification": evidence["quality_classification"],
+                "sampled_frame_indices": list(evidence["sampled_frame_indices"]),
+                "failure_or_warning_reasons": list(evidence["warning_reasons"]),
+                "metrics": metrics,
+                "deterministic_hash_inputs": evidence["deterministic_hash_inputs"],
+                "smoke_summary": row.get("smoke_summary", {}),
+            }
+        )
+    return {"schema_version": 1, "row_count": len(rows), "rows": rows}
+
+
 def _apply_runtime_quality_semantics(row: dict[str, Any], result: FleetCaseResult) -> dict[str, Any]:
     evidence = _case_quality_evidence(result)
     row.update(
         {
             "final_step3_1_status": evidence["final_status"],
+            "final_step3_2_status": evidence["final_status"],
             "runtime_quality_status": evidence["final_status"],
             "runtime_quality_classification": evidence["final_status"],
             "quality_classification": evidence["quality_classification"],
             "generic_smoke_status": evidence["generic_smoke_status"],
             "solver_backed": evidence["solver_backed"],
             "residual_only": evidence["residual_only"],
+            "solver_backed_smoke_attempted": evidence["solver_backed_smoke_attempted"],
+            "solver_backed_smoke_completed": evidence["solver_backed_smoke_completed"],
+            "solver_failure_reason": evidence["solver_failure_reason"],
             "quality_pass_allowed": evidence["quality_pass_allowed"],
             "runtime_quality_warning_reasons": evidence["warning_reasons"],
             "failure_or_warning_reasons": evidence["warning_reasons"],
@@ -339,6 +437,9 @@ def _case_quality_evidence(result: FleetCaseResult) -> dict[str, Any]:
             "quality_classification": final,
             "solver_backed": False,
             "residual_only": False,
+            "solver_backed_smoke_attempted": False,
+            "solver_backed_smoke_completed": False,
+            "solver_failure_reason": None,
             "quality_pass_allowed": False,
             "high_residual_warning": False,
             "joint_limit_warning": _case_joint_limit_warning(result),
@@ -356,6 +457,11 @@ def _case_quality_evidence(result: FleetCaseResult) -> dict[str, Any]:
     output_failed = any(evidence["output_failed"] for evidence in smoke_evidence)
     residual_only = bool(smoke_evidence) and all(evidence["residual_only"] for evidence in smoke_evidence)
     solver_backed = bool(smoke_evidence) and all(evidence["solver_backed"] for evidence in smoke_evidence)
+    solver_backed_smoke_attempted = any(evidence["solver_backed_smoke_attempted"] for evidence in smoke_evidence)
+    solver_backed_smoke_completed = any(evidence["solver_backed_smoke_completed"] for evidence in smoke_evidence)
+    solver_failure_reason = ";".join(
+        _dedupe([str(evidence["solver_failure_reason"]) for evidence in smoke_evidence if evidence["solver_failure_reason"]])
+    ) or None
     high_residual = any(evidence["high_residual_warning"] for evidence in smoke_evidence)
     joint_limit = any(evidence["joint_limit_warning"] for evidence in smoke_evidence) or _case_joint_limit_warning(result)
     target_jump = _case_target_stream_jump_warning(result)
@@ -383,6 +489,9 @@ def _case_quality_evidence(result: FleetCaseResult) -> dict[str, Any]:
         "quality_classification": final,
         "solver_backed": solver_backed,
         "residual_only": residual_only,
+        "solver_backed_smoke_attempted": solver_backed_smoke_attempted,
+        "solver_backed_smoke_completed": solver_backed_smoke_completed,
+        "solver_failure_reason": solver_failure_reason,
         "quality_pass_allowed": bool(smoke_evidence) and all(evidence["quality_pass_allowed"] for evidence in smoke_evidence),
         "high_residual_warning": high_residual,
         "joint_limit_warning": joint_limit,
@@ -400,6 +509,9 @@ def _negative_control_quality_evidence(result: FleetCaseResult) -> dict[str, Any
         "quality_classification": "negative_control_not_promoted",
         "solver_backed": False,
         "residual_only": False,
+        "solver_backed_smoke_attempted": False,
+        "solver_backed_smoke_completed": False,
+        "solver_failure_reason": None,
         "quality_pass_allowed": False,
         "high_residual_warning": False,
         "joint_limit_warning": False,
@@ -417,37 +529,51 @@ def _smoke_quality_evidence(smoke_summary: dict[str, Any]) -> dict[str, Any]:
     mode = str(smoke_summary.get("mode") or "")
     raw_status = str(smoke_summary.get("status") or "")
     residual_only = bool(smoke_summary.get("residual_only", False)) or solver in RESIDUAL_ONLY_SOLVERS or mode == "generic_fk_residual_smoke"
-    solver_backed = bool(smoke_summary.get("solver_backed", False)) or (
-        bool(solver)
-        and not residual_only
-        and solver
-        not in {
-            "partial_supported_semantic_runtime_load_and_fk",
-            "negative_control_runtime_load_and_reject_humanoid_profile",
-        }
+    explicit_solver_backed = bool(smoke_summary.get("solver_backed", False))
+    solver_backed_smoke_attempted = bool(
+        smoke_summary.get("solver_backed_smoke_attempted", metrics.get("solver_backed_smoke_attempted", False))
     )
-    quality_pass_allowed = bool(smoke_summary.get("quality_pass_allowed", solver_backed and not residual_only))
+    solver_backed_smoke_completed = bool(
+        smoke_summary.get("solver_backed_smoke_completed", metrics.get("solver_backed_smoke_completed", False))
+    )
+    solver_backed_smoke_metrics_finite = _solver_smoke_metrics_finite(metrics)
+    solver_backed = bool(
+        explicit_solver_backed
+        and not residual_only
+        and solver_backed_smoke_attempted
+        and solver_backed_smoke_completed
+        and solver_backed_smoke_metrics_finite
+    )
+    quality_pass_allowed = bool(smoke_summary.get("quality_pass_allowed", solver_backed and not residual_only)) and solver_backed
     output_failed = int(metrics.get("nan_count", 0) or 0) > 0 or int(metrics.get("inf_count", 0) or 0) > 0
-    failed = raw_status in {"failed", "runtime_quality_failed"} or output_failed
+    failed = raw_status in {"failed", "runtime_quality_failed"} or output_failed or not solver_backed_smoke_metrics_finite
     high_residual = _high_residual_warning(metrics)
     joint_limit = int(metrics.get("joint_limit_violation_count", 0) or 0) > 0 or float(metrics.get("max_joint_limit_violation", 0.0) or 0.0) > 0.0
     warning_reasons: list[str] = [str(v) for v in smoke_summary.get("failure_or_warning_reasons", [])]
     if residual_only:
         warning_reasons.append("residual_only_fk_evaluation")
+    if explicit_solver_backed and not solver_backed_smoke_attempted:
+        warning_reasons.append("solver_backed_smoke_attempted")
+    if explicit_solver_backed and not solver_backed_smoke_completed:
+        warning_reasons.append("solver_backed_smoke_completed")
+    if not solver_backed_smoke_metrics_finite:
+        warning_reasons.append("nonfinite_or_missing_runtime_metric")
     if high_residual:
         warning_reasons.append("high_task_residual")
     if joint_limit:
         warning_reasons.append("joint_limit_violation")
     summary_classification = str(smoke_summary.get("quality_classification") or "")
-    if summary_classification in {
+    if failed:
+        status = "runtime_quality_failed"
+    elif summary_classification == "runtime_quality_passed" and not solver_backed:
+        status = "runtime_quality_warned"
+    elif summary_classification in {
         "runtime_quality_passed",
         "runtime_quality_warned",
         "runtime_quality_failed",
         "runtime_evaluation_completed",
     }:
         status = summary_classification
-    elif failed:
-        status = "runtime_quality_failed"
     elif residual_only or warning_reasons:
         status = "runtime_quality_warned"
     elif solver_backed:
@@ -461,6 +587,12 @@ def _smoke_quality_evidence(smoke_summary: dict[str, Any]) -> dict[str, Any]:
         "solver_backed": solver_backed,
         "residual_only": residual_only,
         "quality_pass_allowed": quality_pass_allowed,
+        "solver_backed_smoke_attempted": solver_backed_smoke_attempted,
+        "solver_backed_smoke_completed": solver_backed_smoke_completed,
+        "solver_backed_smoke_metrics_finite": solver_backed_smoke_metrics_finite,
+        "solver_failure_reason": smoke_summary.get("solver_failure_reason"),
+        "sampled_frame_indices": list(smoke_summary.get("sampled_frame_indices", [])),
+        "deterministic_hash_inputs": dict(smoke_summary.get("deterministic_hash_inputs", {})),
         "metrics": metrics,
         "failed": failed,
         "output_failed": output_failed,
@@ -477,6 +609,32 @@ def _high_residual_warning(metrics: dict[str, Any]) -> bool:
         normalized_p95 > GLOBAL_RUNTIME_QUALITY_GATES.normalized_task_residual_p95_pass
         or normalized_max > GLOBAL_RUNTIME_QUALITY_GATES.normalized_task_residual_max_warn
     )
+
+
+def _solver_smoke_metrics_finite(metrics: dict[str, Any]) -> bool:
+    fields = (
+        "normalized_task_residual_mean",
+        "normalized_task_residual_p95",
+        "normalized_task_residual_max",
+        "task_residual_mean",
+        "task_residual_p95",
+        "task_residual_max",
+        "solver_success_fraction",
+        "nan_count",
+        "inf_count",
+        "joint_limit_violation_count",
+        "max_joint_limit_violation",
+    )
+    for field in fields:
+        if field not in metrics:
+            continue
+        try:
+            value = float(metrics[field])
+        except (TypeError, ValueError):
+            return False
+        if not np.isfinite(value):
+            return False
+    return True
 
 
 def _case_joint_limit_warning(result: FleetCaseResult) -> bool:
@@ -502,6 +660,8 @@ def _quality_summary_payload(
     case_results: list[FleetCaseResult],
     profile_summary: dict[str, Any],
     pipeline_backed: dict[str, Any],
+    *,
+    enable_solver_backed_generic_smoke: bool = False,
 ) -> dict[str, Any]:
     model_rows = [result.model_matrix_row(profile_resolution_status="", pipeline_backed_status="") for result in case_results]
     quality_evidence = [_case_quality_evidence(result) for result in case_results]
@@ -521,8 +681,24 @@ def _quality_summary_payload(
         for row in result.clip_results
         if row.generic_smoke_status not in {"not_run", "not_applicable"} and row.smoke_summary
     ]
+    solver_backed_smoke_attempted_count = sum(1 for evidence in full_evidence if evidence["solver_backed_smoke_attempted"])
+    solver_backed_completed_count = sum(1 for evidence in full_evidence if evidence["solver_backed_smoke_completed"])
+    solver_backed_failed_count = sum(
+        1
+        for evidence in full_evidence
+        if evidence["solver_backed_smoke_attempted"] and not evidence["solver_backed_smoke_completed"]
+    )
+    solver_backed_count = sum(1 for evidence in full_evidence if evidence["solver_backed"])
+    residual_only_count = sum(1 for evidence in full_evidence if evidence["residual_only"])
+    solver_backed_smoke_passed_count = sum(1 for evidence in full_smoke_rows if evidence["status"] == "runtime_quality_passed")
+    solver_backed_smoke_failed_count = sum(1 for evidence in full_smoke_rows if evidence["failed"])
+    solver_backed_smoke_finite_metrics_count = sum(1 for evidence in full_smoke_rows if evidence["solver_backed_smoke_metrics_finite"])
+    residual_only_runtime_quality_passed_count = sum(
+        1 for evidence in full_evidence if evidence["residual_only"] and evidence["final_status"] == "runtime_quality_passed"
+    )
     return {
         "schema_version": 1,
+        "base_step3_1_1_final_head": BASE_STEP3_1_1_FINAL_HEAD if enable_solver_backed_generic_smoke else None,
         "row_count": len(case_results),
         "in_scope_total": len(case_results),
         "matrix_row_count": len(case_results),
@@ -541,8 +717,19 @@ def _quality_summary_payload(
         "generic_smoke_warned_count": final_counts.get("runtime_quality_warned", 0),
         "generic_smoke_evaluation_completed_count": final_counts.get("runtime_evaluation_completed", 0),
         "generic_smoke_failed_count": quality_failed,
-        "solver_backed_count": sum(1 for evidence in full_evidence if evidence["solver_backed"]),
-        "residual_only_count": sum(1 for evidence in full_evidence if evidence["residual_only"]),
+        "solver_backed_smoke_attempted_count": solver_backed_smoke_attempted_count,
+        "solver_backed_attempted_count": solver_backed_smoke_attempted_count,
+        "solver_backed_completed_count": solver_backed_completed_count,
+        "solver_backed_failed_count": solver_backed_failed_count,
+        "solver_backed_count": solver_backed_count,
+        "residual_only_count": residual_only_count,
+        "step3_2_solver_backed_smoke_attempted_count": solver_backed_smoke_attempted_count,
+        "step3_2_solver_backed_smoke_completed_count": solver_backed_completed_count,
+        "step3_2_solver_backed_smoke_passed_count": solver_backed_smoke_passed_count,
+        "step3_2_solver_backed_smoke_failed_count": solver_backed_smoke_failed_count,
+        "step3_2_solver_backed_smoke_finite_metrics_count": solver_backed_smoke_finite_metrics_count,
+        "step3_2_solver_backed_runtime_quality_passed_count": final_counts.get("runtime_quality_passed", 0),
+        "step3_2_residual_only_runtime_quality_passed_count": residual_only_runtime_quality_passed_count,
         "solver_backed_smoke_row_count": sum(1 for evidence in full_smoke_rows if evidence["solver_backed"]),
         "residual_only_smoke_row_count": sum(1 for evidence in full_smoke_rows if evidence["residual_only"]),
         "high_residual_warning_count": sum(1 for evidence in full_evidence if evidence["high_residual_warning"]),
@@ -641,24 +828,27 @@ def _deterministic_payload(
     model_matrix: dict[str, Any],
     profile_matrix: dict[str, Any],
     target_stream_matrix: dict[str, Any],
-    generic_smoke_matrix: dict[str, Any],
-    quality_summary: dict[str, Any],
+    generic_smoke_matrix: dict[str, Any] | None = None,
+    solver_smoke_matrix: dict[str, Any] | None = None,
+    quality_summary: dict[str, Any] | None = None,
     enabled: bool,
 ) -> dict[str, Any]:
+    quality_summary = quality_summary or {}
     payload = {
         "model_matrix": model_matrix,
         "profile_resolution_matrix": profile_matrix,
         "target_stream_matrix": target_stream_matrix,
-        "generic_smoke_matrix": generic_smoke_matrix,
+        "generic_smoke_matrix": generic_smoke_matrix or {},
+        "solver_smoke_matrix": solver_smoke_matrix or {},
         "quality_summary": quality_summary,
     }
-    digest = deterministic_hash(payload)
+    digest = deterministic_hash(_strip_volatile_runtime_fields(payload))
     return {
         "schema_version": 1,
         "status": "passed",
         "deterministic": True,
         "deterministic_rerun_requested": bool(enabled),
-        "comparison": "stable_json_self_hash",
+        "comparison": "stable_json_excluding_runtime_seconds",
         "diagnostics_hash": digest,
         "compared_count": quality_summary["in_scope_total"],
         "matched_count": quality_summary["in_scope_total"],
@@ -680,12 +870,16 @@ def _acceptance_ledger_payload(
         "schema_version": 1,
         "verdict": verdict,
         "status": verdict,
+        "base_step3_1_1_final_head": quality_summary.get("base_step3_1_1_final_head"),
         "matrix_row_count": model_matrix["in_scope_total"],
         "status_counts": quality_summary["status_counts"],
         "final_status_counts": quality_summary["final_status_counts"],
         "quality_failed_count": quality_summary["quality_failed_count"],
         "quality_warned_count": quality_summary["quality_warned_count"],
         "solver_backed_count": quality_summary["solver_backed_count"],
+        "solver_backed_smoke_attempted_count": quality_summary.get("solver_backed_smoke_attempted_count", 0),
+        "solver_backed_completed_count": quality_summary.get("solver_backed_completed_count", 0),
+        "solver_backed_failed_count": quality_summary.get("solver_backed_failed_count", 0),
         "residual_only_count": quality_summary["residual_only_count"],
         "high_residual_warning_count": quality_summary["high_residual_warning_count"],
         "joint_limit_warning_count": quality_summary["joint_limit_warning_count"],
@@ -703,12 +897,26 @@ def _acceptance_ledger_payload(
     }
 
 
+def _strip_volatile_runtime_fields(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _strip_volatile_runtime_fields(child)
+            for key, child in value.items()
+            if key != "runtime_seconds"
+        }
+    if isinstance(value, list):
+        return [_strip_volatile_runtime_fields(child) for child in value]
+    return value
+
+
 def _acceptance_passed(
     model_matrix: dict[str, Any],
     quality_summary: dict[str, Any],
     failure_matrix: dict[str, Any],
     pipeline_backed: dict[str, Any],
     environment: dict[str, Any],
+    *,
+    enable_solver_backed_generic_smoke: bool = False,
 ) -> bool:
     if model_matrix["in_scope_total"] != 44:
         return False
@@ -718,6 +926,17 @@ def _acceptance_passed(
         return False
     if not _provenance_is_clean(environment):
         return False
+    if enable_solver_backed_generic_smoke:
+        if quality_summary.get("base_step3_1_1_final_head") != BASE_STEP3_1_1_FINAL_HEAD:
+            return False
+        if int(quality_summary.get("solver_backed_smoke_attempted_count", 0) or 0) != 32:
+            return False
+        if int(quality_summary.get("solver_backed_completed_count", 0) or 0) <= 0:
+            return False
+        if int(quality_summary.get("solver_backed_count", 0) or 0) <= 0:
+            return False
+        if int(quality_summary.get("step3_2_residual_only_runtime_quality_passed_count", 0) or 0) != 0:
+            return False
     controls = pipeline_backed.get("controls", {})
     return bool(controls.get("rpo_present")) and bool(controls.get("g1_present"))
 
@@ -912,14 +1131,22 @@ def _status_line_path(line: str) -> str:
     return path.strip().strip('"')
 
 
-def _write_commands(artifact_root: Path, required_core_clips: list[Path], short_max_frames: int, mid_max_frames: int) -> None:
+def _write_commands(
+    artifact_root: Path,
+    required_core_clips: list[Path],
+    short_max_frames: int,
+    mid_max_frames: int,
+    *,
+    enable_solver_backed_generic_smoke: bool = False,
+    solver_smoke_config: SolverBackedSmokeConfig | None = None,
+) -> None:
     command = [
         "PYTHONPATH=.",
         "python",
         "-m",
         "soma_retargeter.tools.run_v3_full_fleet_runtime_quality",
         "--artifact-root",
-        "artifacts/retargeting_v3_step3_runtime_quality",
+        display_path(artifact_root) or str(artifact_root),
         "--step2-profile-root",
         "artifacts/retargeting_v3_step2_capability",
         "--step3-shadow-root",
@@ -938,6 +1165,19 @@ def _write_commands(artifact_root: Path, required_core_clips: list[Path], short_
         str(mid_max_frames),
         "--deterministic-rerun",
     ]
+    if enable_solver_backed_generic_smoke:
+        cfg = solver_smoke_config or SolverBackedSmokeConfig()
+        command.extend(
+            [
+                "--enable-solver-backed-generic-smoke",
+                "--solver-smoke-sample-count",
+                str(cfg.sample_count),
+                "--solver-smoke-max-nfev-per-task",
+                str(cfg.max_nfev_per_task),
+                "--solver-smoke-task-order",
+                *list(cfg.task_order),
+            ]
+        )
     (artifact_root / "commands.txt").write_text(" ".join(command) + "\n", encoding="utf-8")
 
 
