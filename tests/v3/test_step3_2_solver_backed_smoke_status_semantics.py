@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from soma_retargeter.runtime.v3.runtime_quality_gates import (
@@ -66,6 +67,30 @@ def test_solver_backed_runtime_quality_can_pass_with_completed_finite_generic_so
         _solver_smoke_summary(solver_attempted=True, solver_completed=True)
     )
     assert complete["status"] == RUNTIME_QUALITY_PASSED
+
+
+def test_solver_failure_reasons_are_aggregated_without_runtime_name_errors() -> None:
+    smoke_summary = _solver_smoke_summary(solver_attempted=True, solver_completed=False)
+    smoke_summary["solver_failure_reason"] = "missing_solver_anchor"
+    smoke_summary["quality_classification"] = RUNTIME_QUALITY_FAILED
+    smoke_summary["status"] = RUNTIME_QUALITY_FAILED
+    result = SimpleNamespace(
+        case=SimpleNamespace(category=full_fleet_runner.FULL_HUMANOID_PROFILE),
+        clip_results=[
+            SimpleNamespace(
+                generic_smoke_status=RUNTIME_QUALITY_FAILED,
+                smoke_summary=smoke_summary,
+                target_metrics={},
+            )
+        ],
+        target_stream_status="passed",
+        quality_metrics={},
+    )
+
+    evidence = full_fleet_runner._case_quality_evidence(result)
+
+    assert evidence["final_status"] == RUNTIME_QUALITY_FAILED
+    assert evidence["solver_failure_reason"] == "missing_solver_anchor"
 
 
 def test_step3_2_runtime_quality_gates_do_not_use_robot_specific_threshold_or_whitelist_tables() -> None:

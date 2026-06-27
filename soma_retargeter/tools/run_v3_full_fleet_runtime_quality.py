@@ -656,6 +656,14 @@ def _case_warning_reasons(result: FleetCaseResult, reasons: list[str]) -> list[s
     return sorted(set(out))
 
 
+def _dedupe(values: list[str]) -> list[str]:
+    out: list[str] = []
+    for value in values:
+        if value not in out:
+            out.append(value)
+    return out
+
+
 def _quality_summary_payload(
     case_results: list[FleetCaseResult],
     profile_summary: dict[str, Any],
