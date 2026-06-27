@@ -1,0 +1,212 @@
+{
+  "deterministic_hash_inputs": {
+    "smoke_rows": [
+      {
+        "metrics_without_runtime_seconds": {
+          "classification_reason": "normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate",
+          "failure_or_warning_reasons": [
+            "normalized_task_residual_p95_above_pass_gate",
+            "normalized_task_residual_p95_above_warn_gate"
+          ],
+          "foot_height_below_ground_count": 1,
+          "foot_sliding_proxy_if_contact_scores_available": null,
+          "inf_count": 0,
+          "joint_acceleration_max": 0.0,
+          "joint_acceleration_p95": 0.0,
+          "joint_coord_count": 44,
+          "joint_limit_violation_count": 0,
+          "joint_position_abs_max": 0.222685499693,
+          "joint_position_abs_p95": 0.0,
+          "joint_velocity_max": 0.0,
+          "joint_velocity_p95": 0.0,
+          "max_joint_limit_violation": 0.0,
+          "nan_count": 0,
+          "normalized_task_residual_max": 1.0,
+          "normalized_task_residual_mean": 0.835243017832,
+          "normalized_task_residual_p95": 0.965467717838,
+          "output_finite": true,
+          "output_frame_count": 1,
+          "quality_classification": "runtime_quality_warned",
+          "quality_gate_results": {
+            "finite_metrics": true,
+            "inf_count": true,
+            "joint_acceleration_p95_warn": true,
+            "joint_limit_pass": true,
+            "joint_velocity_p95_warn": true,
+            "nan_count": true,
+            "normalized_task_residual_max_warn": true,
+            "normalized_task_residual_p95_pass": false,
+            "normalized_task_residual_p95_warn": false,
+            "se3_orthogonality_error_max": true,
+            "solver_success_fraction": true
+          },
+          "quality_pass_allowed": true,
+          "residual_only": false,
+          "runtime_quality_gates": {
+            "inf_count": 0,
+            "joint_acceleration_p95_warn": 0.75,
+            "joint_limit_violation_severe_threshold": 1e-05,
+            "joint_velocity_p95_warn": 0.25,
+            "nan_count": 0,
+            "normalized_task_residual_max_warn": 1.2,
+            "normalized_task_residual_p95_pass": 0.15,
+            "normalized_task_residual_p95_warn": 0.6,
+            "se3_orthogonality_error_max": 1e-08
+          },
+          "sampled_frame_count": 1,
+          "sampled_frame_indices": [
+            60
+          ],
+          "solver_backed": true,
+          "solver_backed_smoke_attempted": true,
+          "solver_backed_smoke_completed": true,
+          "solver_iteration_max": 6.0,
+          "solver_iteration_mean": 6.0,
+          "solver_iteration_p95": 6.0,
+          "solver_success_fraction": 1.0,
+          "solver_task_count": 1,
+          "solver_task_success_count": 1,
+          "solver_type": "generic_chain_projection_least_squares_smoke",
+          "stance_width_max": 0.206178619907,
+          "stance_width_p95": 0.206178619907,
+          "support_height_max": 0.538162649602,
+          "support_height_min": -0.393522290861,
+          "target_rotation_error_max": 2.539806551132,
+          "target_rotation_error_mean": 2.162873192206,
+          "target_rotation_error_p95": 2.467603241956,
+          "target_se3_orthogonality_error_max": 0.0,
+          "target_translation_error_max": 1.662985911475,
+          "target_translation_error_mean": 1.10625062817,
+          "target_translation_error_p95": 1.543228590688,
+          "task_residual_max": 3.913979225903,
+          "task_residual_mean": 3.269123820376,
+          "task_residual_p95": 3.778820590897
+        },
+        "model_id": "talos_urdf",
+        "runtime_source_sha256": "801894195ce94e5bbc05549eb886ec54865378598f87050fdf2f90b70b6403b2",
+        "sampled_frame_indices": [
+          60
+        ],
+        "schema_version": 1,
+        "solver_config": {
+          "ftol": 1e-08,
+          "global_config": true,
+          "gtol": 1e-08,
+          "max_nfev_per_task": 12,
+          "sample_count": 1,
+          "task_order": [
+            "torso"
+          ],
+          "xtol": 1e-08
+        },
+        "solver_type": "generic_chain_projection_least_squares_smoke",
+        "stable_hash": "25b821f56959eb49f44e3cda5b96ea2d0770c071a8a6e6d8f05bc19c623ff21c",
+        "task_diagnostics": [
+          {
+            "frame_index": 60,
+            "per_semantic": {
+              "Chest": {
+                "combined_residual": 3.284278506183,
+                "rotation_residual": 2.103632638472,
+                "translation_residual": 1.180645867711
+              },
+              "Hips": {
+                "combined_residual": 3.224008815493,
+                "rotation_residual": 2.122854294016,
+                "translation_residual": 1.101154521478
+              },
+              "LeftFoot": {
+                "combined_residual": 2.505047588213,
+                "rotation_residual": 1.770564297638,
+                "translation_residual": 0.734483290575
+              },
+              "LeftHand": {
+                "combined_residual": 3.314084100586,
+                "rotation_residual": 2.539806551132,
+                "translation_residual": 0.774277549454
+              },
+              "RightFoot": {
+                "combined_residual": 3.913979225903,
+                "rotation_residual": 2.250993314427,
+                "translation_residual": 1.662985911475
+              },
+              "RightHand": {
+                "combined_residual": 3.373344685878,
+                "rotation_residual": 2.189388057552,
+                "translation_residual": 1.183956628326
+              }
+            },
+            "tasks": [
+              {
+                "active_coordinate_count": 2,
+                "active_velocity_coordinates": [
+                  0,
+                  1
+                ],
+                "cost": 0.000111989461,
+                "iterations": 6,
+                "jacobian_source": "newton.eval_jacobian",
+                "message": "`gtol` termination condition is satisfied.",
+                "nfev": 6,
+                "optimality": 3.963e-09,
+                "reference": "Hips",
+                "residual_norm": 0.014965925371,
+                "residual_norm_seed": 0.085467183853,
+                "status": "solver_completed",
+                "success": true,
+                "target": "Chest",
+                "task": "torso",
+                "task_kind": "rotation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "failure_or_warning_reasons": [
+    "normalized_task_residual_p95_above_pass_gate",
+    "normalized_task_residual_p95_above_warn_gate"
+  ],
+  "frame_count": 480,
+  "joint_limit_violation_count": 0,
+  "max_joint_limit_violation": 0.0,
+  "normalized_task_residual_max": 1.0,
+  "normalized_task_residual_mean": 0.835243017832,
+  "normalized_task_residual_p95": 0.965467717838,
+  "output_inf_count": 0,
+  "output_nan_count": 0,
+  "quality_gate_results": {
+    "finite_metrics": true,
+    "inf_count": true,
+    "joint_acceleration_p95_warn": true,
+    "joint_limit_pass": true,
+    "joint_velocity_p95_warn": true,
+    "nan_count": true,
+    "normalized_task_residual_max_warn": true,
+    "normalized_task_residual_p95_pass": false,
+    "normalized_task_residual_p95_warn": false,
+    "se3_orthogonality_error_max": true,
+    "solver_success_fraction": true
+  },
+  "quality_pass_allowed": true,
+  "residual_only": false,
+  "runtime_quality_classification": "runtime_quality_warned",
+  "runtime_seconds": 0.025861453265,
+  "sampled_frame_indices": [
+    60
+  ],
+  "smoke_type": "solver_backed_generic_chain_projection_smoke",
+  "solver_backed": true,
+  "solver_backed_smoke_attempted": true,
+  "solver_backed_smoke_completed": true,
+  "solver_failure_reason": null,
+  "solver_success_fraction": 1.0,
+  "solver_type": "generic_chain_projection_least_squares_smoke",
+  "target_rotation_error_max": 0.070927353392,
+  "target_rotation_error_mean": 0.0,
+  "target_rotation_error_p95": 0.070927353392,
+  "target_translation_error_max": 0.031931625054,
+  "target_translation_error_mean": 0.0,
+  "target_translation_error_p95": 0.031931625054
+}

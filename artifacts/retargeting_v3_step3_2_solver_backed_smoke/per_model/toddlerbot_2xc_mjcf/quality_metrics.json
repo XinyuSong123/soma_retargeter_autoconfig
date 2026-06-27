@@ -1,0 +1,212 @@
+{
+  "deterministic_hash_inputs": {
+    "smoke_rows": [
+      {
+        "metrics_without_runtime_seconds": {
+          "classification_reason": "normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate",
+          "failure_or_warning_reasons": [
+            "normalized_task_residual_p95_above_pass_gate",
+            "normalized_task_residual_p95_above_warn_gate"
+          ],
+          "foot_height_below_ground_count": 0,
+          "foot_sliding_proxy_if_contact_scores_available": null,
+          "inf_count": 0,
+          "joint_acceleration_max": 0.0,
+          "joint_acceleration_p95": 0.0,
+          "joint_coord_count": 51,
+          "joint_limit_violation_count": 0,
+          "joint_position_abs_max": 1.0,
+          "joint_position_abs_p95": 0.171339901609,
+          "joint_velocity_max": 0.0,
+          "joint_velocity_p95": 0.0,
+          "max_joint_limit_violation": 0.0,
+          "nan_count": 0,
+          "normalized_task_residual_max": 1.0,
+          "normalized_task_residual_mean": 0.870542443145,
+          "normalized_task_residual_p95": 0.983466311203,
+          "output_finite": true,
+          "output_frame_count": 1,
+          "quality_classification": "runtime_quality_warned",
+          "quality_gate_results": {
+            "finite_metrics": true,
+            "inf_count": true,
+            "joint_acceleration_p95_warn": true,
+            "joint_limit_pass": true,
+            "joint_velocity_p95_warn": true,
+            "nan_count": true,
+            "normalized_task_residual_max_warn": true,
+            "normalized_task_residual_p95_pass": false,
+            "normalized_task_residual_p95_warn": false,
+            "se3_orthogonality_error_max": true,
+            "solver_success_fraction": true
+          },
+          "quality_pass_allowed": true,
+          "residual_only": false,
+          "runtime_quality_gates": {
+            "inf_count": 0,
+            "joint_acceleration_p95_warn": 0.75,
+            "joint_limit_violation_severe_threshold": 1e-05,
+            "joint_velocity_p95_warn": 0.25,
+            "nan_count": 0,
+            "normalized_task_residual_max_warn": 1.2,
+            "normalized_task_residual_p95_pass": 0.15,
+            "normalized_task_residual_p95_warn": 0.6,
+            "se3_orthogonality_error_max": 1e-08
+          },
+          "sampled_frame_count": 1,
+          "sampled_frame_indices": [
+            60
+          ],
+          "solver_backed": true,
+          "solver_backed_smoke_attempted": true,
+          "solver_backed_smoke_completed": true,
+          "solver_iteration_max": 7.0,
+          "solver_iteration_mean": 7.0,
+          "solver_iteration_p95": 7.0,
+          "solver_success_fraction": 1.0,
+          "solver_task_count": 1,
+          "solver_task_success_count": 1,
+          "solver_type": "generic_chain_projection_least_squares_smoke",
+          "stance_width_max": 0.147903974709,
+          "stance_width_p95": 0.147903974709,
+          "support_height_max": 0.343213647847,
+          "support_height_min": 0.129991446921,
+          "target_rotation_error_max": 2.665521306932,
+          "target_rotation_error_mean": 2.241336177465,
+          "target_rotation_error_p95": 2.595139814063,
+          "target_se3_orthogonality_error_max": 0.0,
+          "target_translation_error_max": 0.347154723589,
+          "target_translation_error_mean": 0.303895720201,
+          "target_translation_error_p95": 0.346959892257,
+          "task_residual_max": 2.92373096534,
+          "task_residual_mean": 2.545231897666,
+          "task_residual_p95": 2.875390907433
+        },
+        "model_id": "toddlerbot_2xc_mjcf",
+        "runtime_source_sha256": "70a049caaa9035a726753aecb31ba4aa7399aa76bf59955e409eb75cf0618da8",
+        "sampled_frame_indices": [
+          60
+        ],
+        "schema_version": 1,
+        "solver_config": {
+          "ftol": 1e-08,
+          "global_config": true,
+          "gtol": 1e-08,
+          "max_nfev_per_task": 12,
+          "sample_count": 1,
+          "task_order": [
+            "torso"
+          ],
+          "xtol": 1e-08
+        },
+        "solver_type": "generic_chain_projection_least_squares_smoke",
+        "stable_hash": "2d5342ece08b6d82bd13fbddfad5ab1673f82e21d2bfe1a08d0022459e7ebf07",
+        "task_diagnostics": [
+          {
+            "frame_index": 60,
+            "per_semantic": {
+              "Chest": {
+                "combined_residual": 2.426569245604,
+                "rotation_residual": 2.104803564258,
+                "translation_residual": 0.321765681346
+              },
+              "Hips": {
+                "combined_residual": 2.487158102202,
+                "rotation_residual": 2.189537047181,
+                "translation_residual": 0.297621055021
+              },
+              "LeftFoot": {
+                "combined_residual": 2.037158513138,
+                "rotation_residual": 1.784910708556,
+                "translation_residual": 0.252247804582
+              },
+              "LeftHand": {
+                "combined_residual": 2.92373096534,
+                "rotation_residual": 2.665521306932,
+                "translation_residual": 0.258209658407
+              },
+              "RightFoot": {
+                "combined_residual": 2.666403825997,
+                "rotation_residual": 2.319249102408,
+                "translation_residual": 0.347154723589
+              },
+              "RightHand": {
+                "combined_residual": 2.730370733715,
+                "rotation_residual": 2.383995335454,
+                "translation_residual": 0.34637539826
+              }
+            },
+            "tasks": [
+              {
+                "active_coordinate_count": 2,
+                "active_velocity_coordinates": [
+                  12,
+                  13
+                ],
+                "cost": 0.000836086351,
+                "iterations": 7,
+                "jacobian_source": "newton.eval_jacobian",
+                "message": "`gtol` termination condition is satisfied.",
+                "nfev": 7,
+                "optimality": 7.82e-09,
+                "reference": "Hips",
+                "residual_norm": 0.040892208318,
+                "residual_norm_seed": 0.085467183853,
+                "status": "solver_completed",
+                "success": true,
+                "target": "Chest",
+                "task": "torso",
+                "task_kind": "rotation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "failure_or_warning_reasons": [
+    "normalized_task_residual_p95_above_pass_gate",
+    "normalized_task_residual_p95_above_warn_gate"
+  ],
+  "frame_count": 480,
+  "joint_limit_violation_count": 0,
+  "max_joint_limit_violation": 0.0,
+  "normalized_task_residual_max": 1.0,
+  "normalized_task_residual_mean": 0.870542443145,
+  "normalized_task_residual_p95": 0.983466311203,
+  "output_inf_count": 0,
+  "output_nan_count": 0,
+  "quality_gate_results": {
+    "finite_metrics": true,
+    "inf_count": true,
+    "joint_acceleration_p95_warn": true,
+    "joint_limit_pass": true,
+    "joint_velocity_p95_warn": true,
+    "nan_count": true,
+    "normalized_task_residual_max_warn": true,
+    "normalized_task_residual_p95_pass": false,
+    "normalized_task_residual_p95_warn": false,
+    "se3_orthogonality_error_max": true,
+    "solver_success_fraction": true
+  },
+  "quality_pass_allowed": true,
+  "residual_only": false,
+  "runtime_quality_classification": "runtime_quality_warned",
+  "runtime_seconds": 0.027036190033,
+  "sampled_frame_indices": [
+    60
+  ],
+  "smoke_type": "solver_backed_generic_chain_projection_smoke",
+  "solver_backed": true,
+  "solver_backed_smoke_attempted": true,
+  "solver_backed_smoke_completed": true,
+  "solver_failure_reason": null,
+  "solver_success_fraction": 1.0,
+  "solver_type": "generic_chain_projection_least_squares_smoke",
+  "target_rotation_error_max": 0.070790985801,
+  "target_rotation_error_mean": 0.0,
+  "target_rotation_error_p95": 0.070790985801,
+  "target_translation_error_max": 0.009161459315,
+  "target_translation_error_mean": 0.0,
+  "target_translation_error_p95": 0.009161459315
+}

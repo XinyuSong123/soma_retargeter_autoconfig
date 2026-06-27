@@ -1,0 +1,213 @@
+{
+  "deterministic_hash_inputs": {
+    "smoke_rows": [
+      {
+        "metrics_without_runtime_seconds": {
+          "classification_reason": "joint_limit_violation_above_global_tolerance;normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate",
+          "failure_or_warning_reasons": [
+            "joint_limit_violation_above_global_tolerance",
+            "normalized_task_residual_p95_above_pass_gate",
+            "normalized_task_residual_p95_above_warn_gate"
+          ],
+          "foot_height_below_ground_count": 0,
+          "foot_sliding_proxy_if_contact_scores_available": null,
+          "inf_count": 0,
+          "joint_acceleration_max": 0.0,
+          "joint_acceleration_p95": 0.0,
+          "joint_coord_count": 30,
+          "joint_limit_violation_count": 1,
+          "joint_position_abs_max": 1.0,
+          "joint_position_abs_p95": 0.492560853663,
+          "joint_velocity_max": 0.0,
+          "joint_velocity_p95": 0.0,
+          "max_joint_limit_violation": 0.79999999702,
+          "nan_count": 0,
+          "normalized_task_residual_max": 1.0,
+          "normalized_task_residual_mean": 0.777194210535,
+          "normalized_task_residual_p95": 0.978057188709,
+          "output_finite": true,
+          "output_frame_count": 1,
+          "quality_classification": "runtime_quality_failed",
+          "quality_gate_results": {
+            "finite_metrics": true,
+            "inf_count": true,
+            "joint_acceleration_p95_warn": true,
+            "joint_limit_pass": false,
+            "joint_velocity_p95_warn": true,
+            "nan_count": true,
+            "normalized_task_residual_max_warn": true,
+            "normalized_task_residual_p95_pass": false,
+            "normalized_task_residual_p95_warn": false,
+            "se3_orthogonality_error_max": true,
+            "solver_success_fraction": true
+          },
+          "quality_pass_allowed": true,
+          "residual_only": false,
+          "runtime_quality_gates": {
+            "inf_count": 0,
+            "joint_acceleration_p95_warn": 0.75,
+            "joint_limit_violation_severe_threshold": 1e-05,
+            "joint_velocity_p95_warn": 0.25,
+            "nan_count": 0,
+            "normalized_task_residual_max_warn": 1.2,
+            "normalized_task_residual_p95_pass": 0.15,
+            "normalized_task_residual_p95_warn": 0.6,
+            "se3_orthogonality_error_max": 1e-08
+          },
+          "sampled_frame_count": 1,
+          "sampled_frame_indices": [
+            60
+          ],
+          "solver_backed": true,
+          "solver_backed_smoke_attempted": true,
+          "solver_backed_smoke_completed": true,
+          "solver_iteration_max": 5.0,
+          "solver_iteration_mean": 5.0,
+          "solver_iteration_p95": 5.0,
+          "solver_success_fraction": 1.0,
+          "solver_task_count": 1,
+          "solver_task_success_count": 1,
+          "solver_type": "generic_chain_projection_least_squares_smoke",
+          "stance_width_max": 0.364393520739,
+          "stance_width_p95": 0.364393520739,
+          "support_height_max": 0.872696373115,
+          "support_height_min": 0.33086273558,
+          "target_rotation_error_max": 2.959312600598,
+          "target_rotation_error_mean": 1.962879300742,
+          "target_rotation_error_p95": 2.787290183816,
+          "target_se3_orthogonality_error_max": 0.0,
+          "target_translation_error_max": 0.899008459634,
+          "target_translation_error_mean": 0.738072046954,
+          "target_translation_error_p95": 0.88685752505,
+          "task_residual_max": 3.47525922232,
+          "task_residual_mean": 2.700951347696,
+          "task_residual_p95": 3.399002265016
+        },
+        "model_id": "roboparty_rpo_local",
+        "runtime_source_sha256": "d9c91b9cb9e14581975d6a76433c6cbaf5a00e81939e2fbb74c5b31196be1fa1",
+        "sampled_frame_indices": [
+          60
+        ],
+        "schema_version": 1,
+        "solver_config": {
+          "ftol": 1e-08,
+          "global_config": true,
+          "gtol": 1e-08,
+          "max_nfev_per_task": 12,
+          "sample_count": 1,
+          "task_order": [
+            "torso"
+          ],
+          "xtol": 1e-08
+        },
+        "solver_type": "generic_chain_projection_least_squares_smoke",
+        "stable_hash": "25528de805170838be0a72542d8a0ce30b85ca4acc82dc827703b735fed4368b",
+        "task_diagnostics": [
+          {
+            "frame_index": 60,
+            "per_semantic": {
+              "Chest": {
+                "combined_residual": 2.83645927021,
+                "rotation_residual": 1.986054548909,
+                "translation_residual": 0.850404721301
+              },
+              "Hips": {
+                "combined_residual": 2.889411657309,
+                "rotation_residual": 2.122854294016,
+                "translation_residual": 0.766557363293
+              },
+              "LeftFoot": {
+                "combined_residual": 2.290242369129,
+                "rotation_residual": 1.682131545763,
+                "translation_residual": 0.608110823366
+              },
+              "LeftHand": {
+                "combined_residual": 3.47525922232,
+                "rotation_residual": 2.959312600598,
+                "translation_residual": 0.515946621722
+              },
+              "RightFoot": {
+                "combined_residual": 3.170231393104,
+                "rotation_residual": 2.271222933471,
+                "translation_residual": 0.899008459634
+              },
+              "RightHand": {
+                "combined_residual": 1.544104174102,
+                "rotation_residual": 0.755699881695,
+                "translation_residual": 0.788404292407
+              }
+            },
+            "tasks": [
+              {
+                "active_coordinate_count": 1,
+                "active_velocity_coordinates": [
+                  18
+                ],
+                "cost": 0.002054182677,
+                "iterations": 5,
+                "jacobian_source": "newton.eval_jacobian",
+                "message": "`gtol` termination condition is satisfied.",
+                "nfev": 5,
+                "optimality": 7.415e-09,
+                "reference": "Hips",
+                "residual_norm": 0.064096531534,
+                "residual_norm_seed": 0.085467183853,
+                "status": "solver_completed",
+                "success": true,
+                "target": "Chest",
+                "task": "torso",
+                "task_kind": "rotation"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "failure_or_warning_reasons": [
+    "joint_limit_violation_above_global_tolerance",
+    "normalized_task_residual_p95_above_pass_gate",
+    "normalized_task_residual_p95_above_warn_gate"
+  ],
+  "frame_count": 480,
+  "joint_limit_violation_count": 1,
+  "max_joint_limit_violation": 0.79999999702,
+  "normalized_task_residual_max": 1.0,
+  "normalized_task_residual_mean": 0.777194210535,
+  "normalized_task_residual_p95": 0.978057188709,
+  "output_inf_count": 0,
+  "output_nan_count": 0,
+  "quality_gate_results": {
+    "finite_metrics": true,
+    "inf_count": true,
+    "joint_acceleration_p95_warn": true,
+    "joint_limit_pass": false,
+    "joint_velocity_p95_warn": true,
+    "nan_count": true,
+    "normalized_task_residual_max_warn": true,
+    "normalized_task_residual_p95_pass": false,
+    "normalized_task_residual_p95_warn": false,
+    "se3_orthogonality_error_max": true,
+    "solver_success_fraction": true
+  },
+  "quality_pass_allowed": true,
+  "residual_only": false,
+  "runtime_quality_classification": "runtime_quality_failed",
+  "runtime_seconds": 0.019421227276,
+  "sampled_frame_indices": [
+    60
+  ],
+  "smoke_type": "solver_backed_generic_chain_projection_smoke",
+  "solver_backed": true,
+  "solver_backed_smoke_attempted": true,
+  "solver_backed_smoke_completed": true,
+  "solver_failure_reason": null,
+  "solver_success_fraction": 1.0,
+  "solver_type": "generic_chain_projection_least_squares_smoke",
+  "target_rotation_error_max": 0.071287051688,
+  "target_rotation_error_mean": 0.0,
+  "target_rotation_error_p95": 0.071287051688,
+  "target_translation_error_max": 0.023328165204,
+  "target_translation_error_mean": 0.0,
+  "target_translation_error_p95": 0.023328165204
+}

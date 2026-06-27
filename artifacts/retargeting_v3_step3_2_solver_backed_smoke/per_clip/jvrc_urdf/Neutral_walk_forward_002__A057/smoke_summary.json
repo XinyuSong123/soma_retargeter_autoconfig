@@ -1,0 +1,407 @@
+{
+  "classification_reason": "normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate",
+  "deterministic_hash_inputs": {
+    "metrics_without_runtime_seconds": {
+      "classification_reason": "normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate",
+      "failure_or_warning_reasons": [
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "foot_height_below_ground_count": 1,
+      "foot_sliding_proxy_if_contact_scores_available": null,
+      "inf_count": 0,
+      "joint_acceleration_max": 0.0,
+      "joint_acceleration_p95": 0.0,
+      "joint_coord_count": 44,
+      "joint_limit_violation_count": 0,
+      "joint_position_abs_max": 0.21567108661,
+      "joint_position_abs_p95": 0.040406409096,
+      "joint_velocity_max": 0.0,
+      "joint_velocity_p95": 0.0,
+      "max_joint_limit_violation": 0.0,
+      "nan_count": 0,
+      "normalized_task_residual_max": 1.0,
+      "normalized_task_residual_mean": 0.859689749339,
+      "normalized_task_residual_p95": 0.97426436751,
+      "output_finite": true,
+      "output_frame_count": 1,
+      "quality_classification": "runtime_quality_warned",
+      "quality_gate_results": {
+        "finite_metrics": true,
+        "inf_count": true,
+        "joint_acceleration_p95_warn": true,
+        "joint_limit_pass": true,
+        "joint_velocity_p95_warn": true,
+        "nan_count": true,
+        "normalized_task_residual_max_warn": true,
+        "normalized_task_residual_p95_pass": false,
+        "normalized_task_residual_p95_warn": false,
+        "se3_orthogonality_error_max": true,
+        "solver_success_fraction": true
+      },
+      "quality_pass_allowed": true,
+      "residual_only": false,
+      "runtime_quality_gates": {
+        "inf_count": 0,
+        "joint_acceleration_p95_warn": 0.75,
+        "joint_limit_violation_severe_threshold": 1e-05,
+        "joint_velocity_p95_warn": 0.25,
+        "nan_count": 0,
+        "normalized_task_residual_max_warn": 1.2,
+        "normalized_task_residual_p95_pass": 0.15,
+        "normalized_task_residual_p95_warn": 0.6,
+        "se3_orthogonality_error_max": 1e-08
+      },
+      "sampled_frame_count": 1,
+      "sampled_frame_indices": [
+        60
+      ],
+      "solver_backed": true,
+      "solver_backed_smoke_attempted": true,
+      "solver_backed_smoke_completed": true,
+      "solver_iteration_max": 5.0,
+      "solver_iteration_mean": 5.0,
+      "solver_iteration_p95": 5.0,
+      "solver_success_fraction": 1.0,
+      "solver_task_count": 1,
+      "solver_task_success_count": 1,
+      "solver_type": "generic_chain_projection_least_squares_smoke",
+      "stance_width_max": 0.209103778552,
+      "stance_width_p95": 0.209103778552,
+      "support_height_max": 0.46921354847,
+      "support_height_min": -0.24257288812,
+      "target_rotation_error_max": 2.49926029913,
+      "target_rotation_error_mean": 2.149846366366,
+      "target_rotation_error_p95": 2.429865572351,
+      "target_se3_orthogonality_error_max": 0.0,
+      "target_translation_error_max": 1.352218825248,
+      "target_translation_error_mean": 0.922599015574,
+      "target_translation_error_p95": 1.28494902196,
+      "task_residual_max": 3.57390021726,
+      "task_residual_mean": 3.07244538194,
+      "task_residual_p95": 3.481923634712
+    },
+    "model_id": "jvrc_urdf",
+    "runtime_source_sha256": "edb739d7148ae88c77183bd6ffe06e916c4613773507266feed9975b3e6afcbb",
+    "sampled_frame_indices": [
+      60
+    ],
+    "schema_version": 1,
+    "solver_config": {
+      "ftol": 1e-08,
+      "global_config": true,
+      "gtol": 1e-08,
+      "max_nfev_per_task": 12,
+      "sample_count": 1,
+      "task_order": [
+        "torso"
+      ],
+      "xtol": 1e-08
+    },
+    "solver_type": "generic_chain_projection_least_squares_smoke",
+    "stable_hash": "f20ddd26f1d1e4345fbe59adb2013715bca80973b051f52527bc2cb816d4b926",
+    "task_diagnostics": [
+      {
+        "frame_index": 60,
+        "per_semantic": {
+          "Chest": {
+            "combined_residual": 3.205993887067,
+            "rotation_residual": 2.12285427497,
+            "translation_residual": 1.083139612097
+          },
+          "Hips": {
+            "combined_residual": 2.979323415974,
+            "rotation_residual": 2.122854294016,
+            "translation_residual": 0.856469121958
+          },
+          "LeftFoot": {
+            "combined_residual": 2.406923497225,
+            "rotation_residual": 1.783721868114,
+            "translation_residual": 0.623201629111
+          },
+          "LeftHand": {
+            "combined_residual": 3.108377348404,
+            "rotation_residual": 2.49926029913,
+            "translation_residual": 0.609117049274
+          },
+          "RightFoot": {
+            "combined_residual": 3.57390021726,
+            "rotation_residual": 2.221681392013,
+            "translation_residual": 1.352218825248
+          },
+          "RightHand": {
+            "combined_residual": 3.160153925707,
+            "rotation_residual": 2.148706069954,
+            "translation_residual": 1.011447855753
+          }
+        },
+        "tasks": [
+          {
+            "active_coordinate_count": 3,
+            "active_velocity_coordinates": [
+              12,
+              13,
+              14
+            ],
+            "cost": 0.0,
+            "iterations": 5,
+            "jacobian_source": "newton.eval_jacobian",
+            "message": "`gtol` termination condition is satisfied.",
+            "nfev": 5,
+            "optimality": 2.387e-09,
+            "reference": "Hips",
+            "residual_norm": 8.042e-09,
+            "residual_norm_seed": 0.085467183853,
+            "status": "solver_completed",
+            "success": true,
+            "target": "Chest",
+            "task": "torso",
+            "task_kind": "rotation"
+          }
+        ]
+      }
+    ]
+  },
+  "error": null,
+  "failure_or_warning_reasons": [
+    "normalized_task_residual_p95_above_pass_gate",
+    "normalized_task_residual_p95_above_warn_gate"
+  ],
+  "metrics": {
+    "classification_reason": "normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate",
+    "failure_or_warning_reasons": [
+      "normalized_task_residual_p95_above_pass_gate",
+      "normalized_task_residual_p95_above_warn_gate"
+    ],
+    "foot_height_below_ground_count": 1,
+    "foot_sliding_proxy_if_contact_scores_available": null,
+    "inf_count": 0,
+    "joint_acceleration_max": 0.0,
+    "joint_acceleration_p95": 0.0,
+    "joint_coord_count": 44,
+    "joint_limit_violation_count": 0,
+    "joint_position_abs_max": 0.21567108661,
+    "joint_position_abs_p95": 0.040406409096,
+    "joint_velocity_max": 0.0,
+    "joint_velocity_p95": 0.0,
+    "max_joint_limit_violation": 0.0,
+    "nan_count": 0,
+    "normalized_task_residual_max": 1.0,
+    "normalized_task_residual_mean": 0.859689749339,
+    "normalized_task_residual_p95": 0.97426436751,
+    "output_finite": true,
+    "output_frame_count": 1,
+    "quality_classification": "runtime_quality_warned",
+    "quality_gate_results": {
+      "finite_metrics": true,
+      "inf_count": true,
+      "joint_acceleration_p95_warn": true,
+      "joint_limit_pass": true,
+      "joint_velocity_p95_warn": true,
+      "nan_count": true,
+      "normalized_task_residual_max_warn": true,
+      "normalized_task_residual_p95_pass": false,
+      "normalized_task_residual_p95_warn": false,
+      "se3_orthogonality_error_max": true,
+      "solver_success_fraction": true
+    },
+    "quality_pass_allowed": true,
+    "residual_only": false,
+    "runtime_quality_gates": {
+      "inf_count": 0,
+      "joint_acceleration_p95_warn": 0.75,
+      "joint_limit_violation_severe_threshold": 1e-05,
+      "joint_velocity_p95_warn": 0.25,
+      "nan_count": 0,
+      "normalized_task_residual_max_warn": 1.2,
+      "normalized_task_residual_p95_pass": 0.15,
+      "normalized_task_residual_p95_warn": 0.6,
+      "se3_orthogonality_error_max": 1e-08
+    },
+    "runtime_seconds": 0.022433783859,
+    "sampled_frame_count": 1,
+    "sampled_frame_indices": [
+      60
+    ],
+    "solver_backed": true,
+    "solver_backed_smoke_attempted": true,
+    "solver_backed_smoke_completed": true,
+    "solver_iteration_max": 5.0,
+    "solver_iteration_mean": 5.0,
+    "solver_iteration_p95": 5.0,
+    "solver_success_fraction": 1.0,
+    "solver_task_count": 1,
+    "solver_task_success_count": 1,
+    "solver_type": "generic_chain_projection_least_squares_smoke",
+    "stance_width_max": 0.209103778552,
+    "stance_width_p95": 0.209103778552,
+    "support_height_max": 0.46921354847,
+    "support_height_min": -0.24257288812,
+    "target_rotation_error_max": 2.49926029913,
+    "target_rotation_error_mean": 2.149846366366,
+    "target_rotation_error_p95": 2.429865572351,
+    "target_se3_orthogonality_error_max": 0.0,
+    "target_translation_error_max": 1.352218825248,
+    "target_translation_error_mean": 0.922599015574,
+    "target_translation_error_p95": 1.28494902196,
+    "task_residual_max": 3.57390021726,
+    "task_residual_mean": 3.07244538194,
+    "task_residual_p95": 3.481923634712
+  },
+  "mode": "solver_backed_generic_chain_projection_smoke",
+  "quality_classification": "runtime_quality_warned",
+  "quality_gate_results": {
+    "finite_metrics": true,
+    "inf_count": true,
+    "joint_acceleration_p95_warn": true,
+    "joint_limit_pass": true,
+    "joint_velocity_p95_warn": true,
+    "nan_count": true,
+    "normalized_task_residual_max_warn": true,
+    "normalized_task_residual_p95_pass": false,
+    "normalized_task_residual_p95_warn": false,
+    "se3_orthogonality_error_max": true,
+    "solver_success_fraction": true
+  },
+  "quality_pass_allowed": true,
+  "residual_only": false,
+  "residuals": {
+    "frame_reports": [
+      {
+        "frame_index": 60,
+        "per_semantic": {
+          "Chest": {
+            "combined_residual": 3.205993887067,
+            "rotation_residual": 2.12285427497,
+            "translation_residual": 1.083139612097
+          },
+          "Hips": {
+            "combined_residual": 2.979323415974,
+            "rotation_residual": 2.122854294016,
+            "translation_residual": 0.856469121958
+          },
+          "LeftFoot": {
+            "combined_residual": 2.406923497225,
+            "rotation_residual": 1.783721868114,
+            "translation_residual": 0.623201629111
+          },
+          "LeftHand": {
+            "combined_residual": 3.108377348404,
+            "rotation_residual": 2.49926029913,
+            "translation_residual": 0.609117049274
+          },
+          "RightFoot": {
+            "combined_residual": 3.57390021726,
+            "rotation_residual": 2.221681392013,
+            "translation_residual": 1.352218825248
+          },
+          "RightHand": {
+            "combined_residual": 3.160153925707,
+            "rotation_residual": 2.148706069954,
+            "translation_residual": 1.011447855753
+          }
+        },
+        "tasks": [
+          {
+            "active_coordinate_count": 3,
+            "active_velocity_coordinates": [
+              12,
+              13,
+              14
+            ],
+            "cost": 0.0,
+            "iterations": 5,
+            "jacobian_source": "newton.eval_jacobian",
+            "message": "`gtol` termination condition is satisfied.",
+            "nfev": 5,
+            "optimality": 2.387e-09,
+            "reference": "Hips",
+            "residual_norm": 8.042e-09,
+            "residual_norm_seed": 0.085467183853,
+            "status": "solver_completed",
+            "success": true,
+            "target": "Chest",
+            "task": "torso",
+            "task_kind": "rotation"
+          }
+        ]
+      }
+    ],
+    "missing_tasks": [],
+    "sampled_frame_indices": [
+      60
+    ],
+    "solver": "generic_chain_projection_least_squares_smoke",
+    "solver_type": "generic_chain_projection_least_squares_smoke"
+  },
+  "sampled_frame_indices": [
+    60
+  ],
+  "solver_backed": true,
+  "solver_backed_smoke_attempted": true,
+  "solver_backed_smoke_completed": true,
+  "solver_failure_reason": null,
+  "solver_type": "generic_chain_projection_least_squares_smoke",
+  "status": "runtime_quality_warned",
+  "task_diagnostics": [
+    {
+      "frame_index": 60,
+      "per_semantic": {
+        "Chest": {
+          "combined_residual": 3.205993887067,
+          "rotation_residual": 2.12285427497,
+          "translation_residual": 1.083139612097
+        },
+        "Hips": {
+          "combined_residual": 2.979323415974,
+          "rotation_residual": 2.122854294016,
+          "translation_residual": 0.856469121958
+        },
+        "LeftFoot": {
+          "combined_residual": 2.406923497225,
+          "rotation_residual": 1.783721868114,
+          "translation_residual": 0.623201629111
+        },
+        "LeftHand": {
+          "combined_residual": 3.108377348404,
+          "rotation_residual": 2.49926029913,
+          "translation_residual": 0.609117049274
+        },
+        "RightFoot": {
+          "combined_residual": 3.57390021726,
+          "rotation_residual": 2.221681392013,
+          "translation_residual": 1.352218825248
+        },
+        "RightHand": {
+          "combined_residual": 3.160153925707,
+          "rotation_residual": 2.148706069954,
+          "translation_residual": 1.011447855753
+        }
+      },
+      "tasks": [
+        {
+          "active_coordinate_count": 3,
+          "active_velocity_coordinates": [
+            12,
+            13,
+            14
+          ],
+          "cost": 0.0,
+          "iterations": 5,
+          "jacobian_source": "newton.eval_jacobian",
+          "message": "`gtol` termination condition is satisfied.",
+          "nfev": 5,
+          "optimality": 2.387e-09,
+          "reference": "Hips",
+          "residual_norm": 8.042e-09,
+          "residual_norm_seed": 0.085467183853,
+          "status": "solver_completed",
+          "success": true,
+          "target": "Chest",
+          "task": "torso",
+          "task_kind": "rotation"
+        }
+      ]
+    }
+  ]
+}
