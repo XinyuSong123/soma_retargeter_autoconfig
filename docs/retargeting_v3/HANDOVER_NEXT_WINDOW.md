@@ -1,6 +1,8 @@
-# Handover — Retargeting V3 / Step 3.1.1 Full-Fleet Runtime Hardening
+# Handover — Retargeting V3 / Step 3.2 Solver-Backed Generic Runtime Smoke
 
-This file is the starting point for a new chat window. Read it before reading the long historical conversation.
+This file is the starting point for a new Codex/chat window. Read it first, then read `goal.md`.
+
+---
 
 ## 0. Current repository and branch
 
@@ -10,38 +12,31 @@ Repository:
 XinyuSong123/soma_retargeter_autoconfig
 ```
 
-Current working branch for the next step:
+Current working branch for the next development step:
+
+```text
+retargeting-v3-step3-2-solver-backed-generic-smoke
+```
+
+This branch was created from the closed Step 3.1.1 final HEAD:
+
+```text
+26817de67bdda0cb315a1237b53c30e4d8199c78
+```
+
+Base branch:
 
 ```text
 retargeting-v3-step3-full-fleet-hardening
 ```
 
-Current remote HEAD at the time this handover was written:
+The current `goal.md` on this branch is:
 
 ```text
-bff97b3d703a2899190a47b9e681d6444a07fb02
+Goal — Step 3.2：Solver-Backed Generic Runtime Smoke
 ```
 
-Latest commit message:
-
-```text
-Refresh Step 3.1 artifacts after CI workflow fix
-```
-
-This branch is based on:
-
-```text
-retargeting-v3-step3-runtime-quality-eval
-fc0d21a7c00efbdc0c9d64177d4638354066d77e
-```
-
-The current `goal.md` on this branch is Step 3.1.1:
-
-```text
-Goal — Step 3.1.1：Full-Fleet Runtime Hardening
-```
-
-The new window should continue from this branch, not from any older Step 2 branch.
+Do not continue development on `retargeting-v3-step3-full-fleet-hardening`; that branch is the closed Step 3.1.1 evidence baseline.
 
 ---
 
@@ -54,13 +49,14 @@ conda activate soma-retargeter-v2
 cd ~/Desktop/soma_retargeter_autoconfig
 
 git fetch origin --prune
-git switch retargeting-v3-step3-full-fleet-hardening || \
-  git switch --track -c retargeting-v3-step3-full-fleet-hardening origin/retargeting-v3-step3-full-fleet-hardening
+git switch retargeting-v3-step3-2-solver-backed-generic-smoke || \
+  git switch --track -c retargeting-v3-step3-2-solver-backed-generic-smoke origin/retargeting-v3-step3-2-solver-backed-generic-smoke
 
 git pull --ff-only
 
 git branch --show-current
 git rev-parse HEAD
+git merge-base --is-ancestor 26817de67bdda0cb315a1237b53c30e4d8199c78 HEAD
 git status --short
 
 git lfs install
@@ -71,106 +67,34 @@ git lfs fsck
 Expected branch:
 
 ```text
-retargeting-v3-step3-full-fleet-hardening
+retargeting-v3-step3-2-solver-backed-generic-smoke
 ```
 
-Expected HEAD should be at or after:
+Expected HEAD should be at or after the bootstrap goal commit on this branch:
 
 ```text
-bff97b3d703a2899190a47b9e681d6444a07fb02
+e78c7032cf947c46d5eb9dc4b1662831bbb8770b
 ```
 
-If local `git status --short` is dirty before starting, stash or move the local files. Do not generate artifacts from a dirty worktree.
+If local `git status --short` is dirty before starting, stash or move local files. Do not generate artifacts from a dirty worktree.
 
 ---
 
-## 2. Important warning about old local logs
+## 2. Closed baseline from Step 3.1.1
 
-The user’s local terminal history contains old output from:
+Step 3.1.1 is closed as an honest full-fleet runtime evidence milestone.
 
-```text
-retargeting-v3-step2-integrated-local
-```
-
-That branch is an obsolete Step 2 integration branch. It has old `104 blockers`, outdated artifacts, and older tests. Do not interpret those old failures as current Step 3.1.1 status.
-
-There is also an older `env_isaaclab` run that failed because it did not have `mujoco`. Ignore that environment for this project. The correct environment is:
+Final evidence from the previous step:
 
 ```text
-soma-retargeter-v2
+final_head = 26817de67bdda0cb315a1237b53c30e4d8199c78
+GitHub Actions run = 28286161586
+strict audit = PASS, blocking_count = 0
+focused tests = 20 passed
+git lfs fsck = OK
 ```
 
-Known good package environment previously used:
-
-```text
-Python 3.12.x
-mujoco 3.8.1
-newton 1.0.0
-warp 1.12.x / 1.14.x depending on local environment
-numpy 2.x
-scipy 1.17.1
-```
-
----
-
-## 3. What has been completed so far
-
-### Step 2.3.1 offline profile/capability acceptance
-
-Accepted baseline:
-
-```text
-44 in-scope Robot Zoo/local assets
-32 full humanoid profiles passed offline
-3 partial humanoids passed offline
-9 negative controls rejected correctly
-algorithm_failed = 0
-deterministic rerun = 44 / 44 matched
-Git LFS fsck OK
-```
-
-This means the offline V3 profile/capability compiler is currently accepted as a trusted input.
-
-### Step 3.0 runtime shadow integration
-
-Branch completed earlier:
-
-```text
-retargeting-v3-step3-runtime-profile-shadow
-1b0d223841909bec3fb9b850dee5c4fad1956be1
-```
-
-Step 3.0 established:
-
-```text
-default / disabled runtime path unchanged
-shadow mode computes V3 target diagnostics but does not mutate IK inputs
-RPO override experimental smoke works
-G1 override remains fail-closed on fingerprint mismatch
-CI passed for Step 3.0
-```
-
-Step 3.0 was intentionally small: RPO/G1 only.
-
-### Step 3.1 full-fleet runtime quality eval
-
-Branch before hardening:
-
-```text
-retargeting-v3-step3-runtime-quality-eval
-fc0d21a7c00efbdc0c9d64177d4638354066d77e
-```
-
-It expanded the matrix to all 44 in-scope models, but had two major issues:
-
-1. Artifacts were generated from a dirty worktree.
-2. Generic smoke was only neutral-FK residual evaluation, yet high-residual rows were marked `runtime_quality_passed`.
-
-### Step 3.1.1 current branch
-
-Current branch fixed the above status honesty problem. It now explicitly reports that no full humanoid has solver-backed runtime-quality pass yet.
-
-Current artifact summary:
+Artifact truth that must remain preserved:
 
 ```text
 in_scope_total = 44
@@ -186,225 +110,113 @@ negative_control_runtime_passed_count = 9
 
 solver_backed_count = 0
 residual_only_count = 32
-deterministic_compared_count = 44
 deterministic_matched_count = 44
 ```
 
 Interpretation:
 
 ```text
-Step 3.1.1 is an honest full-fleet evaluation milestone, not a runtime-quality success milestone.
+Step 3.1.1 proved clean provenance, final HEAD CI, and honest status labels.
+It did not solve runtime quality or provide solver-backed generic smoke.
 ```
-
-The full humanoids are still residual-only evaluation rows. Those rows are now correctly warned/failed instead of being overclaimed as quality passes.
 
 ---
 
-## 4. Current true status
+## 3. Step 3.2 purpose
 
-Current state should be treated as:
-
-```text
-Step 3.1.1 Full-Fleet Runtime Hardening: BLOCKED / nearly ready
-```
-
-Why not PASS yet?
-
-1. Current remote HEAD has no visible GitHub Actions run/status at the time of review.
-2. Agent F handoff still contains pending final CI placeholders.
-3. Test artifacts are incomplete / placeholder-like:
+Step 3.2 starts the next real technical phase:
 
 ```text
-artifacts/retargeting_v3_step3_runtime_quality/test_results/pytest_summary.json
-status = not_run_by_artifact_writer
+Replace or augment residual-only FK evaluation with generic solver-backed runtime smoke evidence.
 ```
 
-4. The audit supports `--require-final-head-ci`, but the default audit run does not require this self-referential final CI gate.
+This means:
 
-What is already good?
-
-1. Clean provenance appears fixed in `environment.json`.
-2. Residual-only rows are no longer labeled runtime quality pass.
-3. 44-row full-fleet matrix is present.
-4. Quality statuses are now honest:
-
-```text
-0 full runtime quality passed
-23 runtime quality warned
-9 runtime quality failed
-```
-
-5. Deterministic artifact hash reports 44/44 matched.
+1. Try solver-backed generic smoke for all 32 full humanoid profiles.
+2. Keep 44-row fleet accounting and 32/3/9 partition.
+3. Use global gates only.
+4. Do not use robot-specific thresholds, whitelists, or IK weight tuning.
+5. Keep residual-only fallback honest: residual-only rows cannot be `runtime_quality_passed`.
+6. Generate a new Step 3.2 artifact tree; do not overwrite closed Step 3.1.1 artifacts.
 
 ---
 
-## 5. Files to inspect first in the new window
+## 4. Files to inspect first
 
-Read these files in this order:
+Read these in order:
 
 ```text
 goal.md
+docs/retargeting_v3/HANDOVER_NEXT_WINDOW.md
+docs/retargeting_v3/STEP3_1_FULL_FLEET_RUNTIME_QUALITY_ACCEPTANCE.md
+docs/retargeting_v3/subagents/step3_1_agent_f_red_team.md
 artifacts/retargeting_v3_step3_runtime_quality/environment.json
 artifacts/retargeting_v3_step3_runtime_quality/quality_summary.json
 artifacts/retargeting_v3_step3_runtime_quality/model_matrix.json
+artifacts/retargeting_v3_step3_runtime_quality/generic_smoke_matrix.json
+artifacts/retargeting_v3_step3_runtime_quality/pipeline_backed_matrix.json
 artifacts/retargeting_v3_step3_runtime_quality/acceptance_ledger.json
-docs/retargeting_v3/subagents/step3_1_agent_f_red_team.md
-.github/workflows/retargeting_v3_step3_full_fleet.yml
+soma_retargeter/runtime/v3/generic_smoke.py
+soma_retargeter/runtime/v3/fleet_harness.py
+soma_retargeter/runtime/v3/quality_metrics.py
+soma_retargeter/runtime/v3/runtime_quality_gates.py
+soma_retargeter/runtime/v3/runtime_status.py
+soma_retargeter/runtime/v3/runtime_local_profile.py
+soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py
 scripts/audit_retargeting_v3_step3_full_fleet.py
+.github/workflows/retargeting_v3_step3_full_fleet.yml
+tests/v3/test_step3_full_fleet_acceptance_audit.py
+tests/v3/test_step3_runtime_quality_gates_status_semantics.py
 ```
 
-Also inspect representative full-humanoid rows in:
-
-```text
-artifacts/retargeting_v3_step3_runtime_quality/model_matrix.json
-```
-
-Specifically confirm the current status pattern:
-
-```text
-runtime_quality_warned rows have residual_only=true and quality_pass_allowed=false
-runtime_quality_failed rows expose joint-limit / residual reasons
-negative controls are not promoted
-partial models stay partial
-```
+Do not infer Step 3.2 requirements from old Step 2 terminal logs.
 
 ---
 
-## 6. Immediate next task
+## 5. Immediate next task
 
-Do **not** broaden scope. Do **not** start tuning or optimization.
+Implement according to `goal.md`, not by improvising scope.
 
-Next task is final evidence closure for Step 3.1.1:
+The first development actions should be:
 
 ```text
-1. Wait for / trigger current branch CI.
-2. Verify CI run is on current HEAD or newer.
-3. Ensure required jobs pass.
-4. Write workflow_run_id, head_sha, conclusion and job conclusions into Agent F handoff and/or acceptance ledger.
-5. Run audit with --require-final-head-ci.
-6. Replace placeholder pytest artifacts with real targeted/v3 test output, or clearly document why only scoped CI tests are accepted.
-7. Re-run final artifact audit.
-8. Push final evidence commit.
+1. Create Step 3.2 artifact schema and audit skeleton.
+2. Add focused tests that fail if residual-only rows are promoted to runtime_quality_passed.
+3. Add generic solver-backed smoke design/implementation.
+4. Wire it into the full-fleet runner behind explicit Step 3.2 flags.
+5. Generate artifacts under artifacts/retargeting_v3_step3_2_solver_backed_smoke/.
+6. Run deterministic rerun, focused tests, audit, LFS fsck, and final HEAD CI.
 ```
 
-If final-head CI is still absent, final status remains BLOCKED.
+If solver-backed completed count remains zero, final status must be BLOCKED with diagnostics, not PASS.
 
 ---
 
-## 7. Recommended exact commands for final evidence closure
-
-After checkout and LFS:
-
-```bash
-# Check whether current HEAD has a workflow run in GitHub UI/API.
-# If not, push an empty/doc-only commit or rerun workflow_dispatch if appropriate.
-
-git rev-parse HEAD
-```
-
-Run local targeted tests:
-
-```bash
-PYTHONPATH=. python -m pytest -q \
-  tests/v3/test_step3_full_fleet_acceptance_audit.py \
-  tests/v3/test_step3_runtime_quality_gates_status_semantics.py
-```
-
-Run artifact audit in strict final-CI mode after CI evidence is recorded:
-
-```bash
-PYTHONPATH=. python scripts/audit_retargeting_v3_step3_full_fleet.py \
-  --artifact-dir artifacts/retargeting_v3_step3_runtime_quality \
-  --source-root . \
-  --require-final-head-ci \
-  --write-report artifacts/retargeting_v3_step3_runtime_quality/acceptance_ledger.json
-```
-
-If the audit fails, fix only the evidence/CI/provenance issue. Do not weaken runtime quality status semantics.
-
----
-
-## 8. What PASS means for Step 3.1.1
-
-A Step 3.1.1 PASS should mean:
-
-```text
-44-row matrix complete
-clean provenance confirmed
-runtime status labels honest
-residual-only full humanoid rows are warned/failed, not passed
-RPO/G1 pipeline controls retained
-negative controls not promoted
-final HEAD CI green
-Agent F final handoff contains real workflow metadata
-audit with --require-final-head-ci passes
-```
-
-PASS does **not** mean:
-
-```text
-all robot motions look good
-all full humanoids pass runtime quality
-solver-backed runtime quality exists for all robots
-production retargeting is solved
-```
-
-The honest current quality conclusion is:
-
-```text
-0 / 32 full humanoids have runtime_quality_passed
-23 / 32 full humanoids are runtime_quality_warned
-9 / 32 full humanoids are runtime_quality_failed
-```
-
-This is useful: it identifies the next real optimization/solver work.
-
----
-
-## 9. Likely next phase after Step 3.1.1
-
-Only after Step 3.1.1 final evidence closure, the next phase should be:
-
-```text
-Step 3.2: solver-backed generic runtime smoke / runtime quality improvement
-```
-
-Do not start it automatically.
-
-Expected Step 3.2 direction:
-
-1. Replace residual-only FK evaluation with chain-projection frame smoke or generic Newton IK smoke.
-2. Keep global gates, no robot-specific tuning.
-3. Prioritize reducing the 9 failed rows and 23 warned rows.
-4. Retain RPO/G1 pipeline-backed controls.
-5. Continue to avoid contact/collision/temporal smoothing until basic solver-backed smoke is credible.
-
----
-
-## 10. Hard prohibitions for the new window
+## 6. Hard prohibitions
 
 Do not:
 
 ```text
 - go back to retargeting-v3-step2-integrated-local;
+- continue development on the closed Step 3.1.1 hardening branch;
 - use env_isaaclab for V3 tests;
-- treat old Step 2 blockers as current;
-- modify Step 2 artifacts;
-- modify offline thresholds;
-- rename warned/failed rows to pass;
-- weaken the audit to hide final-head CI absence;
-- claim full repo pytest passed unless it actually exits 0;
-- claim runtime visual quality is solved;
-- add robot-specific math or thresholds;
-- tune IK weights in this final evidence closure round.
+- modify Step 2 artifacts or thresholds;
+- overwrite Step 3.1.1 closed artifacts to hide Step 3.2 failures;
+- rewrite production NewtonPipeline default behavior;
+- default-enable runtime override;
+- add robot-specific math, thresholds, or whitelist exceptions;
+- tune IK/objective weights per robot;
+- add contact/collision/temporal smoothing in this step;
+- claim visual motion quality is solved;
+- label residual-only smoke as runtime_quality_passed;
+- promote negative controls into humanoid quality counts;
+- start Step 3.3 automatically.
 ```
 
 ---
 
-## 11. Short status for the new assistant
-
-If you need a single paragraph:
+## 7. Short status for the next assistant / Codex
 
 ```text
-We are on retargeting-v3-step3-full-fleet-hardening. Step 2.3.1 offline profile acceptance is trusted. Step 3.0 RPO/G1 runtime shadow passed. Step 3.1 full-fleet matrix now covers all 44 in-scope assets. The latest hardening branch fixed dirty provenance and fixed the overclaim that residual-only full humanoid FK evaluations were runtime_quality_passed. Current truthful quality result is: 0 full humanoid runtime_quality_passed, 23 warned, 9 failed, 3 partial passed, 9 negative passed, deterministic 44/44. Remaining blocker is final evidence closure: current HEAD needs CI evidence, Agent F handoff must be updated with real workflow metadata, audit should pass with --require-final-head-ci, and test artifacts should be real or explicitly scoped. Do not start optimization until this is closed.
+We are on retargeting-v3-step3-2-solver-backed-generic-smoke, created from closed Step 3.1.1 final HEAD 26817de67bdda0cb315a1237b53c30e4d8199c78. Step 3.1.1 proved clean full-fleet evidence but had solver_backed_count=0 and residual_only_count=32. Step 3.2 must implement generic solver-backed runtime smoke evidence for full humanoids, preserve 44-row accounting, keep global gates and honest statuses, generate a new artifact tree, and pass a new strict audit/CI. Do not tune IK, do not use robot-specific thresholds, and do not overwrite closed Step 3.1.1 artifacts.
 ```
