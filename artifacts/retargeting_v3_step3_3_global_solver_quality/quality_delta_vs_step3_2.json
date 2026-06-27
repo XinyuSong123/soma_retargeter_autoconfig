@@ -1,0 +1,752 @@
+{
+  "baseline_artifact_dir": "artifacts/retargeting_v3_step3_2_solver_backed_smoke",
+  "baseline_counts": {
+    "deterministic_compared_count": 44,
+    "deterministic_matched_count": 44,
+    "full_humanoid_total": 32,
+    "high_residual_warning_count": 32,
+    "in_scope_total": 44,
+    "joint_limit_smoke_warning_count": 10,
+    "joint_limit_warning_count": 12,
+    "negative_control_runtime_passed_count": 9,
+    "negative_total": 9,
+    "partial_runtime_passed_count": 3,
+    "partial_total": 3,
+    "residual_only_count": 0,
+    "runtime_quality_failed_count": 9,
+    "runtime_quality_passed_count": 0,
+    "runtime_quality_warned_count": 23,
+    "solver_backed_completed_count": 32,
+    "solver_backed_count": 32,
+    "solver_backed_smoke_attempted_count": 32
+  },
+  "baseline_final_head": "6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57",
+  "count_deltas": {
+    "deterministic_compared_count": 0,
+    "deterministic_matched_count": 0,
+    "full_humanoid_total": 0,
+    "high_residual_warning_count": 0,
+    "in_scope_total": 0,
+    "joint_limit_smoke_warning_count": -10,
+    "joint_limit_warning_count": -11,
+    "negative_control_runtime_passed_count": 0,
+    "negative_total": 0,
+    "partial_runtime_passed_count": 0,
+    "partial_total": 0,
+    "residual_only_count": 0,
+    "runtime_quality_failed_count": -9,
+    "runtime_quality_passed_count": 0,
+    "runtime_quality_warned_count": 9,
+    "solver_backed_completed_count": 0,
+    "solver_backed_count": 0,
+    "solver_backed_smoke_attempted_count": 0
+  },
+  "current_artifact_dir": "artifacts/retargeting_v3_step3_3_global_solver_quality",
+  "current_counts": {
+    "deterministic_compared_count": 44,
+    "deterministic_matched_count": 44,
+    "full_humanoid_total": 32,
+    "high_residual_warning_count": 32,
+    "in_scope_total": 44,
+    "joint_limit_smoke_warning_count": 0,
+    "joint_limit_warning_count": 1,
+    "negative_control_runtime_passed_count": 9,
+    "negative_total": 9,
+    "partial_runtime_passed_count": 3,
+    "partial_total": 3,
+    "residual_only_count": 0,
+    "runtime_quality_failed_count": 0,
+    "runtime_quality_passed_count": 0,
+    "runtime_quality_warned_count": 32,
+    "solver_backed_completed_count": 32,
+    "solver_backed_count": 32,
+    "solver_backed_smoke_attempted_count": 32
+  },
+  "current_source_commit": "e5239dc8a340be0f1fb6f41d5fa56abba91284d2",
+  "improvements": [
+    "runtime_quality_failed_count_reduced",
+    "joint_limit_warning_count_reduced"
+  ],
+  "metric_distribution_deltas": {
+    "joint_limit_violation_count": {
+      "baseline": {
+        "max": 4.0,
+        "median": 0.0,
+        "p95": 2.0
+      },
+      "current": {
+        "max": 0.0,
+        "median": 0.0,
+        "p95": 0.0
+      },
+      "delta": {
+        "max": -4.0,
+        "median": 0.0,
+        "p95": -2.0
+      }
+    },
+    "max_joint_limit_violation": {
+      "baseline": {
+        "max": 0.79999999702,
+        "median": 0.0,
+        "p95": 0.569999992847
+      },
+      "current": {
+        "max": 0.0,
+        "median": 0.0,
+        "p95": 0.0
+      },
+      "delta": {
+        "max": -0.79999999702,
+        "median": 0.0,
+        "p95": -0.569999992847
+      }
+    },
+    "normalized_task_residual_max": {
+      "baseline": {
+        "max": 1.0,
+        "median": 1.0,
+        "p95": 1.0
+      },
+      "current": {
+        "max": 1.0,
+        "median": 1.0,
+        "p95": 1.0
+      },
+      "delta": {
+        "max": 0.0,
+        "median": 0.0,
+        "p95": 0.0
+      }
+    },
+    "normalized_task_residual_p95": {
+      "baseline": {
+        "max": 0.999096773126,
+        "median": 0.9820468943584999,
+        "p95": 0.9950100106289
+      },
+      "current": {
+        "max": 0.999096773126,
+        "median": 0.9820468943584999,
+        "p95": 0.9950100106289
+      },
+      "delta": {
+        "max": 0.0,
+        "median": 0.0,
+        "p95": 0.0
+      }
+    }
+  },
+  "per_model_deltas": [
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "adam_lite_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -1.0,
+      "max_joint_limit_violation_delta": -0.170969009399,
+      "model_id": "apptronik_apollo_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "atlas_drc_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "atlas_v4_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "booster_t1_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "booster_t1_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "solver_convergence_weak",
+        "solver_success_fraction_below_one"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "solver_convergence_weak",
+        "solver_success_fraction_below_one"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "draco3_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -1.0,
+      "max_joint_limit_violation_delta": -0.214999973774,
+      "model_id": "elf2_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "elf2_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "ergocub_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "fourier_gr1_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "fourier_n1_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "fourier_n1_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -2.0,
+      "max_joint_limit_violation_delta": -0.276199996471,
+      "model_id": "jaxon_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -1.0,
+      "max_joint_limit_violation_delta": -0.214601993561,
+      "model_id": "jvrc_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "jvrc_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "mujoco_humanoid_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -4.0,
+      "max_joint_limit_violation_delta": -0.008726649918,
+      "model_id": "pal_talos_mjcf_direct",
+      "normalized_task_residual_p95_delta": -0.00028698591499998205
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -2.0,
+      "max_joint_limit_violation_delta": -0.331800013781,
+      "model_id": "robonaut2_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -1.0,
+      "max_joint_limit_violation_delta": -0.79999999702,
+      "model_id": "roboparty_rpo_local",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "robotis_op3_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "talos_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "toddlerbot_2xc_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "toddlerbot_2xm_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -1.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "toddlerbot_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "unitree_g1_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "unitree_g1_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -1.0,
+      "max_joint_limit_violation_delta": -0.569999992847,
+      "model_id": "unitree_h1_2_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "unitree_h1_2_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_failed",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "joint_limit_violation",
+        "joint_limit_violation_above_global_tolerance",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": -1.0,
+      "max_joint_limit_violation_delta": -0.569999992847,
+      "model_id": "unitree_h1_mjcf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "unitree_h1_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    },
+    {
+      "baseline_runtime_quality_status": "runtime_quality_warned",
+      "baseline_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "current_runtime_quality_status": "runtime_quality_warned",
+      "current_warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate"
+      ],
+      "joint_limit_violation_count_delta": 0.0,
+      "max_joint_limit_violation_delta": 0.0,
+      "model_id": "valkyrie_urdf",
+      "normalized_task_residual_p95_delta": 0.0
+    }
+  ],
+  "projection_deltas": {
+    "baseline_projection_fields_available": false,
+    "max_projection_delta_linf": 0.0,
+    "post_projection_joint_limit_warning_count": 0,
+    "pre_projection_joint_limit_warning_count": 0,
+    "projection_repaired_row_count": 0,
+    "projection_residual_worsened_count": 0
+  },
+  "regressions": [],
+  "schema_version": 1,
+  "verdict": "PASS"
+}
