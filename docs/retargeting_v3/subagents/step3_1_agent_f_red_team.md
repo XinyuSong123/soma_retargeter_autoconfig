@@ -41,11 +41,11 @@ job conclusions: pending final pushed artifact commit
 
 ## Full Repo Pytest
 
-full repo pytest classification: `not_run_scoped_caveat`
+full repo pytest classification: `full_repo_failed`
 
-full repo pytest caveat: The artifact writer records scoped full-fleet evidence.
-The final integration pass records the full repository pytest attempt separately
-and does not report it as passed unless the complete command succeeds.
+full repo pytest caveat: Full repo pytest timed out after 2700 seconds with 41
+passing dots and no visible failure text; it is classified as failed and is not
+reported as passed.
 
 ## Verification
 

@@ -1,6 +1,18 @@
 {
+  "classification_reason": "normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate;runtime_quality_pass_requires_solver_backed_smoke",
   "error": null,
+  "failure_or_warning_reasons": [
+    "normalized_task_residual_p95_above_pass_gate",
+    "normalized_task_residual_p95_above_warn_gate",
+    "runtime_quality_pass_requires_solver_backed_smoke"
+  ],
   "metrics": {
+    "classification_reason": "normalized_task_residual_p95_above_pass_gate;normalized_task_residual_p95_above_warn_gate;runtime_quality_pass_requires_solver_backed_smoke",
+    "failure_or_warning_reasons": [
+      "normalized_task_residual_p95_above_pass_gate",
+      "normalized_task_residual_p95_above_warn_gate",
+      "runtime_quality_pass_requires_solver_backed_smoke"
+    ],
     "foot_height_below_ground_count": 0,
     "foot_sliding_proxy_if_contact_scores_available": null,
     "inf_count": 0,
@@ -19,20 +31,66 @@
     "normalized_task_residual_p95": 0.844932248547,
     "output_finite": true,
     "output_frame_count": 120,
-    "runtime_seconds": 0.084714319557,
+    "quality_classification": "runtime_quality_warned",
+    "quality_gate_results": {
+      "finite_metrics": true,
+      "inf_count": true,
+      "joint_acceleration_p95_warn": true,
+      "joint_limit_pass": true,
+      "joint_velocity_p95_warn": true,
+      "nan_count": true,
+      "normalized_task_residual_max_warn": true,
+      "normalized_task_residual_p95_pass": false,
+      "normalized_task_residual_p95_warn": false,
+      "se3_orthogonality_error_max": true,
+      "solver_success_fraction": false
+    },
+    "quality_pass_allowed": false,
+    "residual_only": true,
+    "runtime_quality_gates": {
+      "inf_count": 0,
+      "joint_acceleration_p95_warn": 0.75,
+      "joint_limit_violation_severe_threshold": 1e-05,
+      "joint_velocity_p95_warn": 0.25,
+      "nan_count": 0,
+      "normalized_task_residual_max_warn": 1.2,
+      "normalized_task_residual_p95_pass": 0.15,
+      "normalized_task_residual_p95_warn": 0.6,
+      "se3_orthogonality_error_max": 1e-08
+    },
+    "runtime_seconds": 0.072161305696,
+    "solver_backed": false,
     "solver_iteration_max": 0.0,
     "solver_iteration_mean": 0.0,
     "solver_iteration_p95": 0.0,
     "solver_success_fraction": 1.0,
+    "solver_type": "runtime_model_fk_residual_evaluation_only",
     "stance_width_max": 0.150781333114,
     "stance_width_p95": 0.149604733829,
     "support_height_max": 0.421703411321,
     "support_height_min": 0.12110177312,
+    "target_se3_orthogonality_error_max": 0.0,
     "task_residual_max": 3.518753073297,
     "task_residual_mean": 2.57199365613,
     "task_residual_p95": 2.973107946303
   },
   "mode": "generic_fk_residual_smoke",
+  "quality_classification": "runtime_quality_warned",
+  "quality_gate_results": {
+    "finite_metrics": true,
+    "inf_count": true,
+    "joint_acceleration_p95_warn": true,
+    "joint_limit_pass": true,
+    "joint_velocity_p95_warn": true,
+    "nan_count": true,
+    "normalized_task_residual_max_warn": true,
+    "normalized_task_residual_p95_pass": false,
+    "normalized_task_residual_p95_warn": false,
+    "se3_orthogonality_error_max": true,
+    "solver_success_fraction": false
+  },
+  "quality_pass_allowed": false,
+  "residual_only": true,
   "residuals": {
     "per_semantic": {
       "Chest": {
@@ -85,7 +143,10 @@
       }
     },
     "residual_sample_count": 720,
-    "solver": "runtime_model_fk_residual_evaluation"
+    "solver": "runtime_model_fk_residual_evaluation_only",
+    "solver_type": "runtime_model_fk_residual_evaluation_only"
   },
-  "status": "passed"
+  "solver_backed": false,
+  "solver_type": "runtime_model_fk_residual_evaluation_only",
+  "status": "runtime_quality_warned"
 }
