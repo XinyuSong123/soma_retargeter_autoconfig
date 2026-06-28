@@ -234,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2, sort_keys=True))
-    return 0 if result.status in PASS_STATUSES else 1
+    return 0 if result.blocking_count == 0 else 1
 
 
 def _audit_required_artifacts(artifact_dir: Path) -> list[Finding]:
@@ -665,6 +665,9 @@ def _audit_delta(delta: dict[str, Any], baseline_summary: dict[str, Any], summar
 
 
 def _audit_quality_breakthrough(delta: dict[str, Any], summary: dict[str, Any]) -> list[Finding]:
+    release_status = str(summary.get("release_candidate_status") or "")
+    if release_status in BLOCKED_STATUSES:
+        return []
     if _quality_breakthrough(delta, summary):
         return []
     return [
@@ -880,16 +883,6 @@ def _quality_breakthrough(delta: dict[str, Any], summary: dict[str, Any]) -> boo
     orientation = delta.get("orientation_residual_deltas") if isinstance(delta.get("orientation_residual_deltas"), dict) else {}
     if orientation.get("accepted_breakthrough") is True:
         return True
-    p95_delta = orientation.get("p95_rotation_residual_p95")
-    if isinstance(p95_delta, dict) and _as_float(p95_delta.get("delta")) is not None and _as_float(p95_delta.get("delta")) < -1e-6:
-        return True
-    metric_deltas = delta.get("metric_distribution_deltas") if isinstance(delta.get("metric_distribution_deltas"), dict) else {}
-    for field in ("p95_rotation_residual_p95", "rotation_residual_p95", "target_rotation_error_p95", "raw_task_residual_p95"):
-        payload = metric_deltas.get(field)
-        if isinstance(payload, dict):
-            delta_payload = payload.get("delta")
-            if isinstance(delta_payload, dict) and any(_as_float(delta_payload.get(key)) is not None and _as_float(delta_payload.get(key)) < -1e-6 for key in ("median", "p95", "max")):
-                return True
     return False
 
 
