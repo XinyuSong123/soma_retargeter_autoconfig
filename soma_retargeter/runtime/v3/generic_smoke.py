@@ -48,6 +48,8 @@ class SolverBackedSmokeConfig:
     residual_nonincrease_tolerance: float = 1e-9
     line_search_alphas: tuple[float, ...] = ()
     max_update_norm: float | None = None
+    enable_global_residual_quality_hardening: bool = False
+    anchor_reliability_policy_version: str = "none"
 
     @classmethod
     def global_quality_hardened(
@@ -56,6 +58,7 @@ class SolverBackedSmokeConfig:
         sample_count: int = 1,
         max_nfev_per_task: int = 12,
         task_order: tuple[str, ...] = ("torso",),
+        enable_global_residual_quality_hardening: bool = False,
     ) -> "SolverBackedSmokeConfig":
         return cls(
             sample_count=sample_count,
@@ -68,6 +71,12 @@ class SolverBackedSmokeConfig:
             residual_nonincrease_guard=True,
             line_search_alphas=(1.0, 0.5, 0.25, 0.1, 0.0),
             max_update_norm=1.0,
+            enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
+            anchor_reliability_policy_version=(
+                "global_semantic_anchor_reliability_v1"
+                if enable_global_residual_quality_hardening
+                else "none"
+            ),
         )
 
     def to_json(self, *, include_hash: bool = True) -> dict[str, Any]:
@@ -86,6 +95,8 @@ class SolverBackedSmokeConfig:
             "residual_nonincrease_tolerance": float(self.residual_nonincrease_tolerance),
             "line_search_alphas": [float(value) for value in self.line_search_alphas],
             "max_update_norm": None if self.max_update_norm is None else float(self.max_update_norm),
+            "enable_global_residual_quality_hardening": bool(self.enable_global_residual_quality_hardening),
+            "anchor_reliability_policy_version": str(self.anchor_reliability_policy_version),
             "global_config": True,
         }
         if include_hash:
@@ -285,6 +296,8 @@ def run_full_humanoid_solver_backed_smoke(
     try:
         sites = _semantic_sites_from_profile(profile)
         missing_sites = sorted(set(_target_semantics(target_transforms)) - set(sites))
+        q0 = adapter.neutral_q()
+        anchor_reliability = _anchor_reliability_report(adapter, sites, target_transforms, q0)
         if missing_sites:
             return _solver_backed_failed_result(
                 adapter=adapter,
@@ -293,6 +306,7 @@ def run_full_humanoid_solver_backed_smoke(
                 sampled_frame_indices=[],
                 task_diagnostics=[],
                 config=cfg,
+                anchor_reliability=anchor_reliability,
             )
 
         paths = discover_paths(adapter, sites)
@@ -307,9 +321,9 @@ def run_full_humanoid_solver_backed_smoke(
                 sampled_frame_indices=[],
                 task_diagnostics=[],
                 config=cfg,
+                anchor_reliability=anchor_reliability,
             )
 
-        q0 = adapter.neutral_q()
         q_sequence: list[np.ndarray] = []
         raw_q_sequence: list[np.ndarray] = []
         residual_values: list[float] = []
@@ -332,6 +346,19 @@ def run_full_humanoid_solver_backed_smoke(
             frame_raw_q = q.copy()
             frame_success = True
             frame_task_reports: list[dict[str, Any]] = []
+            frame_candidates: list[dict[str, Any]] = []
+            if cfg.enable_global_residual_quality_hardening:
+                frame_candidates.append(
+                    _frame_residual_candidate(
+                        adapter,
+                        q,
+                        frame_raw_q,
+                        sites,
+                        target_transforms,
+                        frame_index,
+                        label="seed",
+                    )
+                )
             for task in cfg.task_order:
                 path = paths.get(task)
                 if path is None:
@@ -363,6 +390,45 @@ def run_full_humanoid_solver_backed_smoke(
                 q = np.asarray(task_result["q"], dtype=np.float64)
                 frame_task_reports.append(
                     {key: value for key, value in task_result.items() if key not in {"q", "q_raw"}}
+                )
+                if cfg.enable_global_residual_quality_hardening:
+                    frame_candidates.append(
+                        _frame_residual_candidate(
+                            adapter,
+                            q,
+                            frame_raw_q,
+                            sites,
+                            target_transforms,
+                            frame_index,
+                            label=f"after_{task}",
+                        )
+                    )
+
+            global_residual_guard: dict[str, Any] = {
+                "enabled": bool(cfg.enable_global_residual_quality_hardening),
+                "candidate_count": len(frame_candidates),
+                "selected_label": None,
+                "selected_index": None,
+                "selected_score": None,
+                "last_score": None,
+                "selected_earlier_candidate": False,
+            }
+            if cfg.enable_global_residual_quality_hardening and frame_candidates:
+                selected_index, selected = min(
+                    enumerate(frame_candidates),
+                    key=lambda item: tuple(item[1]["score_tuple"]),
+                )
+                last = frame_candidates[-1]
+                q = np.asarray(selected["q"], dtype=np.float64)
+                frame_raw_q = np.asarray(selected["q_raw"], dtype=np.float64)
+                global_residual_guard.update(
+                    {
+                        "selected_label": selected["label"],
+                        "selected_index": int(selected_index),
+                        "selected_score": dict(selected["score"]),
+                        "last_score": dict(last["score"]),
+                        "selected_earlier_candidate": bool(selected_index != len(frame_candidates) - 1),
+                    }
                 )
 
             if cfg.project_joint_limits:
@@ -405,6 +471,7 @@ def run_full_humanoid_solver_backed_smoke(
                     "frame_index": int(frame_index),
                     "seed_policy": cfg.seed_policy,
                     "tasks": frame_task_reports,
+                    "global_residual_guard": global_residual_guard,
                     "joint_limit_projection": projection_reports[-1],
                     "per_semantic": per_semantic,
                 }
@@ -421,10 +488,18 @@ def run_full_humanoid_solver_backed_smoke(
                 sampled_frame_indices=sampled_frame_indices,
                 task_diagnostics=task_diagnostics,
                 config=cfg,
+                anchor_reliability=anchor_reliability,
             )
 
         q_arr = np.vstack(q_sequence)
         raw_q_arr = np.vstack(raw_q_sequence)
+        task_coverage = _task_coverage_report(
+            config=cfg,
+            sites=sites,
+            target_transforms=target_transforms,
+            paths=paths,
+            task_diagnostics=task_diagnostics,
+        )
         pre_projection_joint_limits = joint_limit_metrics(raw_q_arr, adapter.coordinate_info)
         post_projection_joint_limits = joint_limit_metrics(q_arr, adapter.coordinate_info)
         metrics = smoke_output_metrics(
@@ -445,6 +520,8 @@ def run_full_humanoid_solver_backed_smoke(
         metrics["solver_success_fraction"] = _stable(float(solver_successes / solver_tasks))
         metrics["solver_task_count"] = int(solver_tasks)
         metrics["solver_task_success_count"] = int(solver_successes)
+        metrics.update(_task_coverage_metric_fields(task_coverage))
+        metrics.update(_anchor_reliability_metric_fields(anchor_reliability))
         metrics["solver_backed_smoke_attempted"] = True
         metrics["solver_backed_smoke_completed"] = True
         metrics["solver_config_hash"] = cfg.config_hash()
@@ -502,6 +579,8 @@ def run_full_humanoid_solver_backed_smoke(
                 "frame_reports": task_diagnostics,
                 "joint_limit_projection_reports": projection_reports,
                 "missing_tasks": missing_tasks,
+                "task_coverage": task_coverage,
+                "anchor_reliability": anchor_reliability,
             },
             solver_type=SOLVER_BACKED_GENERIC_SOLVER_TYPE,
             solver_backed=True,
@@ -525,6 +604,7 @@ def run_full_humanoid_solver_backed_smoke(
             sampled_frame_indices=sampled_frame_indices,
             task_diagnostics=task_diagnostics,
             config=cfg,
+            anchor_reliability=locals().get("anchor_reliability"),
         )
     finally:
         if owns_adapter:
@@ -1059,6 +1139,263 @@ def _position_scale(
     return max(length, direct, desired, prismatic_span, 1e-6)
 
 
+def _anchor_reliability_report(
+    adapter: NewtonRuntimeModelAdapter,
+    sites: dict[str, SemanticSite],
+    target_transforms: Mapping[str, np.ndarray],
+    q_seed: np.ndarray,
+) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    state = adapter.forward_kinematics(q_seed)
+    signatures: dict[tuple[Any, ...], str] = {}
+    for semantic in sorted(_target_semantics(target_transforms)):
+        site = sites.get(semantic)
+        stack = np.asarray(target_transforms.get(semantic), dtype=np.float64)
+        reasons: list[str] = []
+        body_exists = False
+        finite_fk = False
+        finite_target = bool(stack.size and np.isfinite(stack).all())
+        displacement_scale_reasonable = False
+        nonzero_residual_information = False
+        duplicate = False
+        body_name = None
+        confidence = None
+        source = None
+        if site is None:
+            reasons.append("profile_site_missing")
+        else:
+            body_name = site.body_name
+            confidence = _stable(float(site.confidence))
+            source = site.source
+            try:
+                runtime_transform = adapter.site_transform(state, site)
+                body_exists = True
+                finite_fk = bool(np.isfinite(runtime_transform).all())
+            except Exception:
+                runtime_transform = np.full((4, 4), np.nan)
+                reasons.append("runtime_body_or_site_unresolvable")
+            signature = (
+                str(site.body_name),
+                tuple(round(float(value), 9) for value in np.asarray(site.local_position, dtype=np.float64).reshape(-1)),
+                tuple(round(float(value), 9) for value in np.asarray(site.local_rotation_xyzw, dtype=np.float64).reshape(-1)),
+            )
+            previous = signatures.get(signature)
+            if previous is not None:
+                duplicate = True
+                reasons.append(f"duplicate_anchor_frame:{previous}")
+            else:
+                signatures[signature] = semantic
+            if finite_fk and finite_target and stack.ndim == 3 and stack.shape[1:] == (4, 4) and stack.shape[0] > 0:
+                target_positions = stack[:, :3, 3]
+                max_abs_position = float(np.max(np.abs(target_positions))) if target_positions.size else 0.0
+                displacement_scale_reasonable = bool(max_abs_position < 100.0)
+                if not displacement_scale_reasonable:
+                    reasons.append("target_displacement_scale_unreasonable")
+                target = stack[stack.shape[0] // 2]
+                translation = float(np.linalg.norm(runtime_transform[:3, 3] - target[:3, 3]))
+                rotation = float(rotation_error(runtime_transform[:3, :3], target[:3, :3]))
+                nonzero_residual_information = bool((translation + rotation) > 1e-12)
+            elif not finite_target:
+                reasons.append("target_stream_nonfinite_or_empty")
+            if not finite_fk:
+                reasons.append("fk_nonfinite")
+        accepted = bool(
+            site is not None
+            and body_exists
+            and finite_fk
+            and finite_target
+            and not duplicate
+            and displacement_scale_reasonable
+        )
+        if not accepted and not reasons:
+            reasons.append("anchor_rejected_by_global_reliability_policy")
+        rows.append(
+            {
+                "semantic": semantic,
+                "body_name": body_name,
+                "source": source,
+                "confidence": confidence,
+                "profile_site_exists": site is not None,
+                "runtime_body_exists": body_exists,
+                "finite_fk": finite_fk,
+                "finite_target_stream": finite_target,
+                "duplicate_anchor": duplicate,
+                "displacement_scale_reasonable": displacement_scale_reasonable,
+                "nonzero_residual_information": nonzero_residual_information,
+                "accepted": accepted,
+                "rejection_reasons": _dedupe(reasons),
+            }
+        )
+    accepted_count = sum(1 for row in rows if row["accepted"])
+    row_count = len(rows)
+    rejection_reasons = _dedupe(
+        [reason for row in rows for reason in row.get("rejection_reasons", [])]
+    )
+    return {
+        "schema_version": 1,
+        "policy_version": "global_semantic_anchor_reliability_v1",
+        "rows": rows,
+        "summary": {
+            "anchor_count": row_count,
+            "accepted_anchor_count": accepted_count,
+            "rejected_anchor_count": row_count - accepted_count,
+            "anchor_reliability_score": _stable(float(accepted_count / row_count)) if row_count else 0.0,
+            "anchor_rejection_rate": _stable(float((row_count - accepted_count) / row_count)) if row_count else 0.0,
+            "rejection_reasons": rejection_reasons,
+        },
+    }
+
+
+def _frame_residual_candidate(
+    adapter: NewtonRuntimeModelAdapter,
+    q: np.ndarray,
+    q_raw: np.ndarray,
+    sites: dict[str, SemanticSite],
+    target_transforms: Mapping[str, np.ndarray],
+    frame_index: int,
+    *,
+    label: str,
+) -> dict[str, Any]:
+    state = adapter.forward_kinematics(q)
+    residual_values: list[float] = []
+    per_semantic: dict[str, dict[str, Any]] = {}
+    for semantic, stack_value in sorted(target_transforms.items()):
+        if semantic not in sites:
+            continue
+        stack = np.asarray(stack_value, dtype=np.float64)
+        runtime_transform = adapter.site_transform(state, sites[semantic])
+        target_transform = stack[frame_index]
+        translation = float(np.linalg.norm(runtime_transform[:3, 3] - target_transform[:3, 3]))
+        rotation = rotation_error(runtime_transform[:3, :3], target_transform[:3, :3])
+        combined = translation + rotation
+        residual_values.append(combined)
+        per_semantic[str(semantic)] = {
+            "translation_residual": _stable(translation),
+            "rotation_residual": _stable(rotation),
+            "combined_residual": _stable(combined),
+        }
+    arr = np.asarray(residual_values, dtype=np.float64)
+    arr = arr[np.isfinite(arr)]
+    if arr.size:
+        score = {
+            "mean": _stable(float(np.mean(arr))),
+            "p95": _stable(float(np.percentile(arr, 95))),
+            "max": _stable(float(np.max(arr))),
+        }
+    else:
+        score = {"mean": 0.0, "p95": 0.0, "max": 0.0}
+    return {
+        "label": label,
+        "q": np.asarray(q, dtype=np.float64).copy(),
+        "q_raw": np.asarray(q_raw, dtype=np.float64).copy(),
+        "score": score,
+        "score_tuple": (score["p95"], score["max"], score["mean"]),
+        "per_semantic": per_semantic,
+    }
+
+
+def _task_coverage_report(
+    *,
+    config: SolverBackedSmokeConfig,
+    sites: dict[str, SemanticSite],
+    target_transforms: Mapping[str, np.ndarray],
+    paths: dict[str, KinematicPath],
+    task_diagnostics: list[dict[str, Any]],
+) -> dict[str, Any]:
+    reports_by_task: dict[str, list[dict[str, Any]]] = {}
+    for frame in task_diagnostics:
+        for task in frame.get("tasks", []):
+            if isinstance(task, dict):
+                reports_by_task.setdefault(str(task.get("task")), []).append(task)
+    rows: list[dict[str, Any]] = []
+    for task_name, (reference, target) in TASKS.items():
+        path = paths.get(task_name)
+        reports = reports_by_task.get(task_name, [])
+        target_available = reference in target_transforms and target in target_transforms
+        site_available = reference in sites and target in sites
+        configured = task_name in set(config.task_order)
+        attempted = bool(reports)
+        success_count = sum(1 for report in reports if report.get("success") is True)
+        skipped_reason = None
+        if not configured:
+            skipped_reason = "not_in_configured_global_task_order"
+        elif not target_available:
+            skipped_reason = "target_semantics_missing"
+        elif not site_available:
+            skipped_reason = "profile_sites_missing"
+        elif path is None:
+            skipped_reason = "kinematic_path_unavailable"
+        elif not attempted:
+            skipped_reason = "task_not_attempted"
+        rows.append(
+            {
+                "task": task_name,
+                "reference": reference,
+                "target": target,
+                "configured": configured,
+                "target_available": target_available,
+                "profile_sites_available": site_available,
+                "path_discovered": path is not None,
+                "active_coordinate_count": len(path.active_velocity_coordinates) if path is not None else 0,
+                "attempted_frame_count": len(reports),
+                "completed_frame_count": len(reports),
+                "success_frame_count": success_count,
+                "success_fraction": _stable(float(success_count / len(reports))) if reports else 0.0,
+                "skipped_reason": skipped_reason,
+                "task_kind": "rotation" if task_name == "torso" else "translation",
+            }
+        )
+    available = [row for row in rows if row["configured"] and row["target_available"] and row["profile_sites_available"] and row["path_discovered"]]
+    attempted = [row for row in available if row["attempted_frame_count"] > 0]
+    successful = [row for row in available if row["success_frame_count"] == row["completed_frame_count"] and row["completed_frame_count"] > 0]
+    semantic_counts: dict[str, int] = {}
+    for row in attempted:
+        for semantic in (row["reference"], row["target"]):
+            semantic_counts[str(semantic)] = semantic_counts.get(str(semantic), 0) + 1
+    denominator = max(1, len([row for row in rows if row["configured"]]))
+    return {
+        "schema_version": 1,
+        "global_task_universe": list(TASKS),
+        "configured_task_order": list(config.task_order),
+        "rows": rows,
+        "summary": {
+            "configured_task_count": len(config.task_order),
+            "available_task_count": len(available),
+            "attempted_task_count": len(attempted),
+            "successful_task_count": len(successful),
+            "task_anchor_count": len({semantic for row in attempted for semantic in (row["reference"], row["target"])}),
+            "task_anchor_semantic_counts": dict(sorted(semantic_counts.items())),
+            "task_coverage_ratio": _stable(float(len(attempted) / denominator)),
+            "successful_task_coverage_ratio": _stable(float(len(successful) / denominator)),
+        },
+    }
+
+
+def _task_coverage_metric_fields(task_coverage: dict[str, Any]) -> dict[str, Any]:
+    summary = task_coverage.get("summary", {}) if isinstance(task_coverage, dict) else {}
+    return {
+        "task_anchor_count": int(summary.get("task_anchor_count", 0) or 0),
+        "task_anchor_semantic_counts": dict(summary.get("task_anchor_semantic_counts", {})),
+        "task_coverage_ratio": float(summary.get("task_coverage_ratio", 0.0) or 0.0),
+        "successful_task_coverage_ratio": float(summary.get("successful_task_coverage_ratio", 0.0) or 0.0),
+        "configured_task_count": int(summary.get("configured_task_count", 0) or 0),
+        "available_task_count": int(summary.get("available_task_count", 0) or 0),
+        "attempted_task_count": int(summary.get("attempted_task_count", 0) or 0),
+        "successful_task_count": int(summary.get("successful_task_count", 0) or 0),
+    }
+
+
+def _anchor_reliability_metric_fields(anchor_reliability: dict[str, Any] | None) -> dict[str, Any]:
+    summary = anchor_reliability.get("summary", {}) if isinstance(anchor_reliability, dict) else {}
+    return {
+        "anchor_reliability_score": float(summary.get("anchor_reliability_score", 0.0) or 0.0),
+        "anchor_accepted_count": int(summary.get("accepted_anchor_count", 0) or 0),
+        "anchor_rejected_count": int(summary.get("rejected_anchor_count", 0) or 0),
+        "anchor_rejection_rate": float(summary.get("anchor_rejection_rate", 0.0) or 0.0),
+        "anchor_rejection_reasons": list(summary.get("rejection_reasons", [])),
+    }
+
+
 def _solver_backed_failed_result(
     *,
     adapter: NewtonRuntimeModelAdapter,
@@ -1067,6 +1404,7 @@ def _solver_backed_failed_result(
     sampled_frame_indices: list[int],
     task_diagnostics: list[dict[str, Any]],
     config: SolverBackedSmokeConfig,
+    anchor_reliability: dict[str, Any] | None = None,
 ) -> GenericSmokeResult:
     metrics = {
         "output_frame_count": 0,
@@ -1077,8 +1415,25 @@ def _solver_backed_failed_result(
         "joint_limit_violation_count": 0,
         "max_joint_limit_violation": 0.0,
         "normalized_task_residual_mean": 0.0,
+        "normalized_task_residual_p50": 0.0,
         "normalized_task_residual_p95": 0.0,
         "normalized_task_residual_max": 0.0,
+        "task_residual_mean": 0.0,
+        "task_residual_p50": 0.0,
+        "task_residual_p95": 0.0,
+        "task_residual_max": 0.0,
+        "raw_task_residual_mean": 0.0,
+        "raw_task_residual_p50": 0.0,
+        "raw_task_residual_p95": 0.0,
+        "raw_task_residual_max": 0.0,
+        "residual_normalization_version": "legacy_row_max_v1",
+        "residual_normalization_formula": "residual / max(1.0, row_raw_residual_max)",
+        "residual_denominator": 1.0,
+        "residual_denominator_source": "empty_or_failed_row_global_floor_1",
+        "residual_denominator_scope": "row_local_legacy_metric",
+        "residual_denominator_units": "translation_meters_plus_rotation_radians",
+        "residual_denominator_robot_specific": False,
+        "residual_denominator_from_current_row_max": False,
         "solver_success_fraction": 0.0,
         "runtime_seconds": _stable(time.perf_counter() - started),
         "solver_backed_smoke_attempted": True,
@@ -1103,6 +1458,15 @@ def _solver_backed_failed_result(
         "projection_residual_worsened_count": 0,
         "sampled_frame_indices": list(sampled_frame_indices),
         "sampled_frame_count": len(sampled_frame_indices),
+        "task_anchor_count": 0,
+        "task_anchor_semantic_counts": {},
+        "task_coverage_ratio": 0.0,
+        "successful_task_coverage_ratio": 0.0,
+        "configured_task_count": len(config.task_order),
+        "available_task_count": 0,
+        "attempted_task_count": 0,
+        "successful_task_count": 0,
+        **_anchor_reliability_metric_fields(anchor_reliability),
     }
     classification = classify_runtime_quality(
         metrics,
@@ -1139,6 +1503,7 @@ def _solver_backed_failed_result(
             "solver_type": SOLVER_BACKED_GENERIC_SOLVER_TYPE,
             "sampled_frame_indices": sampled_frame_indices,
             "frame_reports": task_diagnostics,
+            "anchor_reliability": anchor_reliability or {},
         },
         error=str(reason),
         solver_type=SOLVER_BACKED_GENERIC_SOLVER_TYPE,

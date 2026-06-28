@@ -215,8 +215,17 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
             "joint_limit_violation_count": 0,
             "max_joint_limit_violation": 0.0,
             "normalized_task_residual_mean": 0.0,
+            "normalized_task_residual_p50": 0.0,
             "normalized_task_residual_p95": 0.0,
             "normalized_task_residual_max": 0.0,
+            "task_residual_mean": 0.0,
+            "task_residual_p50": 0.0,
+            "task_residual_p95": 0.0,
+            "task_residual_max": 0.0,
+            "raw_task_residual_mean": 0.0,
+            "raw_task_residual_p50": 0.0,
+            "raw_task_residual_p95": 0.0,
+            "raw_task_residual_max": 0.0,
             "solver_success_fraction": 0.0,
             "solver_type": "not_applicable",
             "smoke_type": "not_applicable",
@@ -230,6 +239,20 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
             "quality_pass_allowed": False,
             "quality_gate_results": {},
             "failure_or_warning_reasons": [],
+            "task_anchor_count": 0,
+            "task_anchor_semantic_counts": {},
+            "task_coverage_ratio": 0.0,
+            "successful_task_coverage_ratio": 0.0,
+            "anchor_reliability_score": 0.0,
+            "anchor_rejection_reasons": [],
+            "residual_normalization_version": "",
+            "residual_normalization_formula": "",
+            "residual_denominator": 0.0,
+            "residual_denominator_source": "",
+            "residual_denominator_scope": "",
+            "residual_denominator_units": "",
+            "residual_denominator_robot_specific": False,
+            "residual_denominator_from_current_row_max": False,
             "runtime_seconds": 0.0,
         }
     frame_count = sum(row.frame_count for row in clip_results)
@@ -256,8 +279,17 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
         "joint_limit_violation_count": sum(int(m.get("joint_limit_violation_count", 0)) for m in smoke_metrics),
         "max_joint_limit_violation": max((float(m.get("max_joint_limit_violation", 0.0)) for m in smoke_metrics), default=0.0),
         "normalized_task_residual_mean": max((float(m.get("normalized_task_residual_mean", 0.0)) for m in smoke_metrics), default=0.0),
+        "normalized_task_residual_p50": max((float(m.get("normalized_task_residual_p50", 0.0)) for m in smoke_metrics), default=0.0),
         "normalized_task_residual_p95": max((float(m.get("normalized_task_residual_p95", 0.0)) for m in smoke_metrics), default=0.0),
         "normalized_task_residual_max": max((float(m.get("normalized_task_residual_max", 0.0)) for m in smoke_metrics), default=0.0),
+        "task_residual_mean": max((float(m.get("task_residual_mean", 0.0)) for m in smoke_metrics), default=0.0),
+        "task_residual_p50": max((float(m.get("task_residual_p50", 0.0)) for m in smoke_metrics), default=0.0),
+        "task_residual_p95": max((float(m.get("task_residual_p95", 0.0)) for m in smoke_metrics), default=0.0),
+        "task_residual_max": max((float(m.get("task_residual_max", 0.0)) for m in smoke_metrics), default=0.0),
+        "raw_task_residual_mean": max((float(m.get("raw_task_residual_mean", m.get("task_residual_mean", 0.0))) for m in smoke_metrics), default=0.0),
+        "raw_task_residual_p50": max((float(m.get("raw_task_residual_p50", m.get("task_residual_p50", 0.0))) for m in smoke_metrics), default=0.0),
+        "raw_task_residual_p95": max((float(m.get("raw_task_residual_p95", m.get("task_residual_p95", 0.0))) for m in smoke_metrics), default=0.0),
+        "raw_task_residual_max": max((float(m.get("raw_task_residual_max", m.get("task_residual_max", 0.0))) for m in smoke_metrics), default=0.0),
         "solver_success_fraction": min((float(m.get("solver_success_fraction", 1.0)) for m in smoke_metrics), default=1.0),
         "solver_type": _aggregate_solver_type(smoke_summaries),
         "smoke_type": _aggregate_smoke_type(smoke_summaries),
@@ -271,6 +303,22 @@ def aggregate_case_metrics(clip_results: list[FleetClipResult]) -> dict[str, Any
         "quality_pass_allowed": all(bool(summary.get("quality_pass_allowed", False)) for summary in smoke_summaries) if smoke_summaries else False,
         "quality_gate_results": gate_results,
         "failure_or_warning_reasons": _dedupe(reasons),
+        "task_anchor_count": max((int(m.get("task_anchor_count", 0) or 0) for m in smoke_metrics), default=0),
+        "task_anchor_semantic_counts": _aggregate_semantic_counts(smoke_metrics, "task_anchor_semantic_counts"),
+        "task_coverage_ratio": min((float(m.get("task_coverage_ratio", 0.0) or 0.0) for m in smoke_metrics), default=0.0),
+        "successful_task_coverage_ratio": min((float(m.get("successful_task_coverage_ratio", 0.0) or 0.0) for m in smoke_metrics), default=0.0),
+        "anchor_reliability_score": min((float(m.get("anchor_reliability_score", 0.0) or 0.0) for m in smoke_metrics), default=0.0),
+        "anchor_rejection_reasons": _dedupe(
+            [str(reason) for m in smoke_metrics for reason in m.get("anchor_rejection_reasons", [])]
+        ),
+        "residual_normalization_version": _first_metric_text(smoke_metrics, "residual_normalization_version"),
+        "residual_normalization_formula": _first_metric_text(smoke_metrics, "residual_normalization_formula"),
+        "residual_denominator": max((float(m.get("residual_denominator", 0.0) or 0.0) for m in smoke_metrics), default=0.0),
+        "residual_denominator_source": _first_metric_text(smoke_metrics, "residual_denominator_source"),
+        "residual_denominator_scope": _first_metric_text(smoke_metrics, "residual_denominator_scope"),
+        "residual_denominator_units": _first_metric_text(smoke_metrics, "residual_denominator_units"),
+        "residual_denominator_robot_specific": any(bool(m.get("residual_denominator_robot_specific", False)) for m in smoke_metrics),
+        "residual_denominator_from_current_row_max": any(bool(m.get("residual_denominator_from_current_row_max", False)) for m in smoke_metrics),
         "runtime_seconds": sum(float(m.get("runtime_seconds", 0.0)) for m in smoke_metrics),
     }
 
@@ -356,11 +404,53 @@ def _flat_quality_fields(metrics: dict[str, Any]) -> dict[str, Any]:
         "joint_limit_violation_count": int(metrics.get("joint_limit_violation_count", 0) or 0),
         "max_joint_limit_violation": float(metrics.get("max_joint_limit_violation", 0.0) or 0.0),
         "normalized_task_residual_mean": float(metrics.get("normalized_task_residual_mean", 0.0) or 0.0),
+        "normalized_task_residual_p50": float(metrics.get("normalized_task_residual_p50", 0.0) or 0.0),
         "normalized_task_residual_p95": float(metrics.get("normalized_task_residual_p95", 0.0) or 0.0),
         "normalized_task_residual_max": float(metrics.get("normalized_task_residual_max", 0.0) or 0.0),
+        "task_residual_mean": float(metrics.get("task_residual_mean", metrics.get("raw_task_residual_mean", 0.0)) or 0.0),
+        "task_residual_p50": float(metrics.get("task_residual_p50", metrics.get("raw_task_residual_p50", 0.0)) or 0.0),
+        "task_residual_p95": float(metrics.get("task_residual_p95", metrics.get("raw_task_residual_p95", 0.0)) or 0.0),
+        "task_residual_max": float(metrics.get("task_residual_max", metrics.get("raw_task_residual_max", 0.0)) or 0.0),
+        "raw_task_residual_mean": float(metrics.get("raw_task_residual_mean", metrics.get("task_residual_mean", 0.0)) or 0.0),
+        "raw_task_residual_p50": float(metrics.get("raw_task_residual_p50", metrics.get("task_residual_p50", 0.0)) or 0.0),
+        "raw_task_residual_p95": float(metrics.get("raw_task_residual_p95", metrics.get("task_residual_p95", 0.0)) or 0.0),
+        "raw_task_residual_max": float(metrics.get("raw_task_residual_max", metrics.get("task_residual_max", 0.0)) or 0.0),
         "solver_success_fraction": float(metrics.get("solver_success_fraction", 0.0) or 0.0),
+        "task_anchor_count": int(metrics.get("task_anchor_count", 0) or 0),
+        "task_anchor_semantic_counts": dict(metrics.get("task_anchor_semantic_counts", {})),
+        "task_coverage_ratio": float(metrics.get("task_coverage_ratio", 0.0) or 0.0),
+        "successful_task_coverage_ratio": float(metrics.get("successful_task_coverage_ratio", 0.0) or 0.0),
+        "anchor_reliability_score": float(metrics.get("anchor_reliability_score", 0.0) or 0.0),
+        "anchor_rejection_reasons": list(metrics.get("anchor_rejection_reasons", [])),
+        "residual_normalization_version": str(metrics.get("residual_normalization_version", "")),
+        "residual_normalization_formula": str(metrics.get("residual_normalization_formula", "")),
+        "residual_denominator": float(metrics.get("residual_denominator", 0.0) or 0.0),
+        "residual_denominator_source": str(metrics.get("residual_denominator_source", "")),
+        "residual_denominator_scope": str(metrics.get("residual_denominator_scope", "")),
+        "residual_denominator_units": str(metrics.get("residual_denominator_units", "")),
+        "residual_denominator_robot_specific": bool(metrics.get("residual_denominator_robot_specific", False)),
+        "residual_denominator_from_current_row_max": bool(metrics.get("residual_denominator_from_current_row_max", False)),
         "runtime_seconds": float(metrics.get("runtime_seconds", 0.0) or 0.0),
     }
+
+
+def _aggregate_semantic_counts(metrics: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in metrics:
+        value = row.get(key)
+        if not isinstance(value, dict):
+            continue
+        for semantic, count in value.items():
+            counts[str(semantic)] = max(counts.get(str(semantic), 0), int(count or 0))
+    return dict(sorted(counts.items()))
+
+
+def _first_metric_text(metrics: list[dict[str, Any]], key: str) -> str:
+    for row in metrics:
+        value = row.get(key)
+        if value not in (None, ""):
+            return str(value)
+    return ""
 
 
 def _aggregate_solver_type(smoke_summaries: list[dict[str, Any]]) -> str:

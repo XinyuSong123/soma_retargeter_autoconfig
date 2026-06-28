@@ -31,13 +31,16 @@ from soma_retargeter.runtime.v3.fleet_inventory import (
 from soma_retargeter.runtime.v3.runtime_local_profile import close_runtime_profile, write_profile_resolution_artifacts
 from soma_retargeter.runtime.v3.runtime_quality_gates import GLOBAL_RUNTIME_QUALITY_GATES
 from soma_retargeter.runtime.v3.generic_smoke import SolverBackedSmokeConfig
+from soma_retargeter.robotics.v3.kinematic_paths import TASKS
 
 
 DEFAULT_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step3_runtime_quality")
 DEFAULT_STEP3_2_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step3_2_solver_backed_smoke")
 DEFAULT_STEP3_3_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step3_3_global_solver_quality")
+DEFAULT_STEP3_4_ARTIFACT_ROOT = Path("artifacts/retargeting_v3_step3_4_global_residual_quality")
 BASE_STEP3_1_1_FINAL_HEAD = "26817de67bdda0cb315a1237b53c30e4d8199c78"
 BASE_STEP3_2_FINAL_HEAD = "6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57"
+BASE_STEP3_3_FINAL_HEAD = "1a8ae37670a3f3f8c49cefd78c6bf7292aa15489"
 DEFAULT_STEP2_PROFILE_ROOT = Path("artifacts/retargeting_v3_step2_capability")
 DEFAULT_STEP3_SHADOW_ROOT = Path("artifacts/retargeting_v3_step3_runtime_shadow")
 DEFAULT_LOCK = Path("assets/robot_zoo/robot_zoo_lock.json")
@@ -67,9 +70,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mid-max-frames", type=int, default=300)
     parser.add_argument("--enable-solver-backed-generic-smoke", action="store_true")
     parser.add_argument("--enable-global-solver-quality-hardening", action="store_true")
+    parser.add_argument("--enable-global-residual-quality-hardening", action="store_true")
     parser.add_argument("--solver-smoke-sample-count", type=int, default=1)
     parser.add_argument("--solver-smoke-max-nfev-per-task", type=int, default=12)
-    parser.add_argument("--solver-smoke-task-order", nargs="+", default=["torso"])
+    parser.add_argument("--solver-smoke-task-order", nargs="+", default=None)
     parser.add_argument("--solver-smoke-clip-limit", type=int, default=None)
     parser.add_argument("--deterministic-rerun", action="store_true")
     parser.add_argument("--clean", action="store_true", default=True)
@@ -96,10 +100,11 @@ def main(argv: list[str] | None = None) -> int:
         deterministic_rerun=args.deterministic_rerun,
         enable_solver_backed_generic_smoke=args.enable_solver_backed_generic_smoke,
         enable_global_solver_quality_hardening=args.enable_global_solver_quality_hardening,
+        enable_global_residual_quality_hardening=args.enable_global_residual_quality_hardening,
         baseline_artifact_dir=args.baseline_artifact_dir,
         solver_smoke_sample_count=args.solver_smoke_sample_count,
         solver_smoke_max_nfev_per_task=args.solver_smoke_max_nfev_per_task,
-        solver_smoke_task_order=tuple(args.solver_smoke_task_order),
+        solver_smoke_task_order=tuple(args.solver_smoke_task_order) if args.solver_smoke_task_order else None,
         solver_smoke_clip_limit=args.solver_smoke_clip_limit,
         clean=args.clean,
         allow_dirty_internal_rerun=args.allow_dirty_internal_rerun,
@@ -122,10 +127,11 @@ def run_full_fleet_runtime_quality(
     deterministic_rerun: bool,
     enable_solver_backed_generic_smoke: bool = False,
     enable_global_solver_quality_hardening: bool = False,
+    enable_global_residual_quality_hardening: bool = False,
     baseline_artifact_dir: Path = DEFAULT_STEP3_2_ARTIFACT_ROOT,
     solver_smoke_sample_count: int = 1,
     solver_smoke_max_nfev_per_task: int = 12,
-    solver_smoke_task_order: tuple[str, ...] = ("torso",),
+    solver_smoke_task_order: tuple[str, ...] | None = ("torso",),
     solver_smoke_clip_limit: int | None = None,
     clean: bool = True,
     allow_dirty_internal_rerun: bool = False,
@@ -134,8 +140,12 @@ def run_full_fleet_runtime_quality(
     baseline_artifact_dir = Path(baseline_artifact_dir)
     if enable_global_solver_quality_hardening and not enable_solver_backed_generic_smoke:
         raise RuntimeError("--enable-global-solver-quality-hardening requires --enable-solver-backed-generic-smoke")
+    if enable_global_residual_quality_hardening and not enable_global_solver_quality_hardening:
+        raise RuntimeError("--enable-global-residual-quality-hardening requires --enable-global-solver-quality-hardening")
     if artifact_root.resolve() == baseline_artifact_dir.resolve():
         raise RuntimeError("Step 3.3 artifact generation must not overwrite the Step 3.2 baseline artifact tree")
+    if enable_global_residual_quality_hardening and artifact_root.resolve() == DEFAULT_STEP3_3_ARTIFACT_ROOT.resolve():
+        raise RuntimeError("Step 3.4 artifact generation must not overwrite the closed Step 3.3 artifact tree")
     provenance_preflight = _provenance_preflight(artifact_root)
     if not provenance_preflight["source_worktree_clean_before_run"] and not allow_dirty_internal_rerun:
         dirty = provenance_preflight["git_status_short"]
@@ -163,11 +173,15 @@ def run_full_fleet_runtime_quality(
     profile_matrix, profile_summary = write_profile_resolution_artifacts(artifact_root=artifact_root, closures=closures)
     closure_by_model = {closure.model_id: closure for closure in closures}
 
+    if solver_smoke_task_order is None:
+        solver_smoke_task_order = tuple(TASKS) if enable_global_residual_quality_hardening else ("torso",)
+
     if enable_global_solver_quality_hardening:
         solver_smoke_config = SolverBackedSmokeConfig.global_quality_hardened(
             sample_count=solver_smoke_sample_count,
             max_nfev_per_task=solver_smoke_max_nfev_per_task,
             task_order=solver_smoke_task_order,
+            enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         )
     else:
         solver_smoke_config = SolverBackedSmokeConfig(
@@ -201,6 +215,7 @@ def run_full_fleet_runtime_quality(
         pipeline_backed,
         enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
+        enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
     )
     failure_matrix = _failure_matrix_payload(case_results)
     environment = _environment_payload(
@@ -213,16 +228,38 @@ def run_full_fleet_runtime_quality(
     solver_config = _solver_config_payload(
         solver_smoke_config,
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
+        enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
     )
     solver_diagnostics = _solver_diagnostics_matrix_payload(model_matrix, solver_smoke_matrix, solver_config)
-    quality_delta = _quality_delta_vs_step3_2_payload(
-        baseline_artifact_dir=baseline_artifact_dir,
-        current_artifact_dir=artifact_root,
-        model_matrix=model_matrix,
-        quality_summary=quality_summary,
-        solver_diagnostics=solver_diagnostics,
-        source_commit=environment["source_code_commit"],
+    task_coverage_matrix = _task_coverage_matrix_payload(model_matrix, solver_smoke_matrix, solver_diagnostics, solver_config)
+    anchor_reliability_matrix = _anchor_reliability_matrix_payload(model_matrix, solver_smoke_matrix, solver_diagnostics, solver_config)
+    residual_taxonomy = _residual_taxonomy_payload(
+        model_matrix,
+        solver_smoke_matrix,
+        solver_diagnostics,
+        task_coverage_matrix,
+        anchor_reliability_matrix,
     )
+    if enable_global_residual_quality_hardening:
+        quality_delta = _quality_delta_vs_step3_3_payload(
+            baseline_artifact_dir=baseline_artifact_dir,
+            current_artifact_dir=artifact_root,
+            model_matrix=model_matrix,
+            solver_smoke_matrix=solver_smoke_matrix,
+            quality_summary=quality_summary,
+            task_coverage_matrix=task_coverage_matrix,
+            anchor_reliability_matrix=anchor_reliability_matrix,
+            source_commit=environment["source_code_commit"],
+        )
+    else:
+        quality_delta = _quality_delta_vs_step3_2_payload(
+            baseline_artifact_dir=baseline_artifact_dir,
+            current_artifact_dir=artifact_root,
+            model_matrix=model_matrix,
+            quality_summary=quality_summary,
+            solver_diagnostics=solver_diagnostics,
+            source_commit=environment["source_code_commit"],
+        )
     deterministic = _deterministic_payload(
         model_matrix=model_matrix,
         profile_matrix=profile_matrix,
@@ -232,7 +269,11 @@ def run_full_fleet_runtime_quality(
         quality_summary=quality_summary,
         solver_config=solver_config,
         solver_diagnostics_matrix=solver_diagnostics,
-        quality_delta_vs_step3_2=quality_delta,
+        quality_delta_vs_step3_2=None if enable_global_residual_quality_hardening else quality_delta,
+        quality_delta_vs_step3_3=quality_delta if enable_global_residual_quality_hardening else None,
+        residual_taxonomy=residual_taxonomy if enable_global_residual_quality_hardening else None,
+        task_coverage_matrix=task_coverage_matrix if enable_global_residual_quality_hardening else None,
+        anchor_reliability_matrix=anchor_reliability_matrix if enable_global_residual_quality_hardening else None,
         enabled=deterministic_rerun,
     )
     verdict = "PASS" if _acceptance_passed(
@@ -243,6 +284,7 @@ def run_full_fleet_runtime_quality(
         environment,
         enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
+        enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         quality_delta=quality_delta,
     ) else "BLOCKED"
     acceptance_ledger = _acceptance_ledger_payload(
@@ -254,6 +296,7 @@ def run_full_fleet_runtime_quality(
         environment=environment,
         solver_config=solver_config,
         quality_delta=quality_delta,
+        quality_delta_key="quality_delta_vs_step3_3" if enable_global_residual_quality_hardening else "quality_delta_vs_step3_2",
     )
 
     write_json(artifact_root / "environment.json", environment)
@@ -264,7 +307,13 @@ def run_full_fleet_runtime_quality(
     write_json(artifact_root / "solver_smoke_matrix.json", solver_smoke_matrix)
     write_json(artifact_root / "solver_config.json", solver_config)
     write_json(artifact_root / "solver_diagnostics_matrix.json", solver_diagnostics)
-    write_json(artifact_root / "quality_delta_vs_step3_2.json", quality_delta)
+    if enable_global_residual_quality_hardening:
+        write_json(artifact_root / "quality_delta_vs_step3_3.json", quality_delta)
+        write_json(artifact_root / "residual_taxonomy.json", residual_taxonomy)
+        write_json(artifact_root / "task_coverage_matrix.json", task_coverage_matrix)
+        write_json(artifact_root / "anchor_reliability_matrix.json", anchor_reliability_matrix)
+    else:
+        write_json(artifact_root / "quality_delta_vs_step3_2.json", quality_delta)
     write_json(artifact_root / "pipeline_backed_matrix.json", pipeline_backed)
     write_json(artifact_root / "pipeline_controls.json", pipeline_controls)
     write_json(artifact_root / "quality_summary.json", quality_summary)
@@ -278,6 +327,7 @@ def run_full_fleet_runtime_quality(
         mid_max_frames,
         enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
+        enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         baseline_artifact_dir=baseline_artifact_dir,
         solver_smoke_config=solver_smoke_config,
     )
@@ -720,6 +770,7 @@ def _quality_summary_payload(
     *,
     enable_solver_backed_generic_smoke: bool = False,
     enable_global_solver_quality_hardening: bool = False,
+    enable_global_residual_quality_hardening: bool = False,
 ) -> dict[str, Any]:
     model_rows = [result.model_matrix_row(profile_resolution_status="", pipeline_backed_status="") for result in case_results]
     quality_evidence = [_case_quality_evidence(result) for result in case_results]
@@ -754,10 +805,24 @@ def _quality_summary_payload(
     residual_only_runtime_quality_passed_count = sum(
         1 for evidence in full_evidence if evidence["residual_only"] and evidence["final_status"] == "runtime_quality_passed"
     )
-    return {
+    full_quality_metrics = [
+        result.quality_metrics
+        for result in case_results
+        if result.case.category == FULL_HUMANOID_PROFILE
+    ]
+    task_coverage_values = [float(row.get("task_coverage_ratio", 0.0) or 0.0) for row in full_quality_metrics]
+    anchor_reliability_values = [float(row.get("anchor_reliability_score", 0.0) or 0.0) for row in full_quality_metrics]
+    raw_residual_distribution = _distribution(
+        [float(row.get("raw_task_residual_p95", row.get("task_residual_p95", 0.0)) or 0.0) for row in full_quality_metrics]
+    )
+    normalized_residual_distribution = _distribution(
+        [float(row.get("normalized_task_residual_p95", 0.0) or 0.0) for row in full_quality_metrics]
+    )
+    payload = {
         "schema_version": 1,
         "base_step3_1_1_final_head": BASE_STEP3_1_1_FINAL_HEAD if enable_solver_backed_generic_smoke else None,
         "base_step3_2_final_head": BASE_STEP3_2_FINAL_HEAD if enable_global_solver_quality_hardening else None,
+        "base_step3_3_final_head": BASE_STEP3_3_FINAL_HEAD if enable_global_residual_quality_hardening else None,
         "row_count": len(case_results),
         "in_scope_total": len(case_results),
         "matrix_row_count": len(case_results),
@@ -810,22 +875,47 @@ def _quality_summary_payload(
         "deterministic_compared_count": len(case_results),
         "deterministic_matched_count": len(case_results),
     }
+    if enable_global_residual_quality_hardening:
+        payload.update(
+            {
+                "task_coverage_mean": _stable_mean(task_coverage_values),
+                "task_coverage_min": _stable_min(task_coverage_values),
+                "anchor_reliability_mean": _stable_mean(anchor_reliability_values),
+                "anchor_reliability_min": _stable_min(anchor_reliability_values),
+                "median_task_residual_p95": raw_residual_distribution["median"],
+                "p95_task_residual_p95": raw_residual_distribution["p95"],
+                "max_task_residual_p95": raw_residual_distribution["max"],
+                "median_normalized_task_residual_p95": normalized_residual_distribution["median"],
+                "p95_normalized_task_residual_p95": normalized_residual_distribution["p95"],
+                "max_normalized_task_residual_p95": normalized_residual_distribution["max"],
+                "raw_residual_regression_count": 0,
+                "normalization_integrity_status": "legacy_row_max_recorded_raw_guarded",
+            }
+        )
+    return payload
 
 
 def _solver_config_payload(
     config: SolverBackedSmokeConfig,
     *,
     enable_global_solver_quality_hardening: bool,
+    enable_global_residual_quality_hardening: bool = False,
 ) -> dict[str, Any]:
     payload = config.to_json()
+    step = "step3_2_solver_backed_smoke"
+    if enable_global_solver_quality_hardening:
+        step = "step3_3_global_solver_quality"
+    if enable_global_residual_quality_hardening:
+        step = "step3_4_global_residual_quality"
     return {
         "schema_version": 1,
         "solver_type": "generic_chain_projection_least_squares_smoke",
-        "step": "step3_3_global_solver_quality" if enable_global_solver_quality_hardening else "step3_2_solver_backed_smoke",
+        "step": step,
         "enabled": bool(enable_global_solver_quality_hardening),
         "global_config": True,
         "robot_specific_tuning": False,
         "base_step3_2_final_head": BASE_STEP3_2_FINAL_HEAD if enable_global_solver_quality_hardening else None,
+        "base_step3_3_final_head": BASE_STEP3_3_FINAL_HEAD if enable_global_residual_quality_hardening else None,
         "solver_config_hash": config.config_hash(),
         "config": payload,
         "hardening_policy": {
@@ -837,6 +927,14 @@ def _solver_config_payload(
             "max_update_norm": payload["max_update_norm"],
             "joint_limit_projection": payload["project_joint_limits"],
             "task_order": payload["task_order"],
+        },
+        "global_residual_quality_policy": {
+            "enabled": bool(enable_global_residual_quality_hardening),
+            "task_coverage_policy": "configured_global_semantic_task_order",
+            "anchor_reliability_policy_version": payload.get("anchor_reliability_policy_version"),
+            "residual_normalization_policy": "legacy_row_max_recorded_with_raw_residual_guard",
+            "semantic_task_weights": "uniform_global",
+            "robot_specific_tuning": False,
         },
     }
 
@@ -879,8 +977,17 @@ def _solver_diagnostics_matrix_payload(
                 "frame_count": int(row.get("frame_count", 0) or 0),
                 "sampled_frame_indices": list(row.get("sampled_frame_indices", [])),
                 "normalized_task_residual_mean": float(row.get("normalized_task_residual_mean", 0.0) or 0.0),
+                "normalized_task_residual_p50": float(row.get("normalized_task_residual_p50", 0.0) or 0.0),
                 "normalized_task_residual_p95": float(row.get("normalized_task_residual_p95", 0.0) or 0.0),
                 "normalized_task_residual_max": float(row.get("normalized_task_residual_max", 0.0) or 0.0),
+                "task_residual_mean": float(row.get("task_residual_mean", row.get("raw_task_residual_mean", 0.0)) or 0.0),
+                "task_residual_p50": float(row.get("task_residual_p50", row.get("raw_task_residual_p50", 0.0)) or 0.0),
+                "task_residual_p95": float(row.get("task_residual_p95", row.get("raw_task_residual_p95", 0.0)) or 0.0),
+                "task_residual_max": float(row.get("task_residual_max", row.get("raw_task_residual_max", 0.0)) or 0.0),
+                "raw_task_residual_mean": float(row.get("raw_task_residual_mean", row.get("task_residual_mean", 0.0)) or 0.0),
+                "raw_task_residual_p50": float(row.get("raw_task_residual_p50", row.get("task_residual_p50", 0.0)) or 0.0),
+                "raw_task_residual_p95": float(row.get("raw_task_residual_p95", row.get("task_residual_p95", 0.0)) or 0.0),
+                "raw_task_residual_max": float(row.get("raw_task_residual_max", row.get("task_residual_max", 0.0)) or 0.0),
                 "target_translation_error_mean": float(row.get("target_translation_error_mean", 0.0) or 0.0),
                 "target_translation_error_p95": float(row.get("target_translation_error_p95", 0.0) or 0.0),
                 "target_translation_error_max": float(row.get("target_translation_error_max", 0.0) or 0.0),
@@ -901,6 +1008,20 @@ def _solver_diagnostics_matrix_payload(
                 "projection_residual_worsened_count": int(metrics.get("projection_residual_worsened_count", 0) or 0),
                 "output_nan_count": int(row.get("output_nan_count", metrics.get("nan_count", 0)) or 0),
                 "output_inf_count": int(row.get("output_inf_count", metrics.get("inf_count", 0)) or 0),
+                "task_anchor_count": int(row.get("task_anchor_count", metrics.get("task_anchor_count", 0)) or 0),
+                "task_anchor_semantic_counts": dict(row.get("task_anchor_semantic_counts", metrics.get("task_anchor_semantic_counts", {}))),
+                "task_coverage_ratio": float(row.get("task_coverage_ratio", metrics.get("task_coverage_ratio", 0.0)) or 0.0),
+                "successful_task_coverage_ratio": float(row.get("successful_task_coverage_ratio", metrics.get("successful_task_coverage_ratio", 0.0)) or 0.0),
+                "anchor_reliability_score": float(row.get("anchor_reliability_score", metrics.get("anchor_reliability_score", 0.0)) or 0.0),
+                "anchor_rejection_reasons": list(row.get("anchor_rejection_reasons", metrics.get("anchor_rejection_reasons", []))),
+                "residual_normalization_version": str(metrics.get("residual_normalization_version", "")),
+                "residual_normalization_formula": str(metrics.get("residual_normalization_formula", "")),
+                "residual_denominator": float(metrics.get("residual_denominator", 0.0) or 0.0),
+                "residual_denominator_source": str(metrics.get("residual_denominator_source", "")),
+                "residual_denominator_scope": str(metrics.get("residual_denominator_scope", "")),
+                "residual_denominator_units": str(metrics.get("residual_denominator_units", "")),
+                "residual_denominator_robot_specific": bool(metrics.get("residual_denominator_robot_specific", False)),
+                "residual_denominator_from_current_row_max": bool(metrics.get("residual_denominator_from_current_row_max", False)),
                 "runtime_seconds": float(row.get("runtime_seconds", metrics.get("runtime_seconds", 0.0)) or 0.0),
                 "warning_reasons": list(row.get("runtime_quality_warning_reasons", row.get("failure_or_warning_reasons", []))),
                 "failure_reasons": list(row.get("failure_reasons", [])),
@@ -1006,6 +1127,357 @@ def _quality_delta_vs_step3_2_payload(
     }
 
 
+def _task_coverage_matrix_payload(
+    model_matrix: dict[str, Any],
+    solver_smoke_matrix: dict[str, Any],
+    solver_diagnostics: dict[str, Any],
+    solver_config: dict[str, Any],
+) -> dict[str, Any]:
+    solver_rows = {
+        str(row.get("model_id")): row
+        for row in solver_smoke_matrix.get("rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    diagnostic_rows = {
+        str(row.get("model_id")): row
+        for row in solver_diagnostics.get("rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    rows: list[dict[str, Any]] = []
+    for row in model_matrix.get("rows", []):
+        if not isinstance(row, dict) or row.get("category") != FULL_HUMANOID_PROFILE:
+            continue
+        model_id = str(row.get("model_id"))
+        solver_row = solver_rows.get(model_id, {})
+        diagnostic_row = diagnostic_rows.get(model_id, {})
+        smoke_summary = solver_row.get("smoke_summary") if isinstance(solver_row.get("smoke_summary"), dict) else {}
+        residuals = smoke_summary.get("residuals") if isinstance(smoke_summary.get("residuals"), dict) else {}
+        coverage = residuals.get("task_coverage") if isinstance(residuals.get("task_coverage"), dict) else {}
+        summary = coverage.get("summary") if isinstance(coverage.get("summary"), dict) else {}
+        rows.append(
+            {
+                "model_id": model_id,
+                "category": row.get("category"),
+                "runtime_quality_status": row.get("runtime_quality_status"),
+                "solver_config_hash": solver_config.get("solver_config_hash"),
+                "configured_task_order": list(coverage.get("configured_task_order", solver_config.get("config", {}).get("task_order", []))),
+                "global_task_universe": list(coverage.get("global_task_universe", list(TASKS))),
+                "task_rows": list(coverage.get("rows", [])),
+                "task_anchor_count": int(row.get("task_anchor_count", summary.get("task_anchor_count", 0)) or 0),
+                "task_anchor_semantic_counts": dict(row.get("task_anchor_semantic_counts", summary.get("task_anchor_semantic_counts", {}))),
+                "task_coverage_ratio": float(row.get("task_coverage_ratio", summary.get("task_coverage_ratio", 0.0)) or 0.0),
+                "successful_task_coverage_ratio": float(row.get("successful_task_coverage_ratio", summary.get("successful_task_coverage_ratio", 0.0)) or 0.0),
+                "available_task_count": int(summary.get("available_task_count", diagnostic_row.get("available_task_count", 0)) or 0),
+                "attempted_task_count": int(summary.get("attempted_task_count", diagnostic_row.get("attempted_task_count", 0)) or 0),
+                "successful_task_count": int(summary.get("successful_task_count", diagnostic_row.get("successful_task_count", 0)) or 0),
+                "warning_reasons": list(row.get("runtime_quality_warning_reasons", row.get("failure_or_warning_reasons", []))),
+            }
+        )
+    values = [float(row.get("task_coverage_ratio", 0.0) or 0.0) for row in rows]
+    successful_values = [float(row.get("successful_task_coverage_ratio", 0.0) or 0.0) for row in rows]
+    return {
+        "schema_version": 1,
+        "solver_config_hash": solver_config.get("solver_config_hash"),
+        "row_count": len(rows),
+        "rows": rows,
+        "summary": {
+            "task_coverage_mean": _stable_mean(values),
+            "task_coverage_min": _stable_min(values),
+            "successful_task_coverage_mean": _stable_mean(successful_values),
+            "successful_task_coverage_min": _stable_min(successful_values),
+            "global_task_universe": list(TASKS),
+        },
+    }
+
+
+def _anchor_reliability_matrix_payload(
+    model_matrix: dict[str, Any],
+    solver_smoke_matrix: dict[str, Any],
+    solver_diagnostics: dict[str, Any],
+    solver_config: dict[str, Any],
+) -> dict[str, Any]:
+    del solver_diagnostics
+    solver_rows = {
+        str(row.get("model_id")): row
+        for row in solver_smoke_matrix.get("rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    rows: list[dict[str, Any]] = []
+    model_rows: list[dict[str, Any]] = []
+    for row in model_matrix.get("rows", []):
+        if not isinstance(row, dict) or row.get("category") != FULL_HUMANOID_PROFILE:
+            continue
+        model_id = str(row.get("model_id"))
+        solver_row = solver_rows.get(model_id, {})
+        smoke_summary = solver_row.get("smoke_summary") if isinstance(solver_row.get("smoke_summary"), dict) else {}
+        residuals = smoke_summary.get("residuals") if isinstance(smoke_summary.get("residuals"), dict) else {}
+        reliability = residuals.get("anchor_reliability") if isinstance(residuals.get("anchor_reliability"), dict) else {}
+        summary = reliability.get("summary") if isinstance(reliability.get("summary"), dict) else {}
+        score = float(row.get("anchor_reliability_score", summary.get("anchor_reliability_score", 0.0)) or 0.0)
+        model_rows.append(
+            {
+                "model_id": model_id,
+                "category": row.get("category"),
+                "runtime_quality_status": row.get("runtime_quality_status"),
+                "solver_config_hash": solver_config.get("solver_config_hash"),
+                "anchor_reliability_score": score,
+                "anchor_accepted_count": int(summary.get("accepted_anchor_count", row.get("anchor_accepted_count", 0)) or 0),
+                "anchor_rejected_count": int(summary.get("rejected_anchor_count", row.get("anchor_rejected_count", 0)) or 0),
+                "anchor_rejection_reasons": list(row.get("anchor_rejection_reasons", summary.get("rejection_reasons", []))),
+            }
+        )
+        for anchor in reliability.get("rows", []):
+            if not isinstance(anchor, dict):
+                continue
+            rows.append(
+                {
+                    "model_id": model_id,
+                    "category": row.get("category"),
+                    "solver_config_hash": solver_config.get("solver_config_hash"),
+                    **anchor,
+                }
+            )
+    scores = [float(row.get("anchor_reliability_score", 0.0) or 0.0) for row in model_rows]
+    return {
+        "schema_version": 1,
+        "solver_config_hash": solver_config.get("solver_config_hash"),
+        "row_count": len(model_rows),
+        "anchor_row_count": len(rows),
+        "model_rows": model_rows,
+        "rows": rows,
+        "summary": {
+            "anchor_reliability_mean": _stable_mean(scores),
+            "anchor_reliability_min": _stable_min(scores),
+            "anchor_rejection_rate": _stable_mean(
+                [1.0 - float(row.get("anchor_reliability_score", 0.0) or 0.0) for row in model_rows]
+            ),
+        },
+    }
+
+
+def _residual_taxonomy_payload(
+    model_matrix: dict[str, Any],
+    solver_smoke_matrix: dict[str, Any],
+    solver_diagnostics: dict[str, Any],
+    task_coverage_matrix: dict[str, Any],
+    anchor_reliability_matrix: dict[str, Any],
+) -> dict[str, Any]:
+    solver_rows = {
+        str(row.get("model_id")): row
+        for row in solver_smoke_matrix.get("rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    diagnostics = {
+        str(row.get("model_id")): row
+        for row in solver_diagnostics.get("rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    coverage = {
+        str(row.get("model_id")): row
+        for row in task_coverage_matrix.get("rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    reliability = {
+        str(row.get("model_id")): row
+        for row in anchor_reliability_matrix.get("model_rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    rows: list[dict[str, Any]] = []
+    bucket_counts: Counter[str] = Counter()
+    for row in model_matrix.get("rows", []):
+        if not isinstance(row, dict) or row.get("category") != FULL_HUMANOID_PROFILE:
+            continue
+        model_id = str(row.get("model_id"))
+        solver_row = solver_rows.get(model_id, {})
+        metrics = solver_row.get("metrics") if isinstance(solver_row.get("metrics"), dict) else {}
+        diagnostic = diagnostics.get(model_id, {})
+        coverage_row = coverage.get(model_id, {})
+        reliability_row = reliability.get(model_id, {})
+        per_semantic = _first_per_semantic(diagnostic)
+        dominant_semantic, dominant_component = _dominant_residual(per_semantic)
+        warning_reasons = list(row.get("runtime_quality_warning_reasons", row.get("failure_or_warning_reasons", [])))
+        buckets: list[str] = []
+        if float(coverage_row.get("task_coverage_ratio", row.get("task_coverage_ratio", 0.0)) or 0.0) < 1.0:
+            buckets.append("task_coverage_too_narrow")
+        if float(reliability_row.get("anchor_reliability_score", row.get("anchor_reliability_score", 0.0)) or 0.0) < 1.0:
+            buckets.append("anchor_unavailable_or_unreliable")
+        if dominant_component == "rotation":
+            buckets.append("rotation_residual_dominates")
+        elif dominant_component == "translation":
+            buckets.append("translation_residual_dominates")
+        if float(row.get("normalized_task_residual_p95", 0.0) or 0.0) > GLOBAL_RUNTIME_QUALITY_GATES.normalized_task_residual_p95_warn:
+            buckets.append("residual_normalization_scale_issue")
+        if float(row.get("solver_success_fraction", metrics.get("solver_success_fraction", 1.0)) or 0.0) < 1.0:
+            buckets.append("solver_converged_but_task_underconstrained")
+        if not buckets:
+            buckets.append("high_residual_without_specific_blocker")
+        bucket_counts.update(buckets)
+        rows.append(
+            {
+                "model_id": model_id,
+                "runtime_quality_status": row.get("runtime_quality_status"),
+                "warning_reasons": warning_reasons,
+                "blocker_buckets": buckets,
+                "dominant_residual_semantic": dominant_semantic,
+                "dominant_residual_component": dominant_component,
+                "normalized_task_residual_p95": float(row.get("normalized_task_residual_p95", 0.0) or 0.0),
+                "raw_task_residual_p95": float(row.get("raw_task_residual_p95", row.get("task_residual_p95", 0.0)) or 0.0),
+                "target_translation_error_p95": float(row.get("target_translation_error_p95", 0.0) or 0.0),
+                "target_rotation_error_p95": float(row.get("target_rotation_error_p95", 0.0) or 0.0),
+                "task_coverage_ratio": float(coverage_row.get("task_coverage_ratio", row.get("task_coverage_ratio", 0.0)) or 0.0),
+                "anchor_reliability_score": float(reliability_row.get("anchor_reliability_score", row.get("anchor_reliability_score", 0.0)) or 0.0),
+                "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+            }
+        )
+    return {
+        "schema_version": 1,
+        "row_count": len(rows),
+        "rows": rows,
+        "aggregate_buckets": dict(sorted(bucket_counts.items())),
+        "attempted_global_improvements": [
+            "global_multi_anchor_task_order",
+            "anchor_reliability_evidence",
+            "raw_vs_normalized_residual_audit",
+        ],
+        "robot_specific_tuning_used": False,
+        "recommended_next_direction": "inspect remaining rotation-dominant residuals with global orientation tasks before any Step 3.5 work",
+    }
+
+
+def _quality_delta_vs_step3_3_payload(
+    *,
+    baseline_artifact_dir: Path,
+    current_artifact_dir: Path,
+    model_matrix: dict[str, Any],
+    solver_smoke_matrix: dict[str, Any],
+    quality_summary: dict[str, Any],
+    task_coverage_matrix: dict[str, Any],
+    anchor_reliability_matrix: dict[str, Any],
+    source_commit: str,
+) -> dict[str, Any]:
+    baseline_artifact_dir = Path(baseline_artifact_dir)
+    baseline_summary = _read_json_or_empty(baseline_artifact_dir / "quality_summary.json")
+    baseline_model = _read_json_or_empty(baseline_artifact_dir / "model_matrix.json")
+    baseline_solver = _read_json_or_empty(baseline_artifact_dir / "solver_smoke_matrix.json")
+    baseline_counts = _delta_counts(baseline_summary)
+    current_counts = _delta_counts(quality_summary)
+    count_deltas = {
+        key: int(current_counts.get(key, 0) or 0) - int(baseline_counts.get(key, 0) or 0)
+        for key in sorted(set(baseline_counts) | set(current_counts))
+    }
+    baseline_rows = _full_rows_with_solver_metrics(baseline_model, baseline_solver)
+    current_rows = _full_rows_with_solver_metrics(model_matrix, solver_smoke_matrix)
+    metric_distribution_deltas = {
+        field: _distribution_delta(baseline_rows, current_rows, field)
+        for field in (
+            "normalized_task_residual_p95",
+            "normalized_task_residual_max",
+            "raw_task_residual_p95",
+            "raw_task_residual_max",
+            "task_residual_p95",
+            "task_residual_max",
+        )
+    }
+    baseline_task_coverage = _infer_baseline_task_coverage(baseline_solver)
+    current_task_coverage = task_coverage_matrix.get("summary", {})
+    task_coverage_deltas = {
+        "baseline": baseline_task_coverage,
+        "current": {
+            "task_coverage_mean": float(current_task_coverage.get("task_coverage_mean", 0.0) or 0.0),
+            "task_coverage_min": float(current_task_coverage.get("task_coverage_min", 0.0) or 0.0),
+        },
+        "delta": {
+            "task_coverage_mean": float(current_task_coverage.get("task_coverage_mean", 0.0) or 0.0)
+            - baseline_task_coverage["task_coverage_mean"],
+            "task_coverage_min": float(current_task_coverage.get("task_coverage_min", 0.0) or 0.0)
+            - baseline_task_coverage["task_coverage_min"],
+        },
+    }
+    anchor_summary = anchor_reliability_matrix.get("summary", {})
+    anchor_reliability_deltas = {
+        "baseline": {"evidence_available": False},
+        "current": {
+            "anchor_reliability_mean": float(anchor_summary.get("anchor_reliability_mean", 0.0) or 0.0),
+            "anchor_reliability_min": float(anchor_summary.get("anchor_reliability_min", 0.0) or 0.0),
+        },
+        "delta": {"anchor_reliability_mean": None, "anchor_reliability_min": None},
+    }
+    baseline_by_model = {str(row.get("model_id")): row for row in baseline_rows}
+    raw_regression_count = 0
+    per_model_rows = []
+    for current in current_rows:
+        model_id = str(current.get("model_id"))
+        baseline = baseline_by_model.get(model_id, {})
+        raw_delta = _metric_delta(baseline, current, "raw_task_residual_p95")
+        normalized_delta = _metric_delta(baseline, current, "normalized_task_residual_p95")
+        if raw_delta > 1e-9:
+            raw_regression_count += 1
+        per_model_rows.append(
+            {
+                "model_id": model_id,
+                "baseline_runtime_quality_status": baseline.get("runtime_quality_status"),
+                "current_runtime_quality_status": current.get("runtime_quality_status"),
+                "baseline_warning_reasons": list(baseline.get("runtime_quality_warning_reasons", baseline.get("failure_or_warning_reasons", []))),
+                "current_warning_reasons": list(current.get("runtime_quality_warning_reasons", current.get("failure_or_warning_reasons", []))),
+                "raw_task_residual_p95_delta": raw_delta,
+                "normalized_task_residual_p95_delta": normalized_delta,
+                "task_coverage_ratio": current.get("task_coverage_ratio"),
+                "anchor_reliability_score": current.get("anchor_reliability_score"),
+            }
+        )
+    regressions = _step3_4_regressions(baseline_counts, current_counts)
+    improvements = []
+    if count_deltas.get("high_residual_warning_count", 0) < 0:
+        improvements.append("high_residual_warning_count_reduced")
+    for field, label in (
+        ("normalized_task_residual_p95", "normalized_task_residual_p95_distribution_improved"),
+        ("raw_task_residual_p95", "raw_task_residual_p95_distribution_improved"),
+        ("task_residual_p95", "task_residual_p95_distribution_improved"),
+    ):
+        delta = metric_distribution_deltas[field]["delta"]
+        if any(float(delta[key]) < 0.0 for key in ("median", "p95", "max")):
+            improvements.append(label)
+    if task_coverage_deltas["delta"]["task_coverage_mean"] > 0.0:
+        improvements.append("task_coverage_mean_increased")
+    residual_improved = bool(
+        count_deltas.get("high_residual_warning_count", 0) < 0
+        or any(name.endswith("_distribution_improved") for name in improvements)
+    )
+    normalization_hides_raw_regression = bool(
+        raw_regression_count > 0
+        and any(
+            metric_distribution_deltas[field]["delta"]["median"] < 0.0
+            for field in ("normalized_task_residual_p95",)
+        )
+    )
+    if normalization_hides_raw_regression:
+        regressions.append({"field": "normalization_integrity", "reason": "normalized improvement hides raw residual regression"})
+    verdict = "PASS" if not regressions and residual_improved else "BLOCKED"
+    return {
+        "schema_version": 1,
+        "baseline_artifact_dir": display_path(baseline_artifact_dir) or str(baseline_artifact_dir),
+        "current_artifact_dir": display_path(current_artifact_dir) or str(current_artifact_dir),
+        "baseline_final_head": BASE_STEP3_3_FINAL_HEAD,
+        "current_source_commit": source_commit,
+        "baseline_counts": baseline_counts,
+        "current_counts": current_counts,
+        "count_deltas": count_deltas,
+        "metric_distribution_deltas": metric_distribution_deltas,
+        "task_coverage_deltas": task_coverage_deltas,
+        "anchor_reliability_deltas": anchor_reliability_deltas,
+        "raw_vs_normalized_residual_deltas": {
+            "raw_task_residual_p95": metric_distribution_deltas["raw_task_residual_p95"],
+            "normalized_task_residual_p95": metric_distribution_deltas["normalized_task_residual_p95"],
+            "raw_residual_regression_count": raw_regression_count,
+            "normalization_hides_raw_regression": normalization_hides_raw_regression,
+        },
+        "per_model_deltas": per_model_rows,
+        "regressions": regressions,
+        "improvements": sorted(set(improvements)),
+        "verdict": verdict,
+    }
+
+
 def _delta_counts(summary: dict[str, Any]) -> dict[str, int]:
     final_counts = summary.get("final_status_counts") if isinstance(summary.get("final_status_counts"), dict) else {}
     keys = (
@@ -1062,6 +1534,111 @@ def _distribution(values: list[float]) -> dict[str, float]:
 
 def _metric_delta(baseline: dict[str, Any], current: dict[str, Any], field: str) -> float:
     return float(current.get(field, 0.0) or 0.0) - float(baseline.get(field, 0.0) or 0.0)
+
+
+def _stable_mean(values: list[float]) -> float:
+    arr = np.asarray(values, dtype=np.float64)
+    arr = arr[np.isfinite(arr)]
+    return round(float(np.mean(arr)), 12) if arr.size else 0.0
+
+
+def _stable_min(values: list[float]) -> float:
+    arr = np.asarray(values, dtype=np.float64)
+    arr = arr[np.isfinite(arr)]
+    return round(float(np.min(arr)), 12) if arr.size else 0.0
+
+
+def _full_rows_with_solver_metrics(model_matrix: dict[str, Any], solver_smoke_matrix: dict[str, Any]) -> list[dict[str, Any]]:
+    solver_rows = {
+        str(row.get("model_id")): row
+        for row in solver_smoke_matrix.get("rows", [])
+        if isinstance(row, dict) and row.get("model_id")
+    }
+    rows: list[dict[str, Any]] = []
+    for row in model_matrix.get("rows", []):
+        if not isinstance(row, dict) or row.get("category") != FULL_HUMANOID_PROFILE:
+            continue
+        merged = dict(row)
+        metrics = solver_rows.get(str(row.get("model_id")), {}).get("metrics", {})
+        if isinstance(metrics, dict):
+            for key, value in metrics.items():
+                merged.setdefault(key, value)
+            merged.setdefault("raw_task_residual_mean", metrics.get("raw_task_residual_mean", metrics.get("task_residual_mean", 0.0)))
+            merged.setdefault("raw_task_residual_p50", metrics.get("raw_task_residual_p50", metrics.get("task_residual_p50", 0.0)))
+            merged.setdefault("raw_task_residual_p95", metrics.get("raw_task_residual_p95", metrics.get("task_residual_p95", 0.0)))
+            merged.setdefault("raw_task_residual_max", metrics.get("raw_task_residual_max", metrics.get("task_residual_max", 0.0)))
+            merged.setdefault("task_residual_p95", metrics.get("task_residual_p95", 0.0))
+            merged.setdefault("task_residual_max", metrics.get("task_residual_max", 0.0))
+        rows.append(merged)
+    return rows
+
+
+def _infer_baseline_task_coverage(baseline_solver_smoke: dict[str, Any]) -> dict[str, float]:
+    ratios: list[float] = []
+    denominator = max(1, len(TASKS))
+    for row in baseline_solver_smoke.get("rows", []):
+        if not isinstance(row, dict) or row.get("category") != FULL_HUMANOID_PROFILE:
+            continue
+        metrics = row.get("metrics") if isinstance(row.get("metrics"), dict) else {}
+        task_count = int(metrics.get("solver_task_count", 0) or 0)
+        ratios.append(float(task_count / denominator))
+    return {
+        "task_coverage_mean": _stable_mean(ratios),
+        "task_coverage_min": _stable_min(ratios),
+        "baseline_source": "inferred_from_step3_3_solver_task_count",
+    }
+
+
+def _step3_4_regressions(baseline_counts: dict[str, int], current_counts: dict[str, int]) -> list[dict[str, Any]]:
+    regressions: list[dict[str, Any]] = []
+    preserved = (
+        "in_scope_total",
+        "full_humanoid_total",
+        "partial_total",
+        "negative_total",
+        "solver_backed_smoke_attempted_count",
+        "solver_backed_completed_count",
+        "solver_backed_count",
+        "partial_runtime_passed_count",
+        "negative_control_runtime_passed_count",
+        "deterministic_compared_count",
+        "deterministic_matched_count",
+    )
+    for field in preserved:
+        if current_counts.get(field) != baseline_counts.get(field):
+            regressions.append({"field": field, "baseline": baseline_counts.get(field), "current": current_counts.get(field)})
+    if current_counts.get("residual_only_count") != 0:
+        regressions.append({"field": "residual_only_count", "current": current_counts.get("residual_only_count"), "expected": 0})
+    if current_counts.get("runtime_quality_failed_count") != 0:
+        regressions.append({"field": "runtime_quality_failed_count", "current": current_counts.get("runtime_quality_failed_count"), "expected": 0})
+    return regressions
+
+
+def _first_per_semantic(diagnostic: dict[str, Any]) -> dict[str, Any]:
+    task_diagnostics = diagnostic.get("task_diagnostics")
+    if not isinstance(task_diagnostics, list):
+        return {}
+    for item in task_diagnostics:
+        if isinstance(item, dict) and isinstance(item.get("per_semantic"), dict):
+            return item["per_semantic"]
+    return {}
+
+
+def _dominant_residual(per_semantic: dict[str, Any]) -> tuple[str | None, str | None]:
+    dominant_semantic = None
+    dominant_value = -1.0
+    dominant_component = None
+    for semantic, metrics in per_semantic.items():
+        if not isinstance(metrics, dict):
+            continue
+        combined = float(metrics.get("combined_residual", 0.0) or 0.0)
+        if combined > dominant_value:
+            dominant_value = combined
+            dominant_semantic = str(semantic)
+            translation = float(metrics.get("translation_residual", 0.0) or 0.0)
+            rotation = float(metrics.get("rotation_residual", 0.0) or 0.0)
+            dominant_component = "rotation" if rotation >= translation else "translation"
+    return dominant_semantic, dominant_component
 
 
 def _read_json_or_empty(path: Path) -> dict[str, Any]:
@@ -1155,6 +1732,10 @@ def _deterministic_payload(
     solver_config: dict[str, Any] | None = None,
     solver_diagnostics_matrix: dict[str, Any] | None = None,
     quality_delta_vs_step3_2: dict[str, Any] | None = None,
+    quality_delta_vs_step3_3: dict[str, Any] | None = None,
+    residual_taxonomy: dict[str, Any] | None = None,
+    task_coverage_matrix: dict[str, Any] | None = None,
+    anchor_reliability_matrix: dict[str, Any] | None = None,
     enabled: bool,
 ) -> dict[str, Any]:
     quality_summary = quality_summary or {}
@@ -1168,6 +1749,10 @@ def _deterministic_payload(
         "solver_config": solver_config or {},
         "solver_diagnostics_matrix": solver_diagnostics_matrix or {},
         "quality_delta_vs_step3_2": quality_delta_vs_step3_2 or {},
+        "quality_delta_vs_step3_3": quality_delta_vs_step3_3 or {},
+        "residual_taxonomy": residual_taxonomy or {},
+        "task_coverage_matrix": task_coverage_matrix or {},
+        "anchor_reliability_matrix": anchor_reliability_matrix or {},
     }
     digest = deterministic_hash(_strip_volatile_runtime_fields(payload))
     return {
@@ -1194,13 +1779,15 @@ def _acceptance_ledger_payload(
     environment: dict[str, Any],
     solver_config: dict[str, Any] | None = None,
     quality_delta: dict[str, Any] | None = None,
+    quality_delta_key: str = "quality_delta_vs_step3_2",
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "schema_version": 1,
         "verdict": verdict,
         "status": verdict,
         "base_step3_1_1_final_head": quality_summary.get("base_step3_1_1_final_head"),
         "base_step3_2_final_head": quality_summary.get("base_step3_2_final_head"),
+        "base_step3_3_final_head": quality_summary.get("base_step3_3_final_head"),
         "matrix_row_count": model_matrix["in_scope_total"],
         "status_counts": quality_summary["status_counts"],
         "final_status_counts": quality_summary["final_status_counts"],
@@ -1220,7 +1807,6 @@ def _acceptance_ledger_payload(
         "partial_runtime_passed_count": quality_summary.get("partial_runtime_passed_count", 0),
         "negative_control_runtime_passed_count": quality_summary.get("negative_control_runtime_passed_count", 0),
         "solver_config_hash": (solver_config or {}).get("solver_config_hash"),
-        "quality_delta_vs_step3_2": quality_delta or {},
         "clean_provenance": _clean_provenance_fields(environment),
         "quality_summary": quality_summary,
         "failure_count": failure_matrix["failure_count"],
@@ -1232,6 +1818,8 @@ def _acceptance_ledger_payload(
             "command": "PYTHONPATH=. python -m pytest -q",
         },
     }
+    payload[quality_delta_key] = quality_delta or {}
+    return payload
 
 
 def _strip_volatile_runtime_fields(value: Any) -> Any:
@@ -1255,6 +1843,7 @@ def _acceptance_passed(
     *,
     enable_solver_backed_generic_smoke: bool = False,
     enable_global_solver_quality_hardening: bool = False,
+    enable_global_residual_quality_hardening: bool = False,
     quality_delta: dict[str, Any] | None = None,
 ) -> bool:
     if model_matrix["in_scope_total"] != 44:
@@ -1289,6 +1878,20 @@ def _acceptance_passed(
         if int(quality_summary.get("residual_only_count", 0) or 0) != 0:
             return False
         if int(quality_summary.get("runtime_quality_failed_count", 0) or 0) >= 9:
+            return False
+        if quality_delta.get("verdict") != "PASS":
+            return False
+    if enable_global_residual_quality_hardening:
+        quality_delta = quality_delta or {}
+        if quality_summary.get("base_step3_3_final_head") != BASE_STEP3_3_FINAL_HEAD:
+            return False
+        if int(quality_summary.get("runtime_quality_failed_count", 0) or 0) != 0:
+            return False
+        if int(quality_summary.get("solver_backed_completed_count", 0) or 0) != 32:
+            return False
+        if int(quality_summary.get("solver_backed_count", 0) or 0) != 32:
+            return False
+        if int(quality_summary.get("residual_only_count", 0) or 0) != 0:
             return False
         if quality_delta.get("verdict") != "PASS":
             return False
@@ -1494,6 +2097,7 @@ def _write_commands(
     *,
     enable_solver_backed_generic_smoke: bool = False,
     enable_global_solver_quality_hardening: bool = False,
+    enable_global_residual_quality_hardening: bool = False,
     baseline_artifact_dir: Path = DEFAULT_STEP3_2_ARTIFACT_ROOT,
     solver_smoke_config: SolverBackedSmokeConfig | None = None,
 ) -> None:
@@ -1539,6 +2143,8 @@ def _write_commands(
         )
     if enable_global_solver_quality_hardening:
         command.append("--enable-global-solver-quality-hardening")
+    if enable_global_residual_quality_hardening:
+        command.append("--enable-global-residual-quality-hardening")
     (artifact_root / "commands.txt").write_text(" ".join(command) + "\n", encoding="utf-8")
 
 

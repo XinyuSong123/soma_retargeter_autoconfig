@@ -108,8 +108,13 @@ def smoke_output_metrics(
     acceleration = np.diff(velocity, axis=0) if velocity.shape[0] > 1 else np.zeros((0, q.shape[1]))
     joint_limits = joint_limit_metrics(q, coordinate_info)
     residual_summary = summarize(residual_arr)
-    normalized = residual_arr / max(1.0, float(np.nanmax(residual_arr)) if residual_arr.size else 1.0)
+    finite_residual = residual_arr[np.isfinite(residual_arr)]
+    residual_p50 = _stable(float(np.percentile(finite_residual, 50))) if finite_residual.size else 0.0
+    residual_denominator = max(1.0, float(np.nanmax(residual_arr)) if residual_arr.size else 1.0)
+    normalized = residual_arr / residual_denominator
     normalized_summary = summarize(normalized)
+    finite_normalized = normalized[np.isfinite(normalized)]
+    normalized_p50 = _stable(float(np.percentile(finite_normalized, 50))) if finite_normalized.size else 0.0
     iterations = np.asarray(solver_iterations if solver_iterations is not None else np.zeros(q.shape[0]), dtype=np.float64)
     iter_summary = summarize(iterations)
     return {
@@ -127,11 +132,25 @@ def smoke_output_metrics(
         "joint_acceleration_p95": summarize(np.abs(acceleration)).p95,
         "joint_acceleration_max": summarize(np.abs(acceleration)).max,
         "task_residual_mean": residual_summary.mean,
+        "task_residual_p50": residual_p50,
         "task_residual_p95": residual_summary.p95,
         "task_residual_max": residual_summary.max,
+        "raw_task_residual_mean": residual_summary.mean,
+        "raw_task_residual_p50": residual_p50,
+        "raw_task_residual_p95": residual_summary.p95,
+        "raw_task_residual_max": residual_summary.max,
         "normalized_task_residual_mean": normalized_summary.mean,
+        "normalized_task_residual_p50": normalized_p50,
         "normalized_task_residual_p95": normalized_summary.p95,
         "normalized_task_residual_max": normalized_summary.max,
+        "residual_normalization_version": "legacy_row_max_v1",
+        "residual_normalization_formula": "residual / max(1.0, row_raw_residual_max)",
+        "residual_denominator": _stable(float(residual_denominator)),
+        "residual_denominator_source": "current_row_raw_residual_max_with_global_floor_1",
+        "residual_denominator_scope": "row_local_legacy_metric",
+        "residual_denominator_units": "translation_meters_plus_rotation_radians",
+        "residual_denominator_robot_specific": False,
+        "residual_denominator_from_current_row_max": True,
         "solver_success_fraction": 1.0 if nan_count == 0 and inf_count == 0 else 0.0,
         "solver_iteration_mean": iter_summary.mean,
         "solver_iteration_p95": iter_summary.p95,
