@@ -133,7 +133,21 @@ jobs:
           assert summary["runtime_quality_failed_count"] == 0
           assert len(model["rows"]) == 44
           assert len(full["rows"]) == 44
-          assert len(solver["rows"]) == 32
+          solver_full_models = {
+              row["model_id"]
+              for row in solver["rows"]
+              if row.get("category") == "full_humanoid_profile"
+          }
+          solver_completed_models = {
+              row["model_id"]
+              for row in solver["rows"]
+              if row.get("category") == "full_humanoid_profile"
+              and row.get("solver_backed") is True
+              and row.get("solver_backed_smoke_completed") is True
+          }
+          assert len(solver["rows"]) >= 32
+          assert len(solver_full_models) == 32
+          assert len(solver_completed_models) == 32
           PY
 
   step4-export-and-trajectory-smoke:
