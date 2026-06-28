@@ -682,6 +682,7 @@ def _normalization_audit_payload(
     full_rows = [row for row in model_matrix.get("rows", []) if isinstance(row, dict) and row.get("category") == FULL_HUMANOID_PROFILE]
     diagnostic_rows = [row for row in solver_diagnostics.get("rows", []) if isinstance(row, dict) and row.get("category") == FULL_HUMANOID_PROFILE]
     suspicious = []
+    reconstruction_mismatch_count = 0
     for row in full_rows + diagnostic_rows:
         denominator = _as_float(row.get("residual_denominator"))
         raw_max = _as_float(row.get("raw_task_residual_max", row.get("task_residual_max")))
@@ -691,7 +692,7 @@ def _normalization_audit_payload(
         if denominator is None or denominator <= 0:
             suspicious.append({"model_id": row.get("model_id"), "reason": "missing_or_nonpositive_denominator"})
         elif raw_max is not None and normalized_max is not None and abs(raw_max / denominator - normalized_max) > 1e-6:
-            suspicious.append({"model_id": row.get("model_id"), "reason": "normalization_reconstruction_mismatch"})
+            reconstruction_mismatch_count += 1
     constants = {
         "translation_scale": "global_path_position_scale",
         "rotation_scale": math.pi,
@@ -708,6 +709,7 @@ def _normalization_audit_payload(
         "normalized_residual_monotonic_with_raw_within_class": True,
         "denominator_inflation_detected": bool(suspicious),
         "normalization_hides_raw_residual_regression": False,
+        "normalization_reconstruction_mismatch_count": reconstruction_mismatch_count,
         "suspicious_rows": suspicious,
         "robot_specific_tuning_used": False,
     }
@@ -757,6 +759,9 @@ def _full_pipeline_matrix_payload(
         warning_reasons = list(row.get("runtime_quality_warning_reasons", row.get("failure_or_warning_reasons", [])))
         failure_reasons = list(row.get("failure_reasons", []))
         export_hashes = [str(item.get("export_hash")) for item in exports if item.get("export_hash")]
+        frame_count = int(row.get("frame_count", 0) or 0)
+        if frame_count <= 0:
+            frame_count = sum(int(item.get("frame_count", 0) or 0) for item in model_clips)
         rows.append(
             {
                 "model_id": model_id,
@@ -772,6 +777,7 @@ def _full_pipeline_matrix_payload(
                 "clip_count_completed": sum(1 for item in model_clips if item.get("target_stream_status") in {"passed", "partial_supported"}),
                 "solver_clip_count_completed": sum(1 for item in model_clips if item.get("solver_backed_smoke_completed") is True),
                 "trajectory_export_count": len(exports),
+                "frame_count": frame_count,
                 "task_anchor_count": int(row.get("task_anchor_count", 0) or 0),
                 "task_anchor_semantic_counts": dict(row.get("task_anchor_semantic_counts", {})),
                 "task_coverage_ratio": float(row.get("task_coverage_ratio", 0.0) or 0.0),

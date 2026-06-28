@@ -388,8 +388,32 @@ def _audit_solver_counts(
             findings.append(_finding("solver_backed_counts", field, "Step 4 core invariant mismatch", {"row_count": checks[field], "summary": summary.get(field), "expected": expected}))
     if len(pipeline_full_rows) != 32:
         findings.append(_finding("solver_backed_counts", "full_pipeline_matrix.json", "full pipeline matrix must contain 32 full-humanoid rows", {"actual": len(pipeline_full_rows)}))
-    if len(solver_rows) != 32:
-        findings.append(_finding("solver_backed_counts", "solver_smoke_matrix.json", "solver smoke matrix must contain 32 full-humanoid rows", {"actual": len(solver_rows)}))
+    solver_full_model_ids = {_model_id(row) for row in solver_rows if row.get("category") == "full_humanoid_profile"}
+    solver_completed_model_ids = {
+        _model_id(row)
+        for row in solver_rows
+        if row.get("category") == "full_humanoid_profile"
+        and row.get("solver_backed") is True
+        and row.get("solver_backed_smoke_completed") is True
+    }
+    if len(solver_rows) < 32 or len(solver_full_model_ids) != 32:
+        findings.append(
+            _finding(
+                "solver_backed_counts",
+                "solver_smoke_matrix.json",
+                "solver smoke matrix must contain at least one full-humanoid row for each model",
+                {"row_count": len(solver_rows), "unique_full_humanoid_models": len(solver_full_model_ids)},
+            )
+        )
+    if len(solver_completed_model_ids) != 32:
+        findings.append(
+            _finding(
+                "solver_backed_counts",
+                "solver_smoke_matrix.json",
+                "solver smoke matrix must preserve completed solver-backed evidence for all 32 full-humanoid models",
+                {"completed_full_humanoid_models": len(solver_completed_model_ids)},
+            )
+        )
     if len(diagnostic_rows) != 32:
         findings.append(_finding("solver_backed_counts", "solver_diagnostics_matrix.json", "solver diagnostics matrix must contain 32 full-humanoid rows", {"actual": len(diagnostic_rows)}))
     return findings
