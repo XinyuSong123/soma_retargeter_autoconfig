@@ -599,6 +599,9 @@ def _benign_scan_line(line: str) -> bool:
         or "PROMOTION_SHORTCUT_RE" in stripped
         or "accepted_models|allowed_models" in stripped
         or "quality_delta_key" in stripped
+        or "residual_denominator_robot_specific" in stripped
+        or "robot-specific" in stripped
+        or "non robot-specific" in stripped
     )
 
 
