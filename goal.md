@@ -1,17 +1,17 @@
-# Goal — Step 3.3：Global Solver Quality Hardening（10h+ 长跑任务）
+# Goal — Step 3.4：Global Residual Quality / Task Coverage Hardening（10h+ 长跑任务）
 
 > **Codex 强制执行契约——不得自由发挥**
 >
-> 当前分支：`retargeting-v3-step3-3-global-solver-quality-hardening`  
-> 基线分支：`retargeting-v3-step3-2-solver-backed-generic-smoke`  
-> 基线提交：`6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57`  
-> 当前阶段：**Step 3.3 Global Solver Quality Hardening / Residual and Joint-Limit Reduction**
+> 当前分支：`retargeting-v3-step3-4-global-residual-quality`  
+> 基线分支：`retargeting-v3-step3-3-global-solver-quality-hardening`  
+> 基线提交：`1a8ae37670a3f3f8c49cefd78c6bf7292aa15489`  
+> 当前阶段：**Step 3.4 Global Residual Quality / Task Coverage Hardening**
 >
-> Step 3.2 已闭环：44-row full fleet preserved，32/32 full humanoids 有 solver-backed smoke attempts/completions，`solver_backed_count=32`，`residual_only_count=0`，final CI run `28288601910` success，strict audit PASS。Step 3.3 必须从这个闭环基线继续。
+> Step 3.3 已闭环：final CI run `28295149155` success，strict audit PASS，`runtime_quality_failed_count=0`，`solver_backed_count=32`，`residual_only_count=0`，44-row / 32-3-9 fleet accounting preserved。Step 3.4 必须从该闭环基线继续。
 >
-> 本轮是一个 **10 小时起步的长跑开发任务**。目标不是“改个 label 通过”，而是系统性提升 generic solver-backed smoke 的全局质量：降低 residual / joint-limit / convergence 问题，保留所有 evidence honesty、audit、CI、determinism、fail-closed 语义。
+> 本轮是一个 **10 小时起步的长跑开发任务**。Step 3.3 已经移除了 hard joint-limit failure class；Step 3.4 的唯一核心问题是：**32/32 full humanoids 仍然因为 high residual 而 `runtime_quality_warned`，且 `runtime_quality_passed_count=0`**。本轮必须用全局、通用、可审计的方法改进 residual quality / task coverage / anchor reliability，不能通过 status rename、robot-specific tuning 或 gate weakening 来制造通过。
 >
-> **禁止修改 Step 2 artifacts / thresholds；禁止覆盖 Step 3.1.1 或 Step 3.2 closed artifacts；禁止 robot-specific 数学、阈值、白名单或 per-robot IK 权重调参；禁止默认启用 production runtime override；禁止 contact / collision / temporal smoothing；禁止把失败/警告重命名成通过；禁止宣称视觉质量、production retargeting 或所有 humanoid quality 已解决。**
+> **禁止修改 Step 2 artifacts / thresholds；禁止覆盖 Step 3.1.1 / Step 3.2 / Step 3.3 closed artifacts；禁止 robot-specific 数学、阈值、白名单或 per-robot IK 权重调参；禁止默认启用 production runtime override；禁止 contact / collision / temporal smoothing；禁止把 warned/failed 重命名成 passed；禁止宣称 visual quality、production retargeting 或 all humanoids solved。**
 
 ---
 
@@ -22,14 +22,14 @@ conda activate soma-retargeter-v2
 cd ~/Desktop/soma_retargeter_autoconfig
 
 git fetch origin --prune
-git switch retargeting-v3-step3-3-global-solver-quality-hardening || \
-  git switch --track -c retargeting-v3-step3-3-global-solver-quality-hardening origin/retargeting-v3-step3-3-global-solver-quality-hardening
+git switch retargeting-v3-step3-4-global-residual-quality || \
+  git switch --track -c retargeting-v3-step3-4-global-residual-quality origin/retargeting-v3-step3-4-global-residual-quality
 
 git pull --ff-only
 
 git branch --show-current
 git rev-parse HEAD
-git merge-base --is-ancestor 6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57 HEAD
+git merge-base --is-ancestor 1a8ae37670a3f3f8c49cefd78c6bf7292aa15489 HEAD
 git status --short
 
 git lfs install
@@ -51,8 +51,8 @@ PY
 必须确认：
 
 ```text
-branch = retargeting-v3-step3-3-global-solver-quality-hardening
-base Step 3.2 final commit is ancestor
+branch = retargeting-v3-step3-4-global-residual-quality
+base Step 3.3 final commit is ancestor
 worktree clean
 Git LFS fsck OK
 snapshot XML/URDF materialized, not pointer-only
@@ -67,45 +67,49 @@ snapshot XML/URDF materialized, not pointer-only
 按顺序完整阅读：
 
 1. `goal.md`（本文件）
-2. `docs/retargeting_v3/STEP3_2_SOLVER_BACKED_GENERIC_SMOKE_HANDOFF.md`
+2. `docs/retargeting_v3/STEP3_3_GLOBAL_SOLVER_QUALITY_HANDOFF.md`
 3. `docs/retargeting_v3/HANDOVER_NEXT_WINDOW.md`
-4. `artifacts/retargeting_v3_step3_2_solver_backed_smoke/quality_summary.json`
-5. `artifacts/retargeting_v3_step3_2_solver_backed_smoke/model_matrix.json`
-6. `artifacts/retargeting_v3_step3_2_solver_backed_smoke/solver_smoke_matrix.json`
-7. `artifacts/retargeting_v3_step3_2_solver_backed_smoke/generic_smoke_matrix.json`
-8. `artifacts/retargeting_v3_step3_2_solver_backed_smoke/acceptance_ledger.json`
-9. `artifacts/retargeting_v3_step3_2_solver_backed_smoke/deterministic_rerun.json`
-10. `soma_retargeter/runtime/v3/generic_smoke.py`
-11. `soma_retargeter/runtime/v3/fleet_harness.py`
-12. `soma_retargeter/runtime/v3/quality_metrics.py`
-13. `soma_retargeter/runtime/v3/runtime_quality_gates.py`
-14. `soma_retargeter/runtime/v3/runtime_status.py`
-15. `soma_retargeter/runtime/v3/runtime_local_profile.py`
-16. `soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py`
-17. `scripts/audit_retargeting_v3_step3_2_solver_backed_smoke.py`
-18. `.github/workflows/retargeting_v3_step3_2_solver_backed_smoke.yml`
-19. `tests/v3/test_step3_2_solver_backed_smoke_status_semantics.py`
-20. `tests/v3/test_step3_2_solver_backed_smoke_artifact_schema.py`
-21. `tests/v3/test_step3_2_solver_backed_smoke_determinism.py`
-22. `tests/v3/test_step3_2_solver_backed_smoke_audit.py`
+4. `artifacts/retargeting_v3_step3_3_global_solver_quality/quality_summary.json`
+5. `artifacts/retargeting_v3_step3_3_global_solver_quality/quality_delta_vs_step3_2.json`
+6. `artifacts/retargeting_v3_step3_3_global_solver_quality/model_matrix.json`
+7. `artifacts/retargeting_v3_step3_3_global_solver_quality/solver_smoke_matrix.json`
+8. `artifacts/retargeting_v3_step3_3_global_solver_quality/generic_smoke_matrix.json`
+9. `artifacts/retargeting_v3_step3_3_global_solver_quality/solver_config.json`
+10. `artifacts/retargeting_v3_step3_3_global_solver_quality/solver_diagnostics_matrix.json`
+11. `artifacts/retargeting_v3_step3_3_global_solver_quality/acceptance_ledger.json`
+12. `soma_retargeter/runtime/v3/generic_smoke.py`
+13. `soma_retargeter/runtime/v3/fleet_harness.py`
+14. `soma_retargeter/runtime/v3/quality_metrics.py`
+15. `soma_retargeter/runtime/v3/runtime_quality_gates.py`
+16. `soma_retargeter/runtime/v3/runtime_status.py`
+17. `soma_retargeter/runtime/v3/runtime_local_profile.py`
+18. `soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py`
+19. `scripts/audit_retargeting_v3_step3_3_global_solver_quality.py`
+20. `.github/workflows/retargeting_v3_step3_3_global_solver_quality.yml`
+21. `tests/v3/test_step3_3_global_solver_quality_audit.py`
+22. `tests/v3/test_step3_3_global_solver_quality_artifact_schema.py`
+23. `tests/v3/test_step3_3_global_solver_quality_delta.py`
+24. `tests/v3/test_step3_3_global_solver_quality_status_semantics.py`
+25. `tests/v3/test_step3_3_global_solver_quality_no_robot_specific_tuning.py`
+26. `tests/v3/test_step3_3_global_solver_quality_determinism.py`
 
-不要只读 summary。必须理解 Step 3.2 的 solver-backed smoke 是“有证据但质量仍差”，不是“所有动作质量已好”。
+不要只读 summary。必须理解 Step 3.3 已经解决 hard failures，但 residual quality 没有改善。
 
 ---
 
 ## 2. 当前真实基线
 
-Step 3.2 closed baseline：
+Step 3.3 closed baseline：
 
 ```text
-final_head = 6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57
-GitHub Actions run = 28288601910
+final_head = 1a8ae37670a3f3f8c49cefd78c6bf7292aa15489
+GitHub Actions run = 28295149155
 strict audit = PASS, blocking_count = 0
-focused tests = 25 passed, 8 warnings
+focused tests = 33 passed
 git lfs fsck = OK
 ```
 
-Step 3.2 artifact truth：
+Step 3.3 artifact truth：
 
 ```text
 in_scope_total = 44
@@ -122,48 +126,69 @@ deterministic_compared_count = 44
 deterministic_matched_count = 44
 
 runtime_quality_passed_count = 0
-runtime_quality_warned_count = 23
-runtime_quality_failed_count = 9
+runtime_quality_warned_count = 32
+runtime_quality_failed_count = 0
 partial_runtime_passed_count = 3
 negative_control_runtime_passed_count = 9
+
+high_residual_warning_count = 32
+joint_limit_warning_count = 1
+joint_limit_smoke_warning_count = 0
+```
+
+Step 3.3 delta truth：
+
+```text
+runtime_quality_failed_count_delta = -9
+joint_limit_warning_count_delta = -11
+joint_limit_smoke_warning_count_delta = -10
+high_residual_warning_count_delta = 0
+normalized_task_residual_p95_delta = 0
+runtime_quality_passed_count_delta = 0
 ```
 
 Interpretation：
 
 ```text
-Step 3.2 proved generic solver-backed smoke coverage.
-Step 3.3 must improve global solver quality while preserving honest failure/warning labels.
+Step 3.3 removed hard joint-limit failures.
+Step 3.4 must attack the remaining high residual problem globally.
 ```
 
 ---
 
 ## 3. 本轮唯一目标
 
-用全局、通用、可审计的方法提升 solver-backed smoke quality：
+用全局、通用、可审计的方法降低 residual warnings 或 residual severity：
 
 ```text
-Reduce full-humanoid runtime_quality_failed_count and/or warning severity without robot-specific tuning, while keeping solver_backed_count=32 and residual_only_count=0.
+Reduce high_residual_warning_count below 32 OR produce a meaningful, audited improvement in residual distribution metrics, while preserving solver-backed coverage and honest status semantics.
 ```
+
+Preferred stretch target：
+
+```text
+runtime_quality_passed_count > 0
+```
+
+但只有 gate 真实满足时才允许出现 pass；不能放松 pass gates，不能把 warned 改名为 passed。
 
 完成后必须能回答：
 
-1. Step 3.3 是否仍覆盖全部 44 rows 和 32/3/9 partition？
-2. 32 个 full humanoid 是否仍全部 attempted/completed solver-backed smoke？
-3. `solver_backed_count` 是否仍为 32，`residual_only_count` 是否仍为 0？
-4. 哪些全局 solver improvements 降低了 residual、joint-limit、convergence 或 finite-metric问题？
-5. `runtime_quality_failed_count` 是否比 Step 3.2 的 9 更低？如果没有，是否有清楚 blockers？
-6. `runtime_quality_warned_count` 是否下降，或 warning severity 是否有量化改善？
-7. 是否没有 robot-specific threshold / whitelist / math？
-8. 是否没有修改 closed Step 3.1.1 / Step 3.2 artifacts 来刷结果？
-9. 是否保持 deterministic rerun、final HEAD CI、strict audit？
+1. Step 3.4 是否仍覆盖 44 rows 和 32/3/9 partition？
+2. 32 个 full humanoids 是否仍全部 solver-backed attempted/completed？
+3. `solver_backed_count=32` 和 `residual_only_count=0` 是否保持？
+4. `runtime_quality_failed_count=0` 是否保持？
+5. high residual warning count 是否下降？如果不下降，residual p50/p95/max distribution 是否有明确量化改善？
+6. 是否出现真实 gate-valid `runtime_quality_passed` rows？
+7. task coverage / anchor reliability / residual normalization 到底改善了什么？
+8. 是否没有 robot-specific tuning、阈值、白名单、per-robot IK weights？
+9. 是否保持 deterministic rerun、clean provenance、LFS fsck、final HEAD CI、strict audit？
 
 ---
 
 ## 4. 成功优先级
 
-按优先级推进，不得跳级宣称胜利。
-
-### Priority 0 — Preserve baseline invariants
+### Priority 0 — Preserve Step 3.3 invariants
 
 必须保持：
 
@@ -174,6 +199,7 @@ Reduce full-humanoid runtime_quality_failed_count and/or warning severity withou
 32 solver-backed completions
 solver_backed_count = 32
 residual_only_count = 0
+runtime_quality_failed_count = 0
 negative controls not promoted
 partial models not counted as full humanoid passes
 RPO/G1 pipeline controls retained or referenced
@@ -181,45 +207,31 @@ clean provenance
 deterministic 44/44
 ```
 
-### Priority 1 — Reduce hard failures
+### Priority 1 — Improve high residual outcome
 
-Step 3.2 baseline：
-
-```text
-runtime_quality_failed_count = 9
-```
-
-Step 3.3 的首要质量目标：
+Step 3.3 baseline：
 
 ```text
-runtime_quality_failed_count < 9
-```
-
-如果做不到，最终状态必须诚实写 BLOCKED 或 PASS_WITH_NO_FAILURE_REDUCTION_NOT_ALLOWED；不要用 status rename 逃避。
-
-### Priority 2 — Reduce warning severity
-
-Step 3.2 baseline：
-
-```text
-runtime_quality_warned_count = 23
 high_residual_warning_count = 32
-joint_limit_warning_count = 12
+normalized_task_residual_p95 median = unchanged from Step 3.2
+normalized_task_residual_p95 p95 = unchanged from Step 3.2
+runtime_quality_passed_count = 0
 ```
 
-目标：
+Step 3.4 的首要目标至少满足一个：
 
 ```text
-reduce high_residual_warning_count and/or joint_limit_warning_count
-reduce normalized_task_residual_p95 aggregate statistics
-reduce max_joint_limit_violation aggregate statistics
+high_residual_warning_count < 32
+OR median_normalized_task_residual_p95_delta < 0
+OR p95_normalized_task_residual_p95_delta < 0
+OR max_normalized_task_residual_p95_delta < 0
 ```
 
-如果 count 不下降，必须证明 severity distribution 下降，并在 artifact 中记录 before/after deltas。
+如果这些都做不到，最终状态必须是 BLOCKED，并给出 failure taxonomy 和下一步建议。不能用 status rename 逃避。
 
-### Priority 3 — Earn real runtime_quality_passed rows if globally justified
+### Priority 2 — Earn real pass rows if globally justified
 
-允许出现 `runtime_quality_passed_count > 0`，但只能在所有 gate 成立时出现：
+允许 `runtime_quality_passed_count > 0`，但 pass row 必须满足：
 
 ```text
 solver_backed=true
@@ -233,7 +245,19 @@ normalized_task_residual_p95 <= global pass gate
 deterministic matched
 ```
 
-不能为了获得 passed row 放松 gates。
+### Priority 3 — Improve diagnostics if quality target is blocked
+
+如果 residual quality 无法改善，也不能空手失败。必须产出：
+
+```text
+residual_taxonomy.json
+task_coverage_matrix.json
+anchor_reliability_matrix.json
+per-model residual blocker reasons
+attempted global improvements
+why robot-specific tuning was not used
+recommended next direction
+```
 
 ---
 
@@ -241,22 +265,22 @@ deterministic matched
 
 ### 5.1 本轮包含
 
-- global solver initialization improvements；
-- global damping / trust-region / line-search / clipping policy，只能全局；
-- generic joint-limit projection / repair，只能全局；
-- generic task scaling / residual normalization improvements，只能全局；
-- solver convergence diagnostics；
-- before/after Step 3.2 vs Step 3.3 metrics delta；
-- new Step 3.3 artifact tree；
-- Step 3.3 strict audit；
-- long-running deterministic reruns and quality sweeps；
-- focused tests and final HEAD CI。
+- generic task coverage expansion；
+- generic anchor reliability scoring / filtering；
+- global residual normalization audit and correction；
+- semantic task weighting only if global and not robot-specific；
+- task coverage diagnostics；
+- anchor availability / degeneracy diagnostics；
+- residual distribution delta vs Step 3.3；
+- new Step 3.4 artifact tree；
+- Step 3.4 strict audit；
+- focused tests and final HEAD CI closure。
 
 ### 5.2 本轮禁止
 
 - 修改 Step 2 artifacts / thresholds；
-- 覆盖 Step 3.1.1 或 Step 3.2 closed artifact tree；
-- 修改 Step 3.2 numbers 作为“历史修补”；
+- 覆盖 Step 3.1.1 / Step 3.2 / Step 3.3 closed artifact trees；
+- 修改历史 Step 3.3 numbers 来制造 delta；
 - production `NewtonPipeline` 默认行为重写；
 - 默认启用 runtime override；
 - per-robot IK weights；
@@ -265,9 +289,9 @@ deterministic matched
 - whitelist / blacklist 某些机器人来制造 pass；
 - contact / collision / temporal smoothing；
 - video/visual eyeballing 作为 pass evidence；
-- status rename 把 failed/warned 变 passed；
+- status rename 把 warned 改 passed；
 - full repo pytest 失败时写成 passed；
-- 自动开始 Step 3.4。
+- 自动开始 Step 3.5。
 
 ---
 
@@ -275,89 +299,126 @@ deterministic matched
 
 Codex 可调整实现细节，但必须保持全局通用、可审计、fail-closed。
 
-### 6.1 Global solver initialization
+### 6.1 Residual taxonomy first
 
-实现或改进：
+先对 Step 3.3 的 32 high residual rows 建 taxonomy：
 
 ```text
-neutral/rest pose seeding
-previous deterministic frame seed reuse within sampled sequence
-profile-provided nominal pose when available
-joint mid-range fallback
-root/body pose canonicalization
+task coverage too narrow
+anchor unavailable
+anchor degenerate
+body name mismatch / alias issue
+torso-only task insufficient
+residual normalization scale issue
+root pose normalization issue
+rotation residual dominates
+translation residual dominates
+solver converged but task underconstrained
+```
+
+产物：
+
+```text
+residual_taxonomy.json
+per-model residual blocker reasons
+aggregate residual buckets
+```
+
+### 6.2 Generic task coverage expansion
+
+允许从 profile/model introspection 中全局扩展 task anchors：
+
+```text
+torso / pelvis / chest
+head if available
+left/right hand if available
+left/right foot if available
+upper/lower limb anchors if reliably mapped
 ```
 
 要求：
 
-- 不按 model_id 分支；
-- seed policy 作为全局算法记录在 artifacts；
-- seed failure 进入 diagnostics。
+- task selection 不得按 model_id；
+- body alias / semantic matching 必须是全局规则；
+- unavailable anchors must be recorded, not silently ignored；
+- duplicate/degenerate anchors must be filtered globally；
+- task count and coverage ratio must be recorded per full humanoid。
 
-### 6.2 Global trust-region / damping / line-search
+### 6.3 Anchor reliability scoring
 
-实现或改进 solver update policy：
+实现全局 reliability policy：
 
 ```text
-global damping schedule
-global max update norm
-global line-search acceptance rule
-global finite-metric rollback
-global residual non-increase guard
+body exists in runtime model
+body has finite FK
+target stream contains finite target
+anchor is not duplicate
+anchor displacement scale is reasonable
+anchor contributes nonzero residual information
+```
+
+产物：
+
+```text
+anchor_reliability_matrix.json
+anchor rejection reasons
+coverage summary
+```
+
+### 6.4 Residual normalization audit and correction
+
+检查现有 normalized residual 是否被固定为接近 1 的饱和值。允许做全局 normalization correction：
+
+```text
+normalization denominator sanity
+per-task scale derived from global semantic class, not robot id
+translation/rotation residual balancing
+residual clipping diagnostics, not hidden clipping
 ```
 
 要求：
 
-- 参数必须是全局常量或 artifact-recorded config；
-- 不允许按机器人调 damping；
-- 每个 full humanoid row 记录 solver iterations、rollback count、line-search count、convergence status。
+- 不允许通过扩大 denominator 来刷低 residual；
+- normalization config must be recorded in solver_config.json；
+- before/after raw residual and normalized residual must both be recorded；
+- audit must reject suspicious normalization that hides raw residual regressions。
 
-### 6.3 Generic joint-limit projection / repair
+### 6.5 Solver/task integration improvements
 
-实现或改进：
+允许全局增强 solver smoke：
 
 ```text
-joint range parsing
-joint mid-point prior
-post-step joint clipping/projection
-severe violation fail-closed
-violation diagnostics by count/max/p95
+multi-anchor task construction
+global semantic task weights
+root/torso canonicalization
+residual non-increase guard retained
+joint-limit projection retained
+finite-metric rollback retained
 ```
 
 要求：
 
-- 不允许机器人特例；
-- 不允许把 clipping 后 residual 变差隐藏；
-- artifacts 必须记录 pre/post joint-limit metrics。
+- weights must be global by semantic task class；
+- no robot id branch；
+- no special thresholds per model；
+- all config recorded and hashed。
 
-### 6.4 Global task coverage / anchor reliability
+### 6.6 Metrics delta and regression guard
 
-改进：
-
-```text
-filter invalid anchors
-rank anchors by model/profile availability
-avoid duplicate or degenerate task anchors
-record task count and task coverage
-```
-
-要求：
-
-- 不按 robot id；
-- anchor selection policy 可审计；
-- 如果 task coverage 太低，fail/warn with reason。
-
-### 6.5 Metrics delta and regression guard
-
-必须计算 Step 3.2 → Step 3.3 deltas：
+必须计算 Step 3.3 → Step 3.4 deltas：
 
 ```text
-runtime_quality_failed_count_delta
-runtime_quality_warned_count_delta
 high_residual_warning_count_delta
-joint_limit_warning_count_delta
+runtime_quality_passed_count_delta
+runtime_quality_warned_count_delta
+runtime_quality_failed_count_delta
 median_normalized_task_residual_p95_delta
 p95_normalized_task_residual_p95_delta
-max_joint_limit_violation_delta
+max_normalized_task_residual_p95_delta
+raw_task_residual_p95_delta
+task_coverage_mean_delta
+task_coverage_min_delta
+anchor_rejection_rate_delta
 solver_backed_count_delta
 residual_only_count_delta
 ```
@@ -368,10 +429,10 @@ residual_only_count_delta
 
 ## 7. Artifact 策略
 
-本轮必须创建新的 Step 3.3 artifact tree，不覆盖旧 artifacts：
+本轮必须创建新的 Step 3.4 artifact tree，不覆盖旧 artifacts：
 
 ```text
-artifacts/retargeting_v3_step3_3_global_solver_quality/
+artifacts/retargeting_v3_step3_4_global_residual_quality/
 ```
 
 至少包含：
@@ -385,7 +446,10 @@ generic_smoke_matrix.json
 quality_summary.json
 acceptance_ledger.json
 deterministic_rerun.json
-quality_delta_vs_step3_2.json
+quality_delta_vs_step3_3.json
+residual_taxonomy.json
+task_coverage_matrix.json
+anchor_reliability_matrix.json
 solver_config.json
 solver_diagnostics_matrix.json
 pipeline_controls_reference.json 或 pipeline_backed_matrix.json
@@ -398,7 +462,7 @@ test_results/junit.xml
 
 ```text
 schema_version
-base_step3_2_final_head
+base_step3_3_final_head
 in_scope_total
 full_humanoid_total
 partial_total
@@ -416,9 +480,15 @@ high_residual_warning_count
 joint_limit_warning_count
 deterministic_compared_count
 deterministic_matched_count
+task_coverage_mean
+task_coverage_min
+anchor_reliability_mean
+median_normalized_task_residual_p95
+p95_normalized_task_residual_p95
+max_normalized_task_residual_p95
 ```
 
-`quality_delta_vs_step3_2.json` 至少记录：
+`quality_delta_vs_step3_3.json` 至少记录：
 
 ```text
 baseline_artifact_dir
@@ -429,6 +499,9 @@ baseline_counts
 current_counts
 count_deltas
 metric_distribution_deltas
+task_coverage_deltas
+anchor_reliability_deltas
+raw_vs_normalized_residual_deltas
 regressions
 improvements
 verdict
@@ -446,20 +519,17 @@ solver_backed_smoke_completed
 solver_backed
 solver_mode
 solver_config_hash
-solver_iteration_count_mean / p95 / max
-solver_converged_frame_count
-solver_failed_frame_count
-line_search_count
-rollback_count
-frame_count
-sampled_frame_indices
+task_anchor_count
+task_anchor_semantic_counts
+task_coverage_ratio
+anchor_reliability_score
+anchor_rejection_reasons
 normalized_task_residual_mean / p95 / max
+raw_task_residual_mean / p95 / max
 target_translation_error_mean / p95 / max
 target_rotation_error_mean / p95 / max
 joint_limit_violation_count
 max_joint_limit_violation
-pre_projection_joint_limit_violation_count
-post_projection_joint_limit_violation_count
 output_nan_count
 output_inf_count
 runtime_seconds
@@ -483,10 +553,10 @@ core_diff_after_source_commit = []
 
 ## 8. Audit 要求
 
-新增 Step 3.3 专用 audit，推荐：
+新增 Step 3.4 专用 audit，推荐：
 
 ```text
-scripts/audit_retargeting_v3_step3_3_global_solver_quality.py
+scripts/audit_retargeting_v3_step3_4_global_residual_quality.py
 ```
 
 Audit 必须 fail closed：
@@ -495,19 +565,24 @@ Audit 必须 fail closed：
 required artifacts present
 44 rows present
 32/3/9 partition preserved
-base_step3_2_final_head == 6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57
+base_step3_3_final_head == 1a8ae37670a3f3f8c49cefd78c6bf7292aa15489
 clean provenance
 solver_backed_smoke_attempted_count == 32
 solver_backed_completed_count == 32
 solver_backed_count == 32
 residual_only_count == 0
+runtime_quality_failed_count == 0
 negative controls not promoted
 partial rows not counted as full humanoid passes
 runtime_quality_passed rows require solver_backed=true and all gates valid
-failed/warned rows cannot be hidden by status rename
-quality_delta_vs_step3_2 exists and is internally consistent
-runtime_quality_failed_count < 9 OR final status BLOCKED
-no robot-specific threshold/whitelist table introduced
+warned rows cannot be hidden by status rename
+quality_delta_vs_step3_3 exists and is internally consistent
+residual_taxonomy exists
+task_coverage_matrix exists
+anchor_reliability_matrix exists
+high_residual_warning_count < 32 OR residual distribution metric improves
+normalization does not hide raw residual regression
+no robot-specific threshold/whitelist/model-id special case introduced
 numeric metrics finite and ordered
 NaN/Inf counts zero for completed rows
 deterministic rerun 44/44 matched
@@ -515,7 +590,7 @@ pipeline controls retained/referenced
 final HEAD CI evidence present in strict mode
 ```
 
-如果 `runtime_quality_failed_count >= 9`，strict PASS 不允许，除非 goal.md 被用户明确更新。默认必须 BLOCKED，并记录 why。
+如果 `high_residual_warning_count == 32` 且 residual distribution 没有改善，strict PASS 不允许。默认必须 BLOCKED，并记录 why。
 
 ---
 
@@ -524,120 +599,119 @@ final HEAD CI evidence present in strict mode
 新增 focused tests，推荐：
 
 ```text
-tests/v3/test_step3_3_global_solver_quality_audit.py
-tests/v3/test_step3_3_global_solver_quality_artifact_schema.py
-tests/v3/test_step3_3_global_solver_quality_delta.py
-tests/v3/test_step3_3_global_solver_quality_status_semantics.py
-tests/v3/test_step3_3_global_solver_quality_no_robot_specific_tuning.py
-tests/v3/test_step3_3_global_solver_quality_determinism.py
+tests/v3/test_step3_4_global_residual_quality_audit.py
+tests/v3/test_step3_4_global_residual_quality_artifact_schema.py
+tests/v3/test_step3_4_global_residual_quality_delta.py
+tests/v3/test_step3_4_global_residual_quality_status_semantics.py
+tests/v3/test_step3_4_global_residual_quality_no_robot_specific_tuning.py
+tests/v3/test_step3_4_global_residual_quality_task_coverage.py
+tests/v3/test_step3_4_global_residual_quality_normalization.py
+tests/v3/test_step3_4_global_residual_quality_determinism.py
 ```
 
 至少测试：
 
-- Step 3.3 audit rejects missing delta file；
-- audit rejects `runtime_quality_failed_count >= 9` for PASS；
+- Step 3.4 audit rejects missing delta file；
+- audit rejects no residual improvement with 32 high-residual warnings；
+- audit rejects `runtime_quality_failed_count > 0` regression；
 - audit rejects solver_backed_count regression；
 - audit rejects residual_only_count > 0；
 - audit rejects residual-only pass；
 - audit rejects partial/negative promotion；
 - audit rejects robot-specific threshold tables / whitelist strings / model-id special cases；
+- audit rejects suspicious normalization hiding raw residual regression；
+- audit rejects missing task coverage or anchor reliability evidence；
 - audit rejects dirty provenance；
 - audit rejects deterministic mismatch；
 - status semantics tests prove pass rows require solver-backed + finite metrics + gates；
-- delta tests prove current counts match summary and baseline counts match Step 3.2；
-- solver config hash is stable/deterministic。
+- delta tests prove current counts match summary and baseline counts match Step 3.3；
+- solver/task config hash is stable/deterministic。
 
 Recommended focused test command:
 
 ```bash
 PYTHONPATH=. python -m pytest -q \
-  tests/v3/test_step3_3_global_solver_quality_audit.py \
-  tests/v3/test_step3_3_global_solver_quality_artifact_schema.py \
-  tests/v3/test_step3_3_global_solver_quality_delta.py \
-  tests/v3/test_step3_3_global_solver_quality_status_semantics.py \
-  tests/v3/test_step3_3_global_solver_quality_no_robot_specific_tuning.py \
-  tests/v3/test_step3_3_global_solver_quality_determinism.py
+  tests/v3/test_step3_4_global_residual_quality_audit.py \
+  tests/v3/test_step3_4_global_residual_quality_artifact_schema.py \
+  tests/v3/test_step3_4_global_residual_quality_delta.py \
+  tests/v3/test_step3_4_global_residual_quality_status_semantics.py \
+  tests/v3/test_step3_4_global_residual_quality_no_robot_specific_tuning.py \
+  tests/v3/test_step3_4_global_residual_quality_task_coverage.py \
+  tests/v3/test_step3_4_global_residual_quality_normalization.py \
+  tests/v3/test_step3_4_global_residual_quality_determinism.py
 ```
 
 ---
 
 ## 10. 10h+ 执行计划
 
-这是一份长跑计划。Codex 应该持续推进到完整闭环或明确 BLOCKED，不要中途因为 scope 大而只写文档。
+这是一份长跑计划。Codex 应持续推进到完整闭环或明确 BLOCKED，不要中途只写文档。
 
-### Phase A — Baseline forensics and failure taxonomy
+### Phase A — Residual forensics and taxonomy
 
-1. Parse Step 3.2 artifacts；
-2. Rank 9 failed rows by failure reasons；
-3. Rank 23 warned rows by residual / joint-limit severity；
-4. Build failure taxonomy：
-
-```text
-source/profile issue
-target stream issue
-solver convergence issue
-joint-limit issue
-residual scale issue
-anchor/task coverage issue
-finite metric issue
-determinism issue
-```
-
-5. Write temporary notes into implementation docs or artifact diagnostics；
-6. Do not change status labels yet。
+1. Parse Step 3.3 artifacts；
+2. Extract 32 warned full humanoid residual metrics；
+3. Compare raw vs normalized residual；
+4. Identify task coverage / anchor coverage limits；
+5. Rank rows by normalized p95/max and raw residual；
+6. Write residual taxonomy；
+7. Do not change status labels yet。
 
 ### Phase B — Audit and tests first
 
-1. Add Step 3.3 audit skeleton；
+1. Add Step 3.4 audit skeleton；
 2. Add artifact schema tests；
-3. Add delta/regression tests；
-4. Add no robot-specific tuning tests；
-5. Ensure tests fail before implementation if artifacts missing。
+3. Add residual delta/regression tests；
+4. Add normalization safety tests；
+5. Add no robot-specific tuning tests；
+6. Ensure tests fail before implementation if artifacts missing。
 
-### Phase C — Implement global solver improvements
+### Phase C — Implement global task/anchor improvements
 
 Choose global improvements based on taxonomy：
 
 ```text
-initialization
-trust-region / damping / line-search
-joint-limit projection
-anchor filtering / coverage
-residual normalization consistency
-failure diagnostics
+semantic anchor expansion
+anchor reliability filtering
+duplicate/degenerate anchor rejection
+root/torso/head/hand/foot availability handling
+semantic task weighting
+raw/normalized residual accounting
 ```
 
 All config must be global and recorded in `solver_config.json`。
 
 ### Phase D — Wire runner and artifact generation
 
-1. Add Step 3.3 artifact dir support；
-2. Preserve Step 3.2 artifact dir；
-3. Generate Step 3.3 matrices；
-4. Generate quality delta vs Step 3.2；
-5. Generate solver diagnostics matrix；
-6. Generate deterministic rerun hash；
-7. Generate test result artifacts。
+1. Add Step 3.4 artifact dir support；
+2. Preserve Step 3.3 artifact dir；
+3. Generate Step 3.4 matrices；
+4. Generate quality delta vs Step 3.3；
+5. Generate residual taxonomy；
+6. Generate task coverage and anchor reliability matrices；
+7. Generate deterministic rerun hash；
+8. Generate test result artifacts。
 
-### Phase E — Iterate until quality target or honest BLOCKED
+### Phase E — Iterate until residual target or honest BLOCKED
 
 Run multiple cycles if necessary:
 
 ```bash
 PYTHONPATH=. python soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py \
-  --artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
+  --artifact-dir artifacts/retargeting_v3_step3_4_global_residual_quality \
   --enable-solver-backed-generic-smoke \
   --enable-global-solver-quality-hardening \
-  --baseline-artifact-dir artifacts/retargeting_v3_step3_2_solver_backed_smoke \
+  --enable-global-residual-quality-hardening \
+  --baseline-artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
   --deterministic-rerun
 ```
 
 If counts regress, revert or fix.
-If target cannot be met with global methods, stop and produce BLOCKED diagnostics.
+If residual target cannot be met with global methods, stop and produce BLOCKED diagnostics.
 
 ### Phase F — CI and final evidence closure
 
-1. Add/update workflow `.github/workflows/retargeting_v3_step3_3_global_solver_quality.yml`；
+1. Add/update workflow `.github/workflows/retargeting_v3_step3_4_global_residual_quality.yml`；
 2. Run focused tests；
 3. Run audit local；
 4. Run LFS fsck；
@@ -654,28 +728,31 @@ Codex 可调整 flags，但必须同步更新 tests/audit/docs/CI。
 
 ```bash
 PYTHONPATH=. python -m pytest -q \
-  tests/v3/test_step3_3_global_solver_quality_audit.py \
-  tests/v3/test_step3_3_global_solver_quality_artifact_schema.py \
-  tests/v3/test_step3_3_global_solver_quality_delta.py \
-  tests/v3/test_step3_3_global_solver_quality_status_semantics.py \
-  tests/v3/test_step3_3_global_solver_quality_no_robot_specific_tuning.py \
-  tests/v3/test_step3_3_global_solver_quality_determinism.py
+  tests/v3/test_step3_4_global_residual_quality_audit.py \
+  tests/v3/test_step3_4_global_residual_quality_artifact_schema.py \
+  tests/v3/test_step3_4_global_residual_quality_delta.py \
+  tests/v3/test_step3_4_global_residual_quality_status_semantics.py \
+  tests/v3/test_step3_4_global_residual_quality_no_robot_specific_tuning.py \
+  tests/v3/test_step3_4_global_residual_quality_task_coverage.py \
+  tests/v3/test_step3_4_global_residual_quality_normalization.py \
+  tests/v3/test_step3_4_global_residual_quality_determinism.py
 
 PYTHONPATH=. python soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py \
-  --artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
-  --baseline-artifact-dir artifacts/retargeting_v3_step3_2_solver_backed_smoke \
+  --artifact-dir artifacts/retargeting_v3_step3_4_global_residual_quality \
+  --baseline-artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
   --enable-solver-backed-generic-smoke \
   --enable-global-solver-quality-hardening \
+  --enable-global-residual-quality-hardening \
   --deterministic-rerun
 
-PYTHONPATH=. python scripts/audit_retargeting_v3_step3_3_global_solver_quality.py \
-  --artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
-  --baseline-artifact-dir artifacts/retargeting_v3_step3_2_solver_backed_smoke \
+PYTHONPATH=. python scripts/audit_retargeting_v3_step3_4_global_residual_quality.py \
+  --artifact-dir artifacts/retargeting_v3_step3_4_global_residual_quality \
+  --baseline-artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
   --source-root .
 
-PYTHONPATH=. python scripts/audit_retargeting_v3_step3_3_global_solver_quality.py \
-  --artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
-  --baseline-artifact-dir artifacts/retargeting_v3_step3_2_solver_backed_smoke \
+PYTHONPATH=. python scripts/audit_retargeting_v3_step3_4_global_residual_quality.py \
+  --artifact-dir artifacts/retargeting_v3_step3_4_global_residual_quality \
+  --baseline-artifact-dir artifacts/retargeting_v3_step3_3_global_solver_quality \
   --source-root . \
   --require-final-head-ci
 
@@ -686,27 +763,30 @@ git lfs fsck
 
 ## 12. PASS / BLOCKED 定义
 
-### Step 3.3 PASS 必须表示
+### Step 3.4 PASS 必须表示
 
 ```text
-Step 3.2 baseline preserved
-new Step 3.3 artifact tree generated from clean source
+Step 3.3 baseline preserved
+new Step 3.4 artifact tree generated from clean source
 44-row full-fleet matrix preserved
 32/3/9 partition preserved
 32 full humanoid solver-backed attempts/completions preserved
 solver_backed_count = 32
 residual_only_count = 0
-runtime_quality_failed_count < 9
-quality delta vs Step 3.2 is recorded and internally consistent
+runtime_quality_failed_count = 0
+high_residual_warning_count < 32 OR residual distribution metrics improved
+quality delta vs Step 3.3 is recorded and internally consistent
+task coverage / anchor reliability evidence exists
 runtime_quality_passed rows, if any, are solver-backed and gate-valid
 negative controls not promoted
 partial rows not counted as full humanoid passes
 deterministic rerun matched 44/44
 no robot-specific tuning/threshold/whitelist introduced
+normalization does not hide raw residual regression
 focused tests passed
 Git LFS fsck OK
 final HEAD CI green
-strict Step 3.3 audit passes
+strict Step 3.4 audit passes
 ```
 
 PASS 不代表：
@@ -719,13 +799,15 @@ contact/collision/smoothing is solved
 robot-specific tuning has been performed
 ```
 
-### Step 3.3 BLOCKED 必须表示
+### Step 3.4 BLOCKED 必须表示
 
-如果无法用全局方法把 `runtime_quality_failed_count` 降到 9 以下，或 solver coverage / determinism / CI / audit 失败，最终必须 BLOCKED，并包含：
+如果无法用全局方法降低 high residual warnings 或 residual distribution，或 solver coverage / determinism / CI / audit 失败，最终必须 BLOCKED，并包含：
 
 ```text
 blocker taxonomy
-per-model failure reasons
+per-model residual reasons
+task coverage limits
+anchor reliability limits
 attempted global improvements
 why robot-specific tuning was not used
 recommended next direction
@@ -740,15 +822,15 @@ BLOCKED 也必须保留 artifacts 和 diagnostics。不要空手失败。
 继续使用专业分工；主 Codex 是 Integrator。
 
 ```text
-Agent A — Failure taxonomy / baseline forensics
-Agent B — Global solver initialization and trust-region design
-Agent C — Joint-limit projection / metric delta design
+Agent A — Residual taxonomy / baseline forensics
+Agent B — Generic task coverage / anchor reliability
+Agent C — Residual normalization / metric integrity
 Agent D — Artifact schema / deterministic regeneration
 Agent E — Tests / CI / LFS evidence
 Agent F — Red-team audit / no robot-specific tuning enforcement
 ```
 
-每个 agent 都必须遵守：不 robot-specific tuning、不改 Step 2 thresholds、不弱化 audit、不把 failed/warned 改名成 pass。
+每个 agent 都必须遵守：不 robot-specific tuning、不改 Step 2 thresholds、不弱化 audit、不把 warned 改名成 pass。
 
 ---
 
@@ -757,7 +839,7 @@ Agent F — Red-team audit / no robot-specific tuning enforcement
 最终交付时新增：
 
 ```text
-docs/retargeting_v3/STEP3_3_GLOBAL_SOLVER_QUALITY_HANDOFF.md
+docs/retargeting_v3/STEP3_4_GLOBAL_RESIDUAL_QUALITY_HANDOFF.md
 ```
 
 必须记录：
@@ -771,17 +853,19 @@ strict audit result
 focused tests result
 LFS fsck result
 artifact dir
-baseline Step 3.2 counts
-Step 3.3 counts
-deltas vs Step 3.2
-solver config hash
-failure taxonomy
-remaining failed/warned rows
+baseline Step 3.3 counts
+Step 3.4 counts
+deltas vs Step 3.3
+solver/task config hash
+residual taxonomy
+task coverage summary
+anchor reliability summary
+remaining warned rows
 known limitations
 next direction
 ```
 
-不要自动开始 Step 3.4。
+不要自动开始 Step 3.5。
 
 ---
 
@@ -794,5 +878,6 @@ Do not stop after writing docs.
 Do not tune per robot.
 Do not weaken gates.
 Do not overwrite closed artifacts.
-If global quality target cannot be met, deliver honest BLOCKED diagnostics with artifacts.
+Attack the remaining high residual problem globally.
+If residual quality cannot improve, deliver honest BLOCKED diagnostics with artifacts.
 ```
