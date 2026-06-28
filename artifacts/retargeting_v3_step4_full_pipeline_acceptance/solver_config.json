@@ -1,0 +1,83 @@
+{
+  "base_step3_2_final_head": "6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57",
+  "base_step3_3_final_head": "1a8ae37670a3f3f8c49cefd78c6bf7292aa15489",
+  "base_step3_4_final_head": "77e7c02393a6678ccab40cdb847021d7d94392c9",
+  "config": {
+    "anchor_reliability_policy_version": "global_semantic_anchor_reliability_v1",
+    "enable_global_orientation_residual_hardening": true,
+    "enable_global_quality_hardening": true,
+    "enable_global_residual_quality_hardening": true,
+    "ftol": 1e-08,
+    "global_config": true,
+    "gtol": 1e-08,
+    "line_search_alphas": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.0
+    ],
+    "max_nfev_per_task": 12,
+    "max_update_norm": 1.0,
+    "project_joint_limits": true,
+    "residual_nonincrease_guard": true,
+    "residual_nonincrease_tolerance": 1e-09,
+    "reuse_previous_frame_seed": true,
+    "sample_count": 1,
+    "seed_policy": "neutral_with_previous_frame_reuse",
+    "solver_config_hash": "fc4548c7ec62913813128782603700ae6126552bc55a6c76fdb288456d980f7d",
+    "task_order": [
+      "torso",
+      "left_hand",
+      "right_hand",
+      "left_foot",
+      "right_foot"
+    ],
+    "xtol": 1e-08
+  },
+  "enabled": true,
+  "global_config": true,
+  "global_orientation_residual_policy": {
+    "enabled": true,
+    "robot_specific_tuning": false,
+    "rotation_scale": "pi",
+    "task_residual_mode": "global_se3_log_map_residual",
+    "translation_scale": "global_path_position_scale"
+  },
+  "global_residual_quality_policy": {
+    "anchor_reliability_policy_version": "global_semantic_anchor_reliability_v1",
+    "enabled": true,
+    "residual_normalization_policy": "legacy_row_max_recorded_with_raw_residual_guard",
+    "robot_specific_tuning": false,
+    "semantic_task_weights": "uniform_global",
+    "task_coverage_policy": "configured_global_semantic_task_order"
+  },
+  "hardening_policy": {
+    "finite_metric_rollback": true,
+    "initialization": "neutral_with_previous_frame_reuse",
+    "joint_limit_projection": true,
+    "line_search_alphas": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.0
+    ],
+    "max_update_norm": 1.0,
+    "previous_frame_seed_reuse": true,
+    "residual_nonincrease_guard": true,
+    "task_order": [
+      "torso",
+      "left_hand",
+      "right_hand",
+      "left_foot",
+      "right_foot"
+    ]
+  },
+  "pipeline_config_hash": "db0e72982d1901800464d10281ae9920644112de696393539cf9565134fd8c67",
+  "robot_specific_tuning": false,
+  "schema_version": 1,
+  "solver_config_hash": "fc4548c7ec62913813128782603700ae6126552bc55a6c76fdb288456d980f7d",
+  "solver_type": "generic_chain_projection_least_squares_smoke",
+  "step": "step4_full_pipeline_acceptance"
+}
