@@ -49,6 +49,7 @@ class SolverBackedSmokeConfig:
     line_search_alphas: tuple[float, ...] = ()
     max_update_norm: float | None = None
     enable_global_residual_quality_hardening: bool = False
+    enable_global_orientation_residual_hardening: bool = False
     anchor_reliability_policy_version: str = "none"
 
     @classmethod
@@ -59,6 +60,7 @@ class SolverBackedSmokeConfig:
         max_nfev_per_task: int = 12,
         task_order: tuple[str, ...] = ("torso",),
         enable_global_residual_quality_hardening: bool = False,
+        enable_global_orientation_residual_hardening: bool = False,
     ) -> "SolverBackedSmokeConfig":
         return cls(
             sample_count=sample_count,
@@ -72,6 +74,7 @@ class SolverBackedSmokeConfig:
             line_search_alphas=(1.0, 0.5, 0.25, 0.1, 0.0),
             max_update_norm=1.0,
             enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
+            enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
             anchor_reliability_policy_version=(
                 "global_semantic_anchor_reliability_v1"
                 if enable_global_residual_quality_hardening
@@ -96,6 +99,7 @@ class SolverBackedSmokeConfig:
             "line_search_alphas": [float(value) for value in self.line_search_alphas],
             "max_update_norm": None if self.max_update_norm is None else float(self.max_update_norm),
             "enable_global_residual_quality_hardening": bool(self.enable_global_residual_quality_hardening),
+            "enable_global_orientation_residual_hardening": bool(self.enable_global_orientation_residual_hardening),
             "anchor_reliability_policy_version": str(self.anchor_reliability_policy_version),
             "global_config": True,
         }
@@ -574,6 +578,7 @@ def run_full_humanoid_solver_backed_smoke(
                 "solver": SOLVER_BACKED_GENERIC_SOLVER_TYPE,
                 "solver_type": SOLVER_BACKED_GENERIC_SOLVER_TYPE,
                 "sampled_frame_indices": sampled_frame_indices,
+                "qpos_sampled": _stable_array(q_arr),
                 "solver_config": cfg.to_json(),
                 "solver_config_hash": cfg.config_hash(),
                 "frame_reports": task_diagnostics,
@@ -727,13 +732,19 @@ def _solve_projection_task(
     config: SolverBackedSmokeConfig,
 ) -> dict[str, Any]:
     active, x0, lower, upper = _active_values_and_bounds(adapter, q_seed, path.active_velocity_coordinates)
-    task_kind = "rotation" if path.task == "torso" else "translation"
-    scale = math.pi if task_kind == "rotation" else _position_scale(adapter, q_seed, reference, target, active, desired_relative)
+    task_kind = "se3" if config.enable_global_orientation_residual_hardening else ("rotation" if path.task == "torso" else "translation")
+    position_scale = _position_scale(adapter, q_seed, reference, target, active, desired_relative)
+    rotation_scale = math.pi
+    scale = rotation_scale if task_kind == "rotation" else position_scale
 
     def residual_for_q(q: np.ndarray) -> np.ndarray:
         current = adapter.relative_transform(adapter.forward_kinematics(q), reference, target)
         if task_kind == "rotation":
             return so3_log(current[:3, :3].T @ desired_relative[:3, :3]) / scale
+        if task_kind == "se3":
+            translation = (current[:3, 3] - desired_relative[:3, 3]) / position_scale
+            rotation = so3_log(current[:3, :3].T @ desired_relative[:3, :3]) / rotation_scale
+            return np.concatenate([translation, rotation])
         return (current[:3, 3] - desired_relative[:3, 3]) / scale
 
     def evaluate(values: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, str]:
@@ -749,6 +760,18 @@ def _solve_projection_task(
             else:
                 task_jac = np.zeros((3, 0), dtype=np.float64)
             return error / scale, task_jac, q, jacobian_source
+        if task_kind == "se3":
+            translation = current[:3, 3] - desired_relative[:3, 3]
+            error = so3_log(current[:3, :3].T @ desired_relative[:3, :3])
+            if active:
+                jac = _relative_jacobian(adapter, q, reference, target, active)
+                jacobian_source = str(jac["source"])
+                translation_jac = jac["translation"] / position_scale
+                rotation_jac = so3_log_residual_jacobian(current[:3, :3], error, jac["rotation"]) / rotation_scale
+                task_jac = np.vstack([translation_jac, rotation_jac])
+            else:
+                task_jac = np.zeros((6, 0), dtype=np.float64)
+            return np.concatenate([translation / position_scale, error / rotation_scale]), task_jac, q, jacobian_source
         residual = current[:3, 3] - desired_relative[:3, 3]
         if active:
             jac = _relative_jacobian(adapter, q, reference, target, active)
@@ -1342,7 +1365,10 @@ def _task_coverage_report(
                 "success_frame_count": success_count,
                 "success_fraction": _stable(float(success_count / len(reports))) if reports else 0.0,
                 "skipped_reason": skipped_reason,
-                "task_kind": "rotation" if task_name == "torso" else "translation",
+                "task_kind": "se3"
+                if config.enable_global_orientation_residual_hardening
+                else ("rotation" if task_name == "torso" else "translation"),
+                "orientation_residual_hardening": bool(config.enable_global_orientation_residual_hardening),
             }
         )
     available = [row for row in rows if row["configured"] and row["target_available"] and row["profile_sites_available"] and row["path_discovered"]]
@@ -1623,6 +1649,13 @@ def _stable(value: float) -> float:
     if abs(float(value)) < 1e-15:
         return 0.0
     return round(float(value), 12)
+
+
+def _stable_array(values: np.ndarray) -> list[list[float]]:
+    arr = np.asarray(values, dtype=np.float64)
+    if arr.ndim == 1:
+        arr = arr[None, :]
+    return [[_stable(float(value)) for value in row] for row in arr]
 
 
 def _classification_metrics(classification: Mapping[str, Any]) -> dict[str, Any]:

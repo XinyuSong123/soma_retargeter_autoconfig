@@ -71,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-solver-backed-generic-smoke", action="store_true")
     parser.add_argument("--enable-global-solver-quality-hardening", action="store_true")
     parser.add_argument("--enable-global-residual-quality-hardening", action="store_true")
+    parser.add_argument("--enable-global-orientation-residual-hardening", action="store_true")
     parser.add_argument("--solver-smoke-sample-count", type=int, default=1)
     parser.add_argument("--solver-smoke-max-nfev-per-task", type=int, default=12)
     parser.add_argument("--solver-smoke-task-order", nargs="+", default=None)
@@ -101,6 +102,7 @@ def main(argv: list[str] | None = None) -> int:
         enable_solver_backed_generic_smoke=args.enable_solver_backed_generic_smoke,
         enable_global_solver_quality_hardening=args.enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=args.enable_global_residual_quality_hardening,
+        enable_global_orientation_residual_hardening=args.enable_global_orientation_residual_hardening,
         baseline_artifact_dir=args.baseline_artifact_dir,
         solver_smoke_sample_count=args.solver_smoke_sample_count,
         solver_smoke_max_nfev_per_task=args.solver_smoke_max_nfev_per_task,
@@ -128,6 +130,7 @@ def run_full_fleet_runtime_quality(
     enable_solver_backed_generic_smoke: bool = False,
     enable_global_solver_quality_hardening: bool = False,
     enable_global_residual_quality_hardening: bool = False,
+    enable_global_orientation_residual_hardening: bool = False,
     baseline_artifact_dir: Path = DEFAULT_STEP3_2_ARTIFACT_ROOT,
     solver_smoke_sample_count: int = 1,
     solver_smoke_max_nfev_per_task: int = 12,
@@ -142,6 +145,8 @@ def run_full_fleet_runtime_quality(
         raise RuntimeError("--enable-global-solver-quality-hardening requires --enable-solver-backed-generic-smoke")
     if enable_global_residual_quality_hardening and not enable_global_solver_quality_hardening:
         raise RuntimeError("--enable-global-residual-quality-hardening requires --enable-global-solver-quality-hardening")
+    if enable_global_orientation_residual_hardening and not enable_global_residual_quality_hardening:
+        raise RuntimeError("--enable-global-orientation-residual-hardening requires --enable-global-residual-quality-hardening")
     if artifact_root.resolve() == baseline_artifact_dir.resolve():
         raise RuntimeError("Step 3.3 artifact generation must not overwrite the Step 3.2 baseline artifact tree")
     if enable_global_residual_quality_hardening and artifact_root.resolve() == DEFAULT_STEP3_3_ARTIFACT_ROOT.resolve():
@@ -182,6 +187,7 @@ def run_full_fleet_runtime_quality(
             max_nfev_per_task=solver_smoke_max_nfev_per_task,
             task_order=solver_smoke_task_order,
             enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
+            enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
         )
     else:
         solver_smoke_config = SolverBackedSmokeConfig(
@@ -216,6 +222,7 @@ def run_full_fleet_runtime_quality(
         enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
+        enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
     )
     failure_matrix = _failure_matrix_payload(case_results)
     environment = _environment_payload(
@@ -328,6 +335,7 @@ def run_full_fleet_runtime_quality(
         enable_solver_backed_generic_smoke=enable_solver_backed_generic_smoke,
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
+        enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
         baseline_artifact_dir=baseline_artifact_dir,
         solver_smoke_config=solver_smoke_config,
     )
@@ -771,7 +779,9 @@ def _quality_summary_payload(
     enable_solver_backed_generic_smoke: bool = False,
     enable_global_solver_quality_hardening: bool = False,
     enable_global_residual_quality_hardening: bool = False,
+    enable_global_orientation_residual_hardening: bool = False,
 ) -> dict[str, Any]:
+    del enable_global_orientation_residual_hardening
     model_rows = [result.model_matrix_row(profile_resolution_status="", pipeline_backed_status="") for result in case_results]
     quality_evidence = [_case_quality_evidence(result) for result in case_results]
     final_counts = Counter(evidence["final_status"] for evidence in quality_evidence)
@@ -900,6 +910,7 @@ def _solver_config_payload(
     *,
     enable_global_solver_quality_hardening: bool,
     enable_global_residual_quality_hardening: bool = False,
+    enable_global_orientation_residual_hardening: bool = False,
 ) -> dict[str, Any]:
     payload = config.to_json()
     step = "step3_2_solver_backed_smoke"
@@ -934,6 +945,13 @@ def _solver_config_payload(
             "anchor_reliability_policy_version": payload.get("anchor_reliability_policy_version"),
             "residual_normalization_policy": "legacy_row_max_recorded_with_raw_residual_guard",
             "semantic_task_weights": "uniform_global",
+            "robot_specific_tuning": False,
+        },
+        "global_orientation_residual_policy": {
+            "enabled": bool(enable_global_orientation_residual_hardening),
+            "task_residual_mode": "global_se3_log_map_residual" if enable_global_orientation_residual_hardening else "legacy_torso_rotation_limb_translation",
+            "rotation_scale": "pi",
+            "translation_scale": "global_path_position_scale",
             "robot_specific_tuning": False,
         },
     }
@@ -2098,6 +2116,7 @@ def _write_commands(
     enable_solver_backed_generic_smoke: bool = False,
     enable_global_solver_quality_hardening: bool = False,
     enable_global_residual_quality_hardening: bool = False,
+    enable_global_orientation_residual_hardening: bool = False,
     baseline_artifact_dir: Path = DEFAULT_STEP3_2_ARTIFACT_ROOT,
     solver_smoke_config: SolverBackedSmokeConfig | None = None,
 ) -> None:
@@ -2145,6 +2164,8 @@ def _write_commands(
         command.append("--enable-global-solver-quality-hardening")
     if enable_global_residual_quality_hardening:
         command.append("--enable-global-residual-quality-hardening")
+    if enable_global_orientation_residual_hardening:
+        command.append("--enable-global-orientation-residual-hardening")
     (artifact_root / "commands.txt").write_text(" ".join(command) + "\n", encoding="utf-8")
 
 

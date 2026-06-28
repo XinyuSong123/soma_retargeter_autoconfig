@@ -1,0 +1,229 @@
+name: Retargeting V3 Step 4 Full Pipeline Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "soma_retargeter/tools/run_v3_full_pipeline_acceptance.py"
+      - "scripts/audit_retargeting_v3_step4_full_pipeline_acceptance.py"
+      - "tests/v3/test_step4_full_pipeline_acceptance_*.py"
+      - "tests/v3/step4_full_pipeline_acceptance_fixture.py"
+      - "artifacts/retargeting_v3_step4_full_pipeline_acceptance/**"
+      - "docs/retargeting_v3/STEP4_FULL_PIPELINE_ACCEPTANCE_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_full_pipeline_acceptance.yml"
+  push:
+    branches:
+      - retargeting-v3-step4-full-pipeline-acceptance
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "soma_retargeter/tools/run_v3_full_pipeline_acceptance.py"
+      - "scripts/audit_retargeting_v3_step4_full_pipeline_acceptance.py"
+      - "tests/v3/test_step4_full_pipeline_acceptance_*.py"
+      - "tests/v3/step4_full_pipeline_acceptance_fixture.py"
+      - "artifacts/retargeting_v3_step4_full_pipeline_acceptance/**"
+      - "docs/retargeting_v3/STEP4_FULL_PIPELINE_ACCEPTANCE_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_full_pipeline_acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  STEP3_4_BASELINE_ARTIFACTS: artifacts/retargeting_v3_step3_4_global_residual_quality
+  STEP4_ARTIFACTS: artifacts/retargeting_v3_step4_full_pipeline_acceptance
+
+jobs:
+  step4-static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy scipy
+      - name: Compile Step 4 sources
+        run: |
+          python -m py_compile \
+            soma_retargeter/runtime/v3/quality_metrics.py \
+            soma_retargeter/runtime/v3/generic_smoke.py \
+            soma_retargeter/runtime/v3/fleet_harness.py \
+            soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py \
+            soma_retargeter/tools/run_v3_full_pipeline_acceptance.py \
+            scripts/audit_retargeting_v3_step4_full_pipeline_acceptance.py
+      - name: Run focused Step 4 tests
+        run: |
+          python -m pytest -q tests/v3/test_step4_full_pipeline_acceptance_*.py
+
+  step4-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Step 4 artifacts
+        run: |
+          if [ ! -f "$STEP4_ARTIFACTS/quality_summary.json" ]; then
+            echo "Step 4 artifact tree is not committed on this source-only revision; skipping artifact audit."
+            exit 0
+          fi
+          python scripts/audit_retargeting_v3_step4_full_pipeline_acceptance.py \
+            --artifact-dir "$STEP4_ARTIFACTS" \
+            --baseline-step3-4-artifact-dir "$STEP3_4_BASELINE_ARTIFACTS" \
+            --source-root .
+
+  step4-lfs-and-snapshot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+      - name: Verify Step 4 matrix shape if artifacts are present
+        run: |
+          if [ ! -f "$STEP4_ARTIFACTS/quality_summary.json" ]; then
+            echo "Step 4 artifact tree not present on this revision."
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_full_pipeline_acceptance")
+          summary = json.loads((root / "quality_summary.json").read_text())
+          model = json.loads((root / "model_matrix.json").read_text())
+          full = json.loads((root / "full_pipeline_matrix.json").read_text())
+          solver = json.loads((root / "solver_smoke_matrix.json").read_text())
+          for name in (
+              "quality_delta_vs_step3_4.json",
+              "orientation_residual_taxonomy.json",
+              "normalization_audit.json",
+              "trajectory_export_manifest.json",
+              "temporal_continuity_matrix.json",
+              "support_contact_diagnostics.json",
+              "collision_proxy_diagnostics.json",
+          ):
+              assert (root / name).exists(), name
+          assert summary["in_scope_total"] == 44
+          assert summary["full_humanoid_total"] == 32
+          assert summary["partial_total"] == 3
+          assert summary["negative_total"] == 9
+          assert summary["solver_backed_count"] >= 32
+          assert summary["residual_only_count"] == 0
+          assert summary["runtime_quality_failed_count"] == 0
+          assert len(model["rows"]) == 44
+          assert len(full["rows"]) == 44
+          assert len(solver["rows"]) == 32
+          PY
+
+  step4-export-and-trajectory-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check trajectory exports if artifacts are present
+        run: |
+          if [ ! -f "$STEP4_ARTIFACTS/trajectory_export_manifest.json" ]; then
+            echo "Step 4 trajectory exports not present on this revision."
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_full_pipeline_acceptance")
+          manifest = json.loads((root / "trajectory_export_manifest.json").read_text())
+          rows = manifest.get("exports", manifest.get("rows", []))
+          assert rows, "empty trajectory export manifest"
+          for row in rows:
+              finite = row.get("finite_qpos", row.get("qpos_finite", row.get("finite")))
+              assert finite is True, row
+              assert row.get("nan_count") == 0, row
+              assert row.get("inf_count") == 0, row
+              assert row.get("export_hash"), row
+          PY
+
+  step4-pipeline-controls-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check pipeline control evidence is retained or referenced
+        run: |
+          if [ ! -d "$STEP4_ARTIFACTS" ]; then
+            echo "Step 4 artifact tree not present on this revision."
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_full_pipeline_acceptance")
+          alternatives = [root / "pipeline_backed_matrix.json", root / "pipeline_controls_reference.json"]
+          existing = [path for path in alternatives if path.exists()]
+          assert existing, "missing pipeline-backed matrix or controls reference"
+          payload = json.loads(existing[0].read_text())
+          assert isinstance(payload, dict)
+          PY
+
+  step4-final-head-ci-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - step4-static-and-unit
+      - step4-artifact-audit
+      - step4-lfs-and-snapshot-smoke
+      - step4-export-and-trajectory-smoke
+      - step4-pipeline-controls-reference
+    if: always()
+    steps:
+      - name: Record final HEAD CI evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          job_conclusions = {name: data["result"] for name, data in sorted(needs.items())}
+          conclusion = "success" if all(result == "success" for result in job_conclusions.values()) else "failure"
+          payload = {
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "conclusion": conclusion,
+              "job_conclusions": job_conclusions,
+          }
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("```json\n")
+              handle.write(json.dumps(payload, indent=2, sort_keys=True))
+              handle.write("\n```\n")
+          if conclusion != "success":
+              sys.exit(1)
+          PY
