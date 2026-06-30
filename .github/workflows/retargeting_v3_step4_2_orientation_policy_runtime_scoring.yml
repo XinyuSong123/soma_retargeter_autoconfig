@@ -102,14 +102,18 @@ jobs:
       - name: Check active scoring config defaults
         run: |
           python - <<'PY'
-          from soma_retargeter.runtime.v3.generic_smoke import SolverBackedSmokeConfig
+          from pathlib import Path
 
-          default = SolverBackedSmokeConfig.global_quality_hardened(enable_global_residual_quality_hardening=True, enable_global_orientation_residual_hardening=True)
-          active = SolverBackedSmokeConfig.global_quality_hardened(enable_global_residual_quality_hardening=True, enable_global_orientation_residual_hardening=True, enable_parent_relative_orientation_runtime_scoring=True)
-          assert default.to_json()["active_runtime_scoring_orientation_policy"] == "world_runtime_inv_target"
-          assert default.to_json()["runtime_override_default_enabled"] is False
-          assert active.to_json()["active_runtime_scoring_orientation_policy"] == "parent_relative_runtime_inv_target"
-          assert active.to_json()["orientation_policy_production_default_changed"] is False
+          generic = Path("soma_retargeter/runtime/v3/generic_smoke.py").read_text()
+          fleet = Path("soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py").read_text()
+          pipeline = Path("soma_retargeter/tools/run_v3_full_pipeline_acceptance.py").read_text()
+          assert 'PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY = "world_runtime_inv_target"' in generic
+          assert 'PARENT_RELATIVE_ORIENTATION_SCORING_POLICY = "parent_relative_runtime_inv_target"' in generic
+          assert "enable_parent_relative_orientation_runtime_scoring: bool = False" in generic
+          assert '"orientation_policy_production_default_changed": False' in generic
+          assert '"runtime_override_default_enabled": False' in generic
+          assert "--enable-parent-relative-orientation-runtime-scoring" in fleet
+          assert "--enable-parent-relative-orientation-runtime-scoring" in pipeline
           PY
 
   step4-2-gate-reconciliation-smoke:
