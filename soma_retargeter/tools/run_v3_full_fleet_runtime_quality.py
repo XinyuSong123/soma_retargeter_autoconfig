@@ -2101,7 +2101,12 @@ def _status_path_prefix(path: Path) -> str:
 
 
 def _status_line_path(line: str) -> str:
-    path = line[3:] if len(line) > 3 else line
+    if len(line) > 2 and line[2] == " ":
+        path = line[3:]
+    elif len(line) > 1 and line[1] == " ":
+        path = line[2:]
+    else:
+        path = line[3:] if len(line) > 3 else line
     if " -> " in path:
         path = path.split(" -> ", 1)[1]
     return path.strip().strip('"')
