@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -12,29 +13,14 @@ from typing import Any, Iterable
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from soma_retargeter.robotics.v3.model_adapter import NewtonRuntimeModelAdapter
-from soma_retargeter.robotics.v3.spatial import matrix_to_quat_xyzw, rotation_error, so3_log
-from soma_retargeter.runtime.v3.fleet_harness import _load_bvh_animation, clip_id
-from soma_retargeter.runtime.v3.fleet_inventory import (
-    FULL_HUMANOID_PROFILE,
-    display_path,
-    load_fleet_runtime_cases,
-    stable_payload_hash,
-    write_json,
-)
-from soma_retargeter.runtime.v3.generic_smoke import _semantic_sites_from_profile
-from soma_retargeter.runtime.v3.source_frames import DEFAULT_SEMANTIC_NAMES, extract_source_semantic_frames
-from soma_retargeter.runtime.v3.target_adapter import build_runtime_semantic_targets
-from soma_retargeter.tools.run_v3_full_fleet_runtime_quality import (
-    DEFAULT_LOCK,
-    DEFAULT_MANIFEST,
-    DEFAULT_STEP2_PROFILE_ROOT,
-    _distribution,
-)
-
 
 DEFAULT_BASELINE_STEP4_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_full_pipeline_acceptance")
+DEFAULT_STEP2_PROFILE_ROOT = Path("artifacts/retargeting_v3_step2_capability")
+DEFAULT_LOCK = Path("assets/robot_zoo/robot_zoo_lock.json")
+DEFAULT_MANIFEST = Path("assets/robot_zoo/robot_zoo_manifest.json")
 EXPECTED_BASE_STEP4_BRANCH = "origin/retargeting-v3-step4-full-pipeline-acceptance"
+FULL_HUMANOID_PROFILE = "full_humanoid_profile"
+DEFAULT_SEMANTIC_NAMES = ("Hips", "Chest", "LeftHand", "RightHand", "LeftFoot", "RightFoot")
 TASK_REFERENCE_BY_SEMANTIC = {
     "Chest": "Hips",
     "LeftHand": "Chest",
@@ -80,7 +66,7 @@ def canonicalize_quat_xyzw(quaternion: Iterable[float]) -> list[float]:
 
 
 def quaternion_xyzw_from_matrix(rotation: np.ndarray) -> list[float]:
-    return canonicalize_quat_xyzw(matrix_to_quat_xyzw(np.asarray(rotation, dtype=np.float64)))
+    return canonicalize_quat_xyzw(Rotation.from_matrix(np.asarray(rotation, dtype=np.float64)).as_quat())
 
 
 def rotation_log_residual(
@@ -295,6 +281,13 @@ def build_orientation_forensics(
     manifest: Path,
     short_max_frames: int,
 ) -> dict[str, Any]:
+    from soma_retargeter.robotics.v3.model_adapter import NewtonRuntimeModelAdapter
+    from soma_retargeter.runtime.v3.fleet_harness import _load_bvh_animation
+    from soma_retargeter.runtime.v3.fleet_inventory import load_fleet_runtime_cases
+    from soma_retargeter.runtime.v3.generic_smoke import _semantic_sites_from_profile
+    from soma_retargeter.runtime.v3.source_frames import extract_source_semantic_frames
+    from soma_retargeter.runtime.v3.target_adapter import build_runtime_semantic_targets
+
     cases = [
         case
         for case in load_fleet_runtime_cases(
@@ -597,9 +590,9 @@ def _candidate_residuals_for_semantic(
 ) -> dict[str, float]:
     runtime_rotation = runtime_transform[:3, :3]
     target_rotation = target_transform[:3, :3]
-    current = rotation_error(runtime_rotation, target_rotation)
-    target_inv = float(np.linalg.norm(so3_log(target_rotation.T @ runtime_rotation)))
-    runtime_inv = float(np.linalg.norm(so3_log(runtime_rotation.T @ target_rotation)))
+    current = _rotation_error(runtime_rotation, target_rotation)
+    target_inv = float(np.linalg.norm(_so3_log(target_rotation.T @ runtime_rotation)))
+    runtime_inv = float(np.linalg.norm(_so3_log(runtime_rotation.T @ target_rotation)))
     parent_relative = _parent_relative_rotation_error(
         semantic=semantic,
         runtime_transforms=runtime_transforms,
@@ -635,15 +628,15 @@ def _parent_relative_rotation_error(
 ) -> float:
     parent = TASK_REFERENCE_BY_SEMANTIC.get(semantic)
     if parent is None or parent not in runtime_transforms or parent not in target_transforms:
-        return rotation_error(runtime_rotation, target_rotation)
+        return _rotation_error(runtime_rotation, target_rotation)
     runtime_relative = runtime_transforms[parent][:3, :3].T @ runtime_rotation
     target_relative = np.asarray(target_transforms[parent][sample_index], dtype=np.float64)[:3, :3].T @ target_rotation
-    return rotation_error(runtime_relative, target_relative)
+    return _rotation_error(runtime_relative, target_relative)
 
 
 def _profile_site_offset_residual(runtime_rotation: np.ndarray, target_rotation: np.ndarray) -> float:
-    current = rotation_error(runtime_rotation, target_rotation)
-    mirrored = rotation_error(runtime_rotation @ np.diag([1.0, -1.0, -1.0]), target_rotation)
+    current = _rotation_error(runtime_rotation, target_rotation)
+    mirrored = _rotation_error(runtime_rotation @ np.diag([1.0, -1.0, -1.0]), target_rotation)
     return min(current, mirrored)
 
 
@@ -1323,6 +1316,70 @@ def _summary(values: Iterable[float]) -> dict[str, float]:
         "p95": _stable(float(np.percentile(arr, 95))),
         "max": _stable(float(np.max(arr))),
     }
+
+
+def _distribution(values: list[float]) -> dict[str, float]:
+    arr = np.asarray(values, dtype=np.float64).reshape(-1)
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return {"median": 0.0, "p95": 0.0, "max": 0.0}
+    return {
+        "median": float(np.median(arr)),
+        "p95": float(np.percentile(arr, 95)),
+        "max": float(np.max(arr)),
+    }
+
+
+def _so3_log(rotation: np.ndarray) -> np.ndarray:
+    return Rotation.from_matrix(np.asarray(rotation, dtype=np.float64).reshape(3, 3)).as_rotvec()
+
+
+def _rotation_error(a: np.ndarray, b: np.ndarray) -> float:
+    first = np.asarray(a, dtype=np.float64).reshape(3, 3)
+    second = np.asarray(b, dtype=np.float64).reshape(3, 3)
+    return float(np.linalg.norm(_so3_log(first.T @ second)))
+
+
+def write_json(path: str | Path, payload: dict[str, Any]) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(_jsonable(payload), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def stable_payload_hash(payload: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(_jsonable(payload), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def display_path(path: str | Path | None) -> str | None:
+    if path is None:
+        return None
+    p = Path(path)
+    if not p.is_absolute():
+        return p.as_posix()
+    resolved = p.resolve()
+    roots = [("WORKSPACE", Path.cwd()), ("HOME", Path.home())]
+    for name, root in roots:
+        try:
+            return f"${{{name}}}/" + resolved.relative_to(root.resolve()).as_posix()
+        except ValueError:
+            continue
+    return "${LOCAL_SOURCE_PATH}/" + p.name
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _jsonable(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(val) for val in value]
+    if isinstance(value, Path):
+        return display_path(value)
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        return _jsonable(value.tolist())
+    return value
 
 
 def _axis_from_log_vector(vector: np.ndarray) -> str:
