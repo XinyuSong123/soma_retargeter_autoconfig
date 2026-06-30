@@ -11,7 +11,7 @@ retargeting-v3-step4-1-orientation-residual-breakthrough
 Artifact source commit:
 
 ```text
-7c610bafe55dfc2170e4aa1b570459eaa8c252c1
+97537f015012b3207a25756633729ee37f190a16
 ```
 
 Artifact directory:
@@ -182,4 +182,3 @@ PYTHONPATH=. python scripts/audit_retargeting_v3_step4_1_orientation_residual_br
 This is an orientation residual semantics breakthrough, not a visual/deployment readiness claim. Runtime gates are unchanged, 32 full-humanoid rows remain warned, and no production/default runtime override is enabled.
 
 Next technical direction, if a later stage is started, is to decide whether the global parent-relative orientation residual policy should become runtime scoring logic or remain audited diagnostic evidence.
-
