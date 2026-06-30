@@ -1,4 +1,4 @@
-# Handover — Retargeting V3 / Step 4.1 Orientation Residual Breakthrough
+# Handover — Retargeting V3 / Step 4.2 Orientation Policy Runtime Scoring
 
 This file is the starting point for a new Codex/chat window. Read it first, then read `goal.md` fully.
 
@@ -15,22 +15,22 @@ XinyuSong123/soma_retargeter_autoconfig
 Current working branch for the next development step:
 
 ```text
-retargeting-v3-step4-1-orientation-residual-breakthrough
+retargeting-v3-step4-2-orientation-policy-runtime-scoring
 ```
 
-This branch was created from the current Step 4.0 full-pipeline acceptance branch:
+This branch was created from the Step 4.1 orientation residual breakthrough branch:
 
 ```text
-retargeting-v3-step4-full-pipeline-acceptance
+retargeting-v3-step4-1-orientation-residual-breakthrough
 ```
 
 The current `goal.md` on this branch is:
 
 ```text
-Goal — Step 4.1：Global Orientation Residual Breakthrough
+Goal — Step 4.2：Orientation Policy Runtime Scoring Integration
 ```
 
-Do not continue development on the Step 4.0 branch except as historical baseline. Step 4.1 must write new artifacts and leave closed Step 3.1.1 / Step 3.2 / Step 3.3 / Step 3.4 / Step 4.0 artifacts intact.
+Do not continue development on the Step 4.1 branch except as historical baseline. Step 4.2 must write new artifacts and leave closed Step 3.1.1 / Step 3.2 / Step 3.3 / Step 3.4 / Step 4.0 / Step 4.1 artifacts intact.
 
 ---
 
@@ -43,14 +43,14 @@ conda activate soma-retargeter-v2
 cd ~/Desktop/soma_retargeter_autoconfig
 
 git fetch origin --prune
-git switch retargeting-v3-step4-1-orientation-residual-breakthrough || \
-  git switch --track -c retargeting-v3-step4-1-orientation-residual-breakthrough origin/retargeting-v3-step4-1-orientation-residual-breakthrough
+git switch retargeting-v3-step4-2-orientation-policy-runtime-scoring || \
+  git switch --track -c retargeting-v3-step4-2-orientation-policy-runtime-scoring origin/retargeting-v3-step4-2-orientation-policy-runtime-scoring
 
 git pull --ff-only
 
 git branch --show-current
 git rev-parse HEAD
-git merge-base --is-ancestor origin/retargeting-v3-step4-full-pipeline-acceptance HEAD
+git merge-base --is-ancestor origin/retargeting-v3-step4-1-orientation-residual-breakthrough HEAD
 git status --short
 
 git lfs install
@@ -61,104 +61,76 @@ git lfs fsck
 Expected branch:
 
 ```text
-retargeting-v3-step4-1-orientation-residual-breakthrough
+retargeting-v3-step4-2-orientation-policy-runtime-scoring
 ```
 
 Expected HEAD should be at or after the bootstrap goal commit on this branch:
 
 ```text
-d900e4adb8b7163ad6daebd806ae187d409add56
+ccfc12b21e8ddfad689125d8a159d71d0c475e7d
 ```
 
 If local `git status --short` is dirty before starting, stash or move local files. Do not generate artifacts from a dirty worktree.
 
 ---
 
-## 2. Step 4.0 baseline status
+## 2. Step 4.1 baseline status
 
-Step 4.0 produced the full-pipeline artifact tree but remained blocked by residual quality:
+Step 4.1 proved an audited global orientation residual semantics breakthrough:
 
 ```text
-release_candidate_status = BLOCKED_RESIDUAL_QUALITY
-verdict = BLOCKED
-primary_quality_breakthrough = false
-blocking structural audit findings = 0
+release_candidate_status = PASS_RC
+primary_quality_breakthrough = true
+selected_policy = parent_relative_runtime_inv_target
+p95_rotation_residual_p95_delta_vs_step4_0 = -0.859991637555
+raw_residual_regression_count = 0
+normalization_hides_raw_residual_regression = false
 ```
 
-The artifact tree exists under:
+But Step 4.1 did not change runtime quality counts:
 
 ```text
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/
-```
-
-Preserved Step 4.0 invariants:
-
-```text
-in_scope_total = 44
-full_humanoid_total = 32
-partial_total = 3
-negative_total = 9
-
-solver_backed_smoke_attempted_count = 32
-solver_backed_completed_count = 32
-solver_backed_count = 32
-residual_only_count = 0
-
-deterministic_compared_count = 44
-deterministic_matched_count = 44
-
 runtime_quality_passed_count = 0
 runtime_quality_warned_count = 32
 runtime_quality_failed_count = 0
-partial_runtime_passed_count = 3
-negative_control_runtime_passed_count = 9
-
-clip_suite_count = 4
-trajectory_exports_count = 128
-temporal_continuity_finite_count = 128
-support_contact_diagnostic_count = 128
-collision_proxy_diagnostic_count = 128
+high_residual_warning_count = 32
 ```
 
-Remaining blocker:
+It also did not change production/default runtime behavior:
 
 ```text
-high_residual_warning_count = 32
-rotation_dominant_residual_count = 27
-translation_dominant_residual_count = 5
-runtime_quality_passed_count = 0
+production_default_changed = false
+runtime_override_default_enabled = false
+runtime_quality_gates_changed = false
+runtime_quality_passed_count_changed_by_policy = false
 ```
 
 Interpretation:
 
 ```text
-The pipeline plumbing is now mostly done. The next hard problem is global orientation residual semantics and target-frame consistency.
+Step 4.1 proved the orientation comparison policy is better as audited diagnostic evidence.
+Step 4.2 must determine whether that policy can become active runtime scoring evidence without weakening gates or changing production defaults silently.
 ```
 
 ---
 
-## 3. Step 4.1 purpose
+## 3. Step 4.2 purpose
 
-Step 4.1 must target the remaining residual blocker directly:
-
-```text
-Global orientation residual breakthrough / target-frame semantics / quaternion residual math.
-```
+Step 4.2 must promote the selected global orientation policy into Step 4.2 runtime scoring / quality metrics evidence behind an explicit flag/config.
 
 Primary breakthrough required for `PASS_RC`:
 
 ```text
 runtime_quality_passed_count > 0
 OR high_residual_warning_count < 32
-OR rotation_dominant_residual_count < 27
-OR audited p95_rotation_residual_p95 improvement without raw residual regression
+OR active-scoring residual distribution improves enough to satisfy audit
 ```
 
-If no global policy can break through, final status must be an honest blocked status such as:
+If no active-scoring breakthrough is possible, final status must be honest:
 
 ```text
-BLOCKED_ORIENTATION_SEMANTICS
-BLOCKED_TARGET_FRAME_AMBIGUITY
+BLOCKED_SCORING_INTEGRATION
+BLOCKED_GATE_RECONCILIATION
 BLOCKED_NORMALIZATION_INTEGRITY
 ```
 
@@ -172,26 +144,26 @@ Read these in order:
 
 ```text
 goal.md
+docs/retargeting_v3/STEP4_1_ORIENTATION_RESIDUAL_BREAKTHROUGH_HANDOFF.md
 docs/retargeting_v3/STEP4_FULL_PIPELINE_ACCEPTANCE_HANDOFF.md
 docs/retargeting_v3/HANDOVER_NEXT_WINDOW.md
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/quality_summary.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/acceptance_ledger.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/quality_delta_vs_step3_4.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/orientation_residual_taxonomy.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/normalization_audit.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/full_pipeline_matrix.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/clip_matrix.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/solver_smoke_matrix.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/generic_smoke_matrix.json
-artifacts/retargeting_v3_step4_full_pipeline_acceptance/trajectory_export_manifest.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/quality_summary.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/acceptance_ledger.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/orientation_delta_vs_step4_0.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/orientation_policy_selection.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/release_candidate_impact_report.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/full_pipeline_matrix.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/clip_matrix.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/solver_smoke_matrix.json
+artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/generic_smoke_matrix.json
 soma_retargeter/runtime/v3/generic_smoke.py
 soma_retargeter/runtime/v3/fleet_harness.py
 soma_retargeter/runtime/v3/quality_metrics.py
 soma_retargeter/runtime/v3/runtime_quality_gates.py
 soma_retargeter/tools/run_v3_full_pipeline_acceptance.py
-scripts/audit_retargeting_v3_step4_full_pipeline_acceptance.py
-.github/workflows/retargeting_v3_step4_full_pipeline_acceptance.yml
-tests/v3/test_step4_full_pipeline_acceptance_*.py
+scripts/audit_retargeting_v3_step4_1_orientation_residual_breakthrough.py
+.github/workflows/retargeting_v3_step4_1_orientation_residual_breakthrough.yml
+tests/v3/test_step4_1_orientation_residual_*.py
 ```
 
 ---
@@ -203,13 +175,14 @@ Implement according to `goal.md`, not by improvising scope.
 The first development actions should be:
 
 ```text
-1. Build orientation residual forensics from Step 4.0 artifacts.
-2. Add Step 4.1 audit skeleton and focused failing tests.
-3. Add orientation frame semantics matrix and quaternion/log-map residual math audit.
-4. Add global offset candidate sweep and orientation policy selection.
-5. Regenerate full-pipeline artifacts under artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/.
-6. Run focused tests, audit, deterministic rerun, LFS fsck, final HEAD CI.
-7. Write final handoff with PASS_RC or honest blocked status.
+1. Trace why Step 4.1 orientation breakthrough did not affect runtime_quality_status.
+2. Add Step 4.2 audit skeleton and focused failing tests.
+3. Add active-vs-diagnostic orientation policy evidence.
+4. Integrate parent_relative_runtime_inv_target into Step 4.2 scoring path behind explicit flag/config.
+5. Add gate_reconciliation_report and runtime_scoring_delta_vs_step4_1.
+6. Regenerate full-pipeline artifacts under artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/.
+7. Run focused tests, audit, deterministic rerun, LFS fsck, final HEAD CI.
+8. Write final handoff with PASS_RC or honest blocked status.
 ```
 
 ---
@@ -220,12 +193,13 @@ Do not:
 
 ```text
 - go back to Step 2 branches;
-- continue development on Step 4.0 branch;
+- continue development on Step 4.1 branch;
 - use env_isaaclab for V3 tests;
 - modify Step 2 artifacts or thresholds;
-- overwrite Step 3.1.1 / Step 3.2 / Step 3.3 / Step 3.4 / Step 4.0 artifact trees;
+- overwrite Step 3.1.1 / Step 3.2 / Step 3.3 / Step 3.4 / Step 4.0 / Step 4.1 artifact trees;
 - rewrite production/default runtime behavior;
 - default-enable runtime override;
+- promote diagnostic-only learned rest offsets into active policy;
 - add robot-specific math, thresholds, weights, or whitelist exceptions;
 - remove robots or clips to make metrics look better;
 - hide raw residual regression via normalization;
@@ -240,5 +214,5 @@ Do not:
 ## 7. Short status for the next assistant / Codex
 
 ```text
-We are on retargeting-v3-step4-1-orientation-residual-breakthrough, created from the current Step 4.0 full-pipeline branch. Step 4.0 completed full pipeline plumbing and diagnostics but ended as BLOCKED_RESIDUAL_QUALITY: runtime_quality_passed_count=0, runtime_quality_warned_count=32, high_residual_warning_count=32, rotation_dominant_residual_count=27. Step 4.1 must attack global orientation residual semantics: target/runtime/source frame conventions, quaternion/log-map residual math, rest-offset policies, orientation normalization, and global policy selection. Do not tune per robot, do not weaken gates, do not overwrite closed artifacts, and do not fake PASS_RC.
+We are on retargeting-v3-step4-2-orientation-policy-runtime-scoring, created from Step 4.1. Step 4.1 selected a global parent_relative_runtime_inv_target orientation policy and achieved p95 rotation residual delta -0.859991637555 with no raw residual regression. However runtime quality counts remain unchanged: 0 passed, 32 warned, 0 failed, high_residual_warning_count 32. Step 4.2 must integrate the selected global policy into active Step 4.2 runtime scoring evidence, reconcile gates, and prove whether this can reduce high residual warnings or create gate-valid pass rows. Do not tune per robot, do not weaken gates, do not change production defaults silently, and do not overwrite closed artifacts.
 ```
