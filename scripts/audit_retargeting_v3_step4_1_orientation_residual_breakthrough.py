@@ -613,7 +613,11 @@ def _audit_no_robot_specific_tuning(source_root: Path) -> list[Finding]:
             except OSError:
                 continue
             for index, line in enumerate(lines, start=1):
-                if "SUSPICIOUS_ROBOT_SPECIFIC_RE" in line:
+                if (
+                    "SUSPICIOUS_ROBOT_SPECIFIC_RE" in line
+                    or "per_robot_threshold|by_robot_weight" in line
+                    or "force_pass|force_promote" in line
+                ):
                     continue
                 if SUSPICIOUS_ROBOT_SPECIFIC_RE.search(line):
                     findings.append(_finding("no_robot_specific_tuning", f"{_display_path(file_path)}:{index}", "suspicious robot/model-specific tuning shortcut", {"line": line.strip()}))
