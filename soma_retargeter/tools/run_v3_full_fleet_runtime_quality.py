@@ -72,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-global-solver-quality-hardening", action="store_true")
     parser.add_argument("--enable-global-residual-quality-hardening", action="store_true")
     parser.add_argument("--enable-global-orientation-residual-hardening", action="store_true")
+    parser.add_argument("--enable-parent-relative-orientation-runtime-scoring", action="store_true")
     parser.add_argument("--solver-smoke-sample-count", type=int, default=1)
     parser.add_argument("--solver-smoke-max-nfev-per-task", type=int, default=12)
     parser.add_argument("--solver-smoke-task-order", nargs="+", default=None)
@@ -103,6 +104,7 @@ def main(argv: list[str] | None = None) -> int:
         enable_global_solver_quality_hardening=args.enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=args.enable_global_residual_quality_hardening,
         enable_global_orientation_residual_hardening=args.enable_global_orientation_residual_hardening,
+        enable_parent_relative_orientation_runtime_scoring=args.enable_parent_relative_orientation_runtime_scoring,
         baseline_artifact_dir=args.baseline_artifact_dir,
         solver_smoke_sample_count=args.solver_smoke_sample_count,
         solver_smoke_max_nfev_per_task=args.solver_smoke_max_nfev_per_task,
@@ -131,6 +133,7 @@ def run_full_fleet_runtime_quality(
     enable_global_solver_quality_hardening: bool = False,
     enable_global_residual_quality_hardening: bool = False,
     enable_global_orientation_residual_hardening: bool = False,
+    enable_parent_relative_orientation_runtime_scoring: bool = False,
     baseline_artifact_dir: Path = DEFAULT_STEP3_2_ARTIFACT_ROOT,
     solver_smoke_sample_count: int = 1,
     solver_smoke_max_nfev_per_task: int = 12,
@@ -147,6 +150,10 @@ def run_full_fleet_runtime_quality(
         raise RuntimeError("--enable-global-residual-quality-hardening requires --enable-global-solver-quality-hardening")
     if enable_global_orientation_residual_hardening and not enable_global_residual_quality_hardening:
         raise RuntimeError("--enable-global-orientation-residual-hardening requires --enable-global-residual-quality-hardening")
+    if enable_parent_relative_orientation_runtime_scoring and not enable_global_orientation_residual_hardening:
+        raise RuntimeError(
+            "--enable-parent-relative-orientation-runtime-scoring requires --enable-global-orientation-residual-hardening"
+        )
     if artifact_root.resolve() == baseline_artifact_dir.resolve():
         raise RuntimeError("Step 3.3 artifact generation must not overwrite the Step 3.2 baseline artifact tree")
     if enable_global_residual_quality_hardening and artifact_root.resolve() == DEFAULT_STEP3_3_ARTIFACT_ROOT.resolve():
@@ -188,12 +195,14 @@ def run_full_fleet_runtime_quality(
             task_order=solver_smoke_task_order,
             enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
             enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
+            enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
         )
     else:
         solver_smoke_config = SolverBackedSmokeConfig(
             sample_count=solver_smoke_sample_count,
             max_nfev_per_task=solver_smoke_max_nfev_per_task,
             task_order=solver_smoke_task_order,
+            enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
         )
     case_results: list[FleetCaseResult] = []
     for case in cases:
@@ -223,6 +232,7 @@ def run_full_fleet_runtime_quality(
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
+        enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
     )
     failure_matrix = _failure_matrix_payload(case_results)
     environment = _environment_payload(
@@ -236,6 +246,8 @@ def run_full_fleet_runtime_quality(
         solver_smoke_config,
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
+        enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
+        enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
     )
     solver_diagnostics = _solver_diagnostics_matrix_payload(model_matrix, solver_smoke_matrix, solver_config)
     task_coverage_matrix = _task_coverage_matrix_payload(model_matrix, solver_smoke_matrix, solver_diagnostics, solver_config)
@@ -336,6 +348,7 @@ def run_full_fleet_runtime_quality(
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
+        enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
         baseline_artifact_dir=baseline_artifact_dir,
         solver_smoke_config=solver_smoke_config,
     )
@@ -780,6 +793,7 @@ def _quality_summary_payload(
     enable_global_solver_quality_hardening: bool = False,
     enable_global_residual_quality_hardening: bool = False,
     enable_global_orientation_residual_hardening: bool = False,
+    enable_parent_relative_orientation_runtime_scoring: bool = False,
 ) -> dict[str, Any]:
     del enable_global_orientation_residual_hardening
     model_rows = [result.model_matrix_row(profile_resolution_status="", pipeline_backed_status="") for result in case_results]
@@ -884,6 +898,15 @@ def _quality_summary_payload(
         "final_status_counts": dict(sorted(final_counts.items())),
         "deterministic_compared_count": len(case_results),
         "deterministic_matched_count": len(case_results),
+        "orientation_policy_active_for_scoring": bool(enable_parent_relative_orientation_runtime_scoring),
+        "active_runtime_scoring_orientation_policy": (
+            "parent_relative_runtime_inv_target"
+            if enable_parent_relative_orientation_runtime_scoring
+            else "world_runtime_inv_target"
+        ),
+        "production_default_orientation_policy": "world_runtime_inv_target",
+        "orientation_policy_production_default_changed": False,
+        "runtime_override_default_enabled": False,
     }
     if enable_global_residual_quality_hardening:
         payload.update(
@@ -911,6 +934,7 @@ def _solver_config_payload(
     enable_global_solver_quality_hardening: bool,
     enable_global_residual_quality_hardening: bool = False,
     enable_global_orientation_residual_hardening: bool = False,
+    enable_parent_relative_orientation_runtime_scoring: bool = False,
 ) -> dict[str, Any]:
     payload = config.to_json()
     step = "step3_2_solver_backed_smoke"
@@ -949,7 +973,22 @@ def _solver_config_payload(
         },
         "global_orientation_residual_policy": {
             "enabled": bool(enable_global_orientation_residual_hardening),
-            "task_residual_mode": "global_se3_log_map_residual" if enable_global_orientation_residual_hardening else "legacy_torso_rotation_limb_translation",
+            "task_residual_mode": (
+                "global_parent_relative_so3_log_map_residual"
+                if enable_parent_relative_orientation_runtime_scoring
+                else "global_se3_log_map_residual"
+                if enable_global_orientation_residual_hardening
+                else "legacy_torso_rotation_limb_translation"
+            ),
+            "active_runtime_scoring_policy": (
+                "parent_relative_runtime_inv_target"
+                if enable_parent_relative_orientation_runtime_scoring
+                else "world_runtime_inv_target"
+            ),
+            "production_default_policy": "world_runtime_inv_target",
+            "active_for_runtime_scoring": bool(enable_parent_relative_orientation_runtime_scoring),
+            "production_default_changed": False,
+            "runtime_override_default_enabled": False,
             "rotation_scale": "pi",
             "translation_scale": "global_path_position_scale",
             "robot_specific_tuning": False,
@@ -1006,6 +1045,21 @@ def _solver_diagnostics_matrix_payload(
                 "raw_task_residual_p50": float(row.get("raw_task_residual_p50", row.get("task_residual_p50", 0.0)) or 0.0),
                 "raw_task_residual_p95": float(row.get("raw_task_residual_p95", row.get("task_residual_p95", 0.0)) or 0.0),
                 "raw_task_residual_max": float(row.get("raw_task_residual_max", row.get("task_residual_max", 0.0)) or 0.0),
+                "orientation_integrated_residual_mean": float(row.get("orientation_integrated_residual_mean", metrics.get("orientation_integrated_residual_mean", 0.0)) or 0.0),
+                "orientation_integrated_residual_p95": float(row.get("orientation_integrated_residual_p95", metrics.get("orientation_integrated_residual_p95", 0.0)) or 0.0),
+                "orientation_integrated_residual_max": float(row.get("orientation_integrated_residual_max", metrics.get("orientation_integrated_residual_max", 0.0)) or 0.0),
+                "legacy_world_task_residual_mean": float(row.get("legacy_world_task_residual_mean", metrics.get("legacy_world_task_residual_mean", 0.0)) or 0.0),
+                "legacy_world_task_residual_p95": float(row.get("legacy_world_task_residual_p95", metrics.get("legacy_world_task_residual_p95", 0.0)) or 0.0),
+                "legacy_world_task_residual_max": float(row.get("legacy_world_task_residual_max", metrics.get("legacy_world_task_residual_max", 0.0)) or 0.0),
+                "legacy_world_rotation_residual_mean": float(row.get("legacy_world_rotation_residual_mean", metrics.get("legacy_world_rotation_residual_mean", 0.0)) or 0.0),
+                "legacy_world_rotation_residual_p95": float(row.get("legacy_world_rotation_residual_p95", metrics.get("legacy_world_rotation_residual_p95", 0.0)) or 0.0),
+                "legacy_world_rotation_residual_max": float(row.get("legacy_world_rotation_residual_max", metrics.get("legacy_world_rotation_residual_max", 0.0)) or 0.0),
+                "active_runtime_scoring_orientation_policy": str(row.get("active_runtime_scoring_orientation_policy", metrics.get("active_runtime_scoring_orientation_policy", ""))),
+                "diagnostic_orientation_policy": str(row.get("diagnostic_orientation_policy", metrics.get("diagnostic_orientation_policy", ""))),
+                "production_default_orientation_policy": str(row.get("production_default_orientation_policy", metrics.get("production_default_orientation_policy", ""))),
+                "orientation_policy_active_for_scoring": bool(row.get("orientation_policy_active_for_scoring", metrics.get("orientation_policy_active_for_scoring", False))),
+                "orientation_policy_production_default_changed": bool(row.get("orientation_policy_production_default_changed", metrics.get("orientation_policy_production_default_changed", False))),
+                "runtime_override_default_enabled": bool(row.get("runtime_override_default_enabled", metrics.get("runtime_override_default_enabled", False))),
                 "target_translation_error_mean": float(row.get("target_translation_error_mean", 0.0) or 0.0),
                 "target_translation_error_p95": float(row.get("target_translation_error_p95", 0.0) or 0.0),
                 "target_translation_error_max": float(row.get("target_translation_error_max", 0.0) or 0.0),
@@ -2122,6 +2176,7 @@ def _write_commands(
     enable_global_solver_quality_hardening: bool = False,
     enable_global_residual_quality_hardening: bool = False,
     enable_global_orientation_residual_hardening: bool = False,
+    enable_parent_relative_orientation_runtime_scoring: bool = False,
     baseline_artifact_dir: Path = DEFAULT_STEP3_2_ARTIFACT_ROOT,
     solver_smoke_config: SolverBackedSmokeConfig | None = None,
 ) -> None:
@@ -2171,6 +2226,8 @@ def _write_commands(
         command.append("--enable-global-residual-quality-hardening")
     if enable_global_orientation_residual_hardening:
         command.append("--enable-global-orientation-residual-hardening")
+    if enable_parent_relative_orientation_runtime_scoring:
+        command.append("--enable-parent-relative-orientation-runtime-scoring")
     (artifact_root / "commands.txt").write_text(" ".join(command) + "\n", encoding="utf-8")
 
 

@@ -36,6 +36,7 @@ from soma_retargeter.tools.run_v3_full_fleet_runtime_quality import (
 DEFAULT_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_full_pipeline_acceptance")
 DEFAULT_BASELINE_STEP3_4_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step3_4_global_residual_quality")
 DEFAULT_BASELINE_STEP4_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_full_pipeline_acceptance")
+DEFAULT_BASELINE_STEP4_1_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough")
 BASE_STEP3_4_FINAL_HEAD = "77e7c02393a6678ccab40cdb847021d7d94392c9"
 STEP4_CLIP_SUITE = tuple(Path(path).stem for path in DEFAULT_CORE_CLIPS)
 CORE_DIFF_PATHS = ("soma_retargeter", "tests", "scripts", ".github")
@@ -46,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--artifact-dir", "--artifact-root", dest="artifact_dir", type=Path, default=DEFAULT_ARTIFACT_DIR)
     parser.add_argument("--baseline-step3-4-artifact-dir", type=Path, default=DEFAULT_BASELINE_STEP3_4_ARTIFACT_DIR)
     parser.add_argument("--baseline-step4-artifact-dir", type=Path, default=None)
+    parser.add_argument("--baseline-step4-1-artifact-dir", type=Path, default=None)
     parser.add_argument("--step2-profile-root", type=Path, default=DEFAULT_STEP2_PROFILE_ROOT)
     parser.add_argument("--step3-shadow-root", type=Path, default=DEFAULT_STEP3_SHADOW_ROOT)
     parser.add_argument("--lock", type=Path, default=DEFAULT_LOCK)
@@ -62,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-global-residual-quality-hardening", action="store_true")
     parser.add_argument("--enable-global-orientation-residual-hardening", action="store_true")
     parser.add_argument("--enable-orientation-frame-semantics-audit", action="store_true")
+    parser.add_argument("--enable-parent-relative-orientation-runtime-scoring", action="store_true")
     parser.add_argument("--enable-full-pipeline-exports", action="store_true")
     parser.add_argument("--deterministic-rerun", action="store_true")
     parser.add_argument("--allow-dirty-internal-rerun", action="store_true")
@@ -71,6 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         artifact_dir=args.artifact_dir,
         baseline_step3_4_artifact_dir=args.baseline_step3_4_artifact_dir,
         baseline_step4_artifact_dir=args.baseline_step4_artifact_dir,
+        baseline_step4_1_artifact_dir=args.baseline_step4_1_artifact_dir,
         step2_profile_root=args.step2_profile_root,
         step3_shadow_root=args.step3_shadow_root,
         lock=args.lock,
@@ -87,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
         enable_global_residual_quality_hardening=args.enable_global_residual_quality_hardening,
         enable_global_orientation_residual_hardening=args.enable_global_orientation_residual_hardening,
         enable_orientation_frame_semantics_audit=args.enable_orientation_frame_semantics_audit,
+        enable_parent_relative_orientation_runtime_scoring=args.enable_parent_relative_orientation_runtime_scoring,
         enable_full_pipeline_exports=args.enable_full_pipeline_exports,
         deterministic_rerun=args.deterministic_rerun,
         allow_dirty_internal_rerun=args.allow_dirty_internal_rerun,
@@ -100,6 +105,7 @@ def run_step4_full_pipeline_acceptance(
     artifact_dir: Path,
     baseline_step3_4_artifact_dir: Path,
     baseline_step4_artifact_dir: Path | None = None,
+    baseline_step4_1_artifact_dir: Path | None = None,
     step2_profile_root: Path = DEFAULT_STEP2_PROFILE_ROOT,
     step3_shadow_root: Path = DEFAULT_STEP3_SHADOW_ROOT,
     lock: Path = DEFAULT_LOCK,
@@ -116,6 +122,7 @@ def run_step4_full_pipeline_acceptance(
     enable_global_residual_quality_hardening: bool = True,
     enable_global_orientation_residual_hardening: bool = True,
     enable_orientation_frame_semantics_audit: bool = False,
+    enable_parent_relative_orientation_runtime_scoring: bool = False,
     enable_full_pipeline_exports: bool = True,
     deterministic_rerun: bool = True,
     allow_dirty_internal_rerun: bool = False,
@@ -123,10 +130,13 @@ def run_step4_full_pipeline_acceptance(
     artifact_dir = Path(artifact_dir)
     baseline_step3_4_artifact_dir = Path(baseline_step3_4_artifact_dir)
     baseline_step4_artifact_dir = Path(baseline_step4_artifact_dir) if baseline_step4_artifact_dir is not None else None
+    baseline_step4_1_artifact_dir = Path(baseline_step4_1_artifact_dir) if baseline_step4_1_artifact_dir is not None else None
     if artifact_dir.resolve() == baseline_step3_4_artifact_dir.resolve():
         raise RuntimeError("Step 4 artifact generation must not overwrite the closed Step 3.4 artifact tree")
     if baseline_step4_artifact_dir is not None and artifact_dir.resolve() == baseline_step4_artifact_dir.resolve():
         raise RuntimeError("Step 4.1 artifact generation must not overwrite the closed Step 4.0 artifact tree")
+    if baseline_step4_1_artifact_dir is not None and artifact_dir.resolve() == baseline_step4_1_artifact_dir.resolve():
+        raise RuntimeError("Step 4.2 artifact generation must not overwrite the closed Step 4.1 artifact tree")
 
     required_core_clips = list(required_core_clips or [Path(path) for path in DEFAULT_CORE_CLIPS])
     run_full_fleet_runtime_quality(
@@ -144,6 +154,7 @@ def run_step4_full_pipeline_acceptance(
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
+        enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
         baseline_artifact_dir=baseline_step3_4_artifact_dir,
         solver_smoke_sample_count=solver_smoke_sample_count,
         solver_smoke_max_nfev_per_task=solver_smoke_max_nfev_per_task,
@@ -165,9 +176,25 @@ def run_step4_full_pipeline_acceptance(
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
+        enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
         enable_full_pipeline_exports=enable_full_pipeline_exports,
         deterministic_rerun=deterministic_rerun,
     )
+    if enable_parent_relative_orientation_runtime_scoring:
+        from soma_retargeter.tools.step4_2_orientation_policy_runtime_scoring import (
+            finalize_step4_2_orientation_policy_runtime_scoring_artifacts,
+        )
+
+        return finalize_step4_2_orientation_policy_runtime_scoring_artifacts(
+            artifact_dir=artifact_dir,
+            baseline_step4_1_artifact_dir=baseline_step4_1_artifact_dir or DEFAULT_BASELINE_STEP4_1_ARTIFACT_DIR,
+            required_core_clips=required_core_clips,
+            short_max_frames=short_max_frames,
+            mid_max_frames=mid_max_frames,
+            solver_smoke_sample_count=solver_smoke_sample_count,
+            solver_smoke_max_nfev_per_task=solver_smoke_max_nfev_per_task,
+            solver_smoke_clip_limit=solver_smoke_clip_limit,
+        )
     if enable_orientation_frame_semantics_audit or baseline_step4_artifact_dir is not None:
         from soma_retargeter.tools.step4_1_orientation_residual import finalize_step4_1_orientation_artifacts
 
@@ -197,6 +224,7 @@ def finalize_step4_artifacts(
     enable_global_solver_quality_hardening: bool,
     enable_global_residual_quality_hardening: bool,
     enable_global_orientation_residual_hardening: bool,
+    enable_parent_relative_orientation_runtime_scoring: bool,
     enable_full_pipeline_exports: bool,
     deterministic_rerun: bool,
 ) -> dict[str, Any]:
@@ -224,6 +252,7 @@ def finalize_step4_artifacts(
         enable_global_solver_quality_hardening=enable_global_solver_quality_hardening,
         enable_global_residual_quality_hardening=enable_global_residual_quality_hardening,
         enable_global_orientation_residual_hardening=enable_global_orientation_residual_hardening,
+        enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
         enable_full_pipeline_exports=enable_full_pipeline_exports,
     )
     solver_config = _step4_solver_config(solver_config, pipeline_config)
@@ -348,6 +377,7 @@ def _pipeline_config_payload(
     enable_global_solver_quality_hardening: bool,
     enable_global_residual_quality_hardening: bool,
     enable_global_orientation_residual_hardening: bool,
+    enable_parent_relative_orientation_runtime_scoring: bool,
     enable_full_pipeline_exports: bool,
 ) -> dict[str, Any]:
     config = {
@@ -362,6 +392,15 @@ def _pipeline_config_payload(
         "enable_global_solver_quality_hardening": bool(enable_global_solver_quality_hardening),
         "enable_global_residual_quality_hardening": bool(enable_global_residual_quality_hardening),
         "enable_global_orientation_residual_hardening": bool(enable_global_orientation_residual_hardening),
+        "enable_parent_relative_orientation_runtime_scoring": bool(enable_parent_relative_orientation_runtime_scoring),
+        "active_runtime_scoring_orientation_policy": (
+            "parent_relative_runtime_inv_target"
+            if enable_parent_relative_orientation_runtime_scoring
+            else "world_runtime_inv_target"
+        ),
+        "production_default_orientation_policy": "world_runtime_inv_target",
+        "orientation_policy_production_default_changed": False,
+        "runtime_override_default_enabled": False,
         "enable_full_pipeline_exports": bool(enable_full_pipeline_exports),
         "global_config": True,
         "robot_specific_tuning": False,
@@ -383,10 +422,22 @@ def _step4_solver_config(solver_config: dict[str, Any], pipeline_config: dict[st
     payload.setdefault("global_config", True)
     payload.setdefault("robot_specific_tuning", False)
     policy = dict(payload.get("global_orientation_residual_policy", {}))
+    parent_relative_active = bool(pipeline_config["config"].get("enable_parent_relative_orientation_runtime_scoring"))
     policy.update(
         {
             "enabled": bool(pipeline_config["config"]["enable_global_orientation_residual_hardening"]),
-            "task_residual_mode": "global_se3_log_map_residual",
+            "task_residual_mode": (
+                "global_parent_relative_so3_log_map_residual"
+                if parent_relative_active
+                else "global_se3_log_map_residual"
+            ),
+            "active_runtime_scoring_policy": (
+                "parent_relative_runtime_inv_target" if parent_relative_active else "world_runtime_inv_target"
+            ),
+            "production_default_policy": "world_runtime_inv_target",
+            "active_for_runtime_scoring": parent_relative_active,
+            "production_default_changed": False,
+            "runtime_override_default_enabled": False,
             "rotation_scale": "pi",
             "translation_scale": "global_path_position_scale",
             "robot_specific_tuning": False,
@@ -430,11 +481,24 @@ def _clip_matrix_payload(target_stream_matrix: dict[str, Any], generic_smoke_mat
                     "raw_task_residual_mean": float(metrics.get("raw_task_residual_mean", metrics.get("task_residual_mean", 0.0)) or 0.0),
                     "raw_task_residual_p95": float(metrics.get("raw_task_residual_p95", metrics.get("task_residual_p95", 0.0)) or 0.0),
                     "raw_task_residual_max": float(metrics.get("raw_task_residual_max", metrics.get("task_residual_max", 0.0)) or 0.0),
+                    "orientation_integrated_residual_mean": float(metrics.get("orientation_integrated_residual_mean", metrics.get("task_residual_mean", 0.0)) or 0.0),
+                    "orientation_integrated_residual_p95": float(metrics.get("orientation_integrated_residual_p95", metrics.get("task_residual_p95", 0.0)) or 0.0),
+                    "orientation_integrated_residual_max": float(metrics.get("orientation_integrated_residual_max", metrics.get("task_residual_max", 0.0)) or 0.0),
+                    "legacy_world_task_residual_mean": float(metrics.get("legacy_world_task_residual_mean", metrics.get("task_residual_mean", 0.0)) or 0.0),
+                    "legacy_world_task_residual_p95": float(metrics.get("legacy_world_task_residual_p95", metrics.get("task_residual_p95", 0.0)) or 0.0),
+                    "legacy_world_task_residual_max": float(metrics.get("legacy_world_task_residual_max", metrics.get("task_residual_max", 0.0)) or 0.0),
                 },
                 "per_clip_orientation_residual_metrics": {
                     "rotation_residual_mean": float(metrics.get("target_rotation_error_mean", 0.0) or 0.0),
                     "rotation_residual_p95": float(metrics.get("target_rotation_error_p95", 0.0) or 0.0),
                     "rotation_residual_max": float(metrics.get("target_rotation_error_max", 0.0) or 0.0),
+                    "legacy_world_rotation_residual_mean": float(metrics.get("legacy_world_rotation_residual_mean", metrics.get("target_rotation_error_mean", 0.0)) or 0.0),
+                    "legacy_world_rotation_residual_p95": float(metrics.get("legacy_world_rotation_residual_p95", metrics.get("target_rotation_error_p95", 0.0)) or 0.0),
+                    "legacy_world_rotation_residual_max": float(metrics.get("legacy_world_rotation_residual_max", metrics.get("target_rotation_error_max", 0.0)) or 0.0),
+                    "active_runtime_scoring_orientation_policy": metrics.get("active_runtime_scoring_orientation_policy"),
+                    "diagnostic_orientation_policy": metrics.get("diagnostic_orientation_policy"),
+                    "production_default_orientation_policy": metrics.get("production_default_orientation_policy"),
+                    "orientation_policy_active_for_scoring": bool(metrics.get("orientation_policy_active_for_scoring", False)),
                 },
                 "per_clip_joint_limit_metrics": {
                     "joint_limit_violation_count": int(metrics.get("joint_limit_violation_count", 0) or 0),
@@ -811,12 +875,27 @@ def _full_pipeline_matrix_payload(
                 "raw_task_residual_mean": float(row.get("raw_task_residual_mean", row.get("task_residual_mean", 0.0)) or 0.0),
                 "raw_task_residual_p95": float(row.get("raw_task_residual_p95", row.get("task_residual_p95", 0.0)) or 0.0),
                 "raw_task_residual_max": float(row.get("raw_task_residual_max", row.get("task_residual_max", 0.0)) or 0.0),
+                "orientation_integrated_residual_mean": float(row.get("orientation_integrated_residual_mean", row.get("task_residual_mean", 0.0)) or 0.0),
+                "orientation_integrated_residual_p95": float(row.get("orientation_integrated_residual_p95", row.get("task_residual_p95", 0.0)) or 0.0),
+                "orientation_integrated_residual_max": float(row.get("orientation_integrated_residual_max", row.get("task_residual_max", 0.0)) or 0.0),
+                "legacy_world_task_residual_mean": float(row.get("legacy_world_task_residual_mean", row.get("task_residual_mean", 0.0)) or 0.0),
+                "legacy_world_task_residual_p95": float(row.get("legacy_world_task_residual_p95", row.get("task_residual_p95", 0.0)) or 0.0),
+                "legacy_world_task_residual_max": float(row.get("legacy_world_task_residual_max", row.get("task_residual_max", 0.0)) or 0.0),
                 "translation_residual_mean": float(row.get("target_translation_error_mean", 0.0) or 0.0),
                 "translation_residual_p95": float(row.get("target_translation_error_p95", 0.0) or 0.0),
                 "translation_residual_max": float(row.get("target_translation_error_max", 0.0) or 0.0),
                 "rotation_residual_mean": float(row.get("target_rotation_error_mean", 0.0) or 0.0),
                 "rotation_residual_p95": float(row.get("target_rotation_error_p95", 0.0) or 0.0),
                 "rotation_residual_max": float(row.get("target_rotation_error_max", 0.0) or 0.0),
+                "legacy_world_rotation_residual_mean": float(row.get("legacy_world_rotation_residual_mean", row.get("target_rotation_error_mean", 0.0)) or 0.0),
+                "legacy_world_rotation_residual_p95": float(row.get("legacy_world_rotation_residual_p95", row.get("target_rotation_error_p95", 0.0)) or 0.0),
+                "legacy_world_rotation_residual_max": float(row.get("legacy_world_rotation_residual_max", row.get("target_rotation_error_max", 0.0)) or 0.0),
+                "active_runtime_scoring_orientation_policy": row.get("active_runtime_scoring_orientation_policy"),
+                "diagnostic_orientation_policy": row.get("diagnostic_orientation_policy"),
+                "production_default_orientation_policy": row.get("production_default_orientation_policy"),
+                "orientation_policy_active_for_scoring": bool(row.get("orientation_policy_active_for_scoring", False)),
+                "orientation_policy_production_default_changed": bool(row.get("orientation_policy_production_default_changed", False)),
+                "runtime_override_default_enabled": bool(row.get("runtime_override_default_enabled", False)),
                 "joint_limit_violation_count": int(row.get("joint_limit_violation_count", 0) or 0),
                 "max_joint_limit_violation": float(row.get("max_joint_limit_violation", 0.0) or 0.0),
                 "output_nan_count": int(row.get("output_nan_count", 0) or 0),

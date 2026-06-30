@@ -30,6 +30,16 @@ from .runtime_quality_gates import (
 
 
 SOLVER_BACKED_GENERIC_SOLVER_TYPE = "generic_chain_projection_least_squares_smoke"
+PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY = "world_runtime_inv_target"
+PARENT_RELATIVE_ORIENTATION_SCORING_POLICY = "parent_relative_runtime_inv_target"
+ORIENTATION_PARENT_BY_SEMANTIC = {
+    "Hips": None,
+    "Chest": "Hips",
+    "LeftHand": "Chest",
+    "RightHand": "Chest",
+    "LeftFoot": "Hips",
+    "RightFoot": "Hips",
+}
 
 
 @dataclass(frozen=True)
@@ -51,6 +61,7 @@ class SolverBackedSmokeConfig:
     enable_global_residual_quality_hardening: bool = False
     enable_global_orientation_residual_hardening: bool = False
     anchor_reliability_policy_version: str = "none"
+    enable_parent_relative_orientation_runtime_scoring: bool = False
 
     @classmethod
     def global_quality_hardened(
@@ -61,6 +72,7 @@ class SolverBackedSmokeConfig:
         task_order: tuple[str, ...] = ("torso",),
         enable_global_residual_quality_hardening: bool = False,
         enable_global_orientation_residual_hardening: bool = False,
+        enable_parent_relative_orientation_runtime_scoring: bool = False,
     ) -> "SolverBackedSmokeConfig":
         return cls(
             sample_count=sample_count,
@@ -80,9 +92,15 @@ class SolverBackedSmokeConfig:
                 if enable_global_residual_quality_hardening
                 else "none"
             ),
+            enable_parent_relative_orientation_runtime_scoring=enable_parent_relative_orientation_runtime_scoring,
         )
 
     def to_json(self, *, include_hash: bool = True) -> dict[str, Any]:
+        active_policy = (
+            PARENT_RELATIVE_ORIENTATION_SCORING_POLICY
+            if self.enable_parent_relative_orientation_runtime_scoring
+            else PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY
+        )
         payload = {
             "sample_count": int(self.sample_count),
             "max_nfev_per_task": int(self.max_nfev_per_task),
@@ -101,6 +119,13 @@ class SolverBackedSmokeConfig:
             "enable_global_residual_quality_hardening": bool(self.enable_global_residual_quality_hardening),
             "enable_global_orientation_residual_hardening": bool(self.enable_global_orientation_residual_hardening),
             "anchor_reliability_policy_version": str(self.anchor_reliability_policy_version),
+            "enable_parent_relative_orientation_runtime_scoring": bool(
+                self.enable_parent_relative_orientation_runtime_scoring
+            ),
+            "active_runtime_scoring_orientation_policy": active_policy,
+            "production_default_orientation_policy": PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY,
+            "orientation_policy_production_default_changed": False,
+            "runtime_override_default_enabled": False,
             "global_config": True,
         }
         if include_hash:
@@ -331,8 +356,10 @@ def run_full_humanoid_solver_backed_smoke(
         q_sequence: list[np.ndarray] = []
         raw_q_sequence: list[np.ndarray] = []
         residual_values: list[float] = []
+        legacy_world_residual_values: list[float] = []
         translation_errors: list[float] = []
         rotation_errors: list[float] = []
+        legacy_world_rotation_errors: list[float] = []
         solver_iterations: list[float] = []
         solver_successes = 0
         solver_tasks = 0
@@ -361,6 +388,7 @@ def run_full_humanoid_solver_backed_smoke(
                         target_transforms,
                         frame_index,
                         label="seed",
+                        config=cfg,
                     )
                 )
             for task in cfg.task_order:
@@ -405,6 +433,7 @@ def run_full_humanoid_solver_backed_smoke(
                             target_transforms,
                             frame_index,
                             label=f"after_{task}",
+                            config=cfg,
                         )
                     )
 
@@ -451,22 +480,48 @@ def run_full_humanoid_solver_backed_smoke(
                 solver_failed_frame_count += 1
             previous_q = q.copy()
             state = adapter.forward_kinematics(q)
+            runtime_transforms = {
+                semantic: adapter.site_transform(state, sites[semantic])
+                for semantic in target_transforms
+                if semantic in sites
+            }
             per_semantic: dict[str, dict[str, Any]] = {}
             for semantic, stack_value in sorted(target_transforms.items()):
                 if semantic not in sites:
                     continue
                 stack = np.asarray(stack_value, dtype=np.float64)
-                runtime_transform = adapter.site_transform(state, sites[semantic])
+                runtime_transform = runtime_transforms[semantic]
                 target_transform = stack[frame_index]
                 translation = float(np.linalg.norm(runtime_transform[:3, 3] - target_transform[:3, 3]))
-                rotation = rotation_error(runtime_transform[:3, :3], target_transform[:3, :3])
+                orientation = _orientation_runtime_scoring_residual(
+                    semantic=semantic,
+                    runtime_transforms=runtime_transforms,
+                    target_transforms=target_transforms,
+                    runtime_transform=runtime_transform,
+                    target_transform=target_transform,
+                    frame_index=frame_index,
+                    config=cfg,
+                )
+                rotation = float(orientation["active_rotation_residual"])
+                legacy_world_rotation = float(orientation["legacy_world_rotation_residual"])
                 translation_errors.append(translation)
                 rotation_errors.append(rotation)
                 residual_values.append(translation + rotation)
+                legacy_world_residual_values.append(translation + legacy_world_rotation)
+                legacy_world_rotation_errors.append(legacy_world_rotation)
                 per_semantic[semantic] = {
                     "translation_residual": _stable(translation),
                     "rotation_residual": _stable(rotation),
+                    "legacy_world_rotation_residual": _stable(legacy_world_rotation),
                     "combined_residual": _stable(translation + rotation),
+                    "legacy_world_combined_residual": _stable(translation + legacy_world_rotation),
+                    "orientation_scoring_policy": orientation["active_policy"],
+                    "diagnostic_orientation_policy": PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY,
+                    "parent_semantic_anchor": orientation["parent_semantic_anchor"],
+                    "parent_relative": orientation["parent_relative"],
+                    "world_relative": orientation["world_relative"],
+                    "log_map_residual": orientation["log_map_residual"],
+                    "angle_residual_radians": _stable(rotation),
                 }
             q_sequence.append(q)
             raw_q_sequence.append(frame_raw_q)
@@ -478,6 +533,12 @@ def run_full_humanoid_solver_backed_smoke(
                     "global_residual_guard": global_residual_guard,
                     "joint_limit_projection": projection_reports[-1],
                     "per_semantic": per_semantic,
+                    "orientation_policy_runtime_scoring": {
+                        "active_policy": _active_orientation_policy(cfg),
+                        "production_default_policy": PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY,
+                        "production_default_changed": False,
+                        "runtime_override_default_enabled": False,
+                    },
                 }
             )
 
@@ -520,6 +581,17 @@ def run_full_humanoid_solver_backed_smoke(
         metrics.update(contact_diagnostics(sampled_targets))
         metrics.update(_summary_fields("target_translation_error", translation_errors))
         metrics.update(_summary_fields("target_rotation_error", rotation_errors))
+        metrics.update(_summary_fields("legacy_world_rotation_residual", legacy_world_rotation_errors))
+        metrics.update(_summary_fields("legacy_world_task_residual", legacy_world_residual_values))
+        metrics.update(_summary_fields("orientation_integrated_residual", residual_values))
+        metrics["active_runtime_scoring_orientation_policy"] = _active_orientation_policy(cfg)
+        metrics["diagnostic_orientation_policy"] = PARENT_RELATIVE_ORIENTATION_SCORING_POLICY
+        metrics["production_default_orientation_policy"] = PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY
+        metrics["orientation_policy_active_for_scoring"] = bool(cfg.enable_parent_relative_orientation_runtime_scoring)
+        metrics["orientation_policy_production_default_changed"] = False
+        metrics["runtime_override_default_enabled"] = False
+        metrics["orientation_runtime_scoring_raw_residual_retained"] = True
+        metrics["orientation_runtime_scoring_normalized_residual_transparent"] = True
         metrics["target_se3_orthogonality_error_max"] = _target_se3_orthogonality_error_max(target_transforms)
         metrics["solver_success_fraction"] = _stable(float(solver_successes / solver_tasks))
         metrics["solver_task_count"] = int(solver_tasks)
@@ -1278,24 +1350,44 @@ def _frame_residual_candidate(
     frame_index: int,
     *,
     label: str,
+    config: SolverBackedSmokeConfig,
 ) -> dict[str, Any]:
     state = adapter.forward_kinematics(q)
+    runtime_transforms = {
+        semantic: adapter.site_transform(state, sites[semantic])
+        for semantic in target_transforms
+        if semantic in sites
+    }
     residual_values: list[float] = []
     per_semantic: dict[str, dict[str, Any]] = {}
     for semantic, stack_value in sorted(target_transforms.items()):
         if semantic not in sites:
             continue
         stack = np.asarray(stack_value, dtype=np.float64)
-        runtime_transform = adapter.site_transform(state, sites[semantic])
+        runtime_transform = runtime_transforms[semantic]
         target_transform = stack[frame_index]
         translation = float(np.linalg.norm(runtime_transform[:3, 3] - target_transform[:3, 3]))
-        rotation = rotation_error(runtime_transform[:3, :3], target_transform[:3, :3])
+        orientation = _orientation_runtime_scoring_residual(
+            semantic=semantic,
+            runtime_transforms=runtime_transforms,
+            target_transforms=target_transforms,
+            runtime_transform=runtime_transform,
+            target_transform=target_transform,
+            frame_index=frame_index,
+            config=config,
+        )
+        rotation = float(orientation["active_rotation_residual"])
         combined = translation + rotation
         residual_values.append(combined)
         per_semantic[str(semantic)] = {
             "translation_residual": _stable(translation),
             "rotation_residual": _stable(rotation),
+            "legacy_world_rotation_residual": _stable(float(orientation["legacy_world_rotation_residual"])),
             "combined_residual": _stable(combined),
+            "orientation_scoring_policy": orientation["active_policy"],
+            "parent_semantic_anchor": orientation["parent_semantic_anchor"],
+            "parent_relative": orientation["parent_relative"],
+            "world_relative": orientation["world_relative"],
         }
     arr = np.asarray(residual_values, dtype=np.float64)
     arr = arr[np.isfinite(arr)]
@@ -1314,6 +1406,55 @@ def _frame_residual_candidate(
         "score": score,
         "score_tuple": (score["p95"], score["max"], score["mean"]),
         "per_semantic": per_semantic,
+    }
+
+
+def _active_orientation_policy(config: SolverBackedSmokeConfig) -> str:
+    return (
+        PARENT_RELATIVE_ORIENTATION_SCORING_POLICY
+        if config.enable_parent_relative_orientation_runtime_scoring
+        else PRODUCTION_DEFAULT_ORIENTATION_SCORING_POLICY
+    )
+
+
+def _orientation_runtime_scoring_residual(
+    *,
+    semantic: str,
+    runtime_transforms: Mapping[str, np.ndarray],
+    target_transforms: Mapping[str, np.ndarray],
+    runtime_transform: np.ndarray,
+    target_transform: np.ndarray,
+    frame_index: int,
+    config: SolverBackedSmokeConfig,
+) -> dict[str, Any]:
+    active_policy = _active_orientation_policy(config)
+    runtime_rotation = np.asarray(runtime_transform, dtype=np.float64)[:3, :3]
+    target_rotation = np.asarray(target_transform, dtype=np.float64)[:3, :3]
+    legacy_vector = so3_log(runtime_rotation.T @ target_rotation)
+    active_runtime_rotation = runtime_rotation
+    active_target_rotation = target_rotation
+    parent = ORIENTATION_PARENT_BY_SEMANTIC.get(str(semantic))
+    parent_relative = False
+    if (
+        active_policy == PARENT_RELATIVE_ORIENTATION_SCORING_POLICY
+        and parent is not None
+        and parent in runtime_transforms
+        and parent in target_transforms
+    ):
+        parent_runtime = np.asarray(runtime_transforms[parent], dtype=np.float64)[:3, :3]
+        parent_target_stack = np.asarray(target_transforms[parent], dtype=np.float64)
+        active_runtime_rotation = parent_runtime.T @ runtime_rotation
+        active_target_rotation = parent_target_stack[frame_index, :3, :3].T @ target_rotation
+        parent_relative = True
+    active_vector = so3_log(active_runtime_rotation.T @ active_target_rotation)
+    return {
+        "active_policy": active_policy,
+        "legacy_world_rotation_residual": _stable(float(np.linalg.norm(legacy_vector))),
+        "active_rotation_residual": _stable(float(np.linalg.norm(active_vector))),
+        "log_map_residual": [_stable(float(value)) for value in active_vector],
+        "parent_semantic_anchor": parent,
+        "parent_relative": parent_relative,
+        "world_relative": not parent_relative,
     }
 
 

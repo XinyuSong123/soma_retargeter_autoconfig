@@ -1,0 +1,261 @@
+name: Retargeting V3 Step 4.2 Orientation Policy Runtime Scoring
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "soma_retargeter/tools/run_v3_full_pipeline_acceptance.py"
+      - "soma_retargeter/tools/step4_2_orientation_policy_runtime_scoring.py"
+      - "scripts/audit_retargeting_v3_step4_2_orientation_policy_runtime_scoring.py"
+      - "tests/v3/test_step4_2_orientation_policy_runtime_scoring_*.py"
+      - "tests/v3/step4_2_orientation_policy_runtime_scoring_fixture.py"
+      - "artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/**"
+      - "docs/retargeting_v3/STEP4_2_ORIENTATION_POLICY_RUNTIME_SCORING_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_2_orientation_policy_runtime_scoring.yml"
+  push:
+    branches:
+      - retargeting-v3-step4-2-orientation-policy-runtime-scoring
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/robotics/v3/**"
+      - "soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py"
+      - "soma_retargeter/tools/run_v3_full_pipeline_acceptance.py"
+      - "soma_retargeter/tools/step4_2_orientation_policy_runtime_scoring.py"
+      - "scripts/audit_retargeting_v3_step4_2_orientation_policy_runtime_scoring.py"
+      - "tests/v3/test_step4_2_orientation_policy_runtime_scoring_*.py"
+      - "tests/v3/step4_2_orientation_policy_runtime_scoring_fixture.py"
+      - "artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/**"
+      - "docs/retargeting_v3/STEP4_2_ORIENTATION_POLICY_RUNTIME_SCORING_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_2_orientation_policy_runtime_scoring.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  STEP4_1_ARTIFACTS: artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough
+  STEP4_2_ARTIFACTS: artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring
+
+jobs:
+  step4-2-static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy scipy
+      - name: Compile Step 4.2 sources
+        run: |
+          python -m py_compile \
+            soma_retargeter/runtime/v3/generic_smoke.py \
+            soma_retargeter/runtime/v3/fleet_harness.py \
+            soma_retargeter/tools/run_v3_full_fleet_runtime_quality.py \
+            soma_retargeter/tools/run_v3_full_pipeline_acceptance.py \
+            soma_retargeter/tools/step4_2_orientation_policy_runtime_scoring.py \
+            scripts/audit_retargeting_v3_step4_2_orientation_policy_runtime_scoring.py
+      - name: Run focused Step 4.2 tests
+        run: |
+          python -m pytest -q tests/v3/test_step4_2_orientation_policy_runtime_scoring_*.py
+
+  step4-2-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Step 4.2 artifacts
+        run: |
+          if [ ! -f "$STEP4_2_ARTIFACTS/quality_summary.json" ]; then
+            echo "Step 4.2 artifact tree is not committed on this source-only revision; skipping artifact audit."
+            exit 0
+          fi
+          python scripts/audit_retargeting_v3_step4_2_orientation_policy_runtime_scoring.py \
+            --artifact-dir "$STEP4_2_ARTIFACTS" \
+            --baseline-step4-1-artifact-dir "$STEP4_1_ARTIFACTS" \
+            --source-root .
+
+  step4-2-active-scoring-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check active scoring config defaults
+        run: |
+          python - <<'PY'
+          from soma_retargeter.runtime.v3.generic_smoke import SolverBackedSmokeConfig
+
+          default = SolverBackedSmokeConfig.global_quality_hardened(enable_global_residual_quality_hardening=True, enable_global_orientation_residual_hardening=True)
+          active = SolverBackedSmokeConfig.global_quality_hardened(enable_global_residual_quality_hardening=True, enable_global_orientation_residual_hardening=True, enable_parent_relative_orientation_runtime_scoring=True)
+          assert default.to_json()["active_runtime_scoring_orientation_policy"] == "world_runtime_inv_target"
+          assert default.to_json()["runtime_override_default_enabled"] is False
+          assert active.to_json()["active_runtime_scoring_orientation_policy"] == "parent_relative_runtime_inv_target"
+          assert active.to_json()["orientation_policy_production_default_changed"] is False
+          PY
+
+  step4-2-gate-reconciliation-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check gate reconciliation artifact if present
+        run: |
+          if [ ! -f "$STEP4_2_ARTIFACTS/gate_reconciliation_report.json" ]; then
+            echo "Step 4.2 gate reconciliation artifact not present on this revision."
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          gate = json.loads(Path("artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/gate_reconciliation_report.json").read_text())
+          assert gate["pass_gate_thresholds_unchanged"] is True
+          assert gate["warn_gate_thresholds_unchanged"] is True
+          assert gate.get("gates_weakened") is False
+          assert "per_gate_blocker_counts" in gate
+          PY
+
+  step4-2-export-and-temporal-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check exports and temporal diagnostics if artifacts are present
+        run: |
+          if [ ! -f "$STEP4_2_ARTIFACTS/trajectory_export_manifest.json" ]; then
+            echo "Step 4.2 trajectory exports not present on this revision."
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring")
+          manifest = json.loads((root / "trajectory_export_manifest.json").read_text())
+          temporal = json.loads((root / "temporal_continuity_matrix.json").read_text())
+          rows = manifest.get("exports", manifest.get("rows", []))
+          assert rows
+          for row in rows:
+              assert row.get("finite_qpos", row.get("qpos_finite", row.get("finite"))) is True
+              assert row.get("nan_count") == 0
+              assert row.get("inf_count") == 0
+          assert temporal.get("finite_count") == len(temporal.get("rows", []))
+          PY
+
+  step4-2-lfs-and-snapshot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+      - name: Verify Step 4.2 artifact shape if present
+        run: |
+          if [ ! -f "$STEP4_2_ARTIFACTS/quality_summary.json" ]; then
+            echo "Step 4.2 artifact tree not present on this revision."
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring")
+          summary = json.loads((root / "quality_summary.json").read_text())
+          model = json.loads((root / "model_matrix.json").read_text())
+          assert summary["in_scope_total"] == 44
+          assert summary["full_humanoid_total"] == 32
+          assert summary["partial_total"] == 3
+          assert summary["negative_total"] == 9
+          assert summary["solver_backed_count"] >= 32
+          assert summary["residual_only_count"] == 0
+          assert summary["runtime_quality_failed_count"] == 0
+          assert len(model["rows"]) == 44
+          PY
+
+  step4-2-pipeline-controls-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check pipeline control evidence is retained or referenced
+        run: |
+          if [ ! -d "$STEP4_2_ARTIFACTS" ]; then
+            echo "Step 4.2 artifact tree not present on this revision."
+            exit 0
+          fi
+          test -f "$STEP4_2_ARTIFACTS/pipeline_backed_matrix.json" || \
+            test -f "$STEP4_2_ARTIFACTS/pipeline_controls_reference.json"
+
+  step4-2-final-head-ci-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - step4-2-static-and-unit
+      - step4-2-artifact-audit
+      - step4-2-active-scoring-smoke
+      - step4-2-gate-reconciliation-smoke
+      - step4-2-export-and-temporal-smoke
+      - step4-2-lfs-and-snapshot-smoke
+      - step4-2-pipeline-controls-reference
+    if: always()
+    steps:
+      - name: Record final HEAD CI evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          job_conclusions = {name: data["result"] for name, data in sorted(needs.items())}
+          conclusion = "success" if all(result == "success" for result in job_conclusions.values()) else "failure"
+          payload = {
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "conclusion": conclusion,
+              "job_conclusions": job_conclusions,
+          }
+          print("workflow_run_id", payload["workflow_run_id"])
+          print("head_sha", payload["head_sha"])
+          print("conclusion", payload["conclusion"])
+          print("job_conclusions", json.dumps(payload["job_conclusions"], sort_keys=True))
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("```json\n")
+              handle.write(json.dumps(payload, indent=2, sort_keys=True))
+              handle.write("\n```\n")
+          if conclusion != "success":
+              sys.exit(1)
+          PY
