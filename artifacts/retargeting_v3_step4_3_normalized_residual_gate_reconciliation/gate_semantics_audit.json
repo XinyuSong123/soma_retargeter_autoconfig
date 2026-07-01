@@ -1,0 +1,46 @@
+{
+  "active_parent_relative_residual_needs_new_metric_name": true,
+  "candidate_gates_do_not_replace_legacy_runtime_quality_passed": true,
+  "designed_for_metric": "legacy_row_max_v1_solver_output_residual",
+  "gate_categories": {
+    "hard_safety_gates": [
+      "finite_metrics",
+      "nan_count",
+      "inf_count",
+      "joint_limit_pass",
+      "normalized_task_residual_max_warn",
+      "se3_orthogonality_error_max",
+      "solver_backed_required_for_runtime_pass"
+    ],
+    "legacy_release_quality_gates": [
+      "normalized_task_residual_p95_pass",
+      "normalized_task_residual_p95_warn",
+      "joint_velocity_p95_warn",
+      "joint_acceleration_p95_warn"
+    ],
+    "step4_3_release_quality_v2_candidate_gates": [
+      "orientation_integrated_fixed_global_scale_residual_p95",
+      "raw_task_residual_regression_count",
+      "denominator_inflation_detected",
+      "normalization_hides_raw_residual_regression"
+    ]
+  },
+  "legacy_gate_source": "GLOBAL_RUNTIME_QUALITY_GATES",
+  "legacy_gates_unchanged": true,
+  "legacy_thresholds": {
+    "inf_count": 0,
+    "joint_acceleration_p95_warn": 0.75,
+    "joint_limit_violation_severe_threshold": 1e-05,
+    "joint_velocity_p95_warn": 0.25,
+    "nan_count": 0,
+    "normalized_task_residual_max_warn": 1.2,
+    "normalized_task_residual_p95_pass": 0.15,
+    "normalized_task_residual_p95_warn": 0.6,
+    "se3_orthogonality_error_max": 1e-08
+  },
+  "new_metric_name": "orientation_integrated_fixed_global_scale_residual_p95",
+  "normalized_task_residual_p95_pass_semantics": "With legacy row-local max normalization, p95 <= 0.15 means the row's p95 residual is no more than 15 percent of that same row's worst residual. It is a within-row distribution-shape gate, not a fixed physical meter/radian tolerance.",
+  "normalized_task_residual_p95_warn_semantics": "With legacy row-local max normalization, p95 <= 0.60 means the row's p95 residual is no more than 60 percent of that same row's worst residual. Rows whose p95 residual is close to their max remain warned even if absolute raw residual improves.",
+  "not_designed_for_metric": "orientation_integrated_fixed_global_scale_residual_p95",
+  "schema_version": 1
+}

@@ -1,0 +1,112 @@
+{
+  "base_step3_2_final_head": "6ae0bfbc1153e3aba1291f38f0c82dfac6c2fa57",
+  "base_step3_3_final_head": "1a8ae37670a3f3f8c49cefd78c6bf7292aa15489",
+  "base_step3_4_final_head": "77e7c02393a6678ccab40cdb847021d7d94392c9",
+  "base_step4_1_final_head": "97537f015012b3207a25756633729ee37f190a16",
+  "config": {
+    "active_runtime_scoring_orientation_policy": "parent_relative_runtime_inv_target",
+    "anchor_reliability_policy_version": "global_semantic_anchor_reliability_v1",
+    "enable_global_orientation_residual_hardening": true,
+    "enable_global_quality_hardening": true,
+    "enable_global_residual_quality_hardening": true,
+    "enable_parent_relative_orientation_runtime_scoring": true,
+    "ftol": 1e-08,
+    "global_config": true,
+    "gtol": 1e-08,
+    "line_search_alphas": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.0
+    ],
+    "max_nfev_per_task": 12,
+    "max_update_norm": 1.0,
+    "orientation_policy_production_default_changed": false,
+    "production_default_orientation_policy": "world_runtime_inv_target",
+    "project_joint_limits": true,
+    "residual_nonincrease_guard": true,
+    "residual_nonincrease_tolerance": 1e-09,
+    "reuse_previous_frame_seed": true,
+    "runtime_override_default_enabled": false,
+    "sample_count": 1,
+    "seed_policy": "neutral_with_previous_frame_reuse",
+    "solver_config_hash": "c94b584fff470353ef9561d95882e9a0511987cbb87e188a75b1a85a1315083c",
+    "task_order": [
+      "torso",
+      "left_hand",
+      "right_hand",
+      "left_foot",
+      "right_foot"
+    ],
+    "xtol": 1e-08
+  },
+  "enabled": true,
+  "global_config": true,
+  "global_orientation_residual_policy": {
+    "active_for_runtime_scoring": true,
+    "active_runtime_scoring_policy": "parent_relative_runtime_inv_target",
+    "diagnostic_orientation_policy": "parent_relative_runtime_inv_target",
+    "enabled": true,
+    "frame_semantics": "parent_relative_for_non_root_anchors",
+    "production_default_changed": false,
+    "production_default_policy": "world_runtime_inv_target",
+    "quaternion_order": "xyzw",
+    "robot_specific_tuning": false,
+    "rotation_scale": "pi",
+    "runtime_override_default_enabled": false,
+    "runtime_quality_gates_changed": false,
+    "selected_policy": "parent_relative_runtime_inv_target",
+    "shortest_arc_sign_canonicalization": true,
+    "task_residual_mode": "global_parent_relative_so3_log_map_residual",
+    "translation_scale": "global_path_position_scale"
+  },
+  "global_residual_quality_policy": {
+    "anchor_reliability_policy_version": "global_semantic_anchor_reliability_v1",
+    "enabled": true,
+    "residual_normalization_policy": "legacy_row_max_recorded_with_raw_residual_guard",
+    "robot_specific_tuning": false,
+    "semantic_task_weights": "uniform_global",
+    "task_coverage_policy": "configured_global_semantic_task_order"
+  },
+  "hardening_policy": {
+    "finite_metric_rollback": true,
+    "initialization": "neutral_with_previous_frame_reuse",
+    "joint_limit_projection": true,
+    "line_search_alphas": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.0
+    ],
+    "max_update_norm": 1.0,
+    "previous_frame_seed_reuse": true,
+    "residual_nonincrease_guard": true,
+    "task_order": [
+      "torso",
+      "left_hand",
+      "right_hand",
+      "left_foot",
+      "right_foot"
+    ]
+  },
+  "normalized_residual_gate_reconciliation_policy": {
+    "candidate_release_fixed_global_scale": 4.268140459384,
+    "candidate_release_gates_active": true,
+    "candidate_release_metric": "orientation_integrated_fixed_global_scale_residual_p95",
+    "gate_policy_selected": "candidate_6_release_quality_gate_v2_candidate",
+    "legacy_runtime_quality_gates_changed": false,
+    "normalization_policy_selected": "candidate_1_fixed_global_body_scale_normalization",
+    "production_default_changed": false,
+    "robot_specific_tuning": false,
+    "runtime_override_default_enabled": false,
+    "runtime_quality_passed_uses_legacy_gates_only": true
+  },
+  "pipeline_config_hash": "f68169222aefa9d2dd1da24e260e085fdae205dfef7a61945f394f1e2eda9266",
+  "robot_specific_tuning": false,
+  "schema_version": 1,
+  "solver_config_hash": "c94b584fff470353ef9561d95882e9a0511987cbb87e188a75b1a85a1315083c",
+  "solver_type": "generic_chain_projection_least_squares_smoke",
+  "step": "step4_3_normalized_residual_gate_reconciliation"
+}
