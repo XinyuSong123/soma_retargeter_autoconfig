@@ -1,0 +1,272 @@
+name: Retargeting V3 Step 4.4 Release Quality V2 Validation
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/tools/run_v3_full_pipeline_acceptance.py"
+      - "soma_retargeter/tools/step4_4_release_quality_v2_validation.py"
+      - "scripts/audit_retargeting_v3_step4_4_release_quality_v2_validation.py"
+      - "tests/v3/test_step4_4_release_quality_v2_validation_*.py"
+      - "tests/v3/step4_4_release_quality_v2_validation_fixture.py"
+      - "artifacts/retargeting_v3_step4_4_release_quality_v2_validation/**"
+      - "docs/retargeting_v3/STEP4_4_RELEASE_QUALITY_V2_VALIDATION_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_4_release_quality_v2_validation.yml"
+  push:
+    branches:
+      - retargeting-v3-step4-4-release-quality-v2-validation
+    paths:
+      - "soma_retargeter/runtime/v3/**"
+      - "soma_retargeter/tools/run_v3_full_pipeline_acceptance.py"
+      - "soma_retargeter/tools/step4_4_release_quality_v2_validation.py"
+      - "scripts/audit_retargeting_v3_step4_4_release_quality_v2_validation.py"
+      - "tests/v3/test_step4_4_release_quality_v2_validation_*.py"
+      - "tests/v3/step4_4_release_quality_v2_validation_fixture.py"
+      - "artifacts/retargeting_v3_step4_4_release_quality_v2_validation/**"
+      - "docs/retargeting_v3/STEP4_4_RELEASE_QUALITY_V2_VALIDATION_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_4_release_quality_v2_validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  STEP4_3_ARTIFACTS: artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation
+  STEP4_4_ARTIFACTS: artifacts/retargeting_v3_step4_4_release_quality_v2_validation
+
+jobs:
+  step4-4-static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy scipy
+      - name: Compile Step 4.4 sources
+        run: |
+          python -m py_compile \
+            soma_retargeter/tools/step4_4_release_quality_v2_validation.py \
+            scripts/audit_retargeting_v3_step4_4_release_quality_v2_validation.py
+      - name: Run focused Step 4.4 tests
+        run: |
+          python -m pytest -q tests/v3/test_step4_4_release_quality_v2_validation_*.py
+
+  step4-4-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Step 4.4 artifacts
+        run: |
+          if [ ! -f "$STEP4_4_ARTIFACTS/quality_summary.json" ]; then
+            echo "Step 4.4 artifact tree is not committed on this revision."
+            exit 1
+          fi
+          python scripts/audit_retargeting_v3_step4_4_release_quality_v2_validation.py \
+            --artifact-dir "$STEP4_4_ARTIFACTS" \
+            --baseline-step4-3-artifact-dir "$STEP4_3_ARTIFACTS" \
+            --source-root .
+
+  step4-4-release-quality-v2-validation-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check release-quality v2 counts and status
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_4_release_quality_v2_validation")
+          summary = json.loads((root / "quality_summary.json").read_text())
+          gate = json.loads((root / "gate_reconciliation_v3_report.json").read_text())
+          delta = json.loads((root / "quality_delta_vs_step4_3.json").read_text())
+
+          assert summary["release_candidate_status"] == "PASS_RC"
+          assert summary["runtime_quality_passed_count"] == 0
+          assert summary["runtime_quality_failed_count"] == 0
+          assert summary["legacy_gates_unchanged"] is True
+          assert summary["rows_below_candidate_warn_gate"] > summary["step4_3_rows_below_candidate_warn_gate"]
+          assert summary["release_quality_candidate_blocked_count"] < summary["step4_3_release_quality_candidate_blocked_count"]
+          assert gate["candidate_release_gates_not_counted_as_legacy_runtime_passed"] is True
+          assert delta["count_deltas"]["rows_below_candidate_warn_gate"] > 0
+          PY
+
+  step4-4-candidate-stability-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check diagnostic completeness
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_4_release_quality_v2_validation")
+          candidate = json.loads((root / "candidate_warned_deep_audit.json").read_text())
+          taxonomy = json.loads((root / "release_quality_v2_blocker_taxonomy.json").read_text())
+          stress = json.loads((root / "release_quality_v2_stress_test.json").read_text())
+          readiness = json.loads((root / "release_quality_v2_promotion_readiness.json").read_text())
+
+          assert candidate["baseline_step4_3_candidate_warned_count"] == 6
+          assert candidate["all_stable_across_four_clips"] is True
+          assert taxonomy["blocked_row_count"] == 26
+          assert set(taxonomy["required_categories"]) >= {
+              "orientation_integrated_fixed_global_scale_residual_p95_above_candidate_warn_gate",
+              "clip_instability",
+              "task_class_dominance",
+              "temporal_jump",
+              "support_contact_issue",
+              "collision_proxy_issue",
+              "solver_convergence_weak",
+              "normalization_ambiguity",
+          }
+          assert {row["method"] for row in stress["global_methods_tried"]} >= {
+              "global_clip_aggregation_policy",
+              "global_task_class_residual_weighting",
+              "global_worst_clip_guard",
+              "global_solver_retry_line_search_refinement",
+              "global_temporal_consistency_residual_penalty",
+          }
+          assert readiness["decision"] == "keep_diagnostic_only"
+          assert readiness["production_default_change_allowed"] is False
+          assert readiness["runtime_override_default_enabled"] is False
+          assert readiness["legacy_gates_unchanged"] is True
+          PY
+
+  step4-4-export-and-temporal-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check exports and diagnostics
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_4_release_quality_v2_validation")
+          manifest = json.loads((root / "trajectory_export_manifest.json").read_text())
+          temporal = json.loads((root / "temporal_continuity_matrix.json").read_text())
+          support = json.loads((root / "support_contact_diagnostics.json").read_text())
+          collision = json.loads((root / "collision_proxy_diagnostics.json").read_text())
+
+          exports = manifest.get("exports", manifest.get("rows", []))
+          assert len(exports) >= 128
+          for row in exports:
+              assert row.get("finite_qpos", row.get("qpos_finite", row.get("finite"))) is True
+              assert row.get("nan_count") == 0
+              assert row.get("inf_count") == 0
+          assert temporal.get("finite_count") == len(temporal.get("rows", []))
+          assert len(support.get("rows", [])) >= 128
+          assert len(collision.get("rows", [])) >= 128
+          PY
+
+  step4-4-lfs-and-snapshot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+      - name: Verify Step 4.4 artifact shape
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_4_release_quality_v2_validation")
+          summary = json.loads((root / "quality_summary.json").read_text())
+          matrix = json.loads((root / "full_pipeline_matrix.json").read_text())
+          assert summary["in_scope_total"] == 44
+          assert summary["full_humanoid_total"] == 32
+          assert summary["partial_total"] == 3
+          assert summary["negative_total"] == 9
+          assert summary["solver_backed_count"] >= 32
+          assert summary["residual_only_count"] == 0
+          assert summary["runtime_quality_failed_count"] == 0
+          assert len(matrix["rows"]) == 44
+          PY
+
+  step4-4-pipeline-controls-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check pipeline control evidence is retained or referenced
+        run: |
+          test -f "$STEP4_4_ARTIFACTS/pipeline_backed_matrix.json" || \
+            test -f "$STEP4_4_ARTIFACTS/pipeline_controls_reference.json"
+
+  step4-4-final-head-ci-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - step4-4-static-and-unit
+      - step4-4-artifact-audit
+      - step4-4-release-quality-v2-validation-smoke
+      - step4-4-candidate-stability-smoke
+      - step4-4-export-and-temporal-smoke
+      - step4-4-lfs-and-snapshot-smoke
+      - step4-4-pipeline-controls-reference
+    if: always()
+    steps:
+      - name: Record final HEAD CI evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          job_conclusions = {name: data["result"] for name, data in sorted(needs.items())}
+          conclusion = "success" if all(result == "success" for result in job_conclusions.values()) else "failure"
+          payload = {
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "conclusion": conclusion,
+              "job_conclusions": job_conclusions,
+          }
+          print("workflow_run_id", payload["workflow_run_id"])
+          print("head_sha", payload["head_sha"])
+          print("conclusion", payload["conclusion"])
+          print("job_conclusions", json.dumps(payload["job_conclusions"], sort_keys=True))
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("```json\n")
+              handle.write(json.dumps(payload, indent=2, sort_keys=True))
+              handle.write("\n```\n")
+          if conclusion != "success":
+              sys.exit(1)
+          PY

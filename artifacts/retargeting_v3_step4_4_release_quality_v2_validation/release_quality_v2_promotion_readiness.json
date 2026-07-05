@@ -1,0 +1,31 @@
+{
+  "blocked_pending_more_validation": false,
+  "candidate_release_gates_not_counted_as_legacy_runtime_quality_passed": true,
+  "candidate_warned_rows_stable_across_four_clips": true,
+  "decision": "keep_diagnostic_only",
+  "keep_diagnostic_only": true,
+  "legacy_gates_unchanged": true,
+  "model_count": 32,
+  "production_default_change_allowed": false,
+  "promote_to_release_candidate_gate": false,
+  "release_quality_candidate_blocked_count": 23,
+  "release_quality_candidate_passed_count": 0,
+  "required_future_evidence": [
+    "Independent rerun with the same global policy on a larger clip suite.",
+    "Task-level residual contract before any task-class weighting is counted.",
+    "Visual/deployment review outside this diagnostic gate work."
+  ],
+  "risks": [
+    "Mean clip aggregation can hide a hard single-clip regression if promoted without a stricter validated worst-clip contract.",
+    "Support/contact and collision diagnostics are proxies only and do not prove visual or deployment readiness.",
+    "Dominant Hips rotation residual remains the main blocked-row quality driver."
+  ],
+  "rows_below_candidate_warn_gate": 9,
+  "runtime_override_default_enabled": false,
+  "schema_version": 1,
+  "why": [
+    "Step 4.4 expands diagnostic candidate-warned coverage using a global clip aggregation policy, but zero rows satisfy the candidate pass gate.",
+    "The original worst-clip v2 gate remains at the Step 4.3 six-row warned baseline.",
+    "The mean-with-worst-guard policy needs future validation before any production or legacy gate role."
+  ]
+}

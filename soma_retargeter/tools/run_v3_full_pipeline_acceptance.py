@@ -38,6 +38,7 @@ DEFAULT_BASELINE_STEP3_4_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step3_4_g
 DEFAULT_BASELINE_STEP4_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_full_pipeline_acceptance")
 DEFAULT_BASELINE_STEP4_1_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough")
 DEFAULT_BASELINE_STEP4_2_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring")
+DEFAULT_BASELINE_STEP4_3_ARTIFACT_DIR = Path("artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation")
 BASE_STEP3_4_FINAL_HEAD = "77e7c02393a6678ccab40cdb847021d7d94392c9"
 STEP4_CLIP_SUITE = tuple(Path(path).stem for path in DEFAULT_CORE_CLIPS)
 CORE_DIFF_PATHS = ("soma_retargeter", "tests", "scripts", ".github")
@@ -50,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline-step4-artifact-dir", type=Path, default=None)
     parser.add_argument("--baseline-step4-1-artifact-dir", type=Path, default=None)
     parser.add_argument("--baseline-step4-2-artifact-dir", type=Path, default=None)
+    parser.add_argument("--baseline-step4-3-artifact-dir", type=Path, default=None)
     parser.add_argument("--step2-profile-root", type=Path, default=DEFAULT_STEP2_PROFILE_ROOT)
     parser.add_argument("--step3-shadow-root", type=Path, default=DEFAULT_STEP3_SHADOW_ROOT)
     parser.add_argument("--lock", type=Path, default=DEFAULT_LOCK)
@@ -68,10 +70,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--enable-orientation-frame-semantics-audit", action="store_true")
     parser.add_argument("--enable-parent-relative-orientation-runtime-scoring", action="store_true")
     parser.add_argument("--enable-normalized-residual-gate-reconciliation", action="store_true")
+    parser.add_argument("--enable-release-quality-v2-validation", action="store_true")
     parser.add_argument("--enable-full-pipeline-exports", action="store_true")
     parser.add_argument("--deterministic-rerun", action="store_true")
     parser.add_argument("--allow-dirty-internal-rerun", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.enable_release_quality_v2_validation:
+        from soma_retargeter.tools.step4_4_release_quality_v2_validation import (
+            finalize_step4_4_release_quality_v2_validation_artifacts,
+        )
+
+        payload = finalize_step4_4_release_quality_v2_validation_artifacts(
+            artifact_dir=args.artifact_dir,
+            baseline_step4_3_artifact_dir=args.baseline_step4_3_artifact_dir or DEFAULT_BASELINE_STEP4_3_ARTIFACT_DIR,
+        )
+        print(json.dumps({"status": payload["release_candidate_status"], "artifact_dir": display_path(args.artifact_dir)}, sort_keys=True))
+        return 0
 
     payload = run_step4_full_pipeline_acceptance(
         artifact_dir=args.artifact_dir,
