@@ -1,165 +1,78 @@
-# Goal — Step 4.3：Normalized Residual Gate Reconciliation（全局归一化残差 / Gate 一致性收敛）
+# GOAL.md — Retargeting V3 Step 4.4 Super Goal
 
-> **Codex 强制执行契约——不得自由发挥，不得拆成小步只做局部**
->
-> 当前分支：`retargeting-v3-step4-3-normalized-residual-gate-reconciliation`  
-> 基线分支：`retargeting-v3-step4-2-orientation-policy-runtime-scoring`  
-> 当前阶段：**Step 4.3 Normalized Residual Gate Reconciliation / Active Scoring Calibration**
->
-> Step 4.2 已经把 Step 4.1 选中的全局 `parent_relative_runtime_inv_target` orientation policy 接入 active runtime scoring evidence。结果很好但仍未彻底过 gate：
->
-> ```text
-> release_candidate_status = PASS_RC
-> primary_quality_breakthrough = true
-> orientation_policy_active_for_scoring = true
-> orientation_policy_production_default_changed = false
-> runtime_override_default_enabled = false
-> p95_orientation_integrated_residual_delta_vs_step4_1 = -0.959127833526
-> p95_normalized_task_residual_p95_delta_vs_step4_1 = -0.006465520975
-> raw_residual_regression_count = 0
-> normalization_hides_raw_residual_regression = false
-> denominator_inflation_detected = false
-> ```
->
-> 但是 runtime quality counts 仍然不变：
->
-> ```text
-> runtime_quality_passed_count = 0
-> runtime_quality_warned_count = 32
-> runtime_quality_failed_count = 0
-> high_residual_warning_count = 32
-> rows_newly_passing = 0
-> rows_still_warned = 32
-> ```
->
-> Step 4.2 的 gate reconciliation 显示所有 full humanoid 仍被同一组 gate 卡住：
->
-> ```text
-> high_task_residual = 32
-> normalized_task_residual_p95_above_pass_gate = 32
-> normalized_task_residual_p95_above_warn_gate = 32
-> solver_convergence_weak = 1
-> solver_success_fraction_below_one = 1
-> ```
->
-> **本轮唯一核心目标：解释并修复 active scoring residual 明显下降但 normalized gate 仍全部卡住的矛盾。Step 4.3 必须建立可审计、全局、非 robot-specific 的 normalized residual / gate reconciliation 方案。若它能合法降低 warnings 或产生 pass rows，则给出 PASS_RC；若不能，必须给出严格的 BLOCKED_GATE_RECONCILIATION / BLOCKED_NORMALIZATION_INTEGRITY 诊断。**
->
-> **禁止修改 Step 2 artifacts / thresholds；禁止覆盖 Step 3.1.1 / Step 3.2 / Step 3.3 / Step 3.4 / Step 4.0 / Step 4.1 / Step 4.2 closed artifacts；禁止 robot-specific 数学、阈值、白名单或 per-robot IK 权重调参；禁止默认启用 production/runtime override；禁止把 warned 改名成 passed；禁止通过放宽 gates 制造 pass；禁止隐藏 raw residual regression；禁止 denominator inflation；禁止 claim visual/deployment readiness。**
+Date: 2026-07-05
+Repository: `XinyuSong123/soma_retargeter_autoconfig`
+Target branch: `retargeting-v3-step4-4-release-quality-v2-validation`
+Base branch: `retargeting-v3-step4-3-normalized-residual-gate-reconciliation`
+Project environment: `conda activate soma-retargeter-v2`
+Do not use `env_isaaclab` for V3 tests.
+
+This is the single execution goal for the next Codex window after `git pull`.
+
+Codex must treat this as a fail-closed release-quality validation task. It is not a cosmetic cleanup task. It must patch every known weakness from Step 3.1.1 through Step 4.3, preserve honest evidence, validate the release-quality-v2 candidate gate, and either improve candidate coverage with global auditable methods or produce a complete honest blocked diagnosis.
 
 ---
 
-## 0. 开始前必须执行
+## 0. Operating principle
 
-```bash
-conda activate soma-retargeter-v2
-cd ~/Desktop/soma_retargeter_autoconfig
+The project must not become a green dashboard created by relabeling warnings. Every claim must be backed by artifacts, deterministic reruns, audits, tests, Git LFS checks, and final-head GitHub Actions evidence.
 
-git fetch origin --prune
-git switch retargeting-v3-step4-3-normalized-residual-gate-reconciliation || \
-  git switch --track -c retargeting-v3-step4-3-normalized-residual-gate-reconciliation origin/retargeting-v3-step4-3-normalized-residual-gate-reconciliation
+Correct outcomes are limited to:
 
-git pull --ff-only
+- `PASS_RC` because a real global auditable improvement was made and all hard invariants passed.
+- `BLOCKED_RELEASE_QUALITY_V2_VALIDATION` because no coverage improved but diagnostics are complete and honest.
+- `BLOCKED_CANDIDATE_GATE_ROBUSTNESS` because candidate rows are unstable under required stress tests.
+- `BLOCKED_CLIP_GENERALIZATION` because apparent improvements do not generalize across clips or hide worst-clip failures.
+- `BLOCKED_PIPELINE_REGRESSION` because an invariant regressed.
+- `BLOCKED_CI_OR_PROVENANCE` because final-head CI, LFS, or provenance evidence is incomplete.
 
-git branch --show-current
-git rev-parse HEAD
-git merge-base --is-ancestor origin/retargeting-v3-step4-2-orientation-policy-runtime-scoring HEAD
-git status --short
-
-git lfs install
-git lfs pull
-git lfs fsck
-
-which python
-python --version
-python - <<'PY'
-import mujoco, newton, warp, numpy, scipy
-print('mujoco', mujoco.__version__)
-print('newton', getattr(newton, '__version__', 'unknown'))
-print('warp', getattr(warp, '__version__', 'unknown'))
-print('numpy', numpy.__version__)
-print('scipy', scipy.__version__)
-PY
-```
-
-必须确认：
-
-```text
-branch = retargeting-v3-step4-3-normalized-residual-gate-reconciliation
-base Step 4.2 branch is ancestor
-worktree clean
-Git LFS fsck OK
-snapshot XML/URDF materialized, not pointer-only
-```
-
-环境不满足时，只修环境或 checkout，不得改代码绕过。
+Do not manufacture success by changing labels, weakening gates, deleting hard cases, or hiding raw residual regressions.
 
 ---
 
-## 1. 必须先阅读的文件
+## 1. Current baseline truth from Step 4.3
 
-按顺序完整阅读，不得只读 summary：
+Current completed stage: Step 4.3 normalized residual gate reconciliation.
 
-1. `goal.md`（本文件）
-2. `docs/retargeting_v3/STEP4_2_ORIENTATION_POLICY_RUNTIME_SCORING_HANDOFF.md`
-3. `docs/retargeting_v3/STEP4_1_ORIENTATION_RESIDUAL_BREAKTHROUGH_HANDOFF.md`
-4. `docs/retargeting_v3/STEP4_FULL_PIPELINE_ACCEPTANCE_HANDOFF.md`
-5. `docs/retargeting_v3/HANDOVER_NEXT_WINDOW.md`
-6. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/quality_summary.json`
-7. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/acceptance_ledger.json`
-8. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/gate_reconciliation_report.json`
-9. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/runtime_scoring_delta_vs_step4_1.json`
-10. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/orientation_policy_runtime_impact_report.json`
-11. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/scoring_normalization_audit.json`
-12. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/orientation_integrated_residual_matrix.json`
-13. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/full_pipeline_matrix.json`
-14. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/clip_matrix.json`
-15. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/solver_smoke_matrix.json`
-16. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/generic_smoke_matrix.json`
-17. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/pipeline_config.json`
-18. `artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring/solver_config.json`
-19. `soma_retargeter/runtime/v3/quality_metrics.py`
-20. `soma_retargeter/runtime/v3/generic_smoke.py`
-21. `soma_retargeter/runtime/v3/fleet_harness.py`
-22. `soma_retargeter/runtime/v3/runtime_quality_gates.py`
-23. `soma_retargeter/runtime/v3/runtime_status.py`
-24. `soma_retargeter/tools/run_v3_full_pipeline_acceptance.py`
-25. `scripts/audit_retargeting_v3_step4_2_orientation_policy_runtime_scoring.py`
-26. `.github/workflows/retargeting_v3_step4_2_orientation_policy_runtime_scoring.yml`
-27. `tests/v3/test_step4_2_orientation_policy_runtime_scoring_*.py`
-28. Step 4.1 artifacts under `artifacts/retargeting_v3_step4_1_orientation_residual_breakthrough/` as immutable baseline
-29. Step 4.0 artifacts under `artifacts/retargeting_v3_step4_full_pipeline_acceptance/` as historical baseline
-
-不得从旧 Step 2 logs 或旧 Step 3 branches 推断当前状态。不得改 closed artifact tree 来“修历史”。
-
----
-
-## 2. 当前真实基线
-
-Step 4.2 summary truth：
+Completed branch:
 
 ```text
-release_candidate_status = PASS_RC
-primary_quality_breakthrough = true
-active_runtime_scoring_orientation_policy = parent_relative_runtime_inv_target
-diagnostic_orientation_policy = parent_relative_runtime_inv_target
-production_default_orientation_policy = world_runtime_inv_target
-orientation_policy_active_for_scoring = true
-orientation_policy_production_default_changed = false
-runtime_override_default_enabled = false
+retargeting-v3-step4-3-normalized-residual-gate-reconciliation
 ```
 
-Preserved full-pipeline invariants：
+Recommended Step 4.4 branch:
 
 ```text
-in_scope_total = 44
-full_humanoid_total = 32
-partial_total = 3
-negative_total = 9
+retargeting-v3-step4-4-release-quality-v2-validation
+```
+
+Step 4.3 artifact directory:
+
+```text
+artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation/
+```
+
+Step 4.3 handoff:
+
+```text
+docs/retargeting_v3/STEP4_3_NORMALIZED_RESIDUAL_GATE_RECONCILIATION_HANDOFF.md
+```
+
+Step 4.3 core baseline counts:
+
+```text
+full_fleet_rows = 44
+full_humanoid_rows = 32
+partial_profile_rows = 3
+negative_control_rows = 9
 solver_backed_smoke_attempted_count = 32
 solver_backed_completed_count = 32
 solver_backed_count = 32
 residual_only_count = 0
+runtime_quality_passed_count = 0
+runtime_quality_warned_count = 32
 runtime_quality_failed_count = 0
+high_residual_warning_count = 32
 partial_runtime_passed_count = 3
 negative_control_runtime_passed_count = 9
 trajectory_exports_count = 128
@@ -168,309 +81,424 @@ support_contact_diagnostic_count = 128
 collision_proxy_diagnostic_count = 128
 deterministic_compared_count = 44
 deterministic_matched_count = 44
+focused_tests = 63 passed
+local_audit_status = PASS_RC
+local_audit_blocking_count = 0
+Git_LFS_fsck = OK
 ```
 
-Step 4.2 active scoring metrics：
+Step 4.3 release-quality-v2 candidate baseline:
 
 ```text
-p95_orientation_integrated_residual = 3.309012625858
-median_orientation_integrated_residual = 2.873878623742
-max_orientation_integrated_residual = 3.621022322952
-p95_raw_task_residual_p95 = 3.3090126258582
-median_raw_task_residual_p95 = 2.873878623742
-max_raw_task_residual_p95 = 3.621022322952
-p95_normalized_task_residual_p95 = 0.9933912463251
-median_normalized_task_residual_p95 = 0.9592907932370001
-max_normalized_task_residual_p95 = 0.99661104095
-```
-
-Delta vs Step 4.1：
-
-```text
-p95_orientation_integrated_residual_delta = -0.959127833526
-median_orientation_integrated_residual_delta = -0.683986984223
-max_orientation_integrated_residual_delta = -0.681007367545
-p95_raw_task_residual_delta = -0.959127833526
-median_raw_task_residual_delta = -0.683986984223
-max_raw_task_residual_delta = -0.681007367545
-p95_normalized_task_residual_p95_delta = -0.006465520975
-median_normalized_task_residual_p95_delta = -0.038211678732
-max_normalized_task_residual_p95_delta = -0.003319337192
+legacy_gates_unchanged = true
+candidate_release_gates_defined = true
+candidate_release_gates_active = true
+production_default_changed = false
+runtime_override_default_enabled = false
+normalization_policy_selected = candidate_1_fixed_global_body_scale_normalization
+gate_policy_selected = candidate_6_release_quality_gate_v2_candidate
+selected_fixed_global_scale = 4.268140459384
+selected_fixed_global_scale_source = closed_step4_1_raw_task_residual_p95_p95_distribution
 raw_residual_regression_count = 0
+denominator_inflation_detected = false
 normalization_hides_raw_residual_regression = false
+rows_below_legacy_warn_gate = 0
+rows_below_candidate_warn_gate = 6
+rows_below_candidate_pass_gate = 0
+release_quality_candidate_passed_count = 0
+release_quality_candidate_warned_count = 6
+release_quality_candidate_blocked_count = 26
 ```
 
-Runtime quality counts still blocked：
+Step 4.3 candidate-warned rows:
 
 ```text
+fourier_n1_mjcf
+fourier_n1_urdf
+robotis_op3_mjcf
+toddlerbot_2xc_mjcf
+toddlerbot_2xm_mjcf
+toddlerbot_urdf
+```
+
+Important interpretation:
+
+- Legacy runtime quality still has zero passes.
+- All 32 full humanoids are still legacy warned.
+- The v2 candidate gate is separate from legacy runtime quality.
+- The six candidate-warned rows are not legacy passes.
+- There are zero candidate-passed rows.
+- Twenty-six full humanoid rows remain blocked.
+- The Step 4.4 task is to validate, stress, and possibly expand candidate coverage, not to claim deployment readiness.
+
+---
+
+## 2. Historical problems that must now be patched or guarded
+
+### 2.1 Step 3.1.1 problem — honest evidence but no solver-backed quality
+
+Observed earlier problem:
+
+```text
+32 full / 3 partial / 9 negative
+runtime_quality_passed_count = 0
+runtime_quality_warned_count = 23
+runtime_quality_failed_count = 9
+solver_backed_count = 0
+residual_only_count = 32
+```
+
+Patch requirement:
+
+- Preserve honest labels.
+- Never relabel warning or failure as pass.
+- Never confuse evidence completeness with runtime quality success.
+- Preserve full fleet rows and negative controls.
+- Keep all claims tied to artifacts.
+
+Step 4.4 guard:
+
+- Audit must fail if any candidate warning is counted as a legacy runtime pass.
+- Audit must fail if runtime quality counts are inconsistent with raw matrix rows.
+- Audit must fail if closed Step 3.1.1 artifacts are modified.
+
+### 2.2 Step 3.2 problem — solver-backed coverage added but quality still failed or warned
+
+Observed earlier problem:
+
+```text
+solver_backed_count = 32
+residual_only_count = 0
+runtime_quality_passed_count = 0
+runtime_quality_warned_count = 23
+runtime_quality_failed_count = 9
+```
+
+Patch requirement:
+
+- Solver-backed coverage must stay 32 of 32 for full humanoids.
+- Residual-only fallback must remain 0.
+- Solver-backed smoke coverage cannot be used to claim quality pass.
+
+Step 4.4 guard:
+
+- Audit fails if solver_backed_count regresses below 32.
+- Audit fails if residual_only_count is nonzero.
+- Audit fails if solver success fields are missing.
+
+### 2.3 Step 3.3 problem — hard failures removed but high residual warnings remained
+
+Observed earlier improvement:
+
+```text
+runtime_quality_failed_count: 9 -> 0
+joint_limit_warning_count: 12 -> 1
+joint_limit_smoke_warning_count: 10 -> 0
+runtime_quality_passed_count = 0
+runtime_quality_warned_count = 32
+high_residual_warning_count = 32
+```
+
+Patch requirement:
+
+- Hard runtime failures must remain 0.
+- Joint limit regressions must not return.
+- High residual warnings must be explained honestly, not hidden.
+
+Step 4.4 guard:
+
+- Audit fails if runtime_quality_failed_count is not 0.
+- Audit fails if joint limit warnings regress without explanation.
+- Audit fails if high residual warnings vanish only because thresholds changed.
+
+### 2.4 Step 3.4 problem — coverage complete but residual quality still blocked
+
+Observed earlier improvement:
+
+```text
+task_coverage_mean = 1.0
+task_coverage_min = 1.0
+anchor_reliability_mean = 0.994791666667
+anchor_reliability_min = 0.833333333333
+runtime_quality_passed_count = 0
+runtime_quality_warned_count = 32
+high_residual_warning_count = 32
+```
+
+Patch requirement:
+
+- Coverage completeness must remain intact.
+- Anchor reliability must not regress silently.
+- Residual quality must be improved or diagnosed, not masked by coverage metrics.
+
+Step 4.4 guard:
+
+- Audit verifies task coverage and anchor reliability fields exist.
+- Blocker taxonomy must distinguish coverage, anchor, residual, solver, temporal, contact, collision, and morphology blockers.
+
+### 2.5 Step 4.0 problem — full pipeline scaffold complete but residual quality blocked
+
+Observed earlier artifacts:
+
+```text
+full_pipeline_matrix.json
+clip_matrix.json
+trajectory_export_manifest.json
+temporal_continuity_matrix.json
+support_contact_diagnostics.json
+collision_proxy_diagnostics.json
+normalization_audit.json
+orientation_residual_taxonomy.json
+red_team_report.json
+```
+
+Observed status:
+
+```text
+release_candidate_status = BLOCKED_RESIDUAL_QUALITY
 runtime_quality_passed_count = 0
 runtime_quality_warned_count = 32
 runtime_quality_failed_count = 0
-high_residual_warning_count = 32
+trajectory_exports_count = 128
+temporal_continuity_finite_count = 128
+support_contact_diagnostic_count = 128
+collision_proxy_diagnostic_count = 128
+```
+
+Patch requirement:
+
+- Full pipeline artifacts must remain complete and finite.
+- Diagnostics are necessary but not sufficient for pass.
+- No visual or deployment readiness claim is allowed.
+
+Step 4.4 guard:
+
+- Audit fails if trajectory exports or temporal diagnostics are missing or non-finite.
+- Audit fails if support/contact/collision proxy diagnostics are missing.
+- Audit fails if any Step 4.4 artifact claims visual-ready or deployment-ready status.
+
+### 2.6 Step 4.1 problem — orientation semantics improved but legacy runtime quality still warned
+
+Observed earlier improvement:
+
+```text
+selected_policy = parent_relative_runtime_inv_target
+Step_4_0_p95_rotation_residual_p95 = 2.90919255987585
+Step_4_1_p95_rotation_residual_p95 = 2.0492009223205
+p95_rotation_residual_p95_delta = -0.859991637555
+raw_residual_regression_count = 0
+normalization_hides_raw_residual_regression = false
+robot_specific_tuning_used = false
+production_default_changed = false
+runtime_override_default_enabled = false
+runtime_quality_passed_count = 0
+runtime_quality_warned_count = 32
+runtime_quality_failed_count = 0
+```
+
+Patch requirement:
+
+- Keep global parent-relative orientation residual semantics.
+- Do not change production defaults silently.
+- Do not enable runtime override by default.
+- Do not introduce robot-specific orientation math.
+
+Step 4.4 guard:
+
+- Audit verifies selected orientation policy is preserved when used for scoring.
+- Audit fails on robot-specific math, robot-specific thresholds, whitelists, blacklists, or per-robot IK weights.
+
+### 2.7 Step 4.2 problem — active orientation scoring improved residuals but gates still blocked
+
+Observed earlier improvement:
+
+```text
+orientation_policy_active_for_scoring = true
+p95_orientation_integrated_residual = 3.309012625858
+p95_orientation_integrated_residual_delta_vs_step4_1 = -0.959127833526
+p95_normalized_task_residual_p95_delta_vs_step4_1 = -0.006465520975
+raw_residual_regression_count = 0
+normalization_hides_raw_residual_regression = false
+denominator_inflation_detected = false
 rows_newly_passing = 0
 rows_still_warned = 32
+pass_gate_thresholds_unchanged = true
+warn_gate_thresholds_unchanged = true
+gates_weakened = false
+high_task_residual = 32
+normalized_task_residual_p95_above_pass_gate = 32
+normalized_task_residual_p95_above_warn_gate = 32
+solver_convergence_weak = 1
+solver_success_fraction_below_one = 1
 ```
 
-Current gate thresholds recorded by Step 4.2：
+Patch requirement:
+
+- Keep scoring improvement evidence separated from pass claims.
+- Investigate the remaining solver convergence weakness.
+- Preserve gate thresholds unless a new candidate gate is explicitly separate and audited.
+
+Step 4.4 guard:
+
+- Audit fails if legacy pass/warn thresholds are changed silently.
+- Audit fails if candidate gate status leaks into legacy runtime_quality_passed_count.
+- Blocker taxonomy must identify any solver convergence rows.
+
+### 2.8 Step 4.3 problem — legacy row-local normalization explained but v2 candidate is not yet stable or promoted
+
+Observed Step 4.3 finding:
 
 ```text
-normalized_task_residual_p95_pass = 0.15
-normalized_task_residual_p95_warn = 0.60
-normalized_task_residual_max_warn = 1.20
-nan_count = 0
-inf_count = 0
-joint_limit_violation_severe_threshold = 1e-5
+legacy_normalization_formula = residual / max(1.0, current_row_raw_residual_max)
+denominator_scope = row_local_legacy_metric
+normalized_max_all_rows_equal_one = true
+rows_improve_raw_but_remain_legacy_normalized_blocked_count = 32
 ```
 
-Interpretation：
+Observed Step 4.3 v2 candidate state:
 
 ```text
-Step 4.2 made active scoring much better in raw/orientation-integrated terms, but the normalized residual p95 remains ~0.90-0.99 for every full humanoid, far above the unchanged warn gate 0.60 and pass gate 0.15. The remaining problem is no longer orientation frame semantics; it is normalized residual scale/gate reconciliation.
+selected_fixed_global_scale = 4.268140459384
+rows_below_candidate_warn_gate = 6
+rows_below_candidate_pass_gate = 0
+release_quality_candidate_passed_count = 0
+release_quality_candidate_warned_count = 6
+release_quality_candidate_blocked_count = 26
+```
+
+Patch requirement:
+
+- Candidate v2 gate must be stress-tested before promotion.
+- Fixed global scale must not become a hidden denominator inflation trick.
+- Candidate-warned rows must be stable across clips.
+- Candidate pass must require worst-clip and hard-safety evidence.
+- Blocked rows must receive a complete taxonomy.
+
+Step 4.4 guard:
+
+- Audit fails if candidate denominator is row-local.
+- Audit fails if denominator inflation is detected.
+- Audit fails if candidate-warned deep audit is missing.
+- Audit fails if stress tests are missing.
+- Audit fails if promotion readiness is missing.
+
+---
+
+## 3. Absolute prohibitions
+
+Do not do any of the following:
+
+```text
+modify Step 2 artifacts or thresholds
+overwrite closed Step 3.1.1 artifact tree
+overwrite closed Step 3.2 artifact tree
+overwrite closed Step 3.3 artifact tree
+overwrite closed Step 3.4 artifact tree
+overwrite closed Step 4.0 artifact tree
+overwrite closed Step 4.1 artifact tree
+overwrite closed Step 4.2 artifact tree
+overwrite closed Step 4.3 artifact tree
+silently weaken legacy runtime gates
+count release_quality_candidate_warned as legacy runtime_quality_passed
+count release_quality_candidate_passed as legacy runtime_quality_passed unless legacy gates independently pass
+use robot-specific math
+use robot-specific thresholds
+use robot-specific whitelists
+use robot-specific blacklists
+use per-robot IK weights
+use per-clip whitelist behavior
+remove hard robots to improve metrics
+remove hard clips to improve metrics
+hide raw residual regression
+inflate candidate denominator
+reintroduce row-local candidate denominator
+change production defaults silently
+enable runtime override by default
+claim visual readiness
+claim deployment readiness
+start Step 4.5 automatically
 ```
 
 ---
 
-## 3. 本轮唯一总目标
+## 4. Step 4.4 primary goal
 
-Step 4.3 must determine whether the normalized residual gate is correctly calibrated for the active scoring residual, and if not, fix it globally without weakening the safety semantics.
-
-Primary target：
+Goal name:
 
 ```text
-runtime_quality_passed_count > 0
-OR high_residual_warning_count < 32
-OR normalized_task_residual_p95 distribution crosses below warn gate for at least one full humanoid under an audited global normalization/gate scheme
-OR produce BLOCKED_GATE_RECONCILIATION with exact mathematical proof why unchanged gates still block all rows despite active-scoring residual improvement
+Step 4.4 — Release-Quality V2 Validation / Candidate Pass Expansion
 ```
 
-Preferred target：
+Primary target:
 
 ```text
-runtime_quality_passed_count >= 4
-OR high_residual_warning_count <= 28
-OR rows_below_warn_gate_count >= 4
-OR p95_normalized_task_residual_p95_delta <= -0.10 without raw residual regression
+release_quality_candidate_passed_count > 0
+OR rows_below_candidate_warn_gate > 6
+OR release_quality_candidate_blocked_count < 26
+OR produce honest BLOCKED_RELEASE_QUALITY_V2_VALIDATION with complete diagnostics.
 ```
 
-Stretch target：
+Preferred target:
 
 ```text
-runtime_quality_passed_count >= 8
-OR high_residual_warning_count <= 24
-OR rows_below_warn_gate_count >= 8
+release_quality_candidate_passed_count >= 2
+OR rows_below_candidate_warn_gate >= 10
+OR release_quality_candidate_blocked_count <= 22
 ```
 
-If Step 4.3 cannot improve runtime quality counts or normalized-gate status, final status must be one of：
+Stretch target:
 
 ```text
-BLOCKED_GATE_RECONCILIATION
-BLOCKED_NORMALIZATION_INTEGRITY
-BLOCKED_SCORING_SCALE_AMBIGUITY
-BLOCKED_PIPELINE_REGRESSION
-BLOCKED_CI_OR_PROVENANCE
+release_quality_candidate_passed_count >= 4
+OR rows_below_candidate_warn_gate >= 16
+OR release_quality_candidate_blocked_count <= 16
 ```
 
-Do not claim `PASS_RC` unless a real gate/scoring breakthrough is present.
-
----
-
-## 4. What must be implemented
-
-### 4.1 Normalized residual scale audit
-
-Step 4.3 must explicitly audit why normalized residual p95 remains near 1.0 after raw residual p95 improved by about 0.96.
-
-Produce：
+Gold target:
 
 ```text
-normalized_residual_scale_audit.json
-```
-
-Must answer：
-
-```text
-What denominator is used for normalized_task_residual_p95?
-Is it row-local, clip-local, task-local, semantic-class global, or fixed global?
-Does normalized residual saturate because denominator follows max residual?
-Does normalized p95 preserve ordering of raw p95?
-Does normalized p95 preserve improvements over Step 4.2?
-Which rows improve raw residual but remain normalized-blocked?
-Which task classes dominate normalized score?
-```
-
-### 4.2 Gate semantics audit
-
-Produce：
-
-```text
-gate_semantics_audit.json
-```
-
-Must explain：
-
-```text
-What does normalized_task_residual_p95 <= 0.15 mean physically?
-What does normalized_task_residual_p95 <= 0.60 mean physically?
-Were these gates designed for legacy world residual, orientation-integrated residual, or solver-output residual?
-Do active parent-relative residuals need a new metric name to avoid reusing legacy thresholds incorrectly?
-Are pass/warn gates safety gates or quality gates?
-Which gates are hard safety gates and which are release quality gates?
-```
-
-### 4.3 Candidate normalization/gate schemes
-
-Evaluate global candidates without weakening safety semantics：
-
-```text
-candidate_0_current_legacy_normalized_gate
-candidate_1_fixed_global_body_scale_normalization
-candidate_2_semantic_task_scale_normalization
-candidate_3_orientation_integrated_scale_normalization
-candidate_4_raw_residual_percentile_gate_diagnostic
-candidate_5_two_metric_gate_raw_plus_normalized
-candidate_6_release_quality_gate_v2_candidate
-```
-
-Rules：
-
-- Candidate selection must be global.
-- Candidate cannot use model_id, robot_type, clip_id, or per-row thresholds.
-- Candidate cannot hide raw residual regression.
-- Candidate cannot relabel warned rows as passed unless all active gates are satisfied.
-- Candidate may define a new metric name, e.g. `orientation_integrated_normalized_task_residual_p95`, if legacy normalized residual semantics are incompatible.
-- Candidate may propose `release_quality_v2` gates only as explicit Step 4.3 artifact semantics, not as silent replacement of Step 2/Step 3 gates.
-
-Produce：
-
-```text
-normalization_candidate_matrix.json
-gate_candidate_matrix.json
-normalization_policy_selection.json
-```
-
-### 4.4 Active gate reconciliation v2
-
-Produce：
-
-```text
-gate_reconciliation_v2_report.json
-```
-
-Must include：
-
-```text
-active_scoring_metrics
-diagnostic_only_metrics
-legacy_gate_inputs
-candidate_gate_inputs
-hard_safety_gate_inputs
-release_quality_gate_inputs
-pass_gate_thresholds_unchanged_for_legacy
-candidate_release_gate_thresholds_if_any
-rows_below_legacy_warn_gate
-rows_below_candidate_warn_gate
-rows_below_candidate_pass_gate
-rows_newly_passing_under_candidate
-rows_still_warned_under_candidate
-why_no_pass_if_zero
-```
-
-### 4.5 Runtime status semantics
-
-Step 4.3 may introduce additional explicit statuses only if audit/tests enforce them：
-
-```text
-runtime_quality_passed
-runtime_quality_warned
-runtime_quality_failed
-runtime_quality_warned_legacy_gate
-runtime_quality_warned_release_gate_v2
-release_quality_candidate_passed
-release_quality_candidate_warned
-```
-
-Rules：
-
-- Existing `runtime_quality_passed` cannot be granted unless unchanged hard gates are satisfied or the audit explicitly defines and approves a new release-quality semantics.
-- New statuses must not be counted as old `runtime_quality_passed_count` unless gates truly match.
-- If release-quality v2 is diagnostic-only, it must not be mixed with old runtime pass counts.
-
-### 4.6 Full pipeline regeneration
-
-Generate a new artifact tree and preserve all previous artifacts. It must include full-pipeline exports/temporal/support/collision diagnostics, same as Step 4.2.
-
----
-
-## 5. Strict invariants
-
-All Step 4.3 work must preserve：
-
-```text
-44-row matrix
-32/3/9 partition
-solver_backed_smoke_attempted_count >= 32
-solver_backed_completed_count >= 32
-solver_backed_count >= 32
-residual_only_count = 0
+release_quality_candidate_passed_count >= 8
+rows_below_candidate_warn_gate >= 20
 runtime_quality_failed_count = 0
-partial_runtime_passed_count = 3
-negative_control_runtime_passed_count = 9
-negative controls not promoted
-partial rows not counted as full-humanoid passes
-trajectory exports present and finite
-temporal diagnostics finite
-support/contact diagnostics present
-collision proxy diagnostics present
-deterministic 44/44 matched
-clean provenance
-final HEAD CI green
-production default unchanged unless explicitly allowed by future goal update
-runtime override default disabled
+legacy gates unchanged
+candidate gate separate from legacy runtime quality
 ```
 
-Any regression in these invariants must result in：
+Allowed global improvement directions:
 
 ```text
-BLOCKED_PIPELINE_REGRESSION
+global clip aggregation policy with worst-clip guard
+global task-class residual weighting
+global solver retry or line-search refinement
+global temporal-consistency residual penalty
+global contact/support/collision guard integration
+global release-quality-v2 score reconciliation
+global normalization integrity validation
+```
+
+Not allowed improvement directions:
+
+```text
+robot-specific tuning
+per-clip whitelist
+threshold lowering
+removing hard clips
+removing hard robots
+turning candidate_warned into candidate_passed by label change
+mixing v2 candidate status into legacy runtime pass counts
 ```
 
 ---
 
-## 6. Strict prohibitions
+## 5. Required artifact tree
 
-Do not：
-
-```text
-- modify Step 2 artifacts / thresholds；
-- overwrite Step 3.1.1 / Step 3.2 / Step 3.3 / Step 3.4 / Step 4.0 / Step 4.1 / Step 4.2 closed artifact trees；
-- modify historical Step 4.2 numbers to make Step 4.3 look better；
-- rewrite production/default runtime behavior；
-- default-enable runtime override；
-- add robot-id special cases；
-- add per-robot IK weights；
-- add robot-specific threshold tables；
-- whitelist / blacklist robots or clips；
-- remove hard robots or clips from the suite；
-- relax legacy pass gates silently；
-- call diagnostic-only candidate gates old runtime_quality_passed；
-- hide raw residual regression with normalization；
-- use denominator inflation；
-- claim visual/deployment readiness without evidence；
-- report full repo pytest passed unless it actually exits 0；
-- start Step 4.4 automatically。
-```
-
----
-
-## 7. Artifact strategy
-
-Create a new artifact tree only：
+Create a new artifact tree only:
 
 ```text
-artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation/
+artifacts/retargeting_v3_step4_4_release_quality_v2_validation/
 ```
 
-Required artifacts：
+Required files:
 
 ```text
 environment.json
@@ -482,298 +510,202 @@ clip_matrix.json
 solver_smoke_matrix.json
 generic_smoke_matrix.json
 deterministic_rerun.json
-quality_delta_vs_step4_2.json
-runtime_scoring_delta_vs_step4_2.json
-normalized_residual_scale_audit.json
-gate_semantics_audit.json
-normalization_candidate_matrix.json
-gate_candidate_matrix.json
-normalization_policy_selection.json
-gate_reconciliation_v2_report.json
-scoring_normalization_audit.json
-orientation_policy_runtime_impact_report.json
-orientation_integrated_residual_matrix.json
-active_vs_diagnostic_policy_matrix.json
+quality_delta_vs_step4_3.json
+release_quality_v2_validation_matrix.json
+candidate_warned_deep_audit.json
+release_quality_v2_blocker_taxonomy.json
+release_quality_v2_stress_test.json
+release_quality_v2_promotion_readiness.json
+gate_reconciliation_v3_report.json
+normalization_integrity_v2_report.json
 trajectory_export_manifest.json
 temporal_continuity_matrix.json
 support_contact_diagnostics.json
 collision_proxy_diagnostics.json
 pipeline_config.json
 solver_config.json
-pipeline_controls_reference.json 或 pipeline_backed_matrix.json
+pipeline_controls_reference.json
 red_team_report.json
 test_results/pytest.txt
 test_results/pytest_summary.json
 test_results/junit.xml
 ```
 
-`quality_summary.json` must include：
+Required artifact-level invariants:
 
 ```text
-schema_version
-base_step4_2_final_head
-release_candidate_status
-primary_quality_breakthrough
-normalization_policy_selected
-gate_policy_selected
-legacy_gates_unchanged
-candidate_release_gates_defined
-candidate_release_gates_active
-production_default_changed
-runtime_override_default_enabled
-in_scope_total
-full_humanoid_total
-partial_total
-negative_total
-clip_suite_count
-solver_backed_smoke_attempted_count
-solver_backed_completed_count
-solver_backed_count
-residual_only_count
-runtime_quality_passed_count
-runtime_quality_warned_count
-runtime_quality_failed_count
-release_quality_candidate_passed_count
-release_quality_candidate_warned_count
-rows_below_legacy_warn_gate
-rows_below_candidate_warn_gate
-rows_below_candidate_pass_gate
-high_residual_warning_count
-p95_normalized_task_residual_p95
-median_normalized_task_residual_p95
-max_normalized_task_residual_p95
-p95_orientation_integrated_residual
-median_orientation_integrated_residual
-max_orientation_integrated_residual
-p95_raw_task_residual_p95
-median_raw_task_residual_p95
-max_raw_task_residual_p95
-raw_residual_regression_count
-denominator_inflation_detected
-normalization_hides_raw_residual_regression
-trajectory_exports_count
-temporal_continuity_finite_count
-support_contact_diagnostic_count
-collision_proxy_diagnostic_count
-deterministic_compared_count
-deterministic_matched_count
-```
-
----
-
-## 8. Audit requirements
-
-Add a new audit：
-
-```text
-scripts/audit_retargeting_v3_step4_3_normalized_residual_gate_reconciliation.py
-```
-
-Audit must fail closed for structural issues and distinguish honest blocked gate status from pipeline failure.
-
-Required gates：
-
-```text
-required artifacts present
-44 rows present
-32/3/9 partition preserved
-base_step4_2_final_head recorded
-clean provenance
-solver_backed_smoke_attempted_count >= 32
-solver_backed_completed_count >= 32
-solver_backed_count >= 32
-residual_only_count == 0
-runtime_quality_failed_count == 0
-negative controls not promoted
-partial rows not counted as full humanoid passes
-trajectory_export_manifest exists and matches rows/clips
-temporal_continuity_matrix exists and finite
-support/contact diagnostics exists
-collision proxy diagnostics exists
-normalized_residual_scale_audit exists
-gate_semantics_audit exists
-normalization_candidate_matrix exists
-gate_candidate_matrix exists
-normalization_policy_selection exists
-gate_reconciliation_v2_report exists
-runtime_scoring_delta_vs_step4_2 exists and is internally consistent
-normalization audit proves raw residual not hidden
+all JSON files are valid
+schema version is recorded
+source branch is recorded
+source commit is recorded
+baseline Step 4.3 artifact dir is recorded
+Step 4.4 artifact dir is recorded
+commands used to generate artifacts are recorded
+closed artifact trees are not modified
+row count is preserved at 44
+full/partial/negative partition is preserved at 32/3/9
+32 full humanoids remain solver-backed
+residual_only_count remains 0
+runtime_quality_failed_count remains 0
+deterministic rerun remains 44/44
+trajectory exports remain complete and finite
+temporal diagnostics remain complete and finite
+support/contact diagnostics remain complete
+collision proxy diagnostics remain complete
+legacy gates remain unchanged
+candidate gate remains separate
+normalization integrity passes
+no raw residual regression hiding
 no denominator inflation
-runtime_quality_passed rows require solver_backed=true and unchanged gates valid, unless a new audited release-quality status is used separately
-warned rows cannot be hidden by status rename
-no robot-specific threshold/whitelist/model-id special case introduced
-numeric metrics finite and ordered
-NaN/Inf counts zero for completed rows and exports
-deterministic rerun 44/44 matched
-pipeline controls retained/referenced
-final HEAD CI evidence present in strict mode
-```
-
-Quality status rules：
-
-```text
-PASS_RC requires primary_quality_breakthrough=true and a real gate/scoring reconciliation impact.
-PASS_DIAGNOSTIC_ONLY is not allowed unless explicitly justified as a separate release-quality candidate and not mixed with runtime_quality_passed_count.
-BLOCKED_GATE_RECONCILIATION is acceptable only with complete gate math and blocker taxonomy.
-BLOCKED_NORMALIZATION_INTEGRITY is acceptable only if safe normalization cannot be selected without hiding raw residual regression.
-BLOCKED_SCORING_SCALE_AMBIGUITY is acceptable only if raw/orientation residuals improve but no globally valid normalization/gate interpretation can be selected.
-BLOCKED_PIPELINE_REGRESSION if any baseline invariant regresses.
-BLOCKED_CI_OR_PROVENANCE if CI/provenance/LFS/strict audit incomplete.
-```
-
-Strict PASS_RC requires at least one：
-
-```text
-runtime_quality_passed_count > 0 under unchanged legacy hard gates
-high_residual_warning_count < 32 under unchanged legacy gates
-rows_below_candidate_warn_gate > 0 with audited release-quality v2 semantics
-rows_below_candidate_pass_gate > 0 with audited release-quality v2 semantics
-p95_normalized_task_residual_p95_delta <= -0.10 with no raw residual regression and no denominator inflation
-```
-
-If none holds, audit must return a blocked gate/normalization status, not PASS_RC.
-
----
-
-## 9. Tests required
-
-Add focused tests：
-
-```text
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_audit.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_artifact_schema.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_scale_audit.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_gate_semantics.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_candidate_policies.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_status_semantics.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_no_robot_specific_tuning.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_normalization_integrity.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_exports_temporal.py
-tests/v3/test_step4_3_normalized_residual_gate_reconciliation_determinism.py
-```
-
-At minimum test：
-
-```text
-missing normalized_residual_scale_audit fails audit
-missing gate_semantics_audit fails audit
-missing normalization_candidate_matrix fails audit
-missing gate_candidate_matrix fails audit
-missing gate_reconciliation_v2_report fails audit
-PASS_RC rejected without gate/scoring reconciliation impact
-blocked gate status accepted only with complete diagnostics
-pipeline regression rejected
-runtime_quality_failed_count > 0 rejected
-residual_only_count > 0 rejected
-solver coverage regression rejected
-pass rows without solver-backed evidence rejected
-legacy runtime_quality_passed cannot use diagnostic-only release gates
-negative/partial promotion rejected
-robot-specific threshold/whitelist/model-id special cases rejected
-normalization hiding raw residual regression rejected
-denominator inflation rejected
-production_default_changed=true rejected unless explicitly allowed by future goal update
-runtime_override_default_enabled=true rejected
-trajectory exports remain finite
-temporal diagnostics remain finite
-determinism 44/44 required
-closed artifact trees not modified
-```
-
-Recommended focused test command：
-
-```bash
-PYTHONPATH=. python -m pytest -q \
-  tests/v3/test_step4_3_normalized_residual_gate_reconciliation_*.py \
-  tests/v3/test_step4_2_orientation_policy_runtime_scoring_*.py \
-  tests/v3/test_step4_1_orientation_residual_*.py
+no robot-specific tuning
+no whitelist or blacklist
+no visual/deployment readiness claim
 ```
 
 ---
 
-## 10. Long-run execution plan
+## 6. Required new audit script
 
-### Phase A — Gate blocker forensics
-
-1. Parse Step 4.2 artifacts.
-2. Rank all 32 full humanoids by normalized p95 and raw/orientation p95.
-3. Explain why each remains above warn gate 0.60.
-4. Identify rows closest to warn gate and pass gate.
-5. Build normalized residual scale audit.
-6. Build gate semantics audit.
-7. Do not change status labels yet.
-
-### Phase B — Tests and audit first
-
-1. Add Step 4.3 audit skeleton.
-2. Add missing-artifact tests.
-3. Add normalization integrity tests.
-4. Add gate semantics tests.
-5. Add candidate policy tests.
-6. Add no robot-specific tuning tests.
-7. Ensure missing artifacts fail before implementation.
-
-### Phase C — Candidate normalization/gate sweep
-
-Evaluate all global candidates and record results.
-
-Selection rules：
+Create:
 
 ```text
-Candidate must be global.
-Candidate must not use model_id or clip_id.
-Candidate must not hide raw residual regression.
-Candidate must not silently replace legacy runtime gates.
-Candidate must either improve legacy normalized residual meaningfully or define a separate release-quality v2 status with clear audit semantics.
+scripts/audit_retargeting_v3_step4_4_release_quality_v2_validation.py
 ```
 
-### Phase D — Regenerate full pipeline artifacts
-
-Generate under：
+The audit must fail closed if any of the following is true:
 
 ```text
-artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation/
+required artifacts are missing
+required JSON is invalid
+44 rows are not preserved
+32/3/9 partition is not preserved
+solver_backed_count regresses below 32
+residual_only_count is not 0
+runtime_quality_failed_count is not 0
+legacy gates are changed silently
+candidate release gates are mixed into legacy runtime_quality_passed_count
+candidate_warned_deep_audit is missing
+release_quality_v2_blocker_taxonomy is missing
+release_quality_v2_stress_test is missing
+release_quality_v2_promotion_readiness is missing
+deterministic rerun is not 44/44
+trajectory exports are missing or non-finite
+temporal diagnostics are missing or non-finite
+support/contact diagnostics are missing
+collision proxy diagnostics are missing
+robot-specific tuning is introduced
+per-robot solver weights are introduced
+thresholds are lowered silently
+whitelists appear
+blacklists appear
+hard robots are removed
+hard clips are removed
+raw residual regression is hidden
+candidate denominator is row-local
+candidate denominator is inflated
+closed artifact trees are modified
+production default is changed silently
+runtime override default is enabled
+visual readiness is claimed
+deployment readiness is claimed
+final HEAD CI evidence is missing in strict mode
+Git LFS fsck evidence is missing in strict mode
 ```
 
-### Phase E — Evidence closure
+Audit output must include:
 
-1. Run focused tests.
-2. Run local Step 4.3 audit.
-3. Run deterministic rerun.
-4. Run Git LFS fsck.
-5. Verify clean worktree before/after artifact generation.
-6. Commit artifacts and handoff.
-7. Push.
-8. Wait for final HEAD CI.
-9. Run strict audit with `--require-final-head-ci`.
-10. Confirm branch HEAD matches origin.
-11. Write final handoff.
-12. Do not start next phase.
+```text
+status
+blocking_count
+finding_count
+findings
+quality_status
+invariants
+candidate_counts
+legacy_counts
+normalization_integrity
+candidate_stability
+blocker_taxonomy_summary
+final_head_ci
+lfs
+```
 
 ---
 
-## 11. Workflow requirements
+## 7. Required tests
 
-Add：
-
-```text
-.github/workflows/retargeting_v3_step4_3_normalized_residual_gate_reconciliation.yml
-```
-
-Required jobs：
+Create these tests:
 
 ```text
-step4-3-static-and-unit
-step4-3-artifact-audit
-step4-3-gate-semantics-smoke
-step4-3-normalization-integrity-smoke
-step4-3-export-and-temporal-smoke
-step4-3-lfs-and-snapshot-smoke
-step4-3-pipeline-controls-reference
-step4-3-final-head-ci-evidence
+tests/v3/test_step4_4_release_quality_v2_validation_audit.py
+tests/v3/test_step4_4_release_quality_v2_validation_artifact_schema.py
+tests/v3/test_step4_4_release_quality_v2_validation_candidate_counts.py
+tests/v3/test_step4_4_release_quality_v2_validation_stress.py
+tests/v3/test_step4_4_release_quality_v2_validation_promotion_readiness.py
+tests/v3/test_step4_4_release_quality_v2_validation_no_robot_specific_tuning.py
+tests/v3/test_step4_4_release_quality_v2_validation_status_semantics.py
+tests/v3/test_step4_4_release_quality_v2_validation_determinism.py
 ```
 
-The final-head evidence job must print：
+Minimum required coverage:
+
+```text
+missing validation matrix fails
+missing deep audit fails
+missing blocker taxonomy fails
+missing stress test fails
+missing promotion readiness fails
+candidate warn/pass not counted as legacy runtime pass
+legacy threshold lowering rejected
+candidate threshold lowering rejected unless explicitly experimental and not promoted
+robot-specific exceptions rejected
+per-robot solver weights rejected
+candidate pass without hard safety rejected
+candidate pass without worst-clip guard rejected
+candidate pass without temporal/support/contact/collision diagnostics rejected
+candidate warned instability flagged
+clip-specific improvement flagged
+closed artifacts unchanged
+deterministic mismatch rejected
+row count regression rejected
+partition regression rejected
+solver-backed regression rejected
+residual-only fallback rejected
+normalization denominator inflation rejected
+row-local candidate denominator rejected
+raw residual regression hiding rejected
+production default mutation rejected
+runtime override default rejected
+visual/deployment claim rejected
+strict-mode missing final-head CI rejected
+```
+
+Tests must be semantic. Do not create tests that only assert file existence when deeper invariants can be checked.
+
+---
+
+## 8. Required GitHub Actions workflow
+
+Create:
+
+```text
+.github/workflows/retargeting_v3_step4_4_release_quality_v2_validation.yml
+```
+
+Required jobs:
+
+```text
+step4-4-static-and-unit
+step4-4-artifact-audit
+step4-4-release-quality-v2-validation-smoke
+step4-4-candidate-stability-smoke
+step4-4-export-and-temporal-smoke
+step4-4-lfs-and-snapshot-smoke
+step4-4-pipeline-controls-reference
+step4-4-final-head-ci-evidence
+```
+
+The final-head CI evidence job must print:
 
 ```text
 workflow_run_id
@@ -782,154 +714,531 @@ conclusion
 job_conclusions
 ```
 
+The final handoff must copy these values exactly.
+
 ---
 
-## 12. Recommended commands
+## 9. Required local commands
+
+Run focused tests:
 
 ```bash
 PYTHONPATH=. python -m pytest -q \
+  tests/v3/test_step4_4_release_quality_v2_validation_*.py \
   tests/v3/test_step4_3_normalized_residual_gate_reconciliation_*.py \
-  tests/v3/test_step4_2_orientation_policy_runtime_scoring_*.py \
-  tests/v3/test_step4_1_orientation_residual_*.py
+  tests/v3/test_step4_2_orientation_policy_runtime_scoring_*.py
+```
 
+Run pipeline:
+
+```bash
 PYTHONPATH=. python soma_retargeter/tools/run_v3_full_pipeline_acceptance.py \
-  --artifact-dir artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation \
-  --baseline-step4-2-artifact-dir artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring \
+  --artifact-dir artifacts/retargeting_v3_step4_4_release_quality_v2_validation \
+  --baseline-step4-3-artifact-dir artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation \
   --enable-solver-backed-generic-smoke \
   --enable-global-solver-quality-hardening \
   --enable-global-residual-quality-hardening \
-  --enable-global-orientation-residual-hardening \
   --enable-parent-relative-orientation-runtime-scoring \
   --enable-normalized-residual-gate-reconciliation \
+  --enable-release-quality-v2-validation \
   --enable-full-pipeline-exports \
   --deterministic-rerun
+```
 
-PYTHONPATH=. python scripts/audit_retargeting_v3_step4_3_normalized_residual_gate_reconciliation.py \
-  --artifact-dir artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation \
-  --baseline-step4-2-artifact-dir artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring \
+Run local audit:
+
+```bash
+PYTHONPATH=. python scripts/audit_retargeting_v3_step4_4_release_quality_v2_validation.py \
+  --artifact-dir artifacts/retargeting_v3_step4_4_release_quality_v2_validation \
+  --baseline-step4-3-artifact-dir artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation \
   --source-root .
+```
 
-PYTHONPATH=. python scripts/audit_retargeting_v3_step4_3_normalized_residual_gate_reconciliation.py \
-  --artifact-dir artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation \
-  --baseline-step4-2-artifact-dir artifacts/retargeting_v3_step4_2_orientation_policy_runtime_scoring \
+Run strict audit after CI evidence exists:
+
+```bash
+PYTHONPATH=. python scripts/audit_retargeting_v3_step4_4_release_quality_v2_validation.py \
+  --artifact-dir artifacts/retargeting_v3_step4_4_release_quality_v2_validation \
+  --baseline-step4-3-artifact-dir artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation \
   --source-root . \
   --require-final-head-ci
+```
 
+Run LFS check:
+
+```bash
 git lfs fsck
 ```
 
----
-
-## 13. PASS / BLOCKED definitions
-
-### `PASS_RC`
-
-Requires：
+Record all commands and results in:
 
 ```text
-Step 4.2 baseline preserved
-new Step 4.3 artifact tree generated from clean source
-44-row full-fleet matrix preserved
-32/3/9 partition preserved
-solver_backed_count >= 32
+artifacts/retargeting_v3_step4_4_release_quality_v2_validation/commands.txt
+artifacts/retargeting_v3_step4_4_release_quality_v2_validation/test_results/pytest.txt
+artifacts/retargeting_v3_step4_4_release_quality_v2_validation/test_results/pytest_summary.json
+```
+
+---
+
+## 10. Required implementation phases
+
+### Phase 0 — Inspect repository and confirm baseline
+
+1. Check branch and HEAD.
+2. Confirm Step 4.3 artifact directory exists.
+3. Confirm Step 4.3 handoff exists.
+4. Check Step 4.3 final-head CI evidence and record if incomplete.
+5. Load Step 4.3 quality summary, ledger, and gate reconciliation artifacts.
+6. Confirm all baseline counts listed above.
+7. Record discrepancies instead of silently patching them.
+
+Deliverables:
+
+```text
+baseline section in acceptance_ledger.json
+baseline section in final handoff
+```
+
+### Phase 1 — Add schemas and artifact writers
+
+1. Add Step 4.4 artifact schema helpers.
+2. Add deterministic JSON write helpers.
+3. Add fail-closed placeholder support only for blocked status.
+4. Ensure artifact writing never touches closed artifact trees.
+5. Ensure commands.txt is recorded deterministically.
+
+Deliverables:
+
+```text
+schema-valid required artifacts
+tests for missing and bad artifacts
+```
+
+### Phase 2 — Implement release-quality-v2 validation matrix
+
+1. Load Step 4.3 candidate gate data.
+2. Recompute or validate release-quality-v2 scores in the Step 4.4 path.
+3. Produce row-level candidate statuses.
+4. Add clip-level details.
+5. Add worst-clip guard.
+6. Add task-class breakdown.
+7. Add solver convergence status.
+8. Add temporal/support/contact/collision guards.
+9. Preserve legacy status fields separately.
+
+Deliverable:
+
+```text
+release_quality_v2_validation_matrix.json
+```
+
+### Phase 3 — Deep audit candidate rows
+
+1. Deep-audit the six Step 4.3 candidate-warned rows.
+2. Deep-audit any new candidate-warned rows.
+3. Deep-audit any candidate-passed rows.
+4. Prove stability or mark instability for each row.
+5. Identify worst clips and margins.
+6. Record whether promotion is safe.
+
+Deliverable:
+
+```text
+candidate_warned_deep_audit.json
+```
+
+### Phase 4 — Build blocker taxonomy for the 26 blocked rows
+
+1. Classify every blocked row.
+2. Identify primary and secondary blockers.
+3. Link blockers to metrics.
+4. Identify whether blockers are global algorithmic, task-class-specific, solver-related, temporal, contact/collision, morphology, or anchor related.
+5. Recommend next global fix for each class.
+
+Deliverable:
+
+```text
+release_quality_v2_blocker_taxonomy.json
+```
+
+### Phase 5 — Stress test candidate gate
+
+1. Deterministic rerun stress.
+2. Clip leave-one-out stress.
+3. Worst-clip stress.
+4. Candidate-warned stability stress.
+5. Candidate-passed stability stress if any candidate pass exists.
+6. Normalization denominator stability stress.
+7. Task-class weighting stress if used.
+8. Solver retry or line-search stress if used.
+9. Temporal/support/contact/collision guard stress.
+
+Deliverable:
+
+```text
+release_quality_v2_stress_test.json
+```
+
+### Phase 6 — Try global coverage expansion only if safe
+
+Allowed attempts:
+
+1. Global clip aggregation policy with worst-clip guard.
+2. Global task-class residual weighting.
+3. Global solver retry or line-search refinement.
+4. Global temporal-consistency residual penalty.
+5. Global candidate scoring reconciliation preserving raw residual integrity.
+
+For each attempt record:
+
+```text
+attempt_name
+global_or_not
+config_changed
+thresholds_changed
+legacy_gates_changed
+production_defaults_changed
+rows_improved
+rows_regressed
+raw_residual_regression_count
+candidate_passed_delta
+candidate_warned_delta
+blocked_delta
+why_accepted_or_rejected
+```
+
+Deliverables:
+
+```text
+quality_delta_vs_step4_3.json
+pipeline_config.json
+solver_config.json
+gate_reconciliation_v3_report.json
+```
+
+### Phase 7 — Promotion readiness decision
+
+1. Decide whether the release-quality-v2 candidate gate is promotable.
+2. If promotable, explain why with evidence.
+3. If not promotable, explain exact blockers.
+4. Never promote if clip stability, worst-clip guard, normalization integrity, final-head CI, or LFS evidence is missing.
+
+Deliverable:
+
+```text
+release_quality_v2_promotion_readiness.json
+```
+
+### Phase 8 — Audit, tests, workflow, handoff
+
+1. Create audit script.
+2. Create tests.
+3. Create GitHub Actions workflow.
+4. Run local tests.
+5. Run pipeline.
+6. Run audit.
+7. Run LFS fsck.
+8. Push branch.
+9. Verify final-head CI evidence.
+10. Create final handoff.
+
+Deliverables:
+
+```text
+complete Step 4.4 branch artifacts
+docs/retargeting_v3/STEP4_4_RELEASE_QUALITY_V2_VALIDATION_HANDOFF.md
+```
+
+---
+
+## 11. Quality status rules
+
+Set `PASS_RC` only if at least one of these is true and all hard invariants pass:
+
+```text
+release_quality_candidate_passed_count > 0
+OR rows_below_candidate_warn_gate > 6
+OR release_quality_candidate_blocked_count < 26
+OR promotion_readiness recommends promote_to_release_candidate_gate with complete evidence
+```
+
+Set `BLOCKED_RELEASE_QUALITY_V2_VALIDATION` if:
+
+```text
+candidate coverage does not improve
+AND diagnostics are complete
+AND invariants are preserved
+AND candidate gate is not proven unstable
+AND clip generalization is not specifically disproven
+```
+
+Set `BLOCKED_CANDIDATE_GATE_ROBUSTNESS` if:
+
+```text
+candidate-warned rows are unstable across clips
+OR candidate-passed rows are unstable across clips
+OR candidate status changes under deterministic or stress rerun without an accepted reason
+```
+
+Set `BLOCKED_CLIP_GENERALIZATION` if:
+
+```text
+apparent improvement is limited to specific clips
+OR hard clips are responsible for blocker behavior
+OR global aggregation hides worst-clip failures
+```
+
+Set `BLOCKED_PIPELINE_REGRESSION` if any invariant regresses:
+
+```text
+row count
+32/3/9 partition
+solver-backed count
+residual-only count
+runtime hard failure count
+determinism
+trajectory exports
+temporal/support/contact/collision diagnostics
+legacy gate separation
+normalization integrity
+closed artifact immutability
+```
+
+Set `BLOCKED_CI_OR_PROVENANCE` if:
+
+```text
+final-head CI evidence missing
+workflow_run_id missing
+head_sha missing
+job conclusions missing
+LFS fsck missing or failing
+source/artifact provenance missing
+```
+
+---
+
+## 12. Definition of done
+
+The task is done only when all of these are true:
+
+```text
+branch is retargeting-v3-step4-4-release-quality-v2-validation or clearly equivalent
+new artifact tree exists
+old artifact trees are untouched
+all required Step 4.4 artifacts exist and are schema-valid
+44 rows are preserved
+32/3/9 partition is preserved
+32 of 32 full humanoids remain solver-backed
 residual_only_count = 0
 runtime_quality_failed_count = 0
-normalization/gate reconciliation evidence complete
-primary_quality_breakthrough = true
-runtime_quality_passed_count > 0 OR high_residual_warning_count < 32 OR accepted release-quality v2 gate breakthrough
-legacy gates not silently weakened
-candidate release-quality status kept separate unless explicitly accepted by audit
-normalization audit passes
-trajectory exports finite
-temporal diagnostics finite
-deterministic 44/44 matched
-no robot-specific tuning/threshold/whitelist introduced
-focused tests passed
-Git LFS fsck OK
-final HEAD CI green
-strict Step 4.3 audit passes
+legacy gates are unchanged
+candidate gate remains separate from legacy runtime quality
+normalization integrity passes
+no denominator inflation
+no raw residual regression hiding
+no robot-specific tuning
+no whitelist or blacklist
+no hard robots or clips removed
+no production default mutation
+no runtime override default enablement
+deterministic rerun is 44/44
+trajectory exports are finite and complete
+temporal diagnostics are finite and complete
+support/contact diagnostics are complete
+collision proxy diagnostics are complete
+candidate-warned deep audit exists
+blocker taxonomy exists
+stress test exists
+promotion readiness exists
+audit script passes locally in non-strict mode
+strict audit passes once final-head CI evidence is available, or final status is BLOCKED_CI_OR_PROVENANCE
+tests pass or failures are explicitly captured as blockers
+Git LFS fsck evidence is recorded
+workflow exists and includes all required jobs
+final handoff exists
+final handoff records counts, deltas, candidate rows, blockers, CI evidence, LFS evidence, known limitations, and next direction
+Step 4.5 has not been started
 ```
-
-### `BLOCKED_GATE_RECONCILIATION`
-
-Allowed only if：
-
-```text
-active scoring residuals improved but unchanged gates still block all rows
-complete gate semantics audit exists
-complete per-gate blocker taxonomy exists
-no safe candidate gate policy is accepted
-blocking_count = 0 for structural audit
-```
-
-### `BLOCKED_NORMALIZATION_INTEGRITY`
-
-Allowed only if no safe normalization can be selected without raw residual regression or denominator inflation.
-
-### `BLOCKED_SCORING_SCALE_AMBIGUITY`
-
-Allowed only if raw/orientation residuals are improved but no globally valid normalized scale interpretation can be selected.
-
-### `BLOCKED_PIPELINE_REGRESSION`
-
-Any baseline invariant regression.
-
-### `BLOCKED_CI_OR_PROVENANCE`
-
-Final CI/provenance/LFS/audit incomplete.
 
 ---
 
-## 14. Final handoff
+## 13. Final handoff required structure
 
-Create：
-
-```text
-docs/retargeting_v3/STEP4_3_NORMALIZED_RESIDUAL_GATE_RECONCILIATION_HANDOFF.md
-```
-
-Must record：
+Create:
 
 ```text
-branch
-final_head
-workflow_run_id
-job conclusions
-strict audit result
-focused tests result
-LFS fsck result
-artifact dir
-baseline Step 4.2 counts
-Step 4.3 counts
-deltas vs Step 4.2
-release_candidate_status
-primary_quality_breakthrough
-normalization policy selected
-gate policy selected
-legacy gate impact
-candidate release-quality impact
-per-gate blocker taxonomy
-normalization integrity summary
-rows below warn/pass gates
-remaining warned rows
-remaining blockers
-known limitations
-next direction, if any
+docs/retargeting_v3/STEP4_4_RELEASE_QUALITY_V2_VALIDATION_HANDOFF.md
 ```
 
-Do not start the next phase automatically.
+Use this structure:
+
+```markdown
+# Step 4.4 Release-Quality V2 Validation Handoff
+
+## 1. Branch and provenance
+- Branch:
+- Final HEAD:
+- Baseline Step 4.3 branch:
+- Baseline Step 4.3 artifact dir:
+- Step 4.4 artifact dir:
+- Workflow run id:
+- Workflow conclusion:
+- Job conclusions:
+- LFS fsck result:
+
+## 2. Final verdict
+- release_candidate_status:
+- verdict:
+- reason:
+- promotion readiness decision:
+
+## 3. Baseline Step 4.3 truth
+- legacy runtime counts:
+- candidate v2 counts:
+- candidate-warned rows:
+- preserved invariants:
+
+## 4. Step 4.4 counts
+- legacy runtime counts:
+- candidate v2 counts:
+- candidate-passed rows:
+- candidate-warned rows:
+- candidate-blocked rows:
+- deltas vs Step 4.3:
+
+## 5. Global changes attempted
+- change name:
+- global or not:
+- accepted or rejected:
+- why:
+- metrics before/after:
+
+## 6. Candidate stability
+- candidate-warned stability:
+- candidate-passed stability:
+- worst-clip guard:
+- clip generalization:
+
+## 7. Blocker taxonomy
+- primary blocker categories:
+- affected rows:
+- recommended next global fix:
+
+## 8. Stress tests
+- deterministic rerun:
+- clip leave-one-out:
+- worst-clip:
+- normalization integrity:
+- temporal/support/contact/collision:
+
+## 9. Audit and tests
+- strict audit result:
+- focused tests result:
+- test files added:
+- workflow jobs:
+
+## 10. Prohibitions verified
+- legacy gates unchanged:
+- no candidate-to-legacy leakage:
+- no robot-specific tuning:
+- no threshold lowering:
+- no whitelist/blacklist:
+- no hard row/clip removal:
+- no denominator inflation:
+- no production default mutation:
+- no visual/deployment claim:
+
+## 11. Known limitations
+- limitation 1:
+- limitation 2:
+
+## 12. Next direction
+- Recommended Step 4.5 or next blocked investigation:
+- Do not start automatically.
+```
 
 ---
 
-## 15. Final reminder to Codex
+## 14. Red-team checklist
+
+Before finalizing, Codex must ask and encode the answers in artifacts/tests:
 
 ```text
-This is the normalized residual/gate reconciliation run.
-Step 4.2 already made active scoring residuals much better, but all rows remain warned because normalized gates still block them.
-Do not stop after docs or audit shell.
-Do not tune per robot.
-Do not weaken gates silently.
-Do not overwrite closed artifacts.
-Do not hide raw residual regression.
-If gate reconciliation cannot break through, deliver honest BLOCKED_GATE_RECONCILIATION or BLOCKED_NORMALIZATION_INTEGRITY with complete diagnostics.
+Did I improve metrics by changing labels?
+Did I accidentally count candidate warnings as legacy passes?
+Did I lower any threshold?
+Did I change production defaults?
+Did I enable runtime override by default?
+Did I remove hard robots?
+Did I remove hard clips?
+Did I introduce robot-specific weights?
+Did I introduce per-clip whitelist or blacklist behavior?
+Did I hide raw residual regression with normalization?
+Did I reintroduce row-local denominator behavior?
+Did I inflate the candidate denominator?
+Did I improve aggregate score while worsening worst clip?
+Did I ignore temporal instability?
+Did I ignore support/contact/collision proxy outliers?
+Did I overwrite old artifacts?
+Did I forget deterministic rerun?
+Did I forget LFS fsck?
+Did I forget final-head CI evidence?
+Did I overclaim visual or deployment readiness?
+```
+
+Any unsafe answer blocks the release-quality-v2 validation and must be recorded.
+
+---
+
+## 15. Final response Codex should produce
+
+At the end, Codex should summarize:
+
+```text
+branch used
+files changed
+whether candidate coverage improved
+whether any candidate rows passed
+whether the original six candidate-warned rows were stable
+what blocked rows are blocked by
+whether all invariants held
+whether audit/tests/CI/LFS passed
+where artifacts and handoff are
+next direction
+```
+
+Do not say all humanoids are solved unless artifacts prove it. Do not say deployment ready or visual ready in Step 4.4.
+
+---
+
+## 16. Compact Codex prompt
+
+```text
+You are working on Retargeting V3 in repository XinyuSong123/soma_retargeter_autoconfig.
+
+After git pull, read GOAL.md fully and inspect the repo state. Current completed stage is Step 4.3 normalized residual gate reconciliation. Use branch retargeting-v3-step4-4-release-quality-v2-validation.
+
+Your job is Step 4.4: Release-Quality V2 Validation / Candidate Pass Expansion. Validate candidate gate robustness, stability, clip generalization, blocker taxonomy, stress tests, and promotion readiness. Try to improve candidate coverage only with global, auditable methods. Preserve honest evidence.
+
+Baseline Step 4.3 truth:
+legacy runtime_quality_passed_count = 0
+legacy runtime_quality_warned_count = 32
+legacy runtime_quality_failed_count = 0
+legacy high_residual_warning_count = 32
+release_quality_candidate_passed_count = 0
+release_quality_candidate_warned_count = 6
+release_quality_candidate_blocked_count = 26
+rows_below_candidate_warn_gate = 6
+rows_below_candidate_pass_gate = 0
+legacy_gates_unchanged = true
+candidate_release_gates_active = true
+production_default_changed = false
+runtime_override_default_enabled = false
+
+Primary target:
+release_quality_candidate_passed_count > 0 OR rows_below_candidate_warn_gate > 6 OR release_quality_candidate_blocked_count < 26 OR honest BLOCKED_RELEASE_QUALITY_V2_VALIDATION with complete diagnostics.
+
+Do not tune per robot. Do not weaken gates. Do not count candidate warnings as legacy passes. Do not overwrite closed artifacts. Do not hide raw residual regression. Do not remove hard robots or clips. Do not claim visual/deployment readiness.
+
+Deliver Step 4.4 artifacts, audit, tests, workflow, deterministic rerun, LFS evidence, final-head CI evidence, and final handoff. Do not start Step 4.5.
 ```
