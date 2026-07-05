@@ -1,0 +1,143 @@
+{
+  "denominator_follows_current_row_max": true,
+  "denominator_inflation_detected": false,
+  "denominator_robot_specific": false,
+  "denominator_scope": "row_local_legacy_metric",
+  "denominator_source": "current_row_raw_residual_max_with_global_floor_1",
+  "denominator_units": "translation_meters_plus_rotation_radians",
+  "fixed_global_scale_rows_below_legacy_warn_threshold": 0,
+  "legacy_metric_name": "normalized_task_residual_p95",
+  "legacy_normalization_formula": "residual / max(1.0, current_row_raw_residual_max)",
+  "legacy_normalization_version": "legacy_row_max_v1",
+  "legacy_normalized_distribution": {
+    "max": 0.999582264858,
+    "median": 0.991962176769,
+    "p95": 0.999194626562
+  },
+  "legacy_normalized_preserved_step4_2_improvement": false,
+  "legacy_normalized_preserves_raw_ordering": false,
+  "normalization_hides_raw_residual_regression": false,
+  "normalized_max_all_rows_equal_one": true,
+  "p95_to_row_max_ratio_distribution": {
+    "max": 0.998360593698,
+    "median": 0.977008186507,
+    "p95": 0.9933654748
+  },
+  "raw_residual_always_retained": true,
+  "raw_task_residual_max_distribution": {
+    "max": 6.204706101677,
+    "median": 4.078554179832,
+    "p95": 6.002970096772
+  },
+  "raw_task_residual_p95_distribution": {
+    "max": 5.591548480938,
+    "median": 4.047353190038,
+    "p95": 5.479170648781
+  },
+  "raw_vs_legacy_normalized_spearman": -0.037390029326,
+  "row_local_denominator_saturation_detected": true,
+  "rows_improve_raw_but_remain_legacy_normalized_blocked": [
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "apptronik_apollo_mjcf",
+      "normalized_task_residual_p95": 0.993024482868,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.065403364131
+    },
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "jaxon_urdf",
+      "normalized_task_residual_p95": 0.990906612395,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.236965102861
+    },
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "mujoco_humanoid_mjcf",
+      "normalized_task_residual_p95": 0.999107193212,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.041967336644
+    },
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "robotis_op3_mjcf",
+      "normalized_task_residual_p95": 0.981612908329,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.045157682127
+    },
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "unitree_h1_2_mjcf",
+      "normalized_task_residual_p95": 0.999194880583,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.18930443175
+    },
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "unitree_h1_2_urdf",
+      "normalized_task_residual_p95": 0.999194418727,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.189692040283
+    },
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "unitree_h1_mjcf",
+      "normalized_task_residual_p95": 0.99388941192,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.072373904276
+    },
+    {
+      "legacy_warn_gate": 0.6,
+      "model_id": "unitree_h1_urdf",
+      "normalized_task_residual_p95": 0.993889411196,
+      "raw_task_residual_p95_delta_vs_step4_1": -0.071784421597
+    }
+  ],
+  "rows_improve_raw_but_remain_legacy_normalized_blocked_count": 8,
+  "schema_version": 1,
+  "selected_fixed_global_scale": 4.268140459384,
+  "selected_fixed_global_scale_distribution": {
+    "max": 1.310066651777,
+    "median": 0.948270852038,
+    "p95": 1.283737192091
+  },
+  "selected_fixed_global_scale_source": "closed_step4_1_raw_task_residual_p95_p95_distribution",
+  "step4_2_normalized_p95_delta_vs_step4_1": -0.006465520975,
+  "step4_2_raw_p95_delta_vs_step4_1": -0.959127833526,
+  "task_class_dominance": {
+    "dominant_component_counts": {
+      "rotation": 31,
+      "translation": 1
+    },
+    "dominant_semantic_counts": {
+      "Hips": 31,
+      "RightHand": 1
+    },
+    "per_semantic_distribution": {
+      "Chest": {
+        "max": 1.778843741761,
+        "median": 1.151639026156,
+        "p95": 1.606235278121
+      },
+      "Hips": {
+        "max": 3.656227289401,
+        "median": 2.92679530724,
+        "p95": 3.386540542035
+      },
+      "LeftFoot": {
+        "max": 1.777865031293,
+        "median": 0.779245234158,
+        "p95": 1.733974008155
+      },
+      "LeftHand": {
+        "max": 2.64029397395,
+        "median": 1.924047476728,
+        "p95": 2.564516671006
+      },
+      "RightFoot": {
+        "max": 2.59463272708,
+        "median": 1.320069364822,
+        "p95": 2.145866958286
+      },
+      "RightHand": {
+        "max": 3.305466896448,
+        "median": 2.017430071447,
+        "p95": 3.044858351638
+      }
+    }
+  },
+  "why_normalized_p95_remains_near_one": "The denominator is the same row's current raw residual max, and the row p95 residual is close to that max for every full humanoid. Strong absolute raw residual reduction therefore mostly rescales numerator and denominator together instead of moving the row-local p95/max ratio below legacy gates."
+}

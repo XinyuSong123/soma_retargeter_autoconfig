@@ -1,0 +1,200 @@
+name: Retargeting V3 Step 4.5 Release Quality V2 Generalization
+
+on:
+  pull_request:
+    paths:
+      - "soma_retargeter/tools/step4_5_release_quality_v2_generalization.py"
+      - "scripts/audit_retargeting_v3_step4_5_release_quality_v2_generalization.py"
+      - "tests/v3/test_step4_5_release_quality_v2_generalization_*.py"
+      - "artifacts/retargeting_v3_step4_5_release_quality_v2_generalization/**"
+      - "docs/retargeting_v3/STEP4_5_RELEASE_QUALITY_V2_GENERALIZATION_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_5_release_quality_v2_generalization.yml"
+  push:
+    branches:
+      - retargeting-v3-step4-5-release-quality-v2-generalization
+    paths:
+      - "soma_retargeter/tools/step4_5_release_quality_v2_generalization.py"
+      - "scripts/audit_retargeting_v3_step4_5_release_quality_v2_generalization.py"
+      - "tests/v3/test_step4_5_release_quality_v2_generalization_*.py"
+      - "artifacts/retargeting_v3_step4_5_release_quality_v2_generalization/**"
+      - "docs/retargeting_v3/STEP4_5_RELEASE_QUALITY_V2_GENERALIZATION_HANDOFF.md"
+      - ".github/workflows/retargeting_v3_step4_5_release_quality_v2_generalization.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  STEP4_4_ARTIFACTS: artifacts/retargeting_v3_step4_4_release_quality_v2_validation
+  STEP4_5_ARTIFACTS: artifacts/retargeting_v3_step4_5_release_quality_v2_generalization
+
+jobs:
+  step4-5-static-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy scipy
+      - name: Compile Step 4.5 sources
+        run: |
+          python -m py_compile \
+            soma_retargeter/tools/step4_5_release_quality_v2_generalization.py \
+            scripts/audit_retargeting_v3_step4_5_release_quality_v2_generalization.py
+      - name: Run focused Step 4.5 tests
+        run: |
+          python -m pytest -q tests/v3/test_step4_5_release_quality_v2_generalization_*.py
+
+  step4-5-artifact-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit committed Step 4.5 artifacts
+        run: |
+          if [ ! -f "$STEP4_5_ARTIFACTS/quality_summary.json" ]; then
+            echo "Step 4.5 artifact tree is not committed on this revision."
+            exit 1
+          fi
+          python scripts/audit_retargeting_v3_step4_5_release_quality_v2_generalization.py \
+            --artifact-dir "$STEP4_5_ARTIFACTS" \
+            --baseline-step4-4-artifact-dir "$STEP4_4_ARTIFACTS" \
+            --source-root .
+
+  step4-5-expanded-generalization-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check expanded-suite blocked generalization evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_5_release_quality_v2_generalization")
+          summary = json.loads((root / "quality_summary.json").read_text())
+          manifest = json.loads((root / "expanded_clip_manifest.json").read_text())
+          validation = json.loads((root / "release_quality_v2_expanded_validation_matrix.json").read_text())
+          stability = json.loads((root / "candidate_warned_expanded_stability.json").read_text())
+
+          assert summary["release_candidate_status"] == "BLOCKED_CLIP_GENERALIZATION"
+          assert manifest["clip_count"] == 11
+          assert validation["strict_policy_counts"]["rows_below_candidate_warn_gate"] == 0
+          assert validation["strict_policy_counts"]["release_quality_candidate_blocked_count"] == 32
+          assert stability["original_rows_remain_stable_on_expanded_suite"] is False
+          assert stability["newly_stable_under_expanded_guard_count"] == 0
+          PY
+
+  step4-5-contract-and-blocker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Check task contract and residual blocker localization
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_5_release_quality_v2_generalization")
+          contract = json.loads((root / "task_level_residual_contract.json").read_text())
+          hips = json.loads((root / "hips_root_rotation_residual_decomposition.json").read_text())
+          solver = json.loads((root / "solver_convergence_weak_global_diagnostics.json").read_text())
+
+          assert contract["contract_status"] == "defined_audited_diagnostic_only"
+          assert contract["task_class_weighting_counted"] is False
+          assert hips["primary_blocker"] == "BLOCKED_HIPS_ROTATION_RESIDUAL"
+          assert hips["hips_dominant_model_count"] == 32
+          assert hips["hips_rotation_dominant_model_count"] == 32
+          assert solver["weak_row_count"] == 1
+          assert solver["global_solver_diagnostics_only"] is True
+          PY
+
+  step4-5-lfs-and-provenance-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Verify Git LFS materialization
+        run: |
+          git lfs version
+          git lfs pull
+          git lfs fsck
+      - name: Check provenance and leakage invariants
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("artifacts/retargeting_v3_step4_5_release_quality_v2_generalization")
+          summary = json.loads((root / "quality_summary.json").read_text())
+          delta = json.loads((root / "quality_delta_vs_step4_4.json").read_text())
+
+          assert summary["runtime_quality_passed_count"] == 0
+          assert summary["runtime_quality_failed_count"] == 0
+          assert summary["candidate_release_gates_not_counted_as_legacy_runtime_passed"] is True
+          assert summary["candidate_thresholds_lowered"] is False
+          assert summary["robot_specific_tuning_used"] is False
+          assert summary["hard_clip_removal_used"] is False
+          assert summary["raw_residual_hiding_used"] is False
+          assert delta["candidate_blocked_count_decreased_under_strict_policy"] is False
+          PY
+
+  step4-5-final-head-ci-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - step4-5-static-and-unit
+      - step4-5-artifact-audit
+      - step4-5-expanded-generalization-smoke
+      - step4-5-contract-and-blocker-smoke
+      - step4-5-lfs-and-provenance-smoke
+    if: always()
+    steps:
+      - name: Record final HEAD CI evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          job_conclusions = {name: data["result"] for name, data in sorted(needs.items())}
+          conclusion = "success" if all(result == "success" for result in job_conclusions.values()) else "failure"
+          payload = {
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "conclusion": conclusion,
+              "job_conclusions": job_conclusions,
+          }
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write("```json\n")
+              handle.write(json.dumps(payload, indent=2, sort_keys=True))
+              handle.write("\n```\n")
+          if conclusion != "success":
+              sys.exit(1)
+          PY

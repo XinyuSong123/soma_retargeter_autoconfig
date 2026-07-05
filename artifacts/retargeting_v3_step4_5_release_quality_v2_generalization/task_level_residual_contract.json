@@ -1,0 +1,77 @@
+{
+  "applies_to": "all full humanoid models and every frozen expanded-suite clip",
+  "audit_requirements": {
+    "component_decomposition_required": true,
+    "legacy_gates_unchanged": true,
+    "no_clip_specific_weights": true,
+    "no_robot_specific_weights": true,
+    "no_semantic_downweighting_to_hide_hips_root_rotation": true,
+    "p95_clip_guard_required": true,
+    "production_default_changed": false,
+    "raw_residual_retained": true,
+    "runtime_override_default_enabled": false,
+    "worst_clip_guard_required": true
+  },
+  "baseline_step4_4_promotion_readiness_decision": "keep_diagnostic_only",
+  "candidate_metric_name": "orientation_integrated_fixed_global_scale_residual_p95",
+  "candidate_pass_gate": 0.45,
+  "candidate_warn_gate": 0.6,
+  "clip_count": 11,
+  "contract_id": "task_level_residual_contract_v1_diagnostic",
+  "contract_status": "defined_audited_diagnostic_only",
+  "fixed_global_scale": 4.268140459384,
+  "global_task_class_residual_weighting": "rejected_before_counting_until_contract_is_promoted",
+  "promotion_requirements": [
+    "Every candidate-warned row must remain below the unchanged candidate warn gate under expanded worst-clip and p95 guards.",
+    "Any task-class weighting must show raw component residuals before and after weighting.",
+    "Hips/root rotation residual must be reduced or explicitly accepted by an audited task-level contract, not hidden by weights."
+  ],
+  "raw_residual_hiding_used": false,
+  "robot_specific_tuning_used": false,
+  "schema_version": 1,
+  "step": "step4_5_release_quality_v2_generalization",
+  "task_class_weighting_counted": false,
+  "task_classes": [
+    {
+      "can_be_downweighted_without_new_audit": false,
+      "counted_in_release_quality_v2": true,
+      "rotation_weight": 1.0,
+      "task": "torso",
+      "translation_weight": 1.0,
+      "weight_scope": "global_equal_weight_diagnostic_contract"
+    },
+    {
+      "can_be_downweighted_without_new_audit": false,
+      "counted_in_release_quality_v2": true,
+      "rotation_weight": 1.0,
+      "task": "left_hand",
+      "translation_weight": 1.0,
+      "weight_scope": "global_equal_weight_diagnostic_contract"
+    },
+    {
+      "can_be_downweighted_without_new_audit": false,
+      "counted_in_release_quality_v2": true,
+      "rotation_weight": 1.0,
+      "task": "right_hand",
+      "translation_weight": 1.0,
+      "weight_scope": "global_equal_weight_diagnostic_contract"
+    },
+    {
+      "can_be_downweighted_without_new_audit": false,
+      "counted_in_release_quality_v2": true,
+      "rotation_weight": 1.0,
+      "task": "left_foot",
+      "translation_weight": 1.0,
+      "weight_scope": "global_equal_weight_diagnostic_contract"
+    },
+    {
+      "can_be_downweighted_without_new_audit": false,
+      "counted_in_release_quality_v2": true,
+      "rotation_weight": 1.0,
+      "task": "right_foot",
+      "translation_weight": 1.0,
+      "weight_scope": "global_equal_weight_diagnostic_contract"
+    }
+  ],
+  "thresholds_lowered": false
+}

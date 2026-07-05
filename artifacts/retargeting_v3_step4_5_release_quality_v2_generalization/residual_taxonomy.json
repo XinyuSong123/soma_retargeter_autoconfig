@@ -1,0 +1,764 @@
+{
+  "aggregate_buckets": {
+    "anchor_unavailable_or_unreliable": 1,
+    "residual_normalization_scale_issue": 32,
+    "rotation_residual_dominates": 31,
+    "solver_converged_but_task_underconstrained": 1,
+    "translation_residual_dominates": 1
+  },
+  "attempted_global_improvements": [
+    "anchor_reliability_evidence",
+    "global_multi_anchor_task_order",
+    "global_se3_orientation_residual_hardening",
+    "multi_clip_full_pipeline_diagnostics",
+    "raw_vs_normalized_residual_audit"
+  ],
+  "base_step3_4_final_head": "77e7c02393a6678ccab40cdb847021d7d94392c9",
+  "recommended_next_direction": "inspect remaining rotation-dominant residuals with global orientation tasks before any Step 3.5 work",
+  "robot_specific_tuning_used": false,
+  "row_count": 32,
+  "rows": [
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "adam_lite_mjcf",
+      "normalized_task_residual_p95": 0.984490643405,
+      "raw_task_residual_p95": 4.414933858148,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.126087961833,
+      "target_translation_error_p95": 0.376381574467,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "apptronik_apollo_mjcf",
+      "normalized_task_residual_p95": 0.993024482868,
+      "raw_task_residual_p95": 4.175491914827,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.104759181161,
+      "target_translation_error_p95": 0.447500211508,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "translation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "translation",
+      "dominant_residual_semantic": "RightHand",
+      "model_id": "atlas_drc_urdf",
+      "normalized_task_residual_p95": 0.999582264858,
+      "raw_task_residual_p95": 5.591548480938,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.131187497625,
+      "target_translation_error_p95": 0.73514662391,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "atlas_v4_urdf",
+      "normalized_task_residual_p95": 0.998574279794,
+      "raw_task_residual_p95": 5.433664492472,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.118288448271,
+      "target_translation_error_p95": 0.657324517344,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "booster_t1_mjcf",
+      "normalized_task_residual_p95": 0.969806369983,
+      "raw_task_residual_p95": 4.608798220986,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.099882546501,
+      "target_translation_error_p95": 0.420014879403,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "booster_t1_urdf",
+      "normalized_task_residual_p95": 0.969795816596,
+      "raw_task_residual_p95": 4.607615127623,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.099799429762,
+      "target_translation_error_p95": 0.419992849397,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue",
+        "solver_converged_but_task_underconstrained"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "draco3_urdf",
+      "normalized_task_residual_p95": 0.996326370943,
+      "raw_task_residual_p95": 4.297690136056,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.121810622938,
+      "target_translation_error_p95": 0.433364322036,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "solver_convergence_weak",
+        "solver_success_fraction_below_one",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "elf2_mjcf",
+      "normalized_task_residual_p95": 0.987819466995,
+      "raw_task_residual_p95": 3.699700386746,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.125249864449,
+      "target_translation_error_p95": 0.312994091843,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "elf2_urdf",
+      "normalized_task_residual_p95": 0.987844382801,
+      "raw_task_residual_p95": 3.69940618984,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.125249864527,
+      "target_translation_error_p95": 0.31299411622,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "ergocub_urdf",
+      "normalized_task_residual_p95": 0.974877669316,
+      "raw_task_residual_p95": 3.474990941698,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.12576327943,
+      "target_translation_error_p95": 0.315844201046,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "fourier_gr1_urdf",
+      "normalized_task_residual_p95": 0.982869577957,
+      "raw_task_residual_p95": 3.921551370937,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.125713801753,
+      "target_translation_error_p95": 0.36760604409,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "fourier_n1_mjcf",
+      "normalized_task_residual_p95": 0.976010312445,
+      "raw_task_residual_p95": 3.804712849641,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.125928078111,
+      "target_translation_error_p95": 0.290014696136,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "fourier_n1_urdf",
+      "normalized_task_residual_p95": 0.97530743132,
+      "raw_task_residual_p95": 3.813833797837,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.125928077569,
+      "target_translation_error_p95": 0.290014734291,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "jaxon_urdf",
+      "normalized_task_residual_p95": 0.990906612395,
+      "raw_task_residual_p95": 3.689296824154,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.319484172513,
+      "target_translation_error_p95": 0.542911128835,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "jvrc_mjcf",
+      "normalized_task_residual_p95": 0.979053602118,
+      "raw_task_residual_p95": 4.29752120773,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.125943522578,
+      "target_translation_error_p95": 0.346171612095,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "jvrc_urdf",
+      "normalized_task_residual_p95": 0.979053608832,
+      "raw_task_residual_p95": 4.297521211639,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.12594352264,
+      "target_translation_error_p95": 0.346171587711,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "mujoco_humanoid_mjcf",
+      "normalized_task_residual_p95": 0.999107193212,
+      "raw_task_residual_p95": 3.918632558425,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.125957841725,
+      "target_translation_error_p95": 0.341119491784,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "pal_talos_mjcf_direct",
+      "normalized_task_residual_p95": 0.973980206395,
+      "raw_task_residual_p95": 4.248873664566,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.116545356728,
+      "target_translation_error_p95": 0.449358481814,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "robonaut2_urdf",
+      "normalized_task_residual_p95": 0.982262969986,
+      "raw_task_residual_p95": 5.534789284269,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.126209834411,
+      "target_translation_error_p95": 0.813902907957,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "roboparty_rpo_local",
+      "normalized_task_residual_p95": 0.998360593698,
+      "raw_task_residual_p95": 3.655721723229,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.113135692498,
+      "target_translation_error_p95": 0.382586328,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 0.833333333333,
+      "blocker_buckets": [
+        "anchor_unavailable_or_unreliable",
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "robotis_op3_mjcf",
+      "normalized_task_residual_p95": 0.981612908329,
+      "raw_task_residual_p95": 3.286984974385,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.162619533529,
+      "target_translation_error_p95": 0.21230337386,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "talos_urdf",
+      "normalized_task_residual_p95": 0.991240597094,
+      "raw_task_residual_p95": 4.625384788873,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.140844789081,
+      "target_translation_error_p95": 0.476061922241,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "toddlerbot_2xc_mjcf",
+      "normalized_task_residual_p95": 0.993365489497,
+      "raw_task_residual_p95": 3.044114802385,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.111490265174,
+      "target_translation_error_p95": 0.151063643629,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "toddlerbot_2xm_mjcf",
+      "normalized_task_residual_p95": 0.993365462775,
+      "raw_task_residual_p95": 3.044111852415,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.111189078097,
+      "target_translation_error_p95": 0.151008465205,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "toddlerbot_urdf",
+      "normalized_task_residual_p95": 0.992683756445,
+      "raw_task_residual_p95": 3.043615629452,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.112076254322,
+      "target_translation_error_p95": 0.151409722985,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "unitree_g1_mjcf",
+      "normalized_task_residual_p95": 0.998857144385,
+      "raw_task_residual_p95": 3.529880784959,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.124294330604,
+      "target_translation_error_p95": 0.345362428637,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "unitree_g1_urdf",
+      "normalized_task_residual_p95": 0.99870148454,
+      "raw_task_residual_p95": 3.584184893497,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.124657129114,
+      "target_translation_error_p95": 0.341973780911,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "unitree_h1_2_mjcf",
+      "normalized_task_residual_p95": 0.999194880583,
+      "raw_task_residual_p95": 4.04754712444,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.241131160441,
+      "target_translation_error_p95": 0.550410299806,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "unitree_h1_2_urdf",
+      "normalized_task_residual_p95": 0.999194418727,
+      "raw_task_residual_p95": 4.047159255637,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.241131150858,
+      "target_translation_error_p95": 0.550410257967,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "unitree_h1_mjcf",
+      "normalized_task_residual_p95": 0.99388941192,
+      "raw_task_residual_p95": 4.229655786221,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.223905523056,
+      "target_translation_error_p95": 0.562865381865,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "unitree_h1_urdf",
+      "normalized_task_residual_p95": 0.993889411196,
+      "raw_task_residual_p95": 4.229655702752,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.223905516311,
+      "target_translation_error_p95": 0.562865381865,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    },
+    {
+      "anchor_reliability_score": 1.0,
+      "blocker_buckets": [
+        "rotation_residual_dominates",
+        "residual_normalization_scale_issue"
+      ],
+      "dominant_residual_component": "rotation",
+      "dominant_residual_semantic": "Hips",
+      "model_id": "valkyrie_urdf",
+      "normalized_task_residual_p95": 0.994461398269,
+      "raw_task_residual_p95": 5.415272599716,
+      "recommended_next_action": "continue global semantic task/anchor work; avoid robot-specific tuning",
+      "runtime_quality_status": "runtime_quality_warned",
+      "target_rotation_error_p95": 1.077594096921,
+      "target_translation_error_p95": 0.707500910735,
+      "task_coverage_ratio": 1.0,
+      "warning_reasons": [
+        "high_task_residual",
+        "normalized_task_residual_p95_above_pass_gate",
+        "normalized_task_residual_p95_above_warn_gate",
+        "target_stream_jump"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "step": "step4_full_pipeline_acceptance"
+}

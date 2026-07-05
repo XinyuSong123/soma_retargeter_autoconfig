@@ -2,13 +2,13 @@
 
 ## 1. Branch and provenance
 - Branch: `retargeting-v3-step4-4-release-quality-v2-validation`
-- Final HEAD: pending final pushed commit
+- Final HEAD: `eebbfc138a7a668ca15219cb243ccaa04b2b2992`
 - Baseline Step 4.3 branch: `retargeting-v3-step4-3-normalized-residual-gate-reconciliation`
 - Baseline Step 4.3 artifact dir: `artifacts/retargeting_v3_step4_3_normalized_residual_gate_reconciliation/`
 - Step 4.4 artifact dir: `artifacts/retargeting_v3_step4_4_release_quality_v2_validation/`
-- Workflow run id: pending final-head CI
-- Workflow conclusion: pending final-head CI
-- Job conclusions: pending final-head CI
+- Workflow run id: `28740291675`
+- Workflow conclusion: `success`
+- Job conclusions: `step4-4-static-and-unit=success`, `step4-4-artifact-audit=success`, `step4-4-release-quality-v2-validation-smoke=success`, `step4-4-candidate-stability-smoke=success`, `step4-4-export-and-temporal-smoke=success`, `step4-4-lfs-and-snapshot-smoke=success`, `step4-4-pipeline-controls-reference=success`, `step4-4-final-head-ci-evidence=success`
 - LFS fsck result: `Git LFS fsck OK`
 
 ## 2. Final verdict
@@ -57,7 +57,7 @@
 - Temporal/support/contact/collision: `128` finite temporal diagnostics, `128` support/contact diagnostics, `128` collision proxy diagnostics.
 
 ## 9. Audit and tests
-- Strict audit result: currently `BLOCKED_CI_OR_PROVENANCE` until final-head CI evidence is written; local non-strict audit is `PASS_RC` with `blocking_count = 0`.
+- Strict audit result: `PASS_RC`, `blocking_count = 0`; local non-strict audit is also `PASS_RC` with `blocking_count = 0`.
 - Focused tests result: `63 passed` for Step 4.4/4.3/4.2 focused tests; Step 4.4-only collection has 22 tests.
 - Test files added: `test_step4_4_release_quality_v2_validation_audit.py`, `test_step4_4_release_quality_v2_validation_artifact_schema.py`, `test_step4_4_release_quality_v2_validation_candidate_counts.py`, `test_step4_4_release_quality_v2_validation_stress.py`, `test_step4_4_release_quality_v2_validation_promotion_readiness.py`, `test_step4_4_release_quality_v2_validation_no_robot_specific_tuning.py`, `test_step4_4_release_quality_v2_validation_status_semantics.py`, `test_step4_4_release_quality_v2_validation_determinism.py`
 - Workflow jobs: `step4-4-static-and-unit`, `step4-4-artifact-audit`, `step4-4-release-quality-v2-validation-smoke`, `step4-4-candidate-stability-smoke`, `step4-4-export-and-temporal-smoke`, `step4-4-lfs-and-snapshot-smoke`, `step4-4-pipeline-controls-reference`, `step4-4-final-head-ci-evidence`

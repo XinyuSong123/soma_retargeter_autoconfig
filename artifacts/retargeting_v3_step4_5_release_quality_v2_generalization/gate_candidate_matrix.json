@@ -1,0 +1,128 @@
+{
+  "candidate_count": 7,
+  "candidate_release_gate_thresholds": {
+    "fixed_global_scale": 4.268140459384,
+    "metric": "orientation_integrated_fixed_global_scale_residual_p95",
+    "pass": 0.45,
+    "warn": 0.6
+  },
+  "legacy_pass_gate_thresholds_unchanged": true,
+  "legacy_warn_gate_thresholds_unchanged": true,
+  "normalization_candidate_reference": "candidate_1_fixed_global_body_scale_normalization",
+  "rows": [
+    {
+      "accepted": false,
+      "candidate_id": "candidate_0_current_legacy_normalized_gate",
+      "candidate_pass_gate": 0.15,
+      "candidate_warn_gate": 0.6,
+      "legacy_gates_unchanged": true,
+      "legacy_runtime_quality_passed_count_affected": 0,
+      "metric_distribution": {
+        "max": 0.999582264858,
+        "median": 0.991962176769,
+        "p95": 0.999194626562
+      },
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "unchanged_legacy_gate_blocks_all_rows"
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_1_fixed_global_body_scale_normalization",
+      "candidate_pass_gate": 0.15,
+      "candidate_warn_gate": 0.6,
+      "legacy_gates_unchanged": true,
+      "legacy_runtime_quality_passed_count_affected": 0,
+      "metric_distribution": {
+        "max": 1.310066651777,
+        "median": 0.948270852038,
+        "p95": 1.283737192091
+      },
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "normalization_candidate_only_not_full_gate_policy"
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_2_semantic_task_scale_normalization",
+      "candidate_pass_gate": 0.15,
+      "candidate_warn_gate": 0.6,
+      "legacy_gates_unchanged": true,
+      "legacy_runtime_quality_passed_count_affected": 0,
+      "metric_distribution": {
+        "max": 1.310066651777,
+        "median": 0.948270852038,
+        "p95": 1.283737192091
+      },
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "diagnostic_only_pending_task_level_semantics"
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_3_orientation_integrated_scale_normalization",
+      "candidate_pass_gate": 0.15,
+      "candidate_warn_gate": 0.6,
+      "legacy_gates_unchanged": true,
+      "legacy_runtime_quality_passed_count_affected": 0,
+      "metric_distribution": {
+        "max": 0.889922580279,
+        "median": 0.644156266634,
+        "p95": 0.872037092797
+      },
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 11,
+      "selection_status": "too_permissive_as_standalone_gate"
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_4_raw_residual_percentile_gate_diagnostic",
+      "candidate_pass_gate": 1.920663206723,
+      "candidate_warn_gate": 2.56088427563,
+      "legacy_gates_unchanged": true,
+      "legacy_runtime_quality_passed_count_affected": 0,
+      "metric_distribution": {
+        "max": 5.591548480938,
+        "median": 4.047353190038,
+        "p95": 5.479170648781
+      },
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "raw_diagnostic_not_old_runtime_pass"
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_5_two_metric_gate_raw_plus_normalized",
+      "candidate_pass_gate": 0.15,
+      "candidate_warn_gate": 0.6,
+      "legacy_gates_unchanged": true,
+      "legacy_runtime_quality_passed_count_affected": 0,
+      "metric_distribution": {
+        "max": 1.310066651777,
+        "median": 0.998531039119,
+        "p95": 1.283737192091
+      },
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "safe_but_no_breakthrough"
+    },
+    {
+      "accepted": true,
+      "candidate_id": "candidate_6_release_quality_gate_v2_candidate",
+      "candidate_pass_gate": 0.45,
+      "candidate_warn_gate": 0.6,
+      "legacy_gates_unchanged": true,
+      "legacy_runtime_quality_passed_count_affected": 0,
+      "metric_distribution": {
+        "max": 1.310066651777,
+        "median": 0.948270852038,
+        "p95": 1.283737192091
+      },
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "selected_release_quality_v2_candidate"
+    }
+  ],
+  "schema_version": 1,
+  "selected_candidate": "candidate_6_release_quality_gate_v2_candidate"
+}

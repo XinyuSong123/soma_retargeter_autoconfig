@@ -1,0 +1,158 @@
+{
+  "candidate_count": 7,
+  "global_selection": true,
+  "robot_specific_tuning_used": false,
+  "rows": [
+    {
+      "accepted": false,
+      "candidate_id": "candidate_0_current_legacy_normalized_gate",
+      "denominator_inflation_detected": false,
+      "denominator_policy": "legacy row-local max denominator",
+      "distribution": {
+        "max": 0.999582264858,
+        "median": 0.991962176769,
+        "p95": 0.999194626562
+      },
+      "global_policy": true,
+      "metric_name": "normalized_task_residual_p95",
+      "normalization_hides_raw_residual_regression": false,
+      "raw_residual_retained": true,
+      "robot_specific_tuning_used": false,
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "rejected_scale_saturates_near_one",
+      "uses_clip_id_threshold": false,
+      "uses_model_id_threshold": false
+    },
+    {
+      "accepted": true,
+      "candidate_id": "candidate_1_fixed_global_body_scale_normalization",
+      "denominator_inflation_detected": false,
+      "denominator_policy": "fixed closed Step 4.1 global raw p95 denominator",
+      "distribution": {
+        "max": 1.310066651777,
+        "median": 0.948270852038,
+        "p95": 1.283737192091
+      },
+      "global_policy": true,
+      "metric_name": "orientation_integrated_fixed_global_scale_residual_p95",
+      "normalization_hides_raw_residual_regression": false,
+      "raw_residual_retained": true,
+      "robot_specific_tuning_used": false,
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "selected_for_release_quality_v2_gate_candidate",
+      "uses_clip_id_threshold": false,
+      "uses_model_id_threshold": false
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_2_semantic_task_scale_normalization",
+      "denominator_inflation_detected": false,
+      "denominator_policy": "global per-semantic scale; diagnostic because release semantics need per-task acceptance proof",
+      "distribution": {
+        "max": 1.299746604095,
+        "median": 0.940800850115,
+        "p95": 1.27362455468
+      },
+      "global_policy": true,
+      "metric_name": "semantic_task_scale_residual_p95",
+      "normalization_hides_raw_residual_regression": false,
+      "raw_residual_retained": true,
+      "robot_specific_tuning_used": false,
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "diagnostic_only_semantic_scale_needs_task_level_contract",
+      "uses_clip_id_threshold": false,
+      "uses_model_id_threshold": false
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_3_orientation_integrated_scale_normalization",
+      "denominator_inflation_detected": false,
+      "denominator_policy": "fixed 2*pi orientation scale",
+      "distribution": {
+        "max": 0.889922580279,
+        "median": 0.644156266634,
+        "p95": 0.872037092797
+      },
+      "global_policy": true,
+      "metric_name": "orientation_integrated_two_pi_scale_residual_p95",
+      "normalization_hides_raw_residual_regression": false,
+      "raw_residual_retained": true,
+      "robot_specific_tuning_used": false,
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 11,
+      "selection_status": "diagnostic_only_mixes_translation_meters_and_rotation_radians",
+      "uses_clip_id_threshold": false,
+      "uses_model_id_threshold": false
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_4_raw_residual_percentile_gate_diagnostic",
+      "denominator_inflation_detected": false,
+      "denominator_policy": "raw residual percentile diagnostic with no normalization",
+      "distribution": {
+        "max": 5.591548480938,
+        "median": 4.047353190038,
+        "p95": 5.479170648781
+      },
+      "global_policy": true,
+      "metric_name": "raw_task_residual_p95",
+      "normalization_hides_raw_residual_regression": false,
+      "raw_residual_retained": true,
+      "robot_specific_tuning_used": false,
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 21,
+      "selection_status": "diagnostic_only_not_a_normalization_policy",
+      "uses_clip_id_threshold": false,
+      "uses_model_id_threshold": false
+    },
+    {
+      "accepted": false,
+      "candidate_id": "candidate_5_two_metric_gate_raw_plus_normalized",
+      "denominator_inflation_detected": false,
+      "denominator_policy": "requires legacy normalized warn plus raw fixed-scale guard",
+      "distribution": {
+        "max": 0.999582264858,
+        "median": 0.991962176769,
+        "p95": 0.999194626562
+      },
+      "global_policy": true,
+      "metric_name": "legacy_normalized_and_raw_residual_p95",
+      "normalization_hides_raw_residual_regression": false,
+      "raw_residual_retained": true,
+      "robot_specific_tuning_used": false,
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "safe_but_no_gate_breakthrough",
+      "uses_clip_id_threshold": false,
+      "uses_model_id_threshold": false
+    },
+    {
+      "accepted": true,
+      "candidate_id": "candidate_6_release_quality_gate_v2_candidate",
+      "denominator_inflation_detected": false,
+      "denominator_policy": "hard safety unchanged plus fixed-global active residual release-quality gate",
+      "distribution": {
+        "max": 1.310066651777,
+        "median": 0.948270852038,
+        "p95": 1.283737192091
+      },
+      "global_policy": true,
+      "metric_name": "orientation_integrated_fixed_global_scale_residual_p95",
+      "normalization_hides_raw_residual_regression": false,
+      "raw_residual_retained": true,
+      "robot_specific_tuning_used": false,
+      "rows_below_pass_gate_count": 0,
+      "rows_below_warn_gate_count": 0,
+      "selection_status": "selected_gate_semantics_uses_candidate_1_metric",
+      "uses_clip_id_threshold": false,
+      "uses_model_id_threshold": false
+    }
+  ],
+  "schema_version": 1,
+  "selected_candidate": "candidate_1_fixed_global_body_scale_normalization",
+  "uses_clip_id_thresholds": false,
+  "uses_model_id_thresholds": false
+}

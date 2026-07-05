@@ -1,0 +1,22 @@
+{
+  "candidate_warned_generalization_passed": false,
+  "decision": "keep_diagnostic_only",
+  "hips_root_rotation_blocker_status": "BLOCKED_HIPS_ROTATION_RESIDUAL",
+  "legacy_gates_unchanged": true,
+  "mean_aggregation_diagnostic_only": true,
+  "production_default_change_allowed": false,
+  "promote_to_release_candidate_gate": false,
+  "raw_residual_retained": true,
+  "runtime_override_default_enabled": false,
+  "schema_version": 1,
+  "step": "step4_5_release_quality_v2_generalization",
+  "strict_worst_clip_p95_policy_supported": false,
+  "task_class_weighting_counted": false,
+  "task_level_residual_contract_status": "defined_audited_diagnostic_only",
+  "why": [
+    "The original Step 4.3 candidate-warned rows do not remain stable under the expanded worst-clip/p95 guard.",
+    "None of the three newly Step 4.4 candidate-warned rows survives the expanded worst-clip/p95 guard.",
+    "The strictly audited global policy does not reduce candidate-blocked count relative to Step 4.4.",
+    "Hips/root rotation residual remains the dominant localized residual blocker."
+  ]
+}
