@@ -10,7 +10,8 @@
 
 1. `git fetch --all --prune`，列出所有本地/远端分支、开放和已合并 PR、各自 head SHA、merge-base、提交范围和改动文件。
 2. 至少审计当前已知的开发线：
-   - `dev`；
+   - `main`：只读稳定基线；必须识别并吸收 merge-base 之后所有尚未进入 `dev` 的有效提交，但绝不能反向写入或重置 `main`；
+   - `dev`：唯一的大版本集成与实施分支；
    - 已合并到 `dev` 的 contact-aware foot IK PR #1、#2；
    - `retargeting-v3-step2-integrated-review`；
    - `retargeting-v3-step2-assets-clean-sync`；
